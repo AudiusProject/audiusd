@@ -82,7 +82,7 @@ build-audiusd-local:
 	docker build --build-arg GIT_SHA=$(AD_TAG) -t audius/audiusd:$(AD_TAG) -t audius/audiusd:local -f ./cmd/audiusd/Dockerfile ./
 
 build-push-audiusd:
-	DOCKER_DEFAULT_PLATFORM=linux/amd64 docker build --build-arg GIT_SHA=$(AD_TAG) --push -t audius/audiusd:$(AD_TAG) -f ./cmd/audiusd/Dockerfile ./
+	docker buildx build --platform linux/amd64 --push --build-arg GIT_SHA=$(AD_TAG) -t audius/audiusd:$(AD_TAG) -f ./cmd/audiusd/Dockerfile ./
 
 build-push-cpp:
 	docker buildx build --platform linux/amd64,linux/arm64 --push -t audius/cpp:bookworm -f ./cmd/audiusd/Dockerfile.deps ./
