@@ -65,7 +65,15 @@ For this to function correctly, your service must be:
 - publicly accessible via the URL specified under `creatorNodeEndpoint` or `audius_discprov_url`
 - reachable on both port `80` and port `443`
 
-**CUSTOM SETUPS**
+### CLOUDFLARE PROXY
+
+When using Cloudflare Proxy with auto TLS, you must use self-signed certificates:
+- Set `AUDIUSD_TLS_SELF_SIGNED=true` in your environment
+- You can enable Cloudflare proxy immediately as it will use the self-signed certificate
+
+Self-signed certificates are required for Cloudflare Proxy, as the LetsEncrypt challenge cannot be with strict proxy mode. See Cloudflare [ssl-mode docs](https://developers.cloudflare.com/ssl/origin-configuration/ssl-modes/) for more details.
+
+### CUSTOM SETUPS
 
 ```
 # if you handle your own SSL termination, you can disable TLS
@@ -75,17 +83,6 @@ AUDIUSD_TLS_DISABLED=true
 AUDIUSD_HTTP_PORT=80
 AUDIUSD_HTTPS_PORT=443
 ```
-
-**CLOUDFLARE PROXY**
-
-> TODO: Support self signed certs.
-
-If you are using Cloudflare Proxy, and want to use auto TLS, you will need to start with DNS-only mode:
-   - Configure Cloudflare in DNS-only mode initially (not proxied)
-   - Let the node obtain its LetsEncrypt certificate (requires HTTP access)
-   - Once certificate is obtained, you can enable Cloudflare proxy
-
-See Cloudflare [ssl-mode docs](https://developers.cloudflare.com/ssl/origin-configuration/ssl-modes/) for more details.
 
 ## Development
 
