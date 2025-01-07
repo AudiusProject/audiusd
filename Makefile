@@ -159,6 +159,14 @@ $(SQL_ARTIFACTS): $(SQL_SRCS)
 regen-go:
 	cd pkg/core && go generate ./...
 
+.PHONY: test-down
+test-down:
+	@docker compose \
+    	--file='dev-tools/compose/docker-compose.test.yml' \
+        --project-name='audiusd-test' \
+        --project-directory='./' \
+		--profile=* \
+        down -v
 
 ##############
 ## MEDIORUM ##

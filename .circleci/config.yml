@@ -117,6 +117,11 @@ jobs:
       - run:
           name: Run core tests from Makefile
           command: make core-test
+      - run:
+          name: cleanup
+          no_output_timeout: 5m
+          command: make test-down
+          when: always
 
   test-mediorum:
     machine: true
@@ -127,6 +132,11 @@ jobs:
       - run:
           name: Run mediorum tests from Makefile
           command: make mediorum-test
+      - run:
+          name: cleanup
+          no_output_timeout: 5m
+          command: make test-down
+          when: always
 
   test-audiusd-devnet:
     machine:
