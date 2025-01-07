@@ -307,18 +307,10 @@ workflows:
           context: github
           requires:
             - build-audius-ctl
-      - publish-audius-ctl:
-          context: github
-          requires:
-            - test-config-subcommands
-          filters:
-            branches:
-              only:
-                - main
       - test-core
       - test-mediorum
       - build-audiusd:
-          context: github
+          context: [github, dockerhub]
           requires:
             - test-core
             - test-mediorum
