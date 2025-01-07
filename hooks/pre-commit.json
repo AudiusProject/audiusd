@@ -6,11 +6,7 @@
     },
     {
       "name": "Recreate generated go files",
-      "command": "make gen",
-      "onlyOn": [
-          "pkg/**",
-          "cmd/**"
-      ]
+      "command": "make gen"
     }
   ]
 }
