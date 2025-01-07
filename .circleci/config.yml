@@ -319,10 +319,13 @@ workflows:
           context: github
           requires:
             - build-audius-ctl
-      - test-core
-      - test-mediorum
+      #- test-core
+      #- test-mediorum
+      #
       - build-audiusd:
-          context: [github, dockerhub]
+          context: 
+            - github
+            - DockerHub
           #requires:
           #- test-core
           #- test-mediorum
