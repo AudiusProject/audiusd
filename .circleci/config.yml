@@ -30,9 +30,7 @@ commands:
     steps:
       - run:
           name: Docker login
-          command: |
-            [ -z "$DOCKERHUB_USERNAME" ] && echo 'empty username supplied'
-            echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+          command: echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
   docker-logout:
     steps:
       - run:
@@ -319,16 +317,15 @@ workflows:
           context: github
           requires:
             - build-audius-ctl
-      #- test-core
-      #- test-mediorum
-      #
+      - test-core
+      - test-mediorum
       - build-audiusd:
           context: 
             - github
             - DockerHub
-          #requires:
-          #- test-core
-          #- test-mediorum
+          requires:
+            - test-core
+            - test-mediorum
       - deploy-audiusd-staging:
           context: 
             - github
