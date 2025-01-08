@@ -73,38 +73,69 @@ jobs:
           paths:
             - bin/audius-ctl*
 
-  build-audiusd:
+  build-audiusd-amd64:
     machine: true
-    resource_class: audiusproject/gcp-n2-standard-4
+    resource_class: audiusproject/gcp-n2-standard-4  # AMD64 machine
     working_directory: ~/audiusd
     steps:
       - checkout
       - docker-login
       - run:
-          name: Build audius-d wrapper image
-          command: |
-            IMAGE_TAG="$(sha1sum pkg/orchestration/Dockerfile | awk '{print $1}')"
-            DOCKER_IMAGE="audius/audius-d:$IMAGE_TAG"
-
-            if docker buildx imagetools inspect $DOCKER_IMAGE >/dev/null 2>&1; then
-              echo "Docker image $DOCKER_IMAGE already exists. Skipping build."
-            else
-              echo "Docker image $DOCKER_IMAGE not found. Building and pushing..."
-              docker buildx create --use
-              make build-push-wrapper WRAPPER_TAG="$IMAGE_TAG"
-              docker buildx rm
-            fi
-      - run:
-          name: Build audiusd image
+          name: Build AMD64 Image
           command: |
             DOCKER_IMAGE="audius/audiusd:${CIRCLE_SHA1}"
-            echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
-            
             if docker buildx imagetools inspect $DOCKER_IMAGE >/dev/null 2>&1; then
               echo "Docker image $DOCKER_IMAGE already exists. Skipping build."
             else
-              echo "Docker image $DOCKER_IMAGE not found. Building and pushing..."
-              make build-push-audiusd AD_TAG="$CIRCLE_SHA1"
+              echo "Building AMD64 image..."
+              DOCKER_DEFAULT_PLATFORM=linux/amd64 docker build \
+                --build-arg GIT_SHA=${CIRCLE_SHA1} \
+                -t audius/audiusd:${CIRCLE_SHA1}-amd64 \
+                -f ./cmd/audiusd/Dockerfile ./
+              docker push audius/audiusd:${CIRCLE_SHA1}-amd64
+            fi
+      - docker-logout
+
+  build-audiusd-arm64:
+    machine: true
+    resource_class: arm.medium  # ARM64 machine
+    working_directory: ~/audiusd
+    steps:
+      - checkout
+      - docker-login
+      - run:
+          name: Build ARM64 Image
+          command: |
+            DOCKER_IMAGE="audius/audiusd:${CIRCLE_SHA1}"
+            if docker buildx imagetools inspect $DOCKER_IMAGE >/dev/null 2>&1; then
+              echo "Docker image $DOCKER_IMAGE already exists. Skipping build."
+            else
+              echo "Building ARM64 image..."
+              DOCKER_DEFAULT_PLATFORM=linux/arm64 docker build \
+                --build-arg GIT_SHA=${CIRCLE_SHA1} \
+                -t audius/audiusd:${CIRCLE_SHA1}-arm64 \
+                -f ./cmd/audiusd/Dockerfile ./
+              docker push audius/audiusd:${CIRCLE_SHA1}-arm64
+            fi
+      - docker-logout
+
+  create-manifest:
+    docker:
+      - image: cimg/base:current
+    steps:
+      - setup_remote_docker
+      - docker-login
+      - run:
+          name: Create and Push Multi-arch Manifest
+          command: |
+            DOCKER_IMAGE="audius/audiusd:${CIRCLE_SHA1}"
+            if docker buildx imagetools inspect $DOCKER_IMAGE >/dev/null 2>&1; then
+              echo "Manifest already exists. Skipping."
+            else
+              docker manifest create audius/audiusd:${CIRCLE_SHA1} \
+                audius/audiusd:${CIRCLE_SHA1}-amd64 \
+                audius/audiusd:${CIRCLE_SHA1}-arm64
+              docker manifest push audius/audiusd:${CIRCLE_SHA1}
             fi
       - docker-logout
 
@@ -319,19 +350,33 @@ workflows:
             - build-audius-ctl
       - test-core
       - test-mediorum
-      - build-audiusd:
+      - build-audiusd-amd64:
           context: 
             - github
             - DockerHub
           requires:
             - test-core
             - test-mediorum
+      - build-audiusd-arm64:
+          context: 
+            - github
+            - DockerHub
+          requires:
+            - test-core
+            - test-mediorum
+      - create-manifest:
+          context: 
+            - github
+            - DockerHub
+          requires:
+            - build-audiusd-amd64
+            - build-audiusd-arm64
       - deploy-audiusd-staging:
           context: 
             - github
             - DockerHub
           requires:
-            - build-audiusd
+            - create-manifest
           filters:
             branches:
               only:
