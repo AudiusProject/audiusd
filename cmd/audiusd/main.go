@@ -222,23 +222,24 @@ func getEchoServerConfig(hostUrl *url.URL) serverConfig {
 	httpsPort := getEnvString("AUDIUSD_HTTPS_PORT", "443")
 	hostname := hostUrl.Hostname()
 
-	// TODO: Work out of the box for altego.net, but allow override
+	// TODO: this is all gross
 	if hostname == "altego.net" && httpPort == "80" && httpsPort == "443" {
 		httpPort = "5000"
 	}
 
-	// TODO: this is perhaps back to front,
-	// but the far greater majority of current nodes use auto-tls
-	// and we desired minimal default configuration
 	tlsEnabled := true
 	switch {
 	case os.Getenv("AUDIUSD_TLS_DISABLED") == "true":
 		tlsEnabled = false
-	case os.Getenv("AUDIUSD_TLS_SELF_SIGNED") == "false":
+	case hasSuffix(hostname, []string{"altego.net", "bdnodes.net", "staked.cloud"}):
 		tlsEnabled = false
-	case hasSuffix(hostname, []string{"localhost", "altego.net", "bdnodes.net", "staked.cloud"}):
-		tlsEnabled = false
+	case hostname == "localhost":
+		tlsEnabled = true
+		if os.Getenv("AUDIUSD_TLS_SELF_SIGNED") == "" {
+			os.Setenv("AUDIUSD_TLS_SELF_SIGNED", "true")
+		}
 	}
+	// end gross
 
 	return serverConfig{
 		httpPort:   httpPort,
@@ -307,27 +308,40 @@ func startWithTLS(e *echo.Echo, httpPort, httpsPort string, hostUrl *url.URL, lo
 		logger.Info("Using self-signed certificate")
 		cert, key, err := generateSelfSignedCert(hostUrl.Hostname())
 		if err != nil {
+			logger.Errorf("Failed to generate self-signed certificate: %v", err)
 			return fmt.Errorf("failed to generate self-signed certificate: %v", err)
 		}
 
 		certDir := getEnvString("audius_core_root_dir", "/audius-core") + "/echo/certs"
-		os.MkdirAll(certDir, 0755)
+		logger.Infof("Creating certificate directory: %s", certDir)
+		if err := os.MkdirAll(certDir, 0755); err != nil {
+			logger.Errorf("Failed to create certificate directory: %v", err)
+			return fmt.Errorf("failed to create certificate directory: %v", err)
+		}
 
 		certFile := certDir + "/cert.pem"
 		keyFile := certDir + "/key.pem"
 
+		logger.Infof("Writing certificate to: %s", certFile)
 		if err := os.WriteFile(certFile, cert, 0644); err != nil {
+			logger.Errorf("Failed to write cert file: %v", err)
 			return fmt.Errorf("failed to write cert file: %v", err)
 		}
+
+		logger.Infof("Writing private key to: %s", keyFile)
 		if err := os.WriteFile(keyFile, key, 0600); err != nil {
+			logger.Errorf("Failed to write key file: %v", err)
 			return fmt.Errorf("failed to write key file: %v", err)
 		}
 
+		logger.Infof("Starting HTTPS server on port %s", httpsPort)
 		go func() {
-			if err := e.StartTLS(":"+httpsPort, certFile, keyFile); err != nil {
+			if err := e.StartTLS(":"+httpsPort, certFile, keyFile); err != nil && err != http.ErrServerClosed {
 				logger.Errorf("Failed to start HTTPS server: %v", err)
 			}
 		}()
+
+		logger.Infof("Starting HTTP server on port %s", httpPort)
 		return e.Start(":" + httpPort)
 	}
 

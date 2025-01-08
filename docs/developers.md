@@ -1,24 +1,20 @@
 # Development
 
-## Run
-
-Minimal example to run a node and sync it to the audius mainnet.
-
 ```bash
-docker run --rm -it -p 80:80 audius/audiusd:current
-
-open http://localhost/console/overview
-```
-
-## Build
-
-```
+# build a local node
 make build-audiusd-local
 
-# sync a local node to stage
-docker run --rm -it -p 80:80 -e NETWORK=stage  audius/audiusd:$(git rev-parse HEAD)
-open http://localhost/console/overview
+# sync a locally built node to stage
+docker run --rm -it -p 80:80 -p 443:443 -e NETWORK=stage audius/audiusd:local
 
-# network defaults to prod out of box, for an unregistered, RPC mainnet node
-docker run --rm -it -p 80:80  audius/audiusd:local
+# sync a locally built node to prod
+docker run --rm -it -p 80:80 -p 443:443 audius/audiusd:local
+
+# health check
+curl http://localhost/health-check
+curl -k https://localhost/health-check
+
+# view in browser
+open http://localhost/console/overview
+open https://localhost/console/overview
 ```

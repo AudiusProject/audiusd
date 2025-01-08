@@ -15,6 +15,6 @@ Shape how decentralized global music distribution works.
 ### Quickstart
 
 ```bash
-docker run --rm -it -p 80:80 audius/audiusd:current
-open http://localhost/console/overview
+docker run --rm -it -p 80:80 -p 443:443 audius/audiusd:current
+open https://localhost/console/overview
 ```
