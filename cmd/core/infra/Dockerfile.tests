@@ -1,6 +1,16 @@
+# Build stage for dependencies
+FROM golang:alpine AS builder
+
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Final test stage
 FROM golang:alpine
 
 WORKDIR /app
+COPY --from=builder /go/pkg /go/pkg
+COPY . .
 
 ENV discoveryOneGRPC=audiusd-1:50051
 ENV discoveryOneJRPC=http://audiusd-1:26657
@@ -17,7 +27,5 @@ ENV contentTwoOAPI=audiusd-3:26659
 ENV contentThreeGRPC=audiusd-4:50051
 ENV contentThreeJRPC=http://audiusd-4:26657
 ENV contentThreeOAPI=audiusd-4:26659
-
-COPY . .
 
 CMD go test ./pkg/core/... -count 1 -timeout 60s
