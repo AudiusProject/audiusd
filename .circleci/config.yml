@@ -130,14 +130,31 @@ jobs:
     working_directory: ~/audiusd
     steps:
       - checkout
+      - docker-login
+      - run:
+          name: Set up Docker Buildx
+          command: |
+            docker buildx create --name multiarch \
+              --driver docker-container \
+              --driver-opt network=host \
+              --use
+            docker buildx inspect --bootstrap
       - run:
           name: Run core tests from Makefile
-          command: make core-test
+          command: |
+            DOCKER_BUILD_ARGS="--cache-from=type=registry,ref=audius/core-test:buildcache \
+                              --cache-to=type=registry,ref=audius/core-test:buildcache,mode=max" \
+            make core-test
+      - run:
+          name: Clean up Docker Buildx
+          command: docker buildx rm multiarch
+          when: always
       - run:
           name: cleanup
           no_output_timeout: 5m
           command: make test-down
           when: always
+      - docker-logout
 
   test-mediorum:
     machine: true
@@ -145,14 +162,31 @@ jobs:
     working_directory: ~/audiusd
     steps:
       - checkout
+      - docker-login
+      - run:
+          name: Set up Docker Buildx
+          command: |
+            docker buildx create --name multiarch \
+              --driver docker-container \
+              --driver-opt network=host \
+              --use
+            docker buildx inspect --bootstrap
       - run:
           name: Run mediorum tests from Makefile
-          command: make mediorum-test
+          command: |
+            DOCKER_BUILD_ARGS="--cache-from=type=registry,ref=audius/mediorum-test:buildcache \
+                              --cache-to=type=registry,ref=audius/mediorum-test:buildcache,mode=max" \
+            make mediorum-test
+      - run:
+          name: Clean up Docker Buildx
+          command: docker buildx rm multiarch
+          when: always
       - run:
           name: cleanup
           no_output_timeout: 5m
           command: make test-down
           when: always
+      - docker-logout
 
   test-audiusd-devnet:
     machine:
@@ -333,8 +367,10 @@ workflows:
           context: github
           requires:
             - build-audius-ctl
-      - test-core
-      - test-mediorum
+      - test-core:
+          context: DockerHub
+      - test-mediorum:
+          context: DockerHub
       - build-audiusd:
           context: 
             - github
