@@ -194,8 +194,6 @@ mediorum-test:
     	--file='dev-tools/compose/docker-compose.test.yml' \
         --project-name='audiusd-test' \
         --project-directory='./' \
-        --build-arg BUILDKIT_INLINE_CACHE=1 \
-        $(DOCKER_BUILD_ARGS) \
         run --rm --build test-mediorum-unittests test
 	@echo 'Tests successful. Spinning down containers...'
 	@docker compose \
@@ -229,8 +227,6 @@ core-test:
     	--file='dev-tools/compose/docker-compose.test.yml' \
         --project-name='audiusd-test' \
         --project-directory='./' \
-        --build-arg BUILDKIT_INLINE_CACHE=1 \
-        $(DOCKER_BUILD_ARGS) \
         run --rm --build test-core test
 	@echo 'Tests successful. Spinning down containers...'
 	@docker compose \
