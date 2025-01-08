@@ -1,5 +1,7 @@
 # audiusd
 
+[![CircleCI](https://dl.circleci.com/status-badge/img/gh/AudiusProject/audiusd/tree/main.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/AudiusProject/audiusd/tree/main)
+
 A golang implementation of the audius protocol.
 
 ## Quickstart
