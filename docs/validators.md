@@ -3,7 +3,7 @@
 Create a directory on your node for persistent data and configuration.
 
 ```bash
-ssh <user>@<your>.<nodes>.<ip>.<address>
+ssh user@node.ip.addr.ess
 mkdir ~/audiusd
 ```
 
@@ -107,4 +107,34 @@ AUDIUSD_TLS_DISABLED=true
 # Optional: Configure custom ports
 AUDIUSD_HTTP_PORT=80     # Default
 AUDIUSD_HTTPS_PORT=443   # Default
+```
+
+## Health Check
+
+```bash
+curl https://your-node.example.com/health-check | jq .
+
+# values are examples
+{
+  "core": {
+    "chainId": "audius-mainnet",
+    "cometAddress": "1A2B3C4D5E6F7G8H9I0J1K2L3M4N5O6P7Q8R",
+    "errors": [],
+    "ethAddress": "0x1234567890123456789012345678901234567890",
+    "healthy": true,
+    "totalBlocks": 123456,
+    "totalTransactions": 789012
+  },
+  "git": "abcdef0123456789abcdef0123456789abcdef01",
+  "hostname": "your-node.example.com", 
+  "storage": {
+    # discovery nodes will have storage disabled
+    "enabled": false,
+    # content nodes will have storage enabled + additional fields
+    "enabled": true,
+    "...": "..."
+  },
+  "timestamp": "2024-01-01T12:00:00.000000000Z",
+  "uptime": "24h0m0.000000000s"
+}
 ```
