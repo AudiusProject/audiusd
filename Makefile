@@ -79,10 +79,28 @@ build-push-wrapper:
 
 .PHONY: build-audiusd-local build-push-audiusd build-push-cpp
 build-audiusd-local:
-	docker build --build-arg GIT_SHA=$(AD_TAG) -t audius/audiusd:$(AD_TAG) -t audius/audiusd:local -f ./cmd/audiusd/Dockerfile ./
+	DOCKER_DEFAULT_PLATFORM=linux/arm64 docker build --build-arg GIT_SHA=$(AD_TAG) -t audius/audiusd:$(AD_TAG) -t audius/audiusd:local -f ./cmd/audiusd/Dockerfile ./
 
 build-push-audiusd:
-	DOCKER_DEFAULT_PLATFORM=linux/amd64 docker build --build-arg GIT_SHA=$(AD_TAG) --push -t audius/audiusd:$(AD_TAG) -f ./cmd/audiusd/Dockerfile ./
+	# Build and push amd64
+	DOCKER_DEFAULT_PLATFORM=linux/amd64 docker build \
+		--build-arg GIT_SHA=$(AD_TAG) \
+		-t audius/audiusd:$(AD_TAG)-amd64 \
+		-f ./cmd/audiusd/Dockerfile ./
+	docker push audius/audiusd:$(AD_TAG)-amd64
+	
+	# Build and push arm64
+	DOCKER_DEFAULT_PLATFORM=linux/arm64 docker build \
+		--build-arg GIT_SHA=$(AD_TAG) \
+		-t audius/audiusd:$(AD_TAG)-arm64 \
+		-f ./cmd/audiusd/Dockerfile ./
+	docker push audius/audiusd:$(AD_TAG)-arm64
+	
+	# Create and push multi-arch manifest
+	docker manifest create audius/audiusd:$(AD_TAG) \
+		audius/audiusd:$(AD_TAG)-amd64 \
+		audius/audiusd:$(AD_TAG)-arm64
+	docker manifest push audius/audiusd:$(AD_TAG)
 
 build-push-cpp:
 	docker buildx build --platform linux/amd64,linux/arm64 --push -t audius/cpp:bookworm -f ./cmd/audiusd/Dockerfile.deps ./
