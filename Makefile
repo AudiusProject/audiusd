@@ -187,18 +187,7 @@ mediorum-dev:
 
 .PHONY: mediorum-test
 mediorum-test:
-	@docker compose \
-    	--file='dev-tools/compose/docker-compose.test.yml' \
-        --project-name='audiusd-test' \
-        --project-directory='./' \
-        run --rm --build test-mediorum-unittests test
-	@echo 'Tests successful. Spinning down containers...'
-	@docker compose \
-    	--file='dev-tools/compose/docker-compose.test.yml' \
-        --project-name='audiusd-test' \
-        --project-directory='./' \
-		--profile=* \
-        down -v
+	@dev-tools/test/run-mediorum-tests.sh
 
 ##########
 ## CORE ##
@@ -220,18 +209,7 @@ core-dev: gen
 
 .PHONY: core-test
 core-test:
-	@docker compose \
-    	--file='dev-tools/compose/docker-compose.test.yml' \
-        --project-name='audiusd-test' \
-        --project-directory='./' \
-        run --rm --build test-core test
-	@echo 'Tests successful. Spinning down containers...'
-	@docker compose \
-    	--file='dev-tools/compose/docker-compose.test.yml' \
-        --project-name='audiusd-test' \
-        --project-directory='./' \
-		--profile=* \
-        down -v
+	@dev-tools/test/run-core-tests.sh
 
 .PHONY: core-sandbox
 core-sandbox: core-build-amd64
