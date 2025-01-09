@@ -81,7 +81,7 @@ jobs:
 
   build-audiusd-amd64:
     machine: true
-    resource_class: audiusproject/gcp-n2-standard-4  # AMD64 machine
+    resource_class: audiusproject/gcp-n2-standard-4
     working_directory: ~/audiusd
     steps:
       - checkout
@@ -104,10 +104,15 @@ jobs:
 
   build-audiusd-arm64:
     machine: true
-    resource_class: arm.medium  # ARM64 machine
+    resource_class: arm.medium
     working_directory: ~/audiusd
     steps:
       - checkout
+      - restore_cache:
+          keys:
+            - docker-cache-arm-v1-{{ .Branch }}-{{ checksum "cmd/audiusd/Dockerfile" }}
+            - docker-cache-arm-v1-{{ .Branch }}
+            - docker-cache-arm-v1-
       - docker-login
       - run:
           name: Build ARM64 Image
@@ -117,20 +122,25 @@ jobs:
               echo "Docker image $DOCKER_IMAGE already exists. Skipping build."
             else
               echo "Building ARM64 image..."
-              # Pull the latest image to use as cache
-              docker pull audius/audiusd:latest-arm64 || true
+              # Load cached layers
+              [ -f /tmp/docker-cache/layers.tar ] && docker load -i /tmp/docker-cache/layers.tar || true
               
               DOCKER_DEFAULT_PLATFORM=linux/arm64 docker build \
                 --build-arg GIT_SHA=${CIRCLE_SHA1} \
-                --cache-from audius/audiusd:latest-arm64 \
                 -t audius/audiusd:${CIRCLE_SHA1}-arm64 \
-                -t audius/audiusd:latest-arm64 \
                 -f ./cmd/audiusd/Dockerfile ./
               
-              # Push both the SHA-tagged and latest images
+              # Save layers for next build
+              mkdir -p /tmp/docker-cache
+              docker save -o /tmp/docker-cache/layers.tar \
+                $(docker history -q audius/audiusd:${CIRCLE_SHA1}-arm64 | grep -v '<missing>')
+              
               docker push audius/audiusd:${CIRCLE_SHA1}-arm64
-              docker push audius/audiusd:latest-arm64
             fi
+      - save_cache:
+          key: docker-cache-arm-v1-{{ .Branch }}-{{ checksum "cmd/audiusd/Dockerfile" }}
+          paths:
+            - /tmp/docker-cache
       - docker-logout
 
   create-manifest:
