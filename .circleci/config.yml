@@ -51,19 +51,25 @@ commands:
 
 jobs:
   build-audius-ctl:
-    machine:
-      image: ubuntu-2204:current
+    docker:
+      - image: cimg/go:1.23
     resource_class: medium
     steps:
       - attach_workspace:
           at: ./
       - checkout
       - gh/setup
+      - restore_cache:
+          keys:
+            - go-mod-v1-{{ checksum "go.sum" }}
+            - go-mod-v1-
       - run:
-          name: install go
-          command: |
-            sudo apt-get update
-            sudo apt-get install -y golang
+          name: Download Go modules
+          command: go mod download
+      - save_cache:
+          key: go-mod-v1-{{ checksum "go.sum" }}
+          paths:
+            - /home/circleci/go/pkg/mod
       - run:
           name: Build audius-ctl for production
           command: |
