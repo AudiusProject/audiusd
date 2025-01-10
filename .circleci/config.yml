@@ -54,14 +54,18 @@ jobs:
     docker:
       - image: cimg/go:1.23
     resource_class: large
+    environment:
+      GOCACHE: /home/circleci/.cache/go-build
+      GOMODCACHE: /home/circleci/go/pkg/mod
+      GOFLAGS: "-trimpath -mod=readonly"
     steps:
       - checkout
       - restore_cache:
           keys:
             - go-mod-v1-{{ checksum "go.sum" }}
-            # Add fallback cache
             - go-mod-v1-
-      # Add explicit module download
+            - go-build-v1-{{ .Branch }}-{{ checksum "go.sum" }}
+            - go-build-v1-{{ .Branch }}
       - run:
           name: Download Go modules
           command: go mod download
@@ -69,19 +73,21 @@ jobs:
           key: go-mod-v1-{{ checksum "go.sum" }}
           paths:
             - /home/circleci/go/pkg/mod
-            # Add build cache
-            - ~/.cache/go-build
       - run:
           name: Build audiusd binaries
           command: |
-            GOOS=linux GOARCH=amd64 go build -o bin/audiusd-amd64 ./cmd/audiusd
-            GOOS=linux GOARCH=arm64 go build -o bin/audiusd-arm64 ./cmd/audiusd
+            # run builds in parallel
+            GOOS=linux GOARCH=amd64 go build -o bin/audiusd-amd64 ./cmd/audiusd &
+            GOOS=linux GOARCH=arm64 go build -o bin/audiusd-arm64 ./cmd/audiusd &
+            wait
+      - save_cache:
+          key: go-build-v1-{{ .Branch }}-{{ checksum "go.sum" }}
+          paths:
+            - /home/circleci/.cache/go-build
       - persist_to_workspace:
           root: ./
           paths:
             - bin/audiusd-*
-            - go.mod
-            - go.sum
 
   build-docker-amd64:
     machine: true

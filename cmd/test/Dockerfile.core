@@ -1,6 +1,5 @@
 FROM audius/test-base:latest
 
-# Copy source code
 COPY ./pkg/core ./pkg/core
 COPY ./pkg/shared ./pkg/shared
 
