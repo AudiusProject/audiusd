@@ -62,9 +62,7 @@ services:
       - core-tests
 
   audiusd-1:
-    build:
-      context: .
-      dockerfile: ./cmd/audiusd/Dockerfile
+    image: audius/audiusd:${CIRCLE_SHA1}-amd64
     env_file:
       - ./cmd/core/infra/dev_config/discovery-one.docker.env
     restart: unless-stopped
@@ -81,9 +79,7 @@ services:
         condition: service_healthy
 
   audiusd-2:
-    build:
-      context: .
-      dockerfile: ./cmd/audiusd/Dockerfile
+    image: audius/audiusd:${CIRCLE_SHA1}-amd64
     env_file:
       - ./cmd/core/infra/dev_config/content-one.docker.env
     restart: unless-stopped
@@ -100,9 +96,7 @@ services:
         condition: service_healthy
 
   audiusd-3:
-    build:
-      context: .
-      dockerfile: ./cmd/audiusd/Dockerfile
+    image: audius/audiusd:${CIRCLE_SHA1}-amd64
     env_file:
       - ./cmd/core/infra/dev_config/content-two.docker.env
     restart: unless-stopped
@@ -119,9 +113,7 @@ services:
         condition: service_healthy
 
   audiusd-4:
-    build:
-      context: .
-      dockerfile: ./cmd/audiusd/Dockerfile
+    image: audius/audiusd:${CIRCLE_SHA1}-amd64
     env_file:
       - ./cmd/core/infra/dev_config/content-three.docker.env
     restart: unless-stopped
