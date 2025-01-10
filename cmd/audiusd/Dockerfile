@@ -14,6 +14,7 @@ FROM debian:bookworm-slim
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     ca-certificates \
+    curl \
     ffmpeg \
     libfftw3-single3 \
     libfftw3-double3 \

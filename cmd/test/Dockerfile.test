@@ -7,3 +7,5 @@ RUN go mod download
 
 COPY ./cmd/ ./cmd/
 COPY ./pkg/ ./pkg/
+
+ENTRYPOINT ["/bin/sh"]
