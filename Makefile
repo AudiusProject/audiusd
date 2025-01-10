@@ -188,10 +188,11 @@ mediorum-dev:
 .PHONY: mediorum-test
 mediorum-test:
 	@docker compose \
-    	--file='dev-tools/compose/docker-compose.test.yml' \
-        --project-name='audiusd-test' \
-        --project-directory='./' \
-        run --rm --build test-mediorum-unittests test
+		--file='dev-tools/compose/docker-compose.test.yml' \
+		--project-name='audiusd-test' \
+		--project-directory='./' \
+		--profile=mediorum-unittests \
+		run --rm test-mediorum-unittests
 	@echo 'Tests successful. Spinning down containers...'
 	@docker compose \
     	--file='dev-tools/compose/docker-compose.test.yml' \

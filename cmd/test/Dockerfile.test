@@ -1,11 +1,29 @@
 FROM golang:1.23-bookworm
 
+RUN apt-get update && apt-get install -y postgresql postgresql-contrib ffmpeg && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+USER root
 WORKDIR /app
 
 COPY go.mod go.sum ./
 RUN go mod download
 
+COPY cmd/mediorum/.initdb/ /docker-entrypoint-initdb.d/
+
+USER postgres
+RUN /etc/init.d/postgresql start && \
+    psql --command "ALTER USER postgres WITH PASSWORD 'postgres';" && \
+    psql -f /docker-entrypoint-initdb.d/init.sql
+
+USER root
+WORKDIR /app
+
+COPY ./cmd/test/init.sh /init.sh
+RUN chmod +x /init.sh
+
 COPY ./cmd/ ./cmd/
 COPY ./pkg/ ./pkg/
 
-ENTRYPOINT ["/bin/sh"]
+ENTRYPOINT ["/init.sh"]

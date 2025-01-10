@@ -252,35 +252,17 @@ services:
     networks:
       - test-net
 
-  mediorum-db:
-    image: postgres:11.4
-    shm_size: 5g
-    command: postgres -c shared_buffers=5GB
-    environment:
-      POSTGRES_PASSWORD: example
-    healthcheck:
-      test: [ 'CMD', 'pg_isready' ]
-      interval: 3s
-      timeout: 3s
-    logging: *default-logging
-    volumes:
-      - ./cmd/mediorum/.initdb:/docker-entrypoint-initdb.d
-    profiles:
-      - mediorum
-      - mediorum-unittests
-
   test-mediorum-unittests:
     image: ${TEST_IMAGE:-audius/audiusd-test:local}
     command: go test -v -count=1 -timeout=60s ./pkg/mediorum/...
     logging: *default-logging
     environment:
-      dbUrlTemplate: 'postgres://postgres:example@mediorum-db:5432/m%d'
-      dbUrl: 'postgres://postgres:example@mediorum-db:5432/mediorum_test'
+      dbUrlTemplate: 'postgres://postgres:postgres@localhost:5432/m%d'
+      dbUrl: 'postgres://postgres:postgres@localhost:5432/mediorum_test'
+    networks:
+      - test-net
     profiles:
       - mediorum-unittests
-    depends_on:
-      mediorum-db:
-        condition: service_healthy
 
 volumes:
   postgresdata:
