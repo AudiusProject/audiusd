@@ -130,8 +130,22 @@ services:
         condition: service_healthy
 
   test-core:
-    image: audius/test-core:${CIRCLE_SHA1}
+    image: audius/audiusd-test:${CIRCLE_SHA1}
+    command: go test -v -count=1 -timeout=60s ./pkg/core/...
     logging: *default-logging
+    environment:
+      discoveryOneGRPC: audiusd-1:50051
+      discoveryOneJRPC: http://audiusd-1:26657
+      discoveryOneOAPI: audiusd-1:26659
+      contentOneGRPC: audiusd-2:50051
+      contentOneJRPC: http://audiusd-2:26657
+      contentOneOAPI: audiusd-2:26659
+      contentTwoGRPC: audiusd-3:50051
+      contentTwoJRPC: http://audiusd-3:26657
+      contentTwoOAPI: audiusd-3:26659
+      contentThreeGRPC: audiusd-4:50051
+      contentThreeJRPC: http://audiusd-4:26657
+      contentThreeOAPI: audiusd-4:26659
     profiles:
       - core-tests
     depends_on:
@@ -166,7 +180,8 @@ services:
       - mediorum-unittests
 
   test-mediorum-unittests:
-    image: audius/test-mediorum:${CIRCLE_SHA1}
+    image: audius/audiusd-test:${CIRCLE_SHA1}
+    command: go test -v -count=1 -timeout=60s ./pkg/mediorum/...
     logging: *default-logging
     environment:
       dbUrlTemplate: 'postgres://postgres:example@mediorum-db:5432/m%d'

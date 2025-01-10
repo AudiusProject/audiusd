@@ -85,7 +85,7 @@ jobs:
           paths:
             - bin/audiusd-*
 
-  build-docker-amd64:
+  build-audiusd-amd64:
     machine: true
     resource_class: audiusproject/gcp-n2-standard-4
     steps:
@@ -111,7 +111,7 @@ jobs:
           paths:
             - audiusd-amd64.tar
 
-  build-docker-arm64:
+  build-audiusd-arm64:
     machine: true
     resource_class: arm.medium
     steps:
@@ -136,35 +136,30 @@ jobs:
           paths:
             - audiusd-arm64.tar
 
-  test-core:
+  test-audiusd:
     machine: true
     resource_class: audiusproject/gcp-n2-standard-4
     steps:
       - checkout
       - attach_workspace:
-          at: /tmp/docker-cache
+          at: ./
       - run:
-          name: Load Docker image
+          name: Build test image
+          command: |
+            docker build \
+              -t audius/audiusd-test:${CIRCLE_SHA1} \
+              -f cmd/test/Dockerfile.test .
+      - run:
+          name: Load audiusd image
           command: docker load -i /tmp/docker-cache/audiusd-amd64.tar
       - run:
           name: Run core tests
           command: make core-test
-
-  test-mediorum:
-    machine: true
-    resource_class: audiusproject/gcp-n2-standard-4
-    steps:
-      - checkout
-      - attach_workspace:
-          at: /tmp/docker-cache
-      - run:
-          name: Load Docker image
-          command: docker load -i /tmp/docker-cache/audiusd-amd64.tar
       - run:
           name: Run mediorum tests
           command: make mediorum-test
 
-  push-images:
+  push-audiusd-images:
     docker:
       - image: cimg/base:current
     steps:
@@ -221,66 +216,27 @@ jobs:
           command: |
             crane copy "audius/audiusd:${CIRCLE_SHA1}" "audius/audiusd:current"
 
-  build-test-images:
-    docker:
-      - image: cimg/base:current
-    steps:
-      - checkout
-      - setup_remote_docker
-      - docker-login
-      - run:
-          name: Build test base image
-          command: |
-            docker build -t audius/test-base:latest -f cmd/test/Dockerfile.base .
-            docker push audius/test-base:latest
-      - run:
-          name: Build test images
-          command: |
-            docker build \
-              --cache-from audius/test-base:latest \
-              -t audius/test-core:${CIRCLE_SHA1} \
-              -f cmd/test/Dockerfile.core .
-            docker build \
-              --cache-from audius/test-base:latest \
-              -t audius/test-mediorum:${CIRCLE_SHA1} \
-              -f cmd/test/Dockerfile.mediorum .
-            docker save -o /tmp/docker-cache/test-images.tar \
-              audius/test-core:${CIRCLE_SHA1} \
-              audius/test-mediorum:${CIRCLE_SHA1}
-      - persist_to_workspace:
-          root: /tmp/docker-cache
-          paths:
-            - test-images.tar
-
 workflows:
   audiusd:
     jobs:
       - build-audiusd-bin
-      - build-docker-amd64:
+      - build-audiusd-amd64:
           requires:
             - build-audiusd-bin
-      - build-test-images:
+      - build-audiusd-arm64:
+          requires:
+            - build-audiusd-bin
+      - test-audiusd:
+          requires:
+            - build-audiusd-amd64
+      - push-audiusd-images:
           context: DockerHub
           requires:
-            - build-docker-amd64
-      - test-core:
-          requires:
-            - build-test-images
-      - test-mediorum:
-          requires:
-            - build-test-images
-      - build-docker-arm64:
-          requires:
-            - test-core
-            - test-mediorum
-      - push-images:
-          context: DockerHub
-          requires:
-            - build-docker-arm64
+            - test-audiusd
       - deploy-audiusd-staging:
           context: DockerHub
           requires:
-            - push-images
+            - push-audiusd-images
           filters:
             branches:
               only:

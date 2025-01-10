@@ -1,6 +1,0 @@
-FROM audius/test-base:latest
-
-COPY ./pkg/core ./pkg/core
-COPY ./pkg/shared ./pkg/shared
-
-CMD ["test", "-v", "./pkg/core/...", "-timeout", "60s"] 
