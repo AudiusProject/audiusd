@@ -1,6 +1,3 @@
-# Root CircleCI configuration
-# Configuration for individual packages lives in .circleci/src/{commands,jobs,workflows}
-
 version: 2.1
 
 orbs:
@@ -53,11 +50,12 @@ jobs:
   build-audiusd-bin:
     docker:
       - image: cimg/go:1.23
-    resource_class: large
+    resource_class: xlarge
     environment:
       GOCACHE: /home/circleci/.cache/go-build
       GOMODCACHE: /home/circleci/go/pkg/mod
-      GOFLAGS: "-trimpath -mod=readonly"
+      GOMAXPROCS: "8"
+      GOFLAGS: "-trimpath -mod=readonly -p=8"
     steps:
       - checkout
       - restore_cache:
@@ -76,10 +74,8 @@ jobs:
       - run:
           name: Build audiusd binaries
           command: |
-            # run builds in parallel
-            GOOS=linux GOARCH=amd64 go build -o bin/audiusd-amd64 ./cmd/audiusd &
-            GOOS=linux GOARCH=arm64 go build -o bin/audiusd-arm64 ./cmd/audiusd &
-            wait
+            GOOS=linux GOARCH=amd64 go build -o bin/audiusd-amd64 ./cmd/audiusd
+            GOOS=linux GOARCH=arm64 go build -o bin/audiusd-arm64 ./cmd/audiusd
       - save_cache:
           key: go-build-v1-{{ .Branch }}-{{ checksum "go.sum" }}
           paths:
@@ -264,6 +260,7 @@ workflows:
           requires:
             - build-audiusd-bin
       - build-test-images:
+          context: DockerHub
           requires:
             - build-docker-amd64
       - test-core:
