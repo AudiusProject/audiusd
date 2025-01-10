@@ -1,0 +1,7 @@
+FROM audius/test-base:latest
+
+# Copy source code
+COPY ./pkg/mediorum ./pkg/mediorum
+COPY ./pkg/shared ./pkg/shared
+
+CMD ["test", "-v", "./pkg/mediorum/...", "-timeout", "60s"] 

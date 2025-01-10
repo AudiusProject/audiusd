@@ -130,11 +130,8 @@ services:
         condition: service_healthy
 
   test-core:
-    build:
-      context: .
-      dockerfile: ./cmd/core/infra/Dockerfile.tests
+    image: audius/test-core:${CIRCLE_SHA1}
     logging: *default-logging
-    entrypoint: sh -c '[ ! "$$1" = "test" ] && sleep inf || (shift; go test -v ./pkg/core/... -timeout 60s "$$@")' -
     profiles:
       - core-tests
     depends_on:
@@ -169,11 +166,8 @@ services:
       - mediorum-unittests
 
   test-mediorum-unittests:
-    build:
-      context: .
-      dockerfile: ./cmd/mediorum/Dockerfile.unittests
+    image: audius/test-mediorum:${CIRCLE_SHA1}
     logging: *default-logging
-    entrypoint: sh -c '[ ! "$$1" = "test" ] && sleep inf || (shift; go test ./pkg/mediorum/... -count 1 -timeout 60s "$$@")' -
     environment:
       dbUrlTemplate: 'postgres://postgres:example@mediorum-db:5432/m%d'
       dbUrl: 'postgres://postgres:example@mediorum-db:5432/mediorum_test'

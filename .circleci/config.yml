@@ -50,7 +50,7 @@ commands:
 
 
 jobs:
-  build-audiusd-binaries:
+  build-audiusd-bin:
     docker:
       - image: cimg/go:1.23
     resource_class: large
@@ -219,6 +219,37 @@ jobs:
           command: |
             crane copy "audius/audiusd:${CIRCLE_SHA1}" "audius/audiusd:current"
 
+  build-test-images:
+    docker:
+      - image: cimg/base:current
+    steps:
+      - checkout
+      - setup_remote_docker
+      - docker-login
+      - run:
+          name: Build test base image
+          command: |
+            docker build -t audius/test-base:latest -f cmd/test/Dockerfile.base .
+            docker push audius/test-base:latest
+      - run:
+          name: Build test images
+          command: |
+            docker build \
+              --cache-from audius/test-base:latest \
+              -t audius/test-core:${CIRCLE_SHA1} \
+              -f cmd/test/Dockerfile.core .
+            docker build \
+              --cache-from audius/test-base:latest \
+              -t audius/test-mediorum:${CIRCLE_SHA1} \
+              -f cmd/test/Dockerfile.mediorum .
+            docker save -o /tmp/docker-cache/test-images.tar \
+              audius/test-core:${CIRCLE_SHA1} \
+              audius/test-mediorum:${CIRCLE_SHA1}
+      - persist_to_workspace:
+          root: /tmp/docker-cache
+          paths:
+            - test-images.tar
+
 workflows:
   audiusd:
     jobs:
@@ -226,12 +257,15 @@ workflows:
       - build-docker-amd64:
           requires:
             - build-audiusd-bin
+      - build-test-images:
+          requires:
+            - build-docker-amd64
       - test-core:
           requires:
-            - build-docker-amd64
+            - build-test-images
       - test-mediorum:
           requires:
-            - build-docker-amd64
+            - build-test-images
       - build-docker-arm64:
           requires:
             - test-core
