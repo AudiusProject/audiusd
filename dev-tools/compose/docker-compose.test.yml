@@ -218,7 +218,7 @@ services:
       - test-net
 
   test-core:
-    image: ${AUDIUSD_IMAGE:-audius/audiusd:test}
+    image: ${TEST_IMAGE:-audius/audiusd:test}
     command: go test -v -count=1 -timeout=60s ./pkg/core/...
     volumes:
       - ./cmd:/app/cmd
@@ -258,7 +258,7 @@ services:
       - test-net
 
   test-mediorum-unittests:
-    image: ${AUDIUSD_IMAGE:-audius/audiusd:test}
+    image: ${TEST_IMAGE:-audius/audiusd:test}
     command: go test -v -count=1 -timeout=60s ./pkg/mediorum/server -run TestUploadFile
     volumes:
       - ./cmd:/app/cmd

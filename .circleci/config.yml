@@ -90,26 +90,35 @@ jobs:
     resource_class: audiusproject/gcp-n2-standard-4
     steps:
       - checkout
-      - attach_workspace:
-          at: ./
+      # - attach_workspace:
+      #     at: ./
       - run:
-          name: Build AMD64 Docker image
+          name: Build AMD64 Docker images
           command: |
+            # Build prod image
             DOCKER_DEFAULT_PLATFORM=linux/amd64 docker build \
+              --target prod \
               --build-arg GIT_SHA=${CIRCLE_SHA1} \
-              --build-arg PREBUILT_BINARY=bin/audiusd-amd64 \
               -t audius/audiusd:${CIRCLE_SHA1}-amd64 \
-              -t audius/audiusd:test \
-              -f ./cmd/audiusd/Dockerfile.ci ./
-      - run:
-          name: Save images
-          command: |
-            mkdir -p /tmp/docker-cache
-            docker save -o /tmp/docker-cache/audiusd-amd64.tar audius/audiusd:${CIRCLE_SHA1}-amd64
-      - persist_to_workspace:
-          root: /tmp/docker-cache
-          paths:
-            - audiusd-amd64.tar
+              -f ./cmd/audiusd/Dockerfile ./
+            
+            # Build test image
+            DOCKER_DEFAULT_PLATFORM=linux/amd64 docker build \
+              --target test \
+              --build-arg GIT_SHA=${CIRCLE_SHA1} \
+              -t audius/audiusd:${CIRCLE_SHA1}-test \
+              -f ./cmd/audiusd/Dockerfile ./
+      # - run:
+      #     name: Save images
+      #     command: |
+      #       mkdir -p /tmp/docker-cache
+      #       docker save -o /tmp/docker-cache/audiusd-amd64.tar audius/audiusd:${CIRCLE_SHA1}-amd64
+      #       docker save -o /tmp/docker-cache/audiusd-test.tar audius/audiusd:${CIRCLE_SHA1}-test
+      # - persist_to_workspace:
+      #     root: /tmp/docker-cache
+      #     paths:
+      #       - audiusd-amd64.tar
+      #       - audiusd-test.tar
 
   build-audiusd-arm64:
     machine: true
@@ -141,21 +150,25 @@ jobs:
     resource_class: audiusproject/gcp-n2-standard-4
     steps:
       - checkout
-      - attach_workspace:
-          at: ./
-      - run:
-          name: Load audiusd image
-          command: docker load -i /tmp/docker-cache/audiusd-amd64.tar
-      - run:
-          name: Run core tests
-          command: |
-            AUDIUSD_IMAGE=audius/audiusd:${CIRCLE_SHA1}-amd64 \
-            make core-test
+      # - attach_workspace:
+      #     at: ./
+      # - run:
+      #     name: Load images
+      #     command: |
+      #       docker load -i /tmp/docker-cache/audiusd-amd64.tar
+      #       docker load -i /tmp/docker-cache/audiusd-test.tar
       - run:
           name: Run mediorum tests
           command: |
             AUDIUSD_IMAGE=audius/audiusd:${CIRCLE_SHA1}-amd64 \
+            TEST_IMAGE=audius/audiusd:${CIRCLE_SHA1}-test \
             make mediorum-test
+      - run:
+          name: Run core tests
+          command: |
+            AUDIUSD_IMAGE=audius/audiusd:${CIRCLE_SHA1}-amd64 \
+            TEST_IMAGE=audius/audiusd:${CIRCLE_SHA1}-test \
+            make core-test
 
   push-audiusd-images:
     docker:
