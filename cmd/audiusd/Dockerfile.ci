@@ -52,7 +52,11 @@ ENTRYPOINT ["/bin/entrypoint.sh"]
 FROM prod AS test
 
 COPY --from=golang:alpine /usr/local/go /usr/local/go
-COPY --from=golang:alpine /go/pkg /go/pkg
+
+ENV AUDIUSD_TEST_MODE="true"
+ENV GOPATH="/go"
+ENV GOROOT="/usr/local/go"
+ENV PATH="/usr/local/go/bin:${PATH}"
 
 WORKDIR /app
 
@@ -60,8 +64,3 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY ./cmd/mediorum/.initdb /app/mediorum/.initdb
-
-ENV PATH="/usr/local/go/bin:${PATH}"
-ENV GOPATH="/go"
-ENV GOROOT="/usr/local/go"
-ENV AUDIUSD_TEST_MODE="true"

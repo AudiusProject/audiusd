@@ -259,7 +259,7 @@ services:
 
   test-mediorum-unittests:
     image: ${TEST_IMAGE:-audius/audiusd:test}
-    command: go test -v -count=1 -timeout=60s ./pkg/mediorum/server -run TestUploadFile
+    command: go test -v -count=1 -timeout=60s ./pkg/mediorum/...
     volumes:
       - ./cmd:/app/cmd
       - ./pkg:/app/pkg

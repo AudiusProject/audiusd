@@ -90,35 +90,27 @@ jobs:
     resource_class: audiusproject/gcp-n2-standard-4
     steps:
       - checkout
-      # - attach_workspace:
-      #     at: ./
+      - attach_workspace:
+          at: ./
+      - docker-login
       - run:
-          name: Build AMD64 Docker images
+          name: Build and push AMD64 Docker images
           command: |
-            # Build prod image
             DOCKER_DEFAULT_PLATFORM=linux/amd64 docker build \
               --target prod \
               --build-arg GIT_SHA=${CIRCLE_SHA1} \
+              --build-arg PREBUILT_BINARY=bin/audiusd-amd64 \
               -t audius/audiusd:${CIRCLE_SHA1}-amd64 \
-              -f ./cmd/audiusd/Dockerfile ./
+              -f ./cmd/audiusd/Dockerfile.ci ./
+            docker push audius/audiusd:${CIRCLE_SHA1}-amd64
             
-            # Build test image
             DOCKER_DEFAULT_PLATFORM=linux/amd64 docker build \
               --target test \
               --build-arg GIT_SHA=${CIRCLE_SHA1} \
+              --build-arg PREBUILT_BINARY=bin/audiusd-amd64 \
               -t audius/audiusd:${CIRCLE_SHA1}-test \
-              -f ./cmd/audiusd/Dockerfile ./
-      # - run:
-      #     name: Save images
-      #     command: |
-      #       mkdir -p /tmp/docker-cache
-      #       docker save -o /tmp/docker-cache/audiusd-amd64.tar audius/audiusd:${CIRCLE_SHA1}-amd64
-      #       docker save -o /tmp/docker-cache/audiusd-test.tar audius/audiusd:${CIRCLE_SHA1}-test
-      # - persist_to_workspace:
-      #     root: /tmp/docker-cache
-      #     paths:
-      #       - audiusd-amd64.tar
-      #       - audiusd-test.tar
+              -f ./cmd/audiusd/Dockerfile.ci ./
+            docker push audius/audiusd:${CIRCLE_SHA1}-test
 
   build-audiusd-arm64:
     machine: true
@@ -127,36 +119,27 @@ jobs:
       - checkout
       - attach_workspace:
           at: ./
+      - docker-login
       - run:
-          name: Build ARM64 Docker image
+          name: Build and push ARM64 Docker image
           command: |
             DOCKER_DEFAULT_PLATFORM=linux/arm64 docker build \
               --build-arg GIT_SHA=${CIRCLE_SHA1} \
               --build-arg PREBUILT_BINARY=bin/audiusd-arm64 \
               -t audius/audiusd:${CIRCLE_SHA1}-arm64 \
               -f ./cmd/audiusd/Dockerfile.ci ./
-      - run:
-          name: Save image
-          command: |
-            mkdir -p /tmp/docker-cache
-            docker save -o /tmp/docker-cache/audiusd-arm64.tar audius/audiusd:${CIRCLE_SHA1}-arm64
-      - persist_to_workspace:
-          root: /tmp/docker-cache
-          paths:
-            - audiusd-arm64.tar
+            docker push audius/audiusd:${CIRCLE_SHA1}-arm64
 
   test-audiusd:
     machine: true
     resource_class: audiusproject/gcp-n2-standard-4
     steps:
       - checkout
-      # - attach_workspace:
-      #     at: ./
-      # - run:
-      #     name: Load images
-      #     command: |
-      #       docker load -i /tmp/docker-cache/audiusd-amd64.tar
-      #       docker load -i /tmp/docker-cache/audiusd-test.tar
+      - run:
+          name: Pull images
+          command: |
+            docker pull audius/audiusd:${CIRCLE_SHA1}-amd64
+            docker pull audius/audiusd:${CIRCLE_SHA1}-test
       - run:
           name: Run mediorum tests
           command: |
@@ -170,21 +153,14 @@ jobs:
             TEST_IMAGE=audius/audiusd:${CIRCLE_SHA1}-test \
             make core-test
 
-  push-audiusd-images:
+  push-audiusd-manifest:
     docker:
       - image: cimg/base:current
     steps:
-      - setup_remote_docker
-      - attach_workspace:
-          at: /tmp/docker-cache
       - docker-login
       - run:
-          name: Load and push images
+          name: Create manifest
           command: |
-            docker load -i /tmp/docker-cache/audiusd-amd64.tar
-            docker load -i /tmp/docker-cache/audiusd-arm64.tar
-            docker push audius/audiusd:${CIRCLE_SHA1}-amd64
-            docker push audius/audiusd:${CIRCLE_SHA1}-arm64
             docker manifest create audius/audiusd:${CIRCLE_SHA1} \
               audius/audiusd:${CIRCLE_SHA1}-amd64 \
               audius/audiusd:${CIRCLE_SHA1}-arm64
@@ -232,22 +208,24 @@ workflows:
     jobs:
       - build-audiusd-bin
       - build-audiusd-amd64:
+          context: DockerHub
           requires:
             - build-audiusd-bin
       - build-audiusd-arm64:
+          context: DockerHub
           requires:
             - build-audiusd-bin
       - test-audiusd:
           requires:
             - build-audiusd-amd64
-      - push-audiusd-images:
+      - push-audiusd-manifest:
           context: DockerHub
           requires:
             - test-audiusd
       - deploy-audiusd-staging:
           context: DockerHub
           requires:
-            - push-audiusd-images
+            - push-audiusd-manifest
           filters:
             branches:
               only:
