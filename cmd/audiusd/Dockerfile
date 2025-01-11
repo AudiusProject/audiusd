@@ -63,7 +63,7 @@ FROM prod AS test
 COPY --from=builder /usr/local/go /usr/local/go
 COPY --from=builder /go/pkg /go/pkg
 
-COPY ./cmd/mediorum/.initdb /app/mediorum/.initdb
+COPY ./cmd/audiusd/.initdb /app/audiusd/.initdb
 
 WORKDIR /app
 

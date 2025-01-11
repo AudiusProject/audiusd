@@ -100,7 +100,7 @@ if [ "${AUDIUSD_CORE_ONLY:-false}" = "true" ]; then
 elif [ "${AUDIUSD_TEST_MODE:-false}" = "true" ]; then
     setup_postgres
     echo "Running in test mode, executing test database initialization..."
-    for sql_file in /app/mediorum/.initdb/*.sql; do
+    for sql_file in /app/audiusd/.initdb/*.sql; do
         if [ -f "$sql_file" ]; then
             echo "Executing $sql_file..."
             su - postgres -c "psql -f $sql_file"

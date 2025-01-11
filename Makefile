@@ -190,14 +190,14 @@ mediorum-dev:
 .PHONY: mediorum-test
 mediorum-test:
 	@docker compose \
-		--file='dev-tools/compose/docker-compose.test.yml' \
+		--file='compose/docker-compose.test.yml' \
 		--project-name='audiusd-test' \
 		--project-directory='./' \
 		--profile=mediorum-unittests \
 		run --rm test-mediorum-unittests
 	@echo 'Tests successful. Spinning down containers...'
 	@docker compose \
-    	--file='dev-tools/compose/docker-compose.test.yml' \
+    	--file='compose/docker-compose.test.yml' \
         --project-name='audiusd-test' \
         --project-directory='./' \
 		--profile=* \
@@ -224,13 +224,13 @@ core-dev: gen
 .PHONY: core-test
 core-test:
 	@docker compose \
-		--file='dev-tools/compose/docker-compose.test.yml' \
+		--file='compose/docker-compose.test.yml' \
 		--project-name='audiusd-test' \
 		--project-directory='./' \
 		run --rm test-core
 	@echo 'Tests complete. Spinning down containers...'
 	@docker compose \
-		--file='dev-tools/compose/docker-compose.test.yml' \
+		--file='compose/docker-compose.test.yml' \
 		--project-name='audiusd-test' \
 		--project-directory='./' \
 		--profile=core-tests \

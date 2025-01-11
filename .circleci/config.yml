@@ -223,7 +223,27 @@ jobs:
       - gh/setup
       - run:
           name: Create Release
-          command: ./scripts/publish-audiusd.sh
+          command: |
+            # Format release notes with Docker image info
+            echo "## Docker Images" > release_notes.md
+            echo "- \`audius/audiusd:${CIRCLE_SHA1}\` (multi-arch)" >> release_notes.md
+            echo "- \`audius/audiusd:${CIRCLE_SHA1}-amd64\` (amd64)" >> release_notes.md
+            echo "- \`audius/audiusd:${CIRCLE_SHA1}-arm64\` (arm64)" >> release_notes.md
+            echo "" >> release_notes.md
+            
+            # Add auto-generated changelog
+            echo "## What's Changed" >> release_notes.md
+            gh api repos/{owner}/{repo}/releases/generate-notes \
+              -F tag_name="audiusd@${CIRCLE_SHA1}" \
+              -F target_commitish="${CIRCLE_SHA1}" \
+              --jq .body >> release_notes.md
+
+            # Create the release with binaries
+            gh release create "audiusd@${CIRCLE_SHA1}" \
+              --title "audiusd ${CIRCLE_SHA1}" \
+              --notes-file release_notes.md \
+              bin/audiusd-amd64 \
+              bin/audiusd-arm64
 
 workflows:
   audiusd:

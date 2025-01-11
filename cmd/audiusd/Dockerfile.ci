@@ -63,4 +63,4 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 
-COPY ./cmd/mediorum/.initdb /app/mediorum/.initdb
+COPY ./cmd/audiusd/.initdb /app/audiusd/.initdb
