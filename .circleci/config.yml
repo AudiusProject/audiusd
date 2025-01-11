@@ -130,7 +130,23 @@ jobs:
               -f ./cmd/audiusd/Dockerfile.ci ./
             docker push audius/audiusd:${CIRCLE_SHA1}-arm64
 
-  test-audiusd:
+  test-mediorum:
+    machine: true
+    resource_class: audiusproject/gcp-n2-standard-4
+    steps:
+      - checkout
+      - run:
+          name: Pull images
+          command: |
+            docker pull audius/audiusd:${CIRCLE_SHA1}-test
+      - run:
+          name: Run mediorum tests
+          command: |
+            AUDIUSD_IMAGE=audius/audiusd:${CIRCLE_SHA1}-amd64 \
+            TEST_IMAGE=audius/audiusd:${CIRCLE_SHA1}-test \
+            make mediorum-test
+
+  test-core:
     machine: true
     resource_class: audiusproject/gcp-n2-standard-4
     steps:
@@ -140,12 +156,6 @@ jobs:
           command: |
             docker pull audius/audiusd:${CIRCLE_SHA1}-amd64
             docker pull audius/audiusd:${CIRCLE_SHA1}-test
-      - run:
-          name: Run mediorum tests
-          command: |
-            AUDIUSD_IMAGE=audius/audiusd:${CIRCLE_SHA1}-amd64 \
-            TEST_IMAGE=audius/audiusd:${CIRCLE_SHA1}-test \
-            make mediorum-test
       - run:
           name: Run core tests
           command: |
@@ -203,6 +213,18 @@ jobs:
           command: |
             crane copy "audius/audiusd:${CIRCLE_SHA1}" "audius/audiusd:current"
 
+  publish-audiusd-release:
+    docker:
+      - image: cimg/base:2023.01
+    steps:
+      - checkout
+      - attach_workspace:
+          at: ./
+      - gh/setup
+      - run:
+          name: Create Release
+          command: ./scripts/publish-audiusd.sh
+
 workflows:
   audiusd:
     jobs:
@@ -215,13 +237,30 @@ workflows:
           context: DockerHub
           requires:
             - build-audiusd-bin
-      - test-audiusd:
+      - test-mediorum:
+          context: DockerHub
+          requires:
+            - build-audiusd-amd64
+      - test-core:
+          context: DockerHub
           requires:
             - build-audiusd-amd64
       - push-audiusd-manifest:
           context: DockerHub
           requires:
-            - test-audiusd
+            - test-mediorum
+            - test-core
+            - build-audiusd-arm64
+      - publish-audiusd-release-trigger:
+          requires:
+            - push-audiusd-manifest
+          type: approval
+      - publish-audiusd-release:
+          context:
+            - DockerHub
+            - github
+          requires:
+            - publish-audiusd-release-trigger
       - deploy-audiusd-staging:
           context: DockerHub
           requires:
