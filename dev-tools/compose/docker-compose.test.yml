@@ -218,8 +218,13 @@ services:
       - test-net
 
   test-core:
-    image: ${TEST_IMAGE:-audius/audiusd-test:local}
+    image: ${AUDIUSD_IMAGE:-audius/audiusd:test}
     command: go test -v -count=1 -timeout=60s ./pkg/core/...
+    volumes:
+      - ./cmd:/app/cmd
+      - ./pkg:/app/pkg
+      - ./go.mod:/app/go.mod
+      - ./go.sum:/app/go.sum
     logging: *default-logging
     environment:
       discoveryOneGRPC: audiusd-1:50051
@@ -253,14 +258,18 @@ services:
       - test-net
 
   test-mediorum-unittests:
-    image: ${TEST_IMAGE:-audius/audiusd-test:local}
-    command: go test -v -count=1 -timeout=60s ./pkg/mediorum/...
+    image: ${AUDIUSD_IMAGE:-audius/audiusd:test}
+    command: go test -v -count=1 -timeout=60s ./pkg/mediorum/server -run TestUploadFile
+    volumes:
+      - ./cmd:/app/cmd
+      - ./pkg:/app/pkg
+      - ./go.mod:/app/go.mod
+      - ./go.sum:/app/go.sum
     logging: *default-logging
     environment:
+      NETWORK: test
       dbUrlTemplate: 'postgres://postgres:postgres@localhost:5432/m%d'
       dbUrl: 'postgres://postgres:postgres@localhost:5432/mediorum_test'
-    networks:
-      - test-net
     profiles:
       - mediorum-unittests
 

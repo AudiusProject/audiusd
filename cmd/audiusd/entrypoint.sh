@@ -97,9 +97,19 @@ setup_postgres() {
 
 if [ "${AUDIUSD_CORE_ONLY:-false}" = "true" ]; then
     echo "Running in core only mode, skipping PostgreSQL setup..."
+elif [ "${AUDIUSD_TEST_MODE:-false}" = "true" ]; then
+    setup_postgres
+    echo "Running in test mode, executing test database initialization..."
+    for sql_file in /app/mediorum/.initdb/*.sql; do
+        if [ -f "$sql_file" ]; then
+            echo "Executing $sql_file..."
+            su - postgres -c "psql -f $sql_file"
+        fi
+    done
+    echo "executing command: $@"
+    exec "$@"
 else
     setup_postgres
+    echo "Starting audiusd..."
+    exec /bin/audiusd "$@"
 fi
-
-echo "Starting audiusd..."
-exec /bin/audiusd "$@"

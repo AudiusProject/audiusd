@@ -1,4 +1,4 @@
-FROM golang:1.23-bullseye AS go-builder
+FROM golang:1.23-bullseye AS builder
 
 WORKDIR /app
 
@@ -9,7 +9,7 @@ COPY ./pkg ./pkg
 COPY ./cmd/audiusd/main.go ./cmd/audiusd/main.go
 RUN go build -o audiusd cmd/audiusd/main.go
 
-FROM debian:bookworm-slim
+FROM debian:bookworm-slim AS prod
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -39,10 +39,10 @@ COPY --from=audius/cpp:bookworm /bin/analyze-bpm /bin/
 COPY --from=audius/cpp:bookworm /usr/local/lib/libkeyfinder.so* /usr/local/lib/
 RUN ldconfig
 
-COPY --from=go-builder /app/audiusd /bin/audiusd
+COPY --from=builder /app/audiusd /bin/audiusd
 
 RUN mkdir -p /env
-COPY ./cmd/audiusd/env/dev.env ./cmd/audiusd/env/stage.env ./cmd/audiusd/env/prod.env /env/
+COPY ./cmd/audiusd/env/* /env/
 
 COPY ./cmd/audiusd/entrypoint.sh /bin/entrypoint.sh
 RUN chmod +x /bin/entrypoint.sh
@@ -57,3 +57,17 @@ EXPOSE 26656
 VOLUME ["/data"]
 
 ENTRYPOINT ["/bin/entrypoint.sh"]
+
+FROM prod AS test
+
+COPY --from=builder /usr/local/go /usr/local/go
+COPY --from=builder /go/pkg /go/pkg
+
+COPY ./cmd/mediorum/.initdb /app/mediorum/.initdb
+
+WORKDIR /app
+
+ENV PATH="/usr/local/go/bin:${PATH}"
+ENV GOPATH="/go"
+ENV GOROOT="/usr/local/go"
+ENV AUDIUSD_TEST_MODE="true"

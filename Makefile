@@ -79,7 +79,9 @@ build-push-wrapper:
 
 .PHONY: build-audiusd-local build-push-audiusd build-push-cpp
 build-audiusd-local:
-	DOCKER_DEFAULT_PLATFORM=linux/arm64 docker build --build-arg GIT_SHA=$(AD_TAG) -t audius/audiusd:$(AD_TAG) -t audius/audiusd:local -f ./cmd/audiusd/Dockerfile ./
+	DOCKER_DEFAULT_PLATFORM=linux/arm64 docker build --target prod --build-arg GIT_SHA=$(AD_TAG) -t audius/audiusd:$(AD_TAG) -t audius/audiusd:local -f ./cmd/audiusd/Dockerfile ./
+build-audiusd-test:
+	DOCKER_DEFAULT_PLATFORM=linux/arm64 docker build --target test --build-arg GIT_SHA=$(AD_TAG) -t audius/audiusd:test -t audius/audiusd:test-local -f ./cmd/audiusd/Dockerfile ./
 
 build-push-audiusd:
 	docker build \
