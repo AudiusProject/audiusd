@@ -4,6 +4,12 @@
 # build a local node
 make build-audiusd-local
 
+# test
+make build-audiusd-local
+make build-audiusd-test
+make mediorum-test
+make core-test
+
 # sync a locally built node to stage
 docker run --rm -it -p 80:80 -p 443:443 -e NETWORK=stage audius/audiusd:local
 
