@@ -5,7 +5,6 @@ NETWORK="${NETWORK:-prod}"
 ENV_FILE="/env/${NETWORK}.env"
 OVERRIDE_ENV_FILE="/env/override.env"
 
-# Validate environment files exist
 if [ ! -f "$ENV_FILE" ]; then
     echo "Error: Network environment file not found at $ENV_FILE"
     exit 1
@@ -16,6 +15,7 @@ source_env_file() {
     local file=$1
     if [ ! -f "$file" ]; then
         echo "WARN Environment file $file not found"
+        return 0
     fi
 
     echo "Loading environment from $file"
