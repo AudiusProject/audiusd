@@ -98,6 +98,8 @@ setup_postgres() {
 
 if [ "${AUDIUSD_CORE_ONLY:-false}" = "true" ]; then
     echo "Running in core only mode, skipping PostgreSQL setup..."
+    echo "Starting audiusd..."
+    exec /bin/audiusd "$@"
 elif [ "${AUDIUSD_TEST_MODE:-false}" = "true" ]; then
     setup_postgres
     echo "Running in test mode, executing test database initialization..."
