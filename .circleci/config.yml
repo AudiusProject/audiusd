@@ -130,15 +130,9 @@ jobs:
             AUDIUSD_IMAGE=audius/audiusd:${CIRCLE_SHA1}-amd64 \
             TEST_IMAGE=audius/audiusd:${CIRCLE_SHA1}-test \
             TTY_FLAG="--no-TTY" make core-test
-      - run:
-          name: Push amd64-linux image
-          command: |
-            if [ "${CIRCLE_BRANCH}" = "endl/build-push" ]; then
-              docker push audius/audiusd:${CIRCLE_SHA1}-amd64
-            fi
       - when:
           condition:
-            equal: [ endl/build-push, << pipeline.git.branch >> ]
+            equal: [ main, << pipeline.git.branch >> ]
           steps:
             - run:
                 name: Push amd64-linux image
@@ -163,7 +157,7 @@ jobs:
               -f ./cmd/audiusd/Dockerfile.ci ./
       - when:
           condition:
-            equal: [ endl/build-push, << pipeline.git.branch >> ]
+            equal: [ main, << pipeline.git.branch >> ]
           steps:
             - run:
                 name: Push arm64-linux image
@@ -182,15 +176,6 @@ jobs:
               audius/audiusd:${CIRCLE_SHA1}-arm64
             docker manifest push audius/audiusd:${CIRCLE_SHA1}
       - docker-logout
-
-  deploy-audiusd-staging-trigger:
-    requires:
-      - push-audiusd-manifest
-    type: approval
-    filters:
-      branches:
-        only:
-          - endl/build-push
 
   deploy-audiusd-staging:
     docker:
@@ -270,7 +255,7 @@ workflows:
           filters:
             branches:
               only:
-                - endl/build-push
+                - main
       - push-audiusd-manifest:
           context: DockerHub
           requires:
@@ -279,7 +264,7 @@ workflows:
           filters:
             branches:
               only:
-                - endl/build-push
+                - main
       - deploy-audiusd-staging-trigger:
           requires:
             - push-audiusd-manifest
@@ -287,7 +272,7 @@ workflows:
           filters:
             branches:
               only:
-                - endl/build-push
+                - main
       - deploy-audiusd-staging:
           context: DockerHub
           requires:
@@ -295,7 +280,7 @@ workflows:
           filters:
             branches:
               only:
-                - endl/build-push
+                - main
       - publish-audiusd-release-trigger:
           requires:
             - deploy-audiusd-staging
@@ -309,7 +294,7 @@ workflows:
           filters:
             branches:
               only:
-                - endl/build-push
+                - main
       - deploy-audiusd-foundation-trigger:
           requires:
             - deploy-audiusd-staging
