@@ -60,8 +60,9 @@ ENTRYPOINT ["/bin/entrypoint.sh"]
 
 FROM prod AS test
 
-COPY --from=builder /usr/local/go /usr/local/go
-COPY --from=builder /go/pkg /go/pkg
+COPY --from=golang:alpine /usr/local/go/bin/go /usr/local/go/bin/
+COPY --from=golang:alpine /usr/local/go/pkg /usr/local/go/pkg
+COPY --from=builder /go/pkg/mod /go/pkg/mod
 
 COPY ./cmd/audiusd/.initdb /app/audiusd/.initdb
 

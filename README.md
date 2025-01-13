@@ -27,4 +27,3 @@ Migrate an existing [content node](docs/validators.md#existing-content-nodes) or
 
 ---
 [![license](https://img.shields.io/github/license/AudiusProject/audiusd)](https://github.com/AudiusProject/audiusd/blob/main/LICENSE)
-

@@ -93,6 +93,15 @@ jobs:
       - attach_workspace:
           at: ./
       - docker-login
+      - restore_cache:
+          keys:
+            - test-image-{{ .Branch }}-{{ .Revision }}
+      - run:
+          name: Load cached test image if available
+          command: |
+            if [ -f /tmp/docker-cache/test-image.tar ]; then
+              docker load -i /tmp/docker-cache/test-image.tar
+            fi
       - run:
           name: Build and push AMD64 Docker images
           command: |
@@ -110,7 +119,14 @@ jobs:
               --build-arg PREBUILT_BINARY=bin/audiusd-amd64 \
               -t audius/audiusd:${CIRCLE_SHA1}-test \
               -f ./cmd/audiusd/Dockerfile.ci ./
-            docker push audius/audiusd:${CIRCLE_SHA1}-test
+            
+            # persist test image between jobs without pushing
+            mkdir -p /tmp/docker-cache
+            docker save -o /tmp/docker-cache/test-image.tar audius/audiusd:${CIRCLE_SHA1}-test
+      - save_cache:
+          key: test-image-{{ .Branch }}-{{ .Revision }}
+          paths:
+            - /tmp/docker-cache/test-image.tar
 
   build-audiusd-arm64:
     machine: true
@@ -124,6 +140,7 @@ jobs:
           name: Build and push ARM64 Docker image
           command: |
             DOCKER_DEFAULT_PLATFORM=linux/arm64 docker build \
+              --target prod \
               --build-arg GIT_SHA=${CIRCLE_SHA1} \
               --build-arg PREBUILT_BINARY=bin/audiusd-arm64 \
               -t audius/audiusd:${CIRCLE_SHA1}-arm64 \
@@ -135,10 +152,13 @@ jobs:
     resource_class: audiusproject/gcp-n2-standard-4
     steps:
       - checkout
+      - restore_cache:
+          keys:
+            - test-image-{{ .Branch }}-{{ .Revision }}
       - run:
-          name: Pull images
+          name: Load test image
           command: |
-            docker pull audius/audiusd:${CIRCLE_SHA1}-test
+            docker load -i /tmp/docker-cache/test-image.tar
       - run:
           name: Run mediorum tests
           command: |
@@ -151,11 +171,17 @@ jobs:
     resource_class: audiusproject/gcp-n2-standard-4
     steps:
       - checkout
+      - restore_cache:
+          keys:
+            - test-image-{{ .Branch }}-{{ .Revision }}
+      - run:
+          name: Load test image
+          command: |
+            docker load -i /tmp/docker-cache/test-image.tar
       - run:
           name: Pull images
           command: |
             docker pull audius/audiusd:${CIRCLE_SHA1}-amd64
-            docker pull audius/audiusd:${CIRCLE_SHA1}-test
       - run:
           name: Run core tests
           command: |

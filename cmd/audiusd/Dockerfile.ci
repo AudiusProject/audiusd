@@ -51,7 +51,8 @@ ENTRYPOINT ["/bin/entrypoint.sh"]
 
 FROM prod AS test
 
-COPY --from=golang:alpine /usr/local/go /usr/local/go
+COPY --from=golang:alpine /usr/local/go/bin/go /usr/local/go/bin/
+COPY --from=golang:alpine /usr/local/go/pkg /usr/local/go/pkg
 
 ENV AUDIUSD_TEST_MODE="true"
 ENV GOPATH="/go"
