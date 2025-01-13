@@ -81,7 +81,7 @@ build-push-wrapper:
 build-audiusd-local:
 	DOCKER_DEFAULT_PLATFORM=linux/arm64 docker build --target prod --build-arg GIT_SHA=$(AD_TAG) -t audius/audiusd:$(AD_TAG) -t audius/audiusd:local -f ./cmd/audiusd/Dockerfile ./
 build-audiusd-test:
-	DOCKER_DEFAULT_PLATFORM=linux/arm64 docker build --target test --build-arg GIT_SHA=$(AD_TAG) -t audius/audiusd:test -t audius/audiusd:test-local -f ./cmd/audiusd/Dockerfile ./
+	DOCKER_DEFAULT_PLATFORM=linux/arm64 docker build --target test --build-arg GIT_SHA=$(AD_TAG) -t audius/audiusd:test-local -f ./cmd/audiusd/Dockerfile ./
 
 build-push-audiusd:
 	docker build \
@@ -175,17 +175,21 @@ test-down:
         down -v
 
 ##############
-## MEDIORUM ##
+## AUDIUSD  ##
 ##############
 
-.PHONY: mediorum-dev
-mediorum-dev:
-	@if docker ps -q -f name=postgres; then \
-		echo "container 'postgres' is already running"; \
-	else \
-		docker run --rm --name postgres -v $$(pwd)/cmd/mediorum/.initdb:/docker-entrypoint-initdb.d -e POSTGRES_PASSWORD=example -p 5454:5432 -d postgres; \
-	fi
-	go run cmd/mediorum/main.go
+.PHONY: audiusd-dev
+audiusd-test:
+	@docker compose \
+		--file='compose/docker-compose.yml' \
+		--project-name='audiusd-test' \
+		--project-directory='./' \
+		--profile=* \
+		run --rm audiusd-dev
+
+##############
+## MEDIORUM ##
+##############
 
 .PHONY: mediorum-test
 mediorum-test:
@@ -235,34 +239,6 @@ core-test:
 		--project-directory='./' \
 		--profile=core-tests \
 		down -v
-
-.PHONY: core-sandbox
-core-sandbox: core-build-amd64
-	@scripts/add-sandbox-hosts.sh
-	@docker compose -f ./cmd/core/infra/docker-compose.yml --profile prod --profile stage --profile dev up --build -d
-
-.PHONY: core-down-sandbox
-core-down-sandbox:
-	@docker compose -f ./cmd/core/infra/docker-compose.yml --profile prod --profile stage --profile dev down
-
-.PHONY: core-prod-sandbox
-core-prod-sandbox: core-build-amd64
-	@scripts/add-sandbox-hosts.sh
-	@docker compose -f ./cmd/core/infra/docker-compose.yml --profile prod up --build -d
-
-.PHONY: core-stage-sandbox
-core-stage-sandbox: core-build-amd64
-	@scripts/add-sandbox-hosts.sh
-	@docker compose -f ./cmd/core/infra/docker-compose.yml --profile stage up --build -d
-
-.PHONY: core-dev-sandbox
-core-dev-sandbox: core-build-amd64
-	@scripts/add-sandbox-hosts.sh
-	@docker compose -f ./cmd/core/infra/docker-compose.yml --profile dev up --build -d
-
-.PHONY: core-livereload
-core-livereload:
-	modd
 
 #############################
 ## Audio Analysis Backfill ##

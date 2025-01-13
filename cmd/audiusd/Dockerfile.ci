@@ -54,14 +54,15 @@ FROM prod AS test
 COPY --from=golang:alpine /usr/local/go/bin/go /usr/local/go/bin/
 COPY --from=golang:alpine /usr/local/go/pkg /usr/local/go/pkg
 
-ENV AUDIUSD_TEST_MODE="true"
 ENV GOPATH="/go"
 ENV GOROOT="/usr/local/go"
 ENV PATH="/usr/local/go/bin:${PATH}"
+ENV GOPROXY="https://proxy.golang.org,direct"
 
 WORKDIR /app
-
 COPY go.mod go.sum ./
 RUN go mod download
 
 COPY ./cmd/audiusd/.initdb /app/audiusd/.initdb
+
+ENV AUDIUSD_TEST_MODE="true"
