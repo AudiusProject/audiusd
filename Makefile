@@ -304,3 +304,8 @@ static-deps:
 	docker manifest push audius/eth-ganache:latest
 	@echo "Pushed audius/eth-ganache:latest"
 
+
+push-buf:
+	# buf registry login buf.build
+	cd pkg/core && buf push
+
