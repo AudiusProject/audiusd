@@ -94,7 +94,7 @@ jobs:
           at: ./
       - docker-login
       - run:
-          name: Build and push AMD64 Docker images
+          name: Build AMD64 images
           command: |
             DOCKER_DEFAULT_PLATFORM=linux/amd64 docker build \
               --target prod \
@@ -111,41 +111,20 @@ jobs:
               -t audius/audiusd:${CIRCLE_SHA1}-test \
               -f ./cmd/audiusd/Dockerfile.ci ./
       - run:
-          name: Run unit and integration tests
+          name: Run (unit) mediorum tests
           command: |
-            # Create temp files for logs
-            MEDIORUM_LOG=$(mktemp)
-            CORE_LOG=$(mktemp)
-
-            # Run tests in parallel and capture logs
             AUDIUSD_IMAGE=audius/audiusd:${CIRCLE_SHA1}-amd64 \
             TEST_IMAGE=audius/audiusd:${CIRCLE_SHA1}-test \
-            TTY_FLAG="--no-TTY" make mediorum-test > $MEDIORUM_LOG 2>&1 &
-            MEDIORUM_PID=$!
-
+            TTY_FLAG="--no-TTY" make mediorum-test
+      - run:
+          name: Run (integration) core tests
+          command: |
             AUDIUSD_IMAGE=audius/audiusd:${CIRCLE_SHA1}-amd64 \
             TEST_IMAGE=audius/audiusd:${CIRCLE_SHA1}-test \
-            TTY_FLAG="--no-TTY" make core-test > $CORE_LOG 2>&1 &
-            CORE_PID=$!
-
-            # Wait for both to finish
-            wait $MEDIORUM_PID
-            MEDIORUM_EXIT=$?
-            wait $CORE_PID 
-            CORE_EXIT=$?
-
-            # If either failed, show logs and exit
-            if [ $MEDIORUM_EXIT -ne 0 ] || [ $CORE_EXIT -ne 0 ]; then
-              echo "=== MEDIORUM TEST LOGS ==="
-              cat $MEDIORUM_LOG
-              echo "=== CORE TEST LOGS ==="
-              cat $CORE_LOG
-              echo "Tests failed: mediorum=$MEDIORUM_EXIT, core=$CORE_EXIT"
-              exit 1
-            fi
-
-            # Clean up
-            rm $MEDIORUM_LOG $CORE_LOG
+            TTY_FLAG="--no-TTY" make core-test
+      - run:
+          name: Push AMD64 image
+          command: docker push audius/audiusd:${CIRCLE_SHA1}-amd64
 
   build-audiusd-arm64:
     machine: true
