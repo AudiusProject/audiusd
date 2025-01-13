@@ -44,7 +44,8 @@ func (p *PlayEventQueue) popPlayEventBatch() []*PlayEvent {
 	return batch
 }
 
-var playQueueInterval = 20 * time.Second
+var playQueueSecs = 20
+var playQueueInterval = time.Duration(playQueueSecs) * time.Second
 
 type PlayEvent struct {
 	RowID     int
@@ -86,6 +87,12 @@ func (ss *MediorumServer) processPlayRecordBatch() error {
 	// assemble batch of plays into core tx
 	sdk := ss.coreSdk
 
+	status, err := sdk.GetNodeInfo(ctx, &core_proto.GetNodeInfoRequest{})
+	if err != nil {
+		ss.logger.Error("core error getting node info", "err", err)
+		return err
+	}
+
 	corePlays := []*core_proto.TrackPlay{}
 	for _, play := range plays {
 		corePlays = append(corePlays, &core_proto.TrackPlay{
@@ -113,6 +120,7 @@ func (ss *MediorumServer) processPlayRecordBatch() error {
 	// construct proto listen signedTx alongside signature of plays signedTx
 	signedTx := &core_proto.SignedTransaction{
 		Signature: signedPlaysEvent,
+		Deadline:  status.GetCurrentHeight() + int64(playQueueSecs),
 		Transaction: &core_proto.SignedTransaction_Plays{
 			Plays: playsTx,
 		},
