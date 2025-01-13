@@ -60,13 +60,20 @@ jobs:
       - checkout
       - restore_cache:
           keys:
+            - go-deps-v1-{{ checksum "Makefile" }}
+            - go-deps-v1-
             - go-mod-v1-{{ checksum "go.sum" }}
             - go-mod-v1-
             - go-build-v1-{{ .Branch }}-{{ checksum "go.sum" }}
             - go-build-v1-{{ .Branch }}
       - run:
-          name: Download Go modules
-          command: go mod download
+          command: |
+            make install-go-deps
+            go mod download
+      - save_cache:
+          key: go-deps-v1-{{ checksum "Makefile" }}
+          paths:
+            - /home/circleci/go/bin
       - save_cache:
           key: go-mod-v1-{{ checksum "go.sum" }}
           paths:
@@ -74,8 +81,8 @@ jobs:
       - run:
           name: Build audiusd binaries
           command: |
-            GOOS=linux GOARCH=amd64 go build -o bin/audiusd-amd64 ./cmd/audiusd
-            GOOS=linux GOARCH=arm64 go build -o bin/audiusd-arm64 ./cmd/audiusd
+            make bin/audiusd-x86_64-linux
+            make bin/audiusd-arm64-linux
       - save_cache:
           key: go-build-v1-{{ .Branch }}-{{ checksum "go.sum" }}
           paths:
@@ -83,7 +90,8 @@ jobs:
       - persist_to_workspace:
           root: ./
           paths:
-            - bin/audiusd-*
+            - bin/audiusd-x86_64-linux
+            - bin/audiusd-arm64-linux
 
   build-and-test-audiusd-amd64:
     machine: true
@@ -94,12 +102,12 @@ jobs:
           at: ./
       - docker-login
       - run:
-          name: Build AMD64 images
+          name: Build amd64-linux images
           command: |
             DOCKER_DEFAULT_PLATFORM=linux/amd64 docker build \
               --target prod \
               --build-arg GIT_SHA=${CIRCLE_SHA1} \
-              --build-arg PREBUILT_BINARY=bin/audiusd-amd64 \
+              --build-arg PREBUILT_BINARY=bin/audiusd-x86_64-linux \
               -t audius/audiusd:${CIRCLE_SHA1}-amd64 \
               -f ./cmd/audiusd/Dockerfile.ci ./
             docker push audius/audiusd:${CIRCLE_SHA1}-amd64
@@ -107,7 +115,7 @@ jobs:
             DOCKER_DEFAULT_PLATFORM=linux/amd64 docker build \
               --target test \
               --build-arg GIT_SHA=${CIRCLE_SHA1} \
-              --build-arg PREBUILT_BINARY=bin/audiusd-amd64 \
+              --build-arg PREBUILT_BINARY=bin/audiusd-x86_64-linux \
               -t audius/audiusd:${CIRCLE_SHA1}-test \
               -f ./cmd/audiusd/Dockerfile.ci ./
       - run:
@@ -123,8 +131,18 @@ jobs:
             TEST_IMAGE=audius/audiusd:${CIRCLE_SHA1}-test \
             TTY_FLAG="--no-TTY" make core-test
       - run:
-          name: Push AMD64 image
-          command: docker push audius/audiusd:${CIRCLE_SHA1}-amd64
+          name: Push amd64-linux image
+          command: |
+            if [ "${CIRCLE_BRANCH}" = "main" ]; then
+              docker push audius/audiusd:${CIRCLE_SHA1}-amd64
+            fi
+      - when:
+          condition:
+            equal: [ main, << pipeline.git.branch >> ]
+          steps:
+            - run:
+                name: Push amd64-linux image
+                command: docker push audius/audiusd:${CIRCLE_SHA1}-amd64
 
   build-audiusd-arm64:
     machine: true
@@ -135,15 +153,21 @@ jobs:
           at: ./
       - docker-login
       - run:
-          name: Build and push ARM64 Docker image
+          name: Build arm64-linux image
           command: |
             DOCKER_DEFAULT_PLATFORM=linux/arm64 docker build \
               --target prod \
               --build-arg GIT_SHA=${CIRCLE_SHA1} \
-              --build-arg PREBUILT_BINARY=bin/audiusd-arm64 \
+              --build-arg PREBUILT_BINARY=bin/audiusd-arm64-linux \
               -t audius/audiusd:${CIRCLE_SHA1}-arm64 \
               -f ./cmd/audiusd/Dockerfile.ci ./
-            docker push audius/audiusd:${CIRCLE_SHA1}-arm64
+      - when:
+          condition:
+            equal: [ main, << pipeline.git.branch >> ]
+          steps:
+            - run:
+                name: Push arm64-linux image
+                command: docker push audius/audiusd:${CIRCLE_SHA1}-arm64
 
   push-audiusd-manifest:
     docker:
@@ -219,8 +243,8 @@ jobs:
             gh release create "audiusd@${CIRCLE_SHA1}" \
               --title "audiusd ${CIRCLE_SHA1}" \
               --notes-file release_notes.md \
-              bin/audiusd-amd64 \
-              bin/audiusd-arm64
+              bin/audiusd-x86_64-linux \
+              bin/audiusd-arm64-linux
 
 workflows:
   audiusd:
@@ -234,21 +258,37 @@ workflows:
           context: DockerHub
           requires:
             - build-audiusd-bin
+          filters:
+            branches:
+              only:
+                - main
       - push-audiusd-manifest:
           context: DockerHub
           requires:
             - build-and-test-audiusd-amd64
             - build-audiusd-arm64
+          filters:
+            branches:
+              only:
+                - main
       - publish-audiusd-release-trigger:
           requires:
             - push-audiusd-manifest
           type: approval
+          filters:
+            branches:
+              only:
+                - main
       - publish-audiusd-release:
           context:
             - DockerHub
             - github
           requires:
             - publish-audiusd-release-trigger
+          filters:
+            branches:
+              only:
+                - main
       - deploy-audiusd-staging:
           context: DockerHub
           requires:

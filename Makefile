@@ -32,6 +32,10 @@ bin/audiusd-x86_64-linux: $(BUILD_SRCS)
 	@echo "Building x86 audiusd for linux..."
 	@bash scripts/build-audiusd.sh $@ amd64 linux
 
+bin/audiusd-arm64-linux: $(BUILD_SRCS)
+	@echo "Building arm audiusd for linux..."
+	@bash scripts/build-audiusd.sh $@ arm64 linux
+
 bin/audius-ctl-native: $(BUILD_SRCS)
 	@echo "Building audius-ctl for local platform and architecture..."
 	@bash scripts/build-audius-ctl.sh $@
@@ -116,20 +120,22 @@ uninstall:
 clean:
 	rm -f bin/*
 
-.PHONY: install-deps
-install-deps:
+.PHONY: install-deps install-go-deps
+install-deps: install-go-deps
 	@brew install protobuf
 	@brew install crane
 	@brew install bufbuild/buf/buf
-	@go install github.com/onsi/ginkgo/v2/ginkgo@v2.19.0
-	@go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
-	@go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
-	@go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
-	@go install github.com/cortesi/modd/cmd/modd@latest
-	@go install github.com/a-h/templ/cmd/templ@latest
-	@go install github.com/ethereum/go-ethereum/cmd/abigen@latest
-	@go install github.com/go-swagger/go-swagger/cmd/swagger@latest
 	@gookme init --types pre-commit,pre-push || echo "Gookme init failed, check if it's installed (https://lmaxence.github.io/gookme)"
+
+install-go-deps:
+	go install -v github.com/onsi/ginkgo/v2/ginkgo@v2.19.0
+	go install -v github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+	go install -v google.golang.org/protobuf/cmd/protoc-gen-go@latest
+	go install -v google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+	go install -v github.com/cortesi/modd/cmd/modd@latest
+	go install -v github.com/a-h/templ/cmd/templ@latest
+	go install -v github.com/ethereum/go-ethereum/cmd/abigen@latest
+	go install -v github.com/go-swagger/go-swagger/cmd/swagger@latest
 
 go.sum: go.mod
 go.mod: $(GO_SRCS)
