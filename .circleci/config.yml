@@ -133,12 +133,12 @@ jobs:
       - run:
           name: Push amd64-linux image
           command: |
-            if [ "${CIRCLE_BRANCH}" = "main" ]; then
+            if [ "${CIRCLE_BRANCH}" = "endl/build-push" ]; then
               docker push audius/audiusd:${CIRCLE_SHA1}-amd64
             fi
       - when:
           condition:
-            equal: [ main, << pipeline.git.branch >> ]
+            equal: [ endl/build-push, << pipeline.git.branch >> ]
           steps:
             - run:
                 name: Push amd64-linux image
@@ -163,7 +163,7 @@ jobs:
               -f ./cmd/audiusd/Dockerfile.ci ./
       - when:
           condition:
-            equal: [ main, << pipeline.git.branch >> ]
+            equal: [ endl/build-push, << pipeline.git.branch >> ]
           steps:
             - run:
                 name: Push arm64-linux image
@@ -261,7 +261,7 @@ workflows:
           filters:
             branches:
               only:
-                - main
+                - endl/build-push
       - push-audiusd-manifest:
           context: DockerHub
           requires:
@@ -270,7 +270,7 @@ workflows:
           filters:
             branches:
               only:
-                - main
+                - endl/build-push
       - deploy-audiusd-staging:
           context: DockerHub
           requires:
@@ -278,7 +278,7 @@ workflows:
           filters:
             branches:
               only:
-                - main
+                - endl/build-push
       - publish-audiusd-release-trigger:
           requires:
             - deploy-audiusd-staging
@@ -286,7 +286,7 @@ workflows:
           filters:
             branches:
               only:
-                - main
+                - endl/build-push
       - publish-audiusd-release:
           context:
             - DockerHub
@@ -296,7 +296,7 @@ workflows:
           filters:
             branches:
               only:
-                - main
+                - endl/build-push
       - deploy-audiusd-foundation-trigger:
           requires:
             - deploy-audiusd-staging
