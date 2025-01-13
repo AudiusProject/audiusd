@@ -56,6 +56,7 @@ var _ = Describe("Plays", func() {
 					Plays: listens,
 				},
 			},
+			Deadline: 1000000000000000000,
 		}
 
 		expectedTxHash, err := common.ToTxHash(playEvent)

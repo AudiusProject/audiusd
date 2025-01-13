@@ -45,16 +45,9 @@ func (s *Server) SendTransaction(ctx context.Context, req *core_proto.SendTransa
 		return nil, fmt.Errorf("could not get tx hash of signed tx: %v", err)
 	}
 
-	var deadline int64
-	if txDeadline := req.GetTransaction().GetDeadline(); txDeadline > 0 {
-		deadline = txDeadline
-	} else {
-		// TODO: use data companion to keep this value up to date via channel
-		status, err := s.rpc.Status(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("chain not healthy: %v", err)
-		}
-		deadline = status.SyncInfo.LatestBlockHeight + 10
+	deadline := req.GetTransaction().GetDeadline()
+	if deadline == 0 {
+		return nil, fmt.Errorf("deadline must be set for signed transactions")
 	}
 
 	mempoolTx := &MempoolTransaction{

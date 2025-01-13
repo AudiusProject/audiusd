@@ -69,6 +69,7 @@ var _ = Describe("OpenAPI", func() {
 			Signature: signature,
 			RequestID: requestId,
 			Plays:     trackPlays,
+			Deadline:  "1000000000000000000",
 		}
 
 		sendParams := protocol.NewProtocolSendTransactionParams()

@@ -30,6 +30,7 @@ var _ = Describe("EntityManager", func() {
 
 		signedManageEntity := &core_proto.SignedTransaction{
 			RequestId: uuid.NewString(),
+			Deadline:  1000000000000000000,
 			Transaction: &core_proto.SignedTransaction_ManageEntity{
 				ManageEntity: manageEntity,
 			},
