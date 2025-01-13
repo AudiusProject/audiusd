@@ -14,6 +14,7 @@ func SignedTxProtoIntoSignedTxOapi(tx *core_proto.SignedTransaction) *models.Pro
 	oapiTx := &models.ProtocolSignedTransaction{
 		RequestID: tx.RequestId,
 		Signature: tx.Signature,
+		Deadline:  fmt.Sprint(tx.Deadline),
 	}
 
 	switch innerTx := tx.Transaction.(type) {

@@ -18,6 +18,9 @@ import (
 // swagger:model protocolSignedTransaction
 type ProtocolSignedTransaction struct {
 
+	// deadline
+	Deadline string `json:"deadline,omitempty"`
+
 	// manage entity
 	ManageEntity *ProtocolManageEntityLegacy `json:"manageEntity,omitempty"`
 

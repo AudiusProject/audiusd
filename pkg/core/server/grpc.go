@@ -45,13 +45,18 @@ func (s *Server) SendTransaction(ctx context.Context, req *core_proto.SendTransa
 		return nil, fmt.Errorf("could not get tx hash of signed tx: %v", err)
 	}
 
-	// TODO: use data companion to keep this value up to date via channel
-	status, err := s.rpc.Status(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("chain not healthy: %v", err)
+	var deadline int64
+	if txDeadline := req.GetTransaction().GetDeadline(); txDeadline > 0 {
+		deadline = txDeadline
+	} else {
+		// TODO: use data companion to keep this value up to date via channel
+		status, err := s.rpc.Status(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("chain not healthy: %v", err)
+		}
+		deadline = status.SyncInfo.LatestBlockHeight + 10
 	}
 
-	deadline := status.SyncInfo.LatestBlockHeight + 10
 	mempoolTx := &MempoolTransaction{
 		Tx:       req.GetTransaction(),
 		Deadline: deadline,
@@ -95,15 +100,17 @@ func (s *Server) ForwardTransaction(ctx context.Context, req *core_proto.Forward
 
 	s.logger.Infof("received forwarded tx: %v", req.Transaction)
 
-	// TODO: intake block deadline from request
-	status, err := s.rpc.Status(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("chain not healthy: %v", err)
+	tx := req.GetTransaction()
+	if tx == nil {
+		return nil, fmt.Errorf("transaction cannot be nil")
 	}
 
-	deadline := status.SyncInfo.LatestBlockHeight + 10
+	deadline := tx.GetDeadline()
+	if deadline == 0 {
+		return nil, fmt.Errorf("transaction deadline cannot be 0 when forwarded")
+	}
 	mempoolTx := &MempoolTransaction{
-		Tx:       req.GetTransaction(),
+		Tx:       tx,
 		Deadline: deadline,
 	}
 

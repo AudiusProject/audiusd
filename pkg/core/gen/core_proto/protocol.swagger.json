@@ -301,6 +301,10 @@
         "requestId": {
           "type": "string"
         },
+        "deadline": {
+          "type": "string",
+          "format": "int64"
+        },
         "plays": {
           "$ref": "#/definitions/protocolTrackPlays"
         },
