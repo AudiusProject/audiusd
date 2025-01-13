@@ -198,13 +198,13 @@ mediorum-test:
 		--project-name='audiusd-test' \
 		--project-directory='./' \
 		--profile=mediorum-unittests \
-		run --rm test-mediorum-unittests
+		run $(TTY_FLAG) --rm test-mediorum-unittests
 	@echo 'Tests successful. Spinning down containers...'
 	@docker compose \
     	--file='compose/docker-compose.test.yml' \
         --project-name='audiusd-test' \
         --project-directory='./' \
-		--profile=* \
+		--profile=mediorum-unittests \
         down -v
 
 ##########
@@ -221,17 +221,13 @@ core-build-amd64: bin/core-amd64
 bin/core-amd64: $(BUILD_SRCS)
 	@GOOS=linux GOARCH=amd64 go build -ldflags "$(VERSION_LDFLAG)" -o bin/core-amd64 ./cmd/core/main.go
 
-.PHONY: core-dev
-core-dev: gen
-	audius-compose up audiusd-1 audiusd-2 audiusd-3 audiusd-4 eth-ganache ingress
-
 .PHONY: core-test
 core-test:
 	@docker compose \
 		--file='compose/docker-compose.test.yml' \
 		--project-name='audiusd-test' \
 		--project-directory='./' \
-		run --rm test-core
+		run $(TTY_FLAG) --rm test-core
 	@echo 'Tests complete. Spinning down containers...'
 	@docker compose \
 		--file='compose/docker-compose.test.yml' \
