@@ -85,7 +85,7 @@ jobs:
           paths:
             - bin/audiusd-*
 
-  build-audiusd-amd64:
+  build-and-test-audiusd-amd64:
     machine: true
     resource_class: audiusproject/gcp-n2-standard-4
     steps:
@@ -93,15 +93,6 @@ jobs:
       - attach_workspace:
           at: ./
       - docker-login
-      - restore_cache:
-          keys:
-            - test-image-{{ .Branch }}-{{ .Revision }}
-      - run:
-          name: Load cached test image if available
-          command: |
-            if [ -f /tmp/docker-cache/test-image.tar ]; then
-              docker load -i /tmp/docker-cache/test-image.tar
-            fi
       - run:
           name: Build and push AMD64 Docker images
           command: |
@@ -119,14 +110,18 @@ jobs:
               --build-arg PREBUILT_BINARY=bin/audiusd-amd64 \
               -t audius/audiusd:${CIRCLE_SHA1}-test \
               -f ./cmd/audiusd/Dockerfile.ci ./
-            
-            # persist test image between jobs without pushing
-            mkdir -p /tmp/docker-cache
-            docker save -o /tmp/docker-cache/test-image.tar audius/audiusd:${CIRCLE_SHA1}-test
-      - save_cache:
-          key: test-image-{{ .Branch }}-{{ .Revision }}
-          paths:
-            - /tmp/docker-cache/test-image.tar
+      - run:
+          name: Run mediorum tests
+          command: |
+            AUDIUSD_IMAGE=audius/audiusd:${CIRCLE_SHA1}-amd64 \
+            TEST_IMAGE=audius/audiusd:${CIRCLE_SHA1}-test \
+            make mediorum-test
+      - run:
+          name: Run core tests
+          command: |
+            AUDIUSD_IMAGE=audius/audiusd:${CIRCLE_SHA1}-amd64 \
+            TEST_IMAGE=audius/audiusd:${CIRCLE_SHA1}-test \
+            make core-test
 
   build-audiusd-arm64:
     machine: true
@@ -146,48 +141,6 @@ jobs:
               -t audius/audiusd:${CIRCLE_SHA1}-arm64 \
               -f ./cmd/audiusd/Dockerfile.ci ./
             docker push audius/audiusd:${CIRCLE_SHA1}-arm64
-
-  test-mediorum:
-    machine: true
-    resource_class: audiusproject/gcp-n2-standard-4
-    steps:
-      - checkout
-      - restore_cache:
-          keys:
-            - test-image-{{ .Branch }}-{{ .Revision }}
-      - run:
-          name: Load test image
-          command: |
-            docker load -i /tmp/docker-cache/test-image.tar
-      - run:
-          name: Run mediorum tests
-          command: |
-            AUDIUSD_IMAGE=audius/audiusd:${CIRCLE_SHA1}-amd64 \
-            TEST_IMAGE=audius/audiusd:${CIRCLE_SHA1}-test \
-            make mediorum-test
-
-  test-core:
-    machine: true
-    resource_class: audiusproject/gcp-n2-standard-4
-    steps:
-      - checkout
-      - restore_cache:
-          keys:
-            - test-image-{{ .Branch }}-{{ .Revision }}
-      - run:
-          name: Load test image
-          command: |
-            docker load -i /tmp/docker-cache/test-image.tar
-      - run:
-          name: Pull images
-          command: |
-            docker pull audius/audiusd:${CIRCLE_SHA1}-amd64
-      - run:
-          name: Run core tests
-          command: |
-            AUDIUSD_IMAGE=audius/audiusd:${CIRCLE_SHA1}-amd64 \
-            TEST_IMAGE=audius/audiusd:${CIRCLE_SHA1}-test \
-            make core-test
 
   push-audiusd-manifest:
     docker:
@@ -270,7 +223,7 @@ workflows:
   audiusd:
     jobs:
       - build-audiusd-bin
-      - build-audiusd-amd64:
+      - build-and-test-audiusd-amd64:
           context: DockerHub
           requires:
             - build-audiusd-bin
@@ -278,19 +231,10 @@ workflows:
           context: DockerHub
           requires:
             - build-audiusd-bin
-      - test-mediorum:
-          context: DockerHub
-          requires:
-            - build-audiusd-amd64
-      - test-core:
-          context: DockerHub
-          requires:
-            - build-audiusd-amd64
       - push-audiusd-manifest:
           context: DockerHub
           requires:
-            - test-mediorum
-            - test-core
+            - build-and-test-audiusd-amd64
             - build-audiusd-arm64
       - publish-audiusd-release-trigger:
           requires:
