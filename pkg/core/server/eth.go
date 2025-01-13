@@ -57,14 +57,16 @@ func (s *Server) gatherEthNodes() error {
 		return fmt.Errorf("got 0 registered nodes: %v", nodes)
 	}
 
-	ethNodeMap := make(map[string]int)
-	duplicateEthNodes := []*contracts.Node{}
+	ethNodeMap := make(map[string]*contracts.Node, len(nodes))
+	duplicateEthNodeSet := make(map[string]*contracts.Node)
 
 	for _, node := range nodes {
 		ethaddr := node.DelegateOwnerWallet.String()
-		ethNodeMap[ethaddr]++
-		if ethNodeMap[ethaddr] > 1 {
-			duplicateEthNodes = append(duplicateEthNodes, node)
+		if existingNode, ok = ethNodeMap[ethaddr]; ok {
+			duplicateEthNodeSet[node.Endpoint] = node
+			duplicateEthNodeSet[existingNode.Endpoint] = existingNode
+		} else {
+			ethNodeMap[ethaddr] = node
 		}
 	}
 
@@ -72,6 +74,10 @@ func (s *Server) gatherEthNodes() error {
 	defer s.ethNodeMU.Unlock()
 
 	s.ethNodes = nodes
+	duplicateEthNodes := make([]*contracts.Node, 0, len(duplicateEthNodeSet))
+	for _, node := range duplicateEthNodeSet {
+		duplicateEthNodes = append(duplicateEthNodes, node)
+	}
 	s.duplicateEthNodes = duplicateEthNodes
 
 	return nil
