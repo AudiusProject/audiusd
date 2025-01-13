@@ -60,13 +60,11 @@ ENTRYPOINT ["/bin/entrypoint.sh"]
 
 FROM prod AS test
 
-COPY --from=golang:alpine /usr/local/go/bin/go /usr/local/go/bin/
-COPY --from=golang:alpine /usr/local/go/pkg /usr/local/go/pkg
+COPY --from=golang:alpine /usr/local/go/ /usr/local/go/
 
 ENV PATH="/usr/local/go/bin:${PATH}"
 ENV GOPATH="/go"
 ENV GOROOT="/usr/local/go"
-ENV GOPROXY="https://proxy.golang.org,direct"
 
 WORKDIR /app
 COPY --from=builder /go/pkg/mod /go/pkg/mod
