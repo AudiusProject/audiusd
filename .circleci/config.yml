@@ -307,7 +307,7 @@ workflows:
             - deploy-audiusd-foundation-trigger
       - deploy-audiusd-sps-trigger:
           requires:
-            - deploy-audiusd-foundation
+            - publish-audiusd-release
           type: approval
       - deploy-audiusd-sps:
           context: DockerHub
