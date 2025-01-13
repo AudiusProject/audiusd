@@ -34,8 +34,10 @@ source_env_file "$OVERRIDE_ENV_FILE"
 
 if [ -n "$creatorNodeEndpoint" ]; then
     POSTGRES_DB="audius_creator_node"
+    POSTGRES_DATA_DIR=${POSTGRES_DATA_DIR:-/data/creator-node-db-15}
 elif [ -n "$audius_discprov_url" ]; then
     POSTGRES_DB="audius_discovery"
+    POSTGRES_DATA_DIR=${POSTGRES_DATA_DIR:-/data/discovery-provider-db}
 else
     POSTGRES_DB="audiusd"
 fi
@@ -45,7 +47,7 @@ POSTGRES_PASSWORD="postgres"
 POSTGRES_DATA_DIR=${POSTGRES_DATA_DIR:-/data/postgres}
 export dbUrl="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5432/${POSTGRES_DB}?sslmode=disable"
 export uptimeDataDir=${uptimeDataDir:-/data/bolt}
-export audius_core_root_dir=${audius_core_root_dir:-/data/core}
+export audius_core_root_dir=${audius_core_root_dir:-/data/bolt}
 
 setup_postgres() {
     PG_BIN="/usr/lib/postgresql/15/bin"
