@@ -193,7 +193,7 @@ jobs:
       - run:
           name: Release audiusd to staging
           command: |
-            crane copy "audius/audiusd:${CIRCLE_SHA1}" "audius/audiusd:edge"
+            crane copy "audius/audiusd:${CIRCLE_SHA1}" "audius/audiusd:prerelease"
 
   deploy-audiusd-foundation:
     docker:
