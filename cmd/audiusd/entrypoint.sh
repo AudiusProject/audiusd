@@ -15,8 +15,7 @@ fi
 source_env_file() {
     local file=$1
     if [ ! -f "$file" ]; then
-        echo "Environment file $file not found"
-        return
+        echo "WARN Environment file $file not found"
     fi
 
     echo "Loading environment from $file"

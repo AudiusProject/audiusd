@@ -183,6 +183,15 @@ jobs:
             docker manifest push audius/audiusd:${CIRCLE_SHA1}
       - docker-logout
 
+  deploy-audiusd-staging-trigger:
+    requires:
+      - push-audiusd-manifest
+    type: approval
+    filters:
+      branches:
+        only:
+          - endl/build-push
+
   deploy-audiusd-staging:
     docker:
       - image: cimg/base:2023.01
@@ -271,10 +280,18 @@ workflows:
             branches:
               only:
                 - endl/build-push
+      - deploy-audiusd-staging-trigger:
+          requires:
+            - push-audiusd-manifest
+          type: approval
+          filters:
+            branches:
+              only:
+                - endl/build-push
       - deploy-audiusd-staging:
           context: DockerHub
           requires:
-            - push-audiusd-manifest
+            - deploy-audiusd-staging-trigger
           filters:
             branches:
               only:
@@ -283,10 +300,6 @@ workflows:
           requires:
             - deploy-audiusd-staging
           type: approval
-          filters:
-            branches:
-              only:
-                - endl/build-push
       - publish-audiusd-release:
           context:
             - DockerHub
