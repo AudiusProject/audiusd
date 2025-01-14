@@ -47,6 +47,19 @@ commands:
             ARCH=x86_64
             curl -sL "https://github.com/google/go-containerregistry/releases/download/${VERSION}/go-containerregistry_${OS}_${ARCH}.tar.gz" > go-containerregistry.tar.gz
             tar -zxvf go-containerregistry.tar.gz -C $HOME/bin/ crane
+  install-buf:
+    steps:
+      - run:
+        name: Install Buf
+        command: |
+        PROJECT=audiusd-buf
+        BUF_VERSION=1.49.0
+        BIN_DIR=$HOME/bin/$PROJECT
+        curl -sSL \
+            "https://github.com/bufbuild/buf/releases/download/v$BUF_VERSION/buf-$(uname -s)-$(uname -m)" \
+            -o "$BIN_DIR/buf"
+        chmod +x "$BIN_DIR/buf"
+
 
 
 jobs:
@@ -266,6 +279,13 @@ jobs:
           command: |
             make release-audius-ctl
 
+  publish-buf:
+    docker:
+     - image: cimg/base:2023.01
+    resource_class: small
+    steps:
+     - install-buf
+
   deploy-audiusd-staging:
     docker:
       - image: cimg/base:2023.01
@@ -356,3 +376,6 @@ workflows:
             - DockerHub
           requires:
             - deploy-audiusd-sps-trigger
+      - publish-buf:
+          context:
+            - github
