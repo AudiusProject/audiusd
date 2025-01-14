@@ -13,7 +13,9 @@ import (
 	"github.com/AudiusProject/audius-protocol/pkg/core/db"
 	"github.com/AudiusProject/audius-protocol/pkg/core/gen/core_proto"
 	"github.com/AudiusProject/audius-protocol/pkg/logger"
+	abcitypes "github.com/cometbft/cometbft/abci/types"
 	"github.com/cometbft/cometbft/crypto/ed25519"
+	"github.com/cometbft/cometbft/types"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	geth "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -178,14 +180,14 @@ func (s *Server) registerSelfOnComet(ethBlock, spID string) error {
 		Power:        int64(s.config.ValidatorVotingPower),
 	}
 
-	eventBytes, err := proto.Marshal(registrationTx)
+	txBytes, err := proto.Marshal(registrationTx)
 	if err != nil {
-		return fmt.Errorf("failure to marshal register event: %v", err)
+		return fmt.Errorf("failure to marshal register tx: %v", err)
 	}
 
-	sig, err := common.EthSign(s.config.EthereumKey, eventBytes)
+	sig, err := common.EthSign(s.config.EthereumKey, txBytes)
 	if err != nil {
-		return fmt.Errorf("could not sign register event: %v", err)
+		return fmt.Errorf("could not sign register tx: %v", err)
 	}
 
 	tx := &core_proto.SignedTransaction{
@@ -208,6 +210,36 @@ func (s *Server) registerSelfOnComet(ethBlock, spID string) error {
 	s.logger.Infof("registered node %s in tx %s", s.config.NodeEndpoint, txhash)
 
 	return nil
+}
+
+func (s *Server) createDeregisterTransaction(address types.Address) ([]byte, error) {
+	deregistrationTx := &core_proto.ValidatorRegistration{
+		CometAddress: address.String(),
+	}
+
+	txBytes, err := proto.Marshal(deregistrationTx)
+	if err != nil {
+		return []byte{}, fmt.Errorf("failure to marshal deregister tx: %v", err)
+	}
+
+	sig, err := common.EthSign(s.config.EthereumKey, txBytes)
+	if err != nil {
+		return []byte{}, fmt.Errorf("could not sign deregister tx: %v", err)
+	}
+
+	tx := core_proto.SignedTransaction{
+		Signature: sig,
+		RequestId: uuid.NewString(),
+		Transaction: &core_proto.SignedTransaction_ValidatorDeregistration{
+			ValidatorDeregistration: deregistrationTx,
+		},
+	}
+
+	signedTxBytes, err := proto.Marshal(&tx)
+	if err != nil {
+		return []byte{}, err
+	}
+	return signedTxBytes, nil
 }
 
 func (s *Server) awaitNodeCatchup(ctx context.Context) error {
@@ -407,6 +439,40 @@ func (s *Server) isValidRegisterNodeTx(tx *core_proto.SignedTransaction) error {
 	return nil
 }
 
+func (s *Server) isValidDeregisterNodeTx(tx *core_proto.SignedTransaction, misbehavior []abcitypes.Misbehavior) error {
+	sig := tx.GetSignature()
+	if sig == "" {
+		return fmt.Errorf("no signature provided for deregistration tx: %v", tx)
+	}
+
+	vd := tx.GetValidatorDeregistration()
+	if vd == nil {
+		return fmt.Errorf("unknown tx fell into isValidDeregisterNodeTx: %v", tx)
+	}
+
+	info, err := s.db.GetRegisteredNodeByCometAddress(addr)
+	if err != nil {
+		return fmt.Errorf("not able to find registered node: %v", err)
+	}
+
+	if len(vd.GetPubKey()) == 0 {
+		return fmt.Errorf("Public Key missing from deregistration tx: %v", tx)
+	}
+	vdPubKey := ed25519.PubKey(vd.GetPubKey())
+	if vdPubKey.Address().String() != addr {
+		return fmt.Errorf("address does not match public key: %s %s", vdPubKey.Address(), vdCometAddress)
+	}
+
+	for _, mb := range misbehavior {
+		validator := mb.GetValidator()
+		if addr == validator.GetAddress().String() {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("No misbehavior found matching deregistration tx: %v", tx)
+}
+
 func (s *Server) isDuplicateDelegateOwnerWallet(delegateOwnerWallet string) error {
 	s.ethNodeMU.RLock()
 	defer s.ethNodeMU.RUnlock()
@@ -464,4 +530,40 @@ func (s *Server) finalizeRegisterNode(ctx context.Context, tx *core_proto.Signed
 	}
 
 	return vr, nil
+}
+
+func (s *Server) finalizeDeregisterNode(ctx context.Context, tx *core_proto.SignedTransaction) (*core_proto.ValidatorRegistration, error) {
+	if err := s.isValidDeregisterNodeTx(tx); err != nil {
+		return nil, fmt.Errorf("invalid deregister node tx: %v", err)
+	}
+
+	qtx := s.getDb()
+
+	vd := tx.GetValidatorDeregistration()
+	sig := tx.GetSignature()
+	txBytes, err := proto.Marshal(vd)
+	if err != nil {
+		return nil, fmt.Errorf("could not unmarshal tx bytes: %v", err)
+	}
+
+	pubKey, address, err := common.EthRecover(sig, txBytes)
+	if err != nil {
+		return nil, fmt.Errorf("could not recover signer: %v", err)
+	}
+
+	serializedPubKey, err := common.SerializePublicKey(pubKey)
+	if err != nil {
+		return nil, fmt.Errorf("could not serialize pubkey: %v", err)
+	}
+
+	deregisterNode := tx.GetValidatorRegistration()
+
+	err = qtx.DeleteRegisteredNode(ctx, db.DeleteRegisteredNodeParams{
+		CometAddress: deregisterNode.GetCometAddress(),
+	})
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return nil, fmt.Errorf("error inserting registered node: %v", err)
+	}
+
+	return vd, nil
 }
