@@ -50,15 +50,15 @@ commands:
   install-buf:
     steps:
       - run:
-        name: Install Buf
-        command: |
-        PROJECT=audiusd-buf
-        BUF_VERSION=1.49.0
-        BIN_DIR=$HOME/bin/$PROJECT
-        curl -sSL \
-            "https://github.com/bufbuild/buf/releases/download/v$BUF_VERSION/buf-$(uname -s)-$(uname -m)" \
-            -o "$BIN_DIR/buf"
-        chmod +x "$BIN_DIR/buf"
+          name: Install Buf
+          command: |
+            PROJECT=audiusd-buf
+            BUF_VERSION=1.49.0
+            BIN_DIR=$HOME/bin/$PROJECT
+            curl -sSL \
+                "https://github.com/bufbuild/buf/releases/download/v$BUF_VERSION/buf-$(uname -s)-$(uname -m)" \
+                -o "$BIN_DIR/buf"
+            chmod +x "$BIN_DIR/buf"
 
 
 
