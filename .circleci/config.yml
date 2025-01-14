@@ -52,9 +52,8 @@ commands:
       - run:
           name: Install Buf
           command: |
-            PROJECT=audiusd-buf
             BUF_VERSION=1.49.0
-            BIN_DIR=$HOME/bin/$PROJECT
+            BIN_DIR=$HOME/bin/
             curl -sSL \
                 "https://github.com/bufbuild/buf/releases/download/v$BUF_VERSION/buf-$(uname -s)-$(uname -m)" \
                 -o "$BIN_DIR/buf"
