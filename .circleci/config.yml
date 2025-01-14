@@ -284,6 +284,11 @@ jobs:
     resource_class: small
     steps:
      - install-buf
+     - run:
+        name: Publish buf
+        command: |
+          buf mod update
+          buf push
 
   deploy-audiusd-staging:
     docker:
