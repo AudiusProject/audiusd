@@ -106,7 +106,7 @@ message ValidatorRegistration {
 
 message ValidatorDeregistration {
   string comet_address = 1;
-  string pub_key = 2;
+  bytes pub_key = 2;
 }
 
 message TrackPlay {

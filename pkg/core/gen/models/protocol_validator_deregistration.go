@@ -21,7 +21,8 @@ type ProtocolValidatorDeregistration struct {
 	CometAddress string `json:"cometAddress,omitempty"`
 
 	// pub key
-	PubKey string `json:"pubKey,omitempty"`
+	// Format: byte
+	PubKey strfmt.Base64 `json:"pubKey,omitempty"`
 }
 
 // Validate validates this protocol validator deregistration

@@ -139,7 +139,12 @@ func (s *Server) PrepareProposal(ctx context.Context, proposal *abcitypes.Prepar
 		}
 	}
 	for _, mb := range proposal.Misbehavior {
-		proposalTxs = append(proposalTxs, s.createDeregisterTransaction(mb.Validator.Address))
+		deregTx, err := s.createDeregisterTransaction(mb.Validator.Address)
+		if err != nil {
+			s.logger.Error("Failed to create deregistration transaction", "error", err)
+		} else {
+			proposalTxs = append(proposalTxs, deregTx)
+		}
 	}
 
 	// keep batch at 1000 even if sla rollup occurs
@@ -180,7 +185,7 @@ func (s *Server) FinalizeBlock(ctx context.Context, req *abcitypes.FinalizeBlock
 	logger := s.logger
 	state := s.abciState
 	var txs = make([]*abcitypes.ExecTxResult, len(req.Txs))
-	var validatorUpdatesMap = map[string]abcitypes.ValidatorUpdates{}
+	var validatorUpdatesMap = map[string]abcitypes.ValidatorUpdate{}
 
 	// open in progres pg transaction
 	s.startInProgressTx(ctx)
@@ -196,7 +201,7 @@ func (s *Server) FinalizeBlock(ctx context.Context, req *abcitypes.FinalizeBlock
 				txs[i] = &abcitypes.ExecTxResult{Code: 2}
 			}
 
-			finalizedTx, err := s.finalizeTransaction(ctx, signedTx, txhash)
+			finalizedTx, err := s.finalizeTransaction(ctx, signedTx, txhash, req.Misbehavior)
 			if err != nil {
 				s.logger.Errorf("error finalizing event: %v", err)
 				txs[i] = &abcitypes.ExecTxResult{Code: 2}
@@ -401,7 +406,7 @@ func (s *Server) validateBlockTxs(ctx context.Context, blockTime time.Time, bloc
 	return true, nil
 }
 
-func (s *Server) finalizeTransaction(ctx context.Context, msg *core_proto.SignedTransaction, txHash string) (proto.Message, error) {
+func (s *Server) finalizeTransaction(ctx context.Context, msg *core_proto.SignedTransaction, txHash string, misbehavior []abcitypes.Misbehavior) (proto.Message, error) {
 	switch t := msg.Transaction.(type) {
 	case *core_proto.SignedTransaction_Plays:
 		return s.finalizePlayTransaction(ctx, msg)
@@ -410,7 +415,7 @@ func (s *Server) finalizeTransaction(ctx context.Context, msg *core_proto.Signed
 	case *core_proto.SignedTransaction_ValidatorRegistration:
 		return s.finalizeRegisterNode(ctx, msg)
 	case *core_proto.SignedTransaction_ValidatorDeregistration:
-		return s.finalizeDeregisterNode(ctx, msg)
+		return s.finalizeDeregisterNode(ctx, msg, misbehavior)
 	case *core_proto.SignedTransaction_SlaRollup:
 		return s.finalizeSlaRollup(ctx, msg, txHash)
 	default:

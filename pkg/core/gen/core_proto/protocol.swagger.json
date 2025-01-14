@@ -418,7 +418,8 @@
           "type": "string"
         },
         "pubKey": {
-          "type": "string"
+          "type": "string",
+          "format": "byte"
         }
       }
     },

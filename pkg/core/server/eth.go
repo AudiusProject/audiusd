@@ -62,7 +62,7 @@ func (s *Server) gatherEthNodes() error {
 
 	for _, node := range nodes {
 		ethaddr := node.DelegateOwnerWallet.String()
-		if existingNode, ok = ethNodeMap[ethaddr]; ok {
+		if existingNode, ok := ethNodeMap[ethaddr]; ok {
 			duplicateEthNodeSet[node.Endpoint] = node
 			duplicateEthNodeSet[existingNode.Endpoint] = existingNode
 		} else {
