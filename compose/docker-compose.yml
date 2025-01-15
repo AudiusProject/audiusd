@@ -51,7 +51,7 @@ services:
       - audiusd-dev
 
   audiusd-2:
-    image: ${AUDIUSD_IMAGE:-audius/audiusd:local}
+    image: ${AUDIUSD_IMAGE:-audius/audiusd:dev}
     restart: unless-stopped
     env_file:
       - ./compose/env/audiusd-2.docker.env
@@ -59,7 +59,7 @@ services:
       - audiusd-dev
 
   audiusd-3:
-    image: ${AUDIUSD_IMAGE:-audius/audiusd:local}
+    image: ${AUDIUSD_IMAGE:-audius/audiusd:dev}
     restart: unless-stopped
     env_file:
       - ./compose/env/audiusd-3.docker.env
@@ -67,7 +67,7 @@ services:
       - audiusd-dev
 
   audiusd-4:
-    image: ${AUDIUSD_IMAGE:-audius/audiusd:local}
+    image: ${AUDIUSD_IMAGE:-audius/audiusd:dev}
     restart: unless-stopped
     env_file:
       - ./compose/env/audiusd-4.docker.env

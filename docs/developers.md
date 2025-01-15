@@ -13,7 +13,6 @@ sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keyc
 From the repo root, build and run a local devnet with 4 nodes.
 
 ```bash
-make build-audiusd-local
 make audiusd-dev
 ```
 
@@ -33,31 +32,28 @@ open https://node3.devnet.audiusd/console/overview
 open https://node4.devnet.audiusd/console/overview
 ```
 
-**TODO:** More commands:
+Per the mounts in `compose/docker-compose.yml`, hot reloading is enabled on `node1.devnet.audiusd`.
+Changes to code in `./cmd/` and `./pkg/` will be reflected after a quick rebuild handled by `air`.
+
+### Dev against stage or prod
 
 ```bash
 # build a local node
-make build-audiusd-local
+make build-audiusd-dev
 
-# test
-make build-audiusd-local
+# peer with stage
+docker run --rm -it -p 80:80 -p 443:443 -e NETWORK=stage audius/audiusd:dev
+
+# peer with prod
+docker run --rm -it -p 80:80 -p 443:443 -e NETWORK=prod audius/audiusd:dev
+```
+
+### Run tests
+
+```bash
 make build-audiusd-test
 make mediorum-test
 make core-test
-
-# sync a locally built node to stage
-docker run --rm -it -p 80:80 -p 443:443 -e NETWORK=stage audius/audiusd:local
-
-# sync a locally built node to prod
-docker run --rm -it -p 80:80 -p 443:443 audius/audiusd:local
-
-# health check
-curl http://localhost/health-check
-curl -k https://localhost/health-check
-
-# view in browser
-open http://localhost/console/overview
-open https://localhost/console/overview
 ```
 
 ## Native Development (macOS)

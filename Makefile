@@ -81,14 +81,13 @@ build-push-wrapper:
 	@echo "Building and pushing Docker images for all platforms..."
 	docker buildx build --platform linux/amd64,linux/arm64 --push -t audius/audius-d:$(WRAPPER_TAG) pkg/orchestration
 
-.PHONY: build-audiusd-local build-push-audiusd build-push-cpp
-build-audiusd-local:
-	DOCKER_DEFAULT_PLATFORM=linux/arm64 docker build --target prod --build-arg GIT_SHA=$(AD_TAG) -t audius/audiusd:$(AD_TAG) -t audius/audiusd:local -f ./cmd/audiusd/Dockerfile ./
+.PHONY: build-audiusd-test build-audiusd-dev
 build-audiusd-test:
 	DOCKER_DEFAULT_PLATFORM=linux/arm64 docker build --target test --build-arg GIT_SHA=$(AD_TAG) -t audius/audiusd:test-local -f ./cmd/audiusd/Dockerfile ./
 build-audiusd-dev:
 	DOCKER_DEFAULT_PLATFORM=linux/arm64 docker build --target dev --build-arg GIT_SHA=$(AD_TAG) -t audius/audiusd:dev -f ./cmd/audiusd/Dockerfile ./
 
+.PHONY: build-push-audiusd build-push-cpp
 build-push-audiusd:
 	docker build \
 		--build-arg GIT_SHA=$(AD_TAG) \
@@ -186,7 +185,7 @@ test-down:
 ##############
 
 .PHONY: audiusd-dev
-audiusd-dev:
+audiusd-dev: build-audiusd-dev
 	@docker compose \
 		--file='compose/docker-compose.yml' \
 		--project-name='audiusd-test' \

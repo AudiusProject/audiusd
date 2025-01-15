@@ -87,4 +87,10 @@ RUN go install github.com/air-verse/air@latest
 WORKDIR /app
 COPY --from=builder /go/pkg/mod /go/pkg/mod
 
+COPY ./cmd ./cmd
+COPY ./pkg ./pkg
+COPY ./go.mod ./go.mod
+COPY ./go.sum ./go.sum
+COPY ./.air.toml ./.air.toml
+
 ENV AUDIUSD_DEV_MODE="true"
