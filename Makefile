@@ -174,7 +174,7 @@ regen-go:
 .PHONY: test-down
 test-down:
 	@docker compose \
-    	--file='dev-tools/compose/docker-compose.test.yml' \
+    	--file='compose/docker-compose.test.yml' \
         --project-name='audiusd-test' \
         --project-directory='./' \
 		--profile=* \

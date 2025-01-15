@@ -125,7 +125,7 @@ func ReadConfig(logger *common.Logger) (*Config, error) {
 
 	var cfg Config
 	// comet config
-	cfg.LogLevel = GetEnvWithDefault("audius_core_log_level", "p2p:none,mempool:none,evidence:error,rpc:error,tx_index:error,consensus:error,blocksync:error,blockexec:error,state:error,main:error,*:error")
+	cfg.LogLevel = GetEnvWithDefault("audius_core_log_level", "p2p:none,mempool:none,rpc:none,*:error")
 	cfg.RootDir = GetEnvWithDefault("audius_core_root_dir", homeDir+"/.audiusd")
 	cfg.RPCladdr = GetEnvWithDefault("rpcLaddr", "tcp://0.0.0.0:26657")
 	cfg.P2PLaddr = GetEnvWithDefault("p2pLaddr", "tcp://0.0.0.0:26656")
