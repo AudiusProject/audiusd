@@ -83,7 +83,6 @@ jobs:
             - go-mod-v1-
             - go-build-v1-{{ .Branch }}-{{ checksum "go.sum" }}
             - go-build-v1-{{ .Branch }}
-      - install-buf
       - run:
           command: |
             make install-go-deps
