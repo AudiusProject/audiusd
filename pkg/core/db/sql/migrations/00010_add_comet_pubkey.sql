@@ -1,6 +1,6 @@
 -- +migrate Up
 alter table core_validators
-add column comet_pub_key text not null default 'UNSET';
+add column comet_pub_key text not null;
 
 -- +migrate Down
 alter table core_validators

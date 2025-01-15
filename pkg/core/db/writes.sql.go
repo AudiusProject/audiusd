@@ -125,22 +125,6 @@ func (q *Queries) InsertTxStat(ctx context.Context, arg InsertTxStatParams) erro
 	return err
 }
 
-const updateRegisteredNodeCometPubKey = `-- name: UpdateRegisteredNodeCometPubKey :exec
-update core_validators
-set comet_pub_key = $1
-where comet_address = $2
-`
-
-type UpdateRegisteredNodeCometPubKeyParams struct {
-	CometPubKey  string
-	CometAddress string
-}
-
-func (q *Queries) UpdateRegisteredNodeCometPubKey(ctx context.Context, arg UpdateRegisteredNodeCometPubKeyParams) error {
-	_, err := q.db.Exec(ctx, updateRegisteredNodeCometPubKey, arg.CometPubKey, arg.CometAddress)
-	return err
-}
-
 const upsertAppState = `-- name: UpsertAppState :exec
 insert into core_app_state (block_height, app_hash)
 values ($1, $2)

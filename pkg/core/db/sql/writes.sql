@@ -6,11 +6,6 @@ values ($1, $2);
 insert into core_validators(pub_key, endpoint, eth_address, comet_address, comet_pub_key, eth_block, node_type, sp_id)
 values ($1, $2, $3, $4, $5, $6, $7, $8);
 
--- name: UpdateRegisteredNodeCometPubKey :exec
-update core_validators
-set comet_pub_key = $1
-where comet_address = $2;
-
 -- name: DeleteRegisteredNode :exec
 delete from core_validators
 where comet_address = $1;
