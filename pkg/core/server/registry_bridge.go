@@ -219,8 +219,12 @@ func (s *Server) createDeregisterTransaction(address types.Address) ([]byte, err
 	if err != nil {
 		return []byte{}, fmt.Errorf("not able to find registered node with address '%s': %v", address.String(), err)
 	}
+	pubkeyEnc, err := base64.StdEncoding.DecodeString(node.CometPubKey)
+	if err != nil {
+		return []byte{}, fmt.Errorf("could not decode public key '%s' as base64 encoded string: %v", node.CometPubKey, err)
+	}
 	deregistrationTx := &core_proto.ValidatorDeregistration{
-		PubKey:       base64.StdEncoding.DecodeString(node.CometPubKey),
+		PubKey:       pubkeyEnc,
 		CometAddress: address.String(),
 	}
 
