@@ -1,0 +1,18 @@
+# openssl req -x509 -nodes -days 3650 -newkey rsa:4096 -keyout dev-key.pem -out dev-cert.pem -config dev.cnf
+
+[req]
+default_bits = 4096
+prompt = no
+default_md = sha256
+x509_extensions = req_ext
+distinguished_name = dn
+
+[dn]
+CN = devnet.audius-d
+
+[req_ext]
+subjectAltName = @alt_names
+
+[alt_names]
+DNS.1 = audiusd-test-*
+DNS.2 = audiusd-*

@@ -15,23 +15,28 @@ services:
     image: nginx
     logging: *default-logging
     volumes:
-      - ./compose/nginx_ingress_test.conf:/etc/nginx/conf.d/default.conf
+      - ./compose/nginx.conf:/etc/nginx/conf.d/default.conf
+      - ./compose/tls/dev-cert.pem:/etc/nginx/ssl/dev-cert.pem:ro
+      - ./compose/tls/dev-key.pem:/etc/nginx/ssl/dev-key.pem:ro
     extra_hosts:
       - 'audiusd-test-1:host-gateway'
       - 'audiusd-test-2:host-gateway'
       - 'audiusd-test-3:host-gateway'
       - 'audiusd-test-4:host-gateway'
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://audiusd-1/"]
+      test: ["CMD", "curl", "-f", "http://audiusd-test-1/"]
       interval: 10s
       timeout: 5s
       retries: 3
       start_period: 5s
     ports:
       - 80:80
+      - 443:443
+      - 26656:26656
     profiles:
       - mediorum
       - core-tests
+      - audiusd-dev
     depends_on:
       audiusd-1:
         condition: service_started
@@ -56,6 +61,7 @@ services:
     profiles:
       - mediorum
       - core-tests
+      - audiusd-dev
     networks:
       - test-net
 
@@ -72,8 +78,7 @@ services:
     profiles:
       - mediorum
       - core-tests
-    ports:
-      - "26656:26656"
+      - audiusd-dev
     networks:
       - test-net
 
@@ -90,8 +95,7 @@ services:
     profiles:
       - mediorum
       - core-tests
-    ports:
-      - "26666:26656"
+      - audiusd-dev
     networks:
       - test-net
 
@@ -108,8 +112,7 @@ services:
     profiles:
       - mediorum
       - core-tests
-    ports:
-      - "26676:26656"
+      - audiusd-dev
     networks:
       - test-net
 
@@ -126,8 +129,7 @@ services:
     profiles:
       - mediorum
       - core-tests
-    ports:
-      - "26686:26656"
+      - audiusd-dev
     networks:
       - test-net
 

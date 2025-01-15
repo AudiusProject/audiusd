@@ -184,13 +184,21 @@ test-down:
 ##############
 
 .PHONY: audiusd-dev
-audiusd-test:
+audiusd-dev:
 	@docker compose \
 		--file='compose/docker-compose.yml' \
 		--project-name='audiusd-test' \
 		--project-directory='./' \
-		--profile=* \
-		run --rm audiusd-dev
+		--profile=audiusd-dev \
+		up -d
+
+audiusd-dev-down:
+	@docker compose \
+		--file='compose/docker-compose.yml' \
+		--project-name='audiusd-test' \
+		--project-directory='./' \
+		--profile=audiusd-dev \
+		down -v
 
 ##############
 ## MEDIORUM ##
@@ -232,6 +240,7 @@ core-test:
 		--file='compose/docker-compose.test.yml' \
 		--project-name='audiusd-test' \
 		--project-directory='./' \
+		--profile=core-tests \
 		run $(TTY_FLAG) --rm test-core
 	@echo 'Tests complete. Spinning down containers...'
 	@docker compose \

@@ -27,9 +27,10 @@ open https://localhost/console/overview
 
 ## Native Development (macOS)
 
-> WORK IN PROGRESS
+Build and run audiusd natively on macOS without Docker.
 
-To build and run audiusd natively on macOS without Docker:
+> **FOR HARDCORE AUDIOPHILES ONLY**
+> The below may not work exactly as written for you.
 
 ### Prerequisites
 
