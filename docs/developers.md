@@ -1,5 +1,40 @@
 # Development
 
+## Local Development
+
+First off, add the local x509 cert to your keychain so you can have green ssl in your browser.
+> You can skip this, but you will get browser warnings.
+
+```
+cd compose/tls
+sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain compose/tls/dev-cert.pem
+```
+
+From the repo root, build and run a local devnet with 4 nodes.
+
+```bash
+make build-audiusd-local
+make audiusd-dev
+```
+
+Access the dev nodes:
+
+```bash
+# add -k if you dont have the cert in your keychain
+curl https://node1.devnet.audiusd/health-check
+curl https://node2.devnet.audiusd/health-check
+curl https://node3.devnet.audiusd/health-check
+curl https://node4.devnet.audiusd/health-check
+
+# view in browser
+open https://node1.devnet.audiusd/console/overview
+open https://node2.devnet.audiusd/console/overview
+open https://node3.devnet.audiusd/console/overview
+open https://node4.devnet.audiusd/console/overview
+```
+
+**TODO:** More commands:
+
 ```bash
 # build a local node
 make build-audiusd-local

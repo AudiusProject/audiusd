@@ -8,11 +8,13 @@ x509_extensions = req_ext
 distinguished_name = dn
 
 [dn]
-CN = devnet.audius-d
+CN = devnet.audiusd
 
 [req_ext]
 subjectAltName = @alt_names
 
 [alt_names]
-DNS.1 = audiusd-test-*
-DNS.2 = audiusd-*
+DNS.1 = node1.devnet.audiusd
+DNS.2 = node2.devnet.audiusd
+DNS.3 = node3.devnet.audiusd
+DNS.4 = node4.devnet.audiusd

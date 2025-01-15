@@ -19,12 +19,12 @@ services:
       - ./compose/tls/dev-cert.pem:/etc/nginx/ssl/dev-cert.pem:ro
       - ./compose/tls/dev-key.pem:/etc/nginx/ssl/dev-key.pem:ro
     extra_hosts:
-      - 'audiusd-test-1:host-gateway'
-      - 'audiusd-test-2:host-gateway'
-      - 'audiusd-test-3:host-gateway'
-      - 'audiusd-test-4:host-gateway'
+      - 'node1.devnet.audiusd:host-gateway'
+      - 'node2.devnet.audiusd:host-gateway'
+      - 'node3.devnet.audiusd:host-gateway'
+      - 'node4.devnet.audiusd:host-gateway'
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://audiusd-test-1/"]
+      test: ["CMD", "curl", "-f", "http://node1.devnet.audiusd/"]
       interval: 10s
       timeout: 5s
       retries: 3
