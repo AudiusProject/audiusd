@@ -34,3 +34,5 @@ returning id;
 insert into core_tx_stats (tx_type, tx_hash, block_height, created_at)
 values ($1, $2, $3, $4)
 on conflict (tx_hash) do nothing;
+
+
