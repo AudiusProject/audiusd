@@ -116,6 +116,9 @@ func (s *Server) populateValidatorPubKeys() error {
 				})
 			}
 		}
+		if result.Total <= perPage*page {
+			break
+		}
 		page++
 	}
 	return nil
@@ -340,6 +343,7 @@ func (s *Server) isSelfRegisteredOnEth() (bool, error) {
 }
 
 func (s *Server) registerSelfOnEth() error {
+	s.logger.Info("Attempting to register self on ethereum")
 	chainID, err := s.contracts.Rpc.ChainID(context.Background())
 	if err != nil {
 		return fmt.Errorf("could not get chain id: %v", err)
@@ -362,14 +366,23 @@ func (s *Server) registerSelfOnEth() error {
 
 	alreadyRegistered := false
 	addr := geth.HexToAddress(s.config.WalletAddress)
-	sp, err := spf.GetServiceProviderIdsFromAddress(nil, addr, contracts.ContentNode)
-	if err == nil && len(sp) > 0 {
-		alreadyRegistered = true
+	spIDs, err := spf.GetServiceProviderIdsFromAddress(nil, addr, contracts.DiscoveryNode)
+	if err != nil {
+		return fmt.Errorf("could not get spIDs from address: %v", err)
+	}
+	serviceType, err := contracts.ServiceType(s.config.NodeType)
+	if err != nil {
+		return fmt.Errorf("invalid node type: %v", err)
 	}
 
-	sp, err = spf.GetServiceProviderIdsFromAddress(nil, addr, contracts.DiscoveryNode)
-	if err == nil && len(sp) > 0 {
-		alreadyRegistered = true
+	for _, spID := range spIDs {
+		info, err := spf.GetServiceEndpointInfo(nil, serviceType, spID)
+		if err != nil {
+			return fmt.Errorf("could not get service endpoint info: %v", err)
+		}
+		if info.Endpoint == s.config.NodeEndpoint {
+			alreadyRegistered = true
+		}
 	}
 
 	if alreadyRegistered {
@@ -388,11 +401,6 @@ func (s *Server) registerSelfOnEth() error {
 	_, err = token.Approve(opts, stakingAddress, stake)
 	if err != nil {
 		return fmt.Errorf("could not approve tokens: %v", err)
-	}
-
-	serviceType, err := contracts.ServiceType(s.config.NodeType)
-	if err != nil {
-		return fmt.Errorf("invalid node type: %v", err)
 	}
 
 	endpoint := s.config.NodeEndpoint

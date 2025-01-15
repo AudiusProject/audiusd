@@ -28,6 +28,7 @@ func (s *Server) startEthNodeManager() error {
 	}
 
 	close(s.awaitEthNodesReady)
+	s.logger.Info("said eth nodes ready")
 
 	ticker := time.NewTicker(6 * time.Hour)
 	if s.isDevEnvironment() {
