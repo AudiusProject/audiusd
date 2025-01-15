@@ -93,4 +93,6 @@ COPY ./go.mod ./go.mod
 COPY ./go.sum ./go.sum
 COPY ./.air.toml ./.air.toml
 
+RUN go build -o ./tmp/audiusd cmd/audiusd/main.go
+
 ENV AUDIUSD_DEV_MODE="true"
