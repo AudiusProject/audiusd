@@ -125,8 +125,6 @@ install-deps: install-go-deps
 	@brew install protobuf
 	@brew install crane
 	@brew install bufbuild/buf/buf@1.49.0
-	@brew link --overwrite buf@1.49.0
-	@buf --version
 	@gookme init --types pre-commit,pre-push || echo "Gookme init failed, check if it's installed (https://lmaxence.github.io/gookme)"
 
 install-go-deps:
