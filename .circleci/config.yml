@@ -96,6 +96,7 @@ jobs:
           key: go-mod-v1-{{ checksum "go.sum" }}
           paths:
             - /home/circleci/go/pkg/mod
+      - install-buf
       - run:
           name: Build audiusd binaries
           command: |
