@@ -36,11 +36,6 @@ select *
 from core_validators
 where node_type = $1;
 
--- name: GetRegisteredNodesWithoutCometPubKey :many
-select *
-from core_validators
-where comet_pub_key = 'UNSET';
-
 -- name: GetLatestSlaRollup :one
 select * from sla_rollups order by time desc limit 1;
 

@@ -523,42 +523,6 @@ func (q *Queries) GetRegisteredNodesByType(ctx context.Context, nodeType string)
 	return items, nil
 }
 
-const getRegisteredNodesWithoutCometPubKey = `-- name: GetRegisteredNodesWithoutCometPubKey :many
-select rowid, pub_key, endpoint, eth_address, comet_address, eth_block, node_type, sp_id, comet_pub_key
-from core_validators
-where comet_pub_key = 'UNSET'
-`
-
-func (q *Queries) GetRegisteredNodesWithoutCometPubKey(ctx context.Context) ([]CoreValidator, error) {
-	rows, err := q.db.Query(ctx, getRegisteredNodesWithoutCometPubKey)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []CoreValidator
-	for rows.Next() {
-		var i CoreValidator
-		if err := rows.Scan(
-			&i.Rowid,
-			&i.PubKey,
-			&i.Endpoint,
-			&i.EthAddress,
-			&i.CometAddress,
-			&i.EthBlock,
-			&i.NodeType,
-			&i.SpID,
-			&i.CometPubKey,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const getRollupReportForNodeAndId = `-- name: GetRollupReportForNodeAndId :one
 select id, address, blocks_proposed, sla_rollup_id from sla_node_reports
 where address = $1 and sla_rollup_id = $2

@@ -3,7 +3,7 @@ package server
 
 import (
 	"context"
-	"encoding/hex"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"math/big"
@@ -17,7 +17,6 @@ import (
 	abcitypes "github.com/cometbft/cometbft/abci/types"
 	cometcrypto "github.com/cometbft/cometbft/crypto"
 	"github.com/cometbft/cometbft/crypto/ed25519"
-	"github.com/cometbft/cometbft/libs/bytes"
 	"github.com/cometbft/cometbft/types"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	geth "github.com/ethereum/go-ethereum/common"
@@ -56,10 +55,6 @@ func (s *Server) startRegistryBridge() error {
 		return err
 	}
 
-	if err := s.populateValidatorPubKeys(); err != nil {
-		s.logger.Error("Failed to populate comet public keys for validator", "error", err)
-	}
-
 	retries := 60
 	delay := 10 * time.Second
 
@@ -78,48 +73,6 @@ func (s *Server) startRegistryBridge() error {
 		} else {
 			return nil
 		}
-	}
-	return nil
-}
-
-// backfill comet pubkeys in core_validators database
-func (s *Server) populateValidatorPubKeys() error {
-	ctx := context.Background()
-	dbvs, err := s.db.GetRegisteredNodesWithoutCometPubKey(ctx)
-	if errors.Is(err, pgx.ErrNoRows) {
-		s.logger.Info("Found no validators with missing comet pub keys.")
-		return nil
-	} else if err != nil {
-		return fmt.Errorf("Could not backfill comet pubkey: %v", err)
-	}
-	s.logger.Infof("Populating comet public keys for %d core validators.", len(dbvs))
-
-	dbvMap := make(map[string]db.CoreValidator, len(dbvs))
-	for _, dbv := range dbvs {
-		dbvMap[dbv.CometAddress] = dbv
-	}
-
-	page := 1
-	perPage := 50
-	for {
-		result, err := s.rpc.Validators(ctx, nil, &page, &perPage)
-		if err != nil {
-			return fmt.Errorf("Could not fetch validators from local rpc: %v", err)
-		} else if result == nil || len(result.Validators) == 0 {
-			break
-		}
-		for _, rpcv := range result.Validators {
-			if dbv, ok := dbvMap[rpcv.Address.String()]; ok {
-				s.db.UpdateRegisteredNodeCometPubKey(ctx, db.UpdateRegisteredNodeCometPubKeyParams{
-					CometPubKey:  hex.EncodeToString(rpcv.PubKey.Bytes()),
-					CometAddress: dbv.CometAddress,
-				})
-			}
-		}
-		if result.Total <= perPage*page {
-			break
-		}
-		page++
 	}
 	return nil
 }
@@ -267,7 +220,7 @@ func (s *Server) createDeregisterTransaction(address types.Address) ([]byte, err
 		return []byte{}, fmt.Errorf("not able to find registered node with address '%s': %v", address.String(), err)
 	}
 	deregistrationTx := &core_proto.ValidatorDeregistration{
-		PubKey:       bytes.HexBytes(node.CometPubKey),
+		PubKey:       base64.StdEncoding.DecodeString(node.CometPubKey),
 		CometAddress: address.String(),
 	}
 
@@ -581,7 +534,7 @@ func (s *Server) finalizeRegisterNode(ctx context.Context, tx *core_proto.Signed
 			EthAddress:   address,
 			Endpoint:     registerNode.GetEndpoint(),
 			CometAddress: registerNode.GetCometAddress(),
-			CometPubKey:  hex.EncodeToString(registerNode.GetPubKey()),
+			CometPubKey:  base64.StdEncoding.EncodeToString(registerNode.GetPubKey()),
 			EthBlock:     registerNode.GetEthBlock(),
 			NodeType:     registerNode.GetNodeType(),
 			SpID:         registerNode.GetSpId(),
