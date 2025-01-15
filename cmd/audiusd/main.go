@@ -24,12 +24,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/AudiusProject/audius-protocol/pkg/core"
-	"github.com/AudiusProject/audius-protocol/pkg/core/common"
-	"github.com/AudiusProject/audius-protocol/pkg/core/console"
-	"github.com/AudiusProject/audius-protocol/pkg/mediorum"
-	"github.com/AudiusProject/audius-protocol/pkg/mediorum/server"
-	"github.com/AudiusProject/audius-protocol/pkg/uptime"
+	"github.com/AudiusProject/audiusd/pkg/core"
+	"github.com/AudiusProject/audiusd/pkg/core/common"
+	"github.com/AudiusProject/audiusd/pkg/core/console"
+	"github.com/AudiusProject/audiusd/pkg/mediorum"
+	"github.com/AudiusProject/audiusd/pkg/mediorum/server"
+	"github.com/AudiusProject/audiusd/pkg/uptime"
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/labstack/echo/v4"
