@@ -124,7 +124,7 @@ clean:
 install-deps: install-go-deps
 	@brew install protobuf
 	@brew install crane
-	@brew install bufbuild/buf/buf@1.49.0
+	@brew install bufbuild/buf/buf
 	@gookme init --types pre-commit,pre-push || echo "Gookme init failed, check if it's installed (https://lmaxence.github.io/gookme)"
 
 install-go-deps:
@@ -157,8 +157,7 @@ $(TEMPL_ARTIFACTS): $(TEMPL_SRCS)
 regen-proto: $(PROTO_ARTIFACTS)
 $(PROTO_ARTIFACTS): $(PROTO_SRCS)
 	@echo Regenerating protobuf code
-	buf --version
-	cd pkg/core && buf generate
+	cd pkg/core && buf --version && buf generate
 	cd pkg/core/gen/core_proto && swagger generate client -f protocol.swagger.json -t ../ --client-package=core_openapi
 
 .PHONY: regen-sql
@@ -174,7 +173,7 @@ regen-go:
 .PHONY: test-down
 test-down:
 	@docker compose \
-    	--file='compose/docker-compose.test.yml' \
+    	--file='dev-tools/compose/docker-compose.test.yml' \
         --project-name='audiusd-test' \
         --project-directory='./' \
 		--profile=* \
