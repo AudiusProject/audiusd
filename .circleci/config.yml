@@ -86,7 +86,7 @@ jobs:
       - install-buf
       - run:
           command: |
-            make install-deps
+            make install-go-deps
             go mod download
       - save_cache:
           key: go-deps-v1-{{ checksum "Makefile" }}
