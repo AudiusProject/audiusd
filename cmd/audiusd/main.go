@@ -255,7 +255,7 @@ func startEchoProxy(hostUrl *url.URL, logger *common.Logger) error {
 	e.Use(middleware.Logger(), middleware.Recover())
 
 	e.GET("/", func(c echo.Context) error {
-		return c.JSON(http.StatusOK, map[string]string{"a": "440"})
+		return c.JSON(http.StatusOK, map[string]int{"a": 440})
 	})
 
 	e.GET("/health-check", func(c echo.Context) error {

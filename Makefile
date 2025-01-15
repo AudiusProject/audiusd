@@ -86,6 +86,8 @@ build-audiusd-local:
 	DOCKER_DEFAULT_PLATFORM=linux/arm64 docker build --target prod --build-arg GIT_SHA=$(AD_TAG) -t audius/audiusd:$(AD_TAG) -t audius/audiusd:local -f ./cmd/audiusd/Dockerfile ./
 build-audiusd-test:
 	DOCKER_DEFAULT_PLATFORM=linux/arm64 docker build --target test --build-arg GIT_SHA=$(AD_TAG) -t audius/audiusd:test-local -f ./cmd/audiusd/Dockerfile ./
+build-audiusd-dev:
+	DOCKER_DEFAULT_PLATFORM=linux/arm64 docker build --target dev --build-arg GIT_SHA=$(AD_TAG) -t audius/audiusd:dev -f ./cmd/audiusd/Dockerfile ./
 
 build-push-audiusd:
 	docker build \

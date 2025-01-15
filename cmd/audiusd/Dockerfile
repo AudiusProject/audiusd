@@ -9,6 +9,7 @@ COPY ./pkg ./pkg
 COPY ./cmd/audiusd/main.go ./cmd/audiusd/main.go
 RUN go build -o audiusd cmd/audiusd/main.go
 
+
 FROM debian:bookworm-slim AS prod
 
 RUN apt-get update && \
@@ -58,10 +59,10 @@ VOLUME ["/data"]
 
 ENTRYPOINT ["/bin/entrypoint.sh"]
 
+
 FROM prod AS test
 
 COPY --from=golang:alpine /usr/local/go/ /usr/local/go/
-
 ENV PATH="/usr/local/go/bin:${PATH}"
 ENV GOPATH="/go"
 ENV GOROOT="/usr/local/go"
@@ -72,3 +73,18 @@ COPY --from=builder /go/pkg/mod /go/pkg/mod
 COPY ./cmd/audiusd/.initdb /app/audiusd/.initdb
 
 ENV AUDIUSD_TEST_MODE="true"
+
+
+FROM prod as dev
+
+COPY --from=golang:alpine /usr/local/go/ /usr/local/go/
+ENV PATH="/usr/local/go/bin:/go/bin:${PATH}"
+ENV GOPATH="/go"
+ENV GOROOT="/usr/local/go"
+
+RUN go install github.com/air-verse/air@latest
+
+WORKDIR /app
+COPY --from=builder /go/pkg/mod /go/pkg/mod
+
+ENV AUDIUSD_DEV_MODE="true"
