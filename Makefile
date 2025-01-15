@@ -185,7 +185,7 @@ test-down:
 ##############
 
 .PHONY: audiusd-dev
-audiusd-dev: build-audiusd-dev
+audiusd-dev: audiusd-dev-down build-audiusd-dev
 	@docker compose \
 		--file='dev/docker-compose.yml' \
 		--project-name='audiusd' \
