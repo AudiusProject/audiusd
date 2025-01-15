@@ -96,3 +96,15 @@ COPY ./.air.toml ./.air.toml
 RUN go build -o ./tmp/audiusd cmd/audiusd/main.go
 
 ENV AUDIUSD_DEV_MODE="true"
+ENV discoveryOneGRPC="node1.audiusd.devnet:50051"
+ENV discoveryOneJRPC="http://node1.audiusd.devnet:26657"
+ENV discoveryOneOAPI="node1.audiusd.devnet:26659"
+ENV contentOneGRPC="node2.audiusd.devnet:50051"
+ENV contentOneJRPC="http://node2.audiusd.devnet:26657"
+ENV contentOneOAPI="node2.audiusd.devnet:26659"
+ENV contentTwoGRPC="node3.audiusd.devnet:50051"
+ENV contentTwoJRPC="http://node3.audiusd.devnet:26657"
+ENV contentTwoOAPI="node3.audiusd.devnet:26659"
+ENV contentThreeGRPC="node4.audiusd.devnet:50051"
+ENV contentThreeJRPC="http://node4.audiusd.devnet:26657"
+ENV contentThreeOAPI="node4.audiusd.devnet:26659"

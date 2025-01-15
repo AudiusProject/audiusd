@@ -187,16 +187,16 @@ test-down:
 .PHONY: audiusd-dev
 audiusd-dev: build-audiusd-dev
 	@docker compose \
-		--file='compose/docker-compose.yml' \
-		--project-name='audiusd-test' \
+		--file='dev/docker-compose.yml' \
+		--project-name='audiusd' \
 		--project-directory='./' \
 		--profile=audiusd-dev \
 		up -d
 
 audiusd-dev-down:
 	@docker compose \
-		--file='compose/docker-compose.yml' \
-		--project-name='audiusd-test' \
+		--file='dev/docker-compose.yml' \
+		--project-name='audiusd' \
 		--project-directory='./' \
 		--profile=audiusd-dev \
 		down -v
@@ -206,7 +206,7 @@ audiusd-dev-down:
 ##############
 
 .PHONY: mediorum-test
-mediorum-test:
+mediorum-test: build-audiusd-test
 	@docker compose \
 		--file='compose/docker-compose.test.yml' \
 		--project-name='audiusd-test' \
@@ -236,7 +236,7 @@ bin/core-amd64: $(BUILD_SRCS)
 	@GOOS=linux GOARCH=amd64 go build -ldflags "$(VERSION_LDFLAG)" -o bin/core-amd64 ./cmd/core/main.go
 
 .PHONY: core-test
-core-test:
+core-test: build-audiusd-test
 	@docker compose \
 		--file='compose/docker-compose.test.yml' \
 		--project-name='audiusd-test' \
