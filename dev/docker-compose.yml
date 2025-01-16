@@ -3,7 +3,7 @@ services:
     image: nginx
     restart: unless-stopped
     volumes:
-      - ./dev/nginx.conf:/etc/nginx/conf.d/default.conf
+      - ./dev/nginx.conf:/etc/nginx/conf.d/vhost.conf:ro
       - ./dev/tls/cert.pem:/etc/nginx/ssl/cert.pem:ro
       - ./dev/tls/key.pem:/etc/nginx/ssl/key.pem:ro
     extra_hosts:
@@ -12,7 +12,7 @@ services:
       - 'node3.audiusd.devnet:host-gateway'
       - 'node4.audiusd.devnet:host-gateway'
     healthcheck:
-      test: ["CMD", "curl", "-f", "https://node1.audiusd.devnet/"]
+      test: ["CMD", "curl", "-f", "http://node1.audiusd.devnet/"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -20,7 +20,6 @@ services:
     ports:
       - 80:80
       - 443:443
-      - 26656:26656
     profiles:
       - audiusd-dev
       - core-tests
@@ -42,7 +41,7 @@ services:
     image: ${AUDIUSD_IMAGE:-audius/audiusd:dev}
     restart: unless-stopped
     env_file:
-      - ./dev/env/audiusd-1.docker.env
+      - ./dev/env/audiusd-1.env
     healthcheck:
       test: ["CMD", "curl", "-f", "http://node1.audiusd.devnet/"]
       interval: 10s
@@ -63,7 +62,7 @@ services:
     image: ${AUDIUSD_IMAGE:-audius/audiusd:dev}
     restart: unless-stopped
     env_file:
-      - ./dev/env/audiusd-2.docker.env
+      - ./dev/env/audiusd-2.env
     healthcheck:
       test: ["CMD", "curl", "-f", "http://node2.audiusd.devnet/"]
       interval: 10s
@@ -78,7 +77,7 @@ services:
     image: ${AUDIUSD_IMAGE:-audius/audiusd:dev}
     restart: unless-stopped
     env_file:
-      - ./dev/env/audiusd-3.docker.env
+      - ./dev/env/audiusd-3.env
     healthcheck:
       test: ["CMD", "curl", "-f", "http://node3.audiusd.devnet/"]
       interval: 10s
@@ -93,7 +92,7 @@ services:
     image: ${AUDIUSD_IMAGE:-audius/audiusd:dev}
     restart: unless-stopped
     env_file:
-      - ./dev/env/audiusd-4.docker.env
+      - ./dev/env/audiusd-4.env
     healthcheck:
       test: ["CMD", "curl", "-f", "http://node4.audiusd.devnet/"]
       interval: 10s
@@ -107,24 +106,13 @@ services:
   test-core:
     image: ${TEST_IMAGE:-audius/audiusd:test}
     command: go test -v -count=1 -timeout=60s ./pkg/core/...
-    # volumes:
-    #   - ./cmd:/app/cmd
-    #   - ./pkg:/app/pkg
-    #   - ./go.mod:/app/go.mod
-    #   - ./go.sum:/app/go.sum
-    environment:
-      discoveryOneGRPC: node1.audiusd.devnet:50051
-      discoveryOneJRPC: http://node1.audiusd.devnet:26657
-      discoveryOneOAPI: node1.audiusd.devnet:26659
-      contentOneGRPC: node2.audiusd.devnet:50051
-      contentOneJRPC: http://node2.audiusd.devnet:26657
-      contentOneOAPI: node2.audiusd.devnet:26659
-      contentTwoGRPC: node3.audiusd.devnet:50051
-      contentTwoJRPC: http://node3.audiusd.devnet:26657
-      contentTwoOAPI: node3.audiusd.devnet:26659
-      contentThreeGRPC: node4.audiusd.devnet:50051
-      contentThreeJRPC: http://node4.audiusd.devnet:26657
-      contentThreeOAPI: node4.audiusd.devnet:26659
+    volumes:
+      - ./cmd:/app/cmd
+      - ./pkg:/app/pkg
+      - ./go.mod:/app/go.mod
+      - ./go.sum:/app/go.sum
+    env_file:
+      - ./dev/env/test-core.env
     depends_on:
       ingress:
         condition: service_healthy
@@ -144,11 +132,11 @@ services:
   test-mediorum-unittests:
     image: ${TEST_IMAGE:-audius/audiusd:test}
     command: go test -v -count=1 -timeout=60s ./pkg/mediorum/...
-    # volumes:
-    #   - ./cmd:/app/cmd
-    #   - ./pkg:/app/pkg
-    #   - ./go.mod:/app/go.mod
-    #   - ./go.sum:/app/go.sum
+    volumes:
+      - ./cmd:/app/cmd
+      - ./pkg:/app/pkg
+      - ./go.mod:/app/go.mod
+      - ./go.sum:/app/go.sum
     environment:
       NETWORK: test
       dbUrlTemplate: 'postgres://postgres:postgres@localhost:5432/m%d'

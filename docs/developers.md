@@ -67,6 +67,7 @@ docker run --rm -it -p 80:80 -p 443:443 -e NETWORK=prod audius/audiusd:dev
 ## Run tests
 
 ```bash
+make build-audiusd-test
 make mediorum-test
 make core-test
 ```

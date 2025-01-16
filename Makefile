@@ -174,7 +174,7 @@ regen-go:
 .PHONY: test-down
 test-down:
 	@docker compose \
-    	--file='dev-tools/compose/docker-compose.test.yml' \
+    	--file='dev-tools/dev/docker-compose.yml' \
         --project-name='audiusd-test' \
         --project-directory='./' \
 		--profile=* \
@@ -206,16 +206,16 @@ audiusd-dev-down:
 ##############
 
 .PHONY: mediorum-test
-mediorum-test: build-audiusd-test
+mediorum-test:
 	@docker compose \
-		--file='compose/docker-compose.test.yml' \
+		--file='dev/docker-compose.yml' \
 		--project-name='audiusd-test' \
 		--project-directory='./' \
 		--profile=mediorum-unittests \
 		run $(TTY_FLAG) --rm test-mediorum-unittests
 	@echo 'Tests successful. Spinning down containers...'
 	@docker compose \
-    	--file='compose/docker-compose.test.yml' \
+    	--file='dev/docker-compose.yml' \
         --project-name='audiusd-test' \
         --project-directory='./' \
 		--profile=mediorum-unittests \
@@ -236,16 +236,16 @@ bin/core-amd64: $(BUILD_SRCS)
 	@GOOS=linux GOARCH=amd64 go build -ldflags "$(VERSION_LDFLAG)" -o bin/core-amd64 ./cmd/core/main.go
 
 .PHONY: core-test
-core-test: build-audiusd-test
+core-test:
 	@docker compose \
-		--file='compose/docker-compose.test.yml' \
+		--file='dev/docker-compose.yml' \
 		--project-name='audiusd-test' \
 		--project-directory='./' \
 		--profile=core-tests \
 		run $(TTY_FLAG) --rm test-core
 	@echo 'Tests complete. Spinning down containers...'
 	@docker compose \
-		--file='compose/docker-compose.test.yml' \
+		--file='dev/docker-compose.yml' \
 		--project-name='audiusd-test' \
 		--project-directory='./' \
 		--profile=core-tests \
