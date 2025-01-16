@@ -56,7 +56,7 @@ func (s *Server) startRegistryBridge() error {
 		return err
 	}
 
-	delay := 30 * time.Second
+	delay := 2 * time.Second
 	maxTime := 120 * time.Minute
 	startTime := time.Now()
 
