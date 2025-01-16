@@ -6,7 +6,6 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"math"
 	"math/big"
 	"time"
 
@@ -57,30 +56,22 @@ func (s *Server) startRegistryBridge() error {
 		return err
 	}
 
-	retries := 60
-	initialDelay := 10 * time.Second
-	maxDelay := 60 * time.Second
+	delay := 30 * time.Second
+	maxTime := 120 * time.Minute
+	startTime := time.Now()
 
-	for retries >= 0 {
+	for time.Since(startTime) < maxTime {
 		if err := s.RegisterSelf(); err != nil {
 			s.logger.Errorf("node registration failed, will try again: %v", err)
-			if retries == 0 {
-				s.logger.Warn("exhausted registration retries")
-				return nil
-			}
-
-			delay := initialDelay * time.Duration(math.Pow(2, float64(60-retries)))
-			if delay > maxDelay {
-				delay = maxDelay
-			}
 			s.logger.Infof("Retrying registration in %s", delay)
 			time.Sleep(delay)
-			retries--
+			delay *= 2
 		} else {
 			return nil
 		}
 	}
 
+	s.logger.Warn("exhausted registration retries after 120 minutes")
 	return nil
 }
 
