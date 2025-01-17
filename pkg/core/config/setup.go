@@ -141,7 +141,7 @@ func SetupNode(logger *common.Logger) (*Config, *cconfig.Config, error) {
 	// create empty blocks to continue heartbeat at the same interval
 	cometConfig.Consensus.CreateEmptyBlocks = true
 	// empty blocks wait one second to propose since plays should be a steady stream
-	cometConfig.Consensus.CreateEmptyBlocksInterval = 1 * time.Second
+	cometConfig.Consensus.CreateEmptyBlocksInterval = 200 * time.Millisecond
 
 
 	cometConfig.P2P.PexReactor = true
