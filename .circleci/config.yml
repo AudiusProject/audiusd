@@ -68,6 +68,7 @@ commands:
           command: |
             echo "pushing version $CIRCLE_SHA1 to buf registry"
             echo ${BUF_TOKEN} | buf registry login --token-stdin
+            ls -a
 
 
 jobs:
