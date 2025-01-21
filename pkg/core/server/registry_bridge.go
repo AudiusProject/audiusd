@@ -158,7 +158,7 @@ func (s *Server) registerSelfOnComet(ethBlock, spID string) error {
 		}
 	}
 
-	peers := s.GetPeers()
+	peers := s.peers.GetPeers()
 	noPeers := len(peers) == 0
 
 	if !isGenValidator && noPeers {

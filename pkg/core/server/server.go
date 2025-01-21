@@ -37,8 +37,7 @@ type Server struct {
 	rpc   *local.Local
 	mempl *Mempool
 
-	peers   map[string]*sdk.Sdk
-	peersMU sync.RWMutex
+	peers *Peers
 
 	txPubsub *TransactionHashPubsub
 
@@ -76,6 +75,10 @@ func NewServer(config *config.Config, cconfig *cconfig.Config, logger *common.Lo
 	ethNodes := []*contracts.Node{}
 	duplicateEthNodes := []*contracts.Node{}
 
+	peers := &Peers{
+		peers: make(map[string]*sdk.Sdk),
+	}
+
 	s := &Server{
 		config:         config,
 		cometbftConfig: cconfig,
@@ -87,7 +90,7 @@ func NewServer(config *config.Config, cconfig *cconfig.Config, logger *common.Lo
 		db:        db.New(pool),
 		eth:       eth,
 		mempl:     mempl,
-		peers:     make(map[string]*sdk.Sdk),
+		peers:     peers,
 		txPubsub:  txPubsub,
 		cache:     NewCache(),
 		abciState: NewABCIState(),

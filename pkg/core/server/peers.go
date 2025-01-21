@@ -18,6 +18,30 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+type Peers struct {
+	peers map[string]*sdk.Sdk
+	peersMU sync.RWMutex
+}
+
+// UpdatePeers updates the peers map
+func (p *Peers) UpdatePeers(newPeers map[string]*sdk.Sdk) {
+	p.peersMU.Lock()
+	defer p.peersMU.Unlock()
+	p.peers = newPeers
+}
+
+// GetPeers retrieves a snapshot of the current peers map
+func (p *Peers) GetPeers() map[string]*sdk.Sdk {
+	p.peersMU.RLock()
+	defer p.peersMU.RUnlock()
+	// Return a copy to avoid race conditions
+	peersCopy := make(map[string]*sdk.Sdk, len(p.peers))
+	for k, v := range p.peers {
+		peersCopy[k] = v
+	}
+	return peersCopy
+}
+
 type RegisteredNodeVerboseResponse struct {
 	Owner               string `json:"owner"`
 	Endpoint            string `json:"endpoint"`
@@ -54,7 +78,7 @@ func (s *Server) onPeerTick() error {
 		return fmt.Errorf("could not get validators from db: %v", err)
 	}
 
-	peers := s.GetPeers()
+	peers := s.peers.GetPeers()
 	addedNewPeer := false
 	self := s.config.WalletAddress
 
@@ -105,29 +129,10 @@ func (s *Server) onPeerTick() error {
 	wg.Wait()
 
 	if addedNewPeer {
-		s.UpdatePeers(peers)
+		s.peers.UpdatePeers(peers)
 	}
 
 	return nil
-}
-
-// UpdatePeers updates the peers map
-func (s *Server) UpdatePeers(newPeers map[string]*sdk.Sdk) {
-	s.peersMU.Lock()
-	defer s.peersMU.Unlock()
-	s.peers = newPeers
-}
-
-// GetPeers retrieves a snapshot of the current peers map
-func (s *Server) GetPeers() map[string]*sdk.Sdk {
-	s.peersMU.RLock()
-	defer s.peersMU.RUnlock()
-	// Return a copy to avoid race conditions
-	peersCopy := make(map[string]*sdk.Sdk, len(s.peers))
-	for k, v := range s.peers {
-		peersCopy[k] = v
-	}
-	return peersCopy
 }
 
 func (s *Server) getRegisteredNodes(c echo.Context) error {
