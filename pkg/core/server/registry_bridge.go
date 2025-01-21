@@ -372,9 +372,8 @@ func (s *Server) registerSelfOnEth() error {
 }
 
 func (s *Server) getRegisteredNode(endpoint string) (*contracts.Node, error) {
-	s.ethNodeMU.RLock()
-	defer s.ethNodeMU.RUnlock()
-	for _, node := range s.ethNodes {
+	ethNodes, _ := s.ethNodes.getNodes()
+	for _, node := range ethNodes {
 		if node.Endpoint == endpoint {
 			return node, nil
 		}
@@ -490,10 +489,9 @@ func (s *Server) isValidDeregisterNodeTx(tx *core_proto.SignedTransaction, misbe
 }
 
 func (s *Server) isDuplicateDelegateOwnerWallet(delegateOwnerWallet string) error {
-	s.ethNodeMU.RLock()
-	defer s.ethNodeMU.RUnlock()
+	_, duplicateEthNodes := s.ethNodes.getNodes()
 
-	for _, node := range s.duplicateEthNodes {
+	for _, node := range duplicateEthNodes {
 		if node.DelegateOwnerWallet.Hex() == delegateOwnerWallet {
 			return fmt.Errorf("delegateOwnerWallet %s duplicated, invalid registration", delegateOwnerWallet)
 		}
@@ -508,7 +506,7 @@ func (s *Server) finalizeRegisterNode(ctx context.Context, tx *core_proto.Signed
 		return nil, fmt.Errorf("invalid register node tx: %v", err)
 	}
 
-	qtx := s.getDb()
+	qtx := s.getFinalizeBlockTransaction()
 
 	vr := tx.GetValidatorRegistration()
 	sig := tx.GetSignature()
@@ -555,7 +553,7 @@ func (s *Server) finalizeDeregisterNode(ctx context.Context, tx *core_proto.Sign
 	}
 
 	vd := tx.GetValidatorDeregistration()
-	qtx := s.getDb()
+	qtx := s.getFinalizeBlockTransaction()
 	err := qtx.DeleteRegisteredNode(ctx, vd.GetCometAddress())
 	if err != nil {
 		return nil, fmt.Errorf("error deleting registered node: %v", err)

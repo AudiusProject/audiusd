@@ -3,11 +3,42 @@ package server
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/AudiusProject/audiusd/pkg/core/contracts"
 	"github.com/labstack/echo/v4"
 )
+
+type EthNodes struct {
+	ethNodes          []*contracts.Node
+	duplicateEthNodes []*contracts.Node
+	ethNodeMU         sync.RWMutex
+}
+
+func (e *EthNodes) setNodes(nodes, duplicateNodes []*contracts.Node) {
+	e.ethNodeMU.Lock()
+	defer e.ethNodeMU.Unlock()
+
+	e.ethNodes = make([]*contracts.Node, len(nodes))
+	copy(e.ethNodes, nodes)
+
+	e.duplicateEthNodes = make([]*contracts.Node, len(duplicateNodes))
+	copy(e.duplicateEthNodes, duplicateNodes)
+}
+
+func (e *EthNodes) getNodes() ([]*contracts.Node, []*contracts.Node) {
+	e.ethNodeMU.RLock()
+	defer e.ethNodeMU.RUnlock()
+
+	ethNodes := make([]*contracts.Node, len(e.ethNodes))
+	copy(ethNodes, e.ethNodes)
+
+	duplicateEthNodes := make([]*contracts.Node, len(e.duplicateEthNodes))
+	copy(duplicateEthNodes, e.duplicateEthNodes)
+
+	return ethNodes, duplicateEthNodes
+}
 
 func (s *Server) startEthNodeManager() error {
 	// Initial query with retries
@@ -71,15 +102,12 @@ func (s *Server) gatherEthNodes() error {
 		}
 	}
 
-	s.ethNodeMU.Lock()
-	defer s.ethNodeMU.Unlock()
-
-	s.ethNodes = nodes
 	duplicateEthNodes := make([]*contracts.Node, 0, len(duplicateEthNodeSet))
 	for _, node := range duplicateEthNodeSet {
 		duplicateEthNodes = append(duplicateEthNodes, node)
 	}
-	s.duplicateEthNodes = duplicateEthNodes
+
+	s.ethNodes.setNodes(nodes, duplicateEthNodes)
 
 	return nil
 }
@@ -89,14 +117,13 @@ func (s *Server) blacklistDuplicateEthNodes() error {
 }
 
 func (s *Server) getEthNodesHandler(c echo.Context) error {
-	s.ethNodeMU.RLock()
-	defer s.ethNodeMU.RUnlock()
+	ethNodes, duplicateEthNodes := s.ethNodes.getNodes()
 	res := struct {
 		Nodes          []*contracts.Node `json:"nodes"`
 		DuplicateNodes []*contracts.Node `json:"duplicateNodes"`
 	}{
-		Nodes:          s.ethNodes,
-		DuplicateNodes: s.duplicateEthNodes,
+		Nodes:          ethNodes,
+		DuplicateNodes: duplicateEthNodes,
 	}
 	return c.JSON(200, res)
 }

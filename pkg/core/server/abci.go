@@ -192,7 +192,7 @@ func (s *Server) FinalizeBlock(ctx context.Context, req *abcitypes.FinalizeBlock
 	var validatorUpdatesMap = map[string]abcitypes.ValidatorUpdate{}
 
 	// open in progres pg transaction
-	s.startInProgressTx(ctx)
+	s.startFinalizeBlockTx(ctx)
 	for i, tx := range req.Txs {
 		signedTx, err := s.isValidSignedTransaction(tx)
 		if err == nil {
@@ -246,7 +246,7 @@ func (s *Server) FinalizeBlock(ctx context.Context, req *abcitypes.FinalizeBlock
 
 	nextAppHash := s.serializeAppState([]byte{}, req.GetTxs())
 
-	if err := s.getDb().UpsertAppState(ctx, db.UpsertAppStateParams{
+	if err := s.getFinalizeBlockTransaction().UpsertAppState(ctx, db.UpsertAppStateParams{
 		BlockHeight: req.Height,
 		AppHash:     nextAppHash,
 	}); err != nil {
@@ -255,7 +255,7 @@ func (s *Server) FinalizeBlock(ctx context.Context, req *abcitypes.FinalizeBlock
 
 	// increment number of proposed blocks for sla auditor
 	addr := cometbfttypes.Address(req.ProposerAddress).String()
-	if err := s.getDb().UpsertSlaRollupReport(ctx, addr); err != nil {
+	if err := s.getFinalizeBlockTransaction().UpsertSlaRollupReport(ctx, addr); err != nil {
 		s.logger.Error(
 			"Error attempting to increment blocks proposed by node",
 			"address",
@@ -286,7 +286,7 @@ func (s *Server) FinalizeBlock(ctx context.Context, req *abcitypes.FinalizeBlock
 func (s *Server) Commit(ctx context.Context, commit *abcitypes.CommitRequest) (*abcitypes.CommitResponse, error) {
 	state := s.abciState
 
-	if err := s.commitInProgressTx(ctx); err != nil {
+	if err := s.commitFinalizeBlockTx(ctx); err != nil {
 		s.logger.Error("failure to commit tx", "error", err)
 		return &abcitypes.CommitResponse{}, err
 	}
@@ -332,11 +332,13 @@ func (s *Server) VerifyVoteExtension(_ context.Context, verify *abcitypes.Verify
 //////////////////////////////////
 
 // returns in current postgres tx for this block
-func (s *Server) getDb() *db.Queries {
+// collects writes during the FinalizeBlock step
+// commits or rolls back changes during the commit step
+func (s *Server) getFinalizeBlockTransaction() *db.Queries {
 	return s.db.WithTx(s.abciState.onGoingBlock)
 }
 
-func (s *Server) startInProgressTx(ctx context.Context) error {
+func (s *Server) startFinalizeBlockTx(ctx context.Context) error {
 	dbTx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return err
@@ -346,8 +348,8 @@ func (s *Server) startInProgressTx(ctx context.Context) error {
 	return nil
 }
 
-// commits the current tx that's finished indexing
-func (s *Server) commitInProgressTx(ctx context.Context) error {
+// commits the current tx that's finished processing
+func (s *Server) commitFinalizeBlockTx(ctx context.Context) error {
 	state := s.abciState
 	if state.onGoingBlock != nil {
 		err := state.onGoingBlock.Commit(ctx)
@@ -428,7 +430,7 @@ func (s *Server) finalizeTransaction(ctx context.Context, msg *core_proto.Signed
 }
 
 func (s *Server) persistTxStat(ctx context.Context, tx proto.Message, txhash string, height int64, blockTime time.Time) error {
-	if err := s.getDb().InsertTxStat(ctx, db.InsertTxStatParams{
+	if err := s.getFinalizeBlockTransaction().InsertTxStat(ctx, db.InsertTxStatParams{
 		TxType:      GetProtoTypeName(tx),
 		TxHash:      txhash,
 		BlockHeight: height,
