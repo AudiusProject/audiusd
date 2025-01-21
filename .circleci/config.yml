@@ -67,7 +67,7 @@ commands:
           name: Push Buf
           command: |
             echo "pushing version $CIRCLE_SHA1 to buf registry"
-            echo ${BUF_API_TOKEN} | buf registry login --username ${BUF_USER} --token-stdin
+            echo ${BUF_TOKEN} | buf registry login --token-stdin
 
 
 jobs:
@@ -90,6 +90,8 @@ jobs:
             - go-mod-v1-
             - go-build-v1-{{ .Branch }}-{{ checksum "go.sum" }}
             - go-build-v1-{{ .Branch }}
+      - install-buf
+      - push-buf
       - run:
           command: |
             make install-go-deps
@@ -102,13 +104,11 @@ jobs:
           key: go-mod-v1-{{ checksum "go.sum" }}
           paths:
             - /home/circleci/go/pkg/mod
-      - install-buf
       - run:
           name: Build audiusd binaries
           command: |
             make bin/audiusd-x86_64-linux
             make bin/audiusd-arm64-linux
-      - push-buf
       - save_cache:
           key: go-build-v1-{{ .Branch }}-{{ checksum "go.sum" }}
           paths:
