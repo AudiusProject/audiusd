@@ -61,6 +61,13 @@ commands:
             source $BASH_ENV
             
             buf --version
+  push-buf:
+    steps:
+      - run:
+          name: Push Buf
+          command: |
+            echo "pushing version $CIRCLE_SHA1 to buf registry"
+            echo ${BUF_API_TOKEN} | buf registry login --username ${BUF_USER} --token-stdin
 
 
 jobs:
@@ -101,6 +108,7 @@ jobs:
           command: |
             make bin/audiusd-x86_64-linux
             make bin/audiusd-arm64-linux
+      - push-buf
       - save_cache:
           key: go-build-v1-{{ .Branch }}-{{ checksum "go.sum" }}
           paths:
