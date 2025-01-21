@@ -2,7 +2,7 @@
 version: v2
 modules:
   - path: protocol
-    name: buf.build/alecsavvy/audiusd
+    name: buf.build/audiusd/protocol
 deps:
   - buf.build/googleapis/googleapis
 lint:
