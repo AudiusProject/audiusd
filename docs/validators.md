@@ -139,27 +139,29 @@ curl https://node.operator.xyz/health-check | jq .
 
 ## Auto-Update
 
-Copy and replace with your own values:
+Create the update script, replace with your own values:
 
 ```bash
-AUDIUSD_HOSTNAME="node.operator.xyz"
-OVERRIDE_ENV_PATH="/home/ubuntu/override.env"
-```
-
-Create the update script, make it executable, and install it system-wide:
-
-```bash
-cat << 'EOF' > /home/ubuntu/audiusd_update.sh
+cat << 'EOF' > /home/ubuntu/audiusd-update.sh
 #!/bin/bash
 
-if ! docker pull audius/audiusd:current | grep -q 'Status: Image is up to date'; then
-    echo "New version found, updating container..."
-    docker stop audiusd-$AUDIUSD_HOSTNAME
-    docker rm audiusd-$AUDIUSD_HOSTNAME
+AUDIUSD_HOSTNAME="node.operator.xyz"
+OVERRIDE_ENV_PATH="/home/ubuntu/override.env"
+
+FORCE_UPDATE=false
+if [[ "$1" == "--force" ]]; then
+    FORCE_UPDATE=true
+fi
+
+# Determine whether to update
+if $FORCE_UPDATE || ! docker pull audius/audiusd:current | grep -q 'Status: Image is up to date'; then
+    echo "New version found or force update requested, updating container..."
+    docker stop audiusd-${AUDIUSD_HOSTNAME}
+    docker rm audiusd-${AUDIUSD_HOSTNAME}
     docker run -d \
-        --name audiusd-$AUDIUSD_HOSTNAME \
+        --name audiusd-${AUDIUSD_HOSTNAME} \
         --restart unless-stopped \
-        -v $OVERRIDE_ENV_PATH:/env/override.env \
+        -v ${OVERRIDE_ENV_PATH}:/env/override.env \
         -v /var/k8s:/data \
         -p 80:80 \
         -p 443:443 \
@@ -170,15 +172,19 @@ else
     echo "Already running latest version"
 fi
 EOF
+```
 
-chmod +x /home/ubuntu/audiusd_update.sh
-sudo mv /home/ubuntu/audiusd_update.sh /usr/local/bin/audiusd_update
+Make the script executable and install it system-wide:
+
+```bash
+chmod +x /home/ubuntu/audiusd-update.sh
+sudo mv /home/ubuntu/audiusd-update.sh /usr/local/bin/audiusd-update
 ```
 
 Add a cron to run the update script on a random minute of each hour (staggers updates across network):
 
 ```bash
-(crontab -l | grep -v "# audiusd auto-update"; echo "$(shuf -i 0-59 -n 1) * * * * /usr/local/bin/audiusd_update >> /home/ubuntu/audiusd-update.log 2>&1 # audiusd update") | crontab -
+(crontab -l | grep -v "# audiusd auto-update"; echo "$(shuf -i 0-59 -n 1) * * * * /usr/local/bin/audiusd-update >> /home/ubuntu/audiusd-update.log 2>&1 # audiusd auto-update") | crontab -
 ```
 
 Check the cron job was added successfully:
@@ -186,7 +192,7 @@ Check the cron job was added successfully:
 ```bash
 crontab -l
 # output should look like...
-54 * * * * /usr/local/bin/audiusd_update >> /home/ubuntu/audiusd-update.log 2>&1 # audiusd update
+54 * * * * /usr/local/bin/audiusd-update >> /home/ubuntu/audiusd-update.log 2>&1 # audiusd update
 ```
 
 You can now:
