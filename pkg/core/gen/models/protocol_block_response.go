@@ -40,7 +40,7 @@ type ProtocolBlockResponse struct {
 	Timestamp strfmt.DateTime `json:"timestamp,omitempty"`
 
 	// transactions
-	Transactions []*ProtocolSignedTransaction `json:"transactions"`
+	Transactions []*ProtocolTransactionResponse `json:"transactions"`
 }
 
 // Validate validates this protocol block response

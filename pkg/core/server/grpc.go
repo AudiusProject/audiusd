@@ -170,14 +170,20 @@ func (s *Server) GetBlock(ctx context.Context, req *core_proto.GetBlockRequest) 
 		return nil, err
 	}
 
-	txs := []*core_proto.SignedTransaction{}
+	txs := []*core_proto.TransactionResponse{}
 	for _, tx := range block.Block.Txs {
 		var transaction core_proto.SignedTransaction
 		err = proto.Unmarshal(tx, &transaction)
 		if err != nil {
 			return nil, err
 		}
-		txs = append(txs, &transaction)
+
+		txResponse := &core_proto.TransactionResponse{
+			Txhash:      transaction.GetTxHash(),
+			Transaction: &transaction,
+		}
+
+		txs = append(txs, txResponse)
 	}
 
 	res := &core_proto.BlockResponse{
