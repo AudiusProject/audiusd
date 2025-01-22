@@ -75,7 +75,7 @@ message BlockResponse {
   string chainid = 2;
   string proposer = 3;
   int64 height = 4;
-  repeated SignedTransaction transactions = 5;
+  repeated TransactionResponse transactions = 5;
   int64 current_height = 6;
   google.protobuf.Timestamp timestamp = 7;
 }
@@ -145,5 +145,5 @@ message ManageEntityLegacy {
   string metadata = 5;
   string signature = 6;
   string signer = 7;
-  int64 nonce = 8;
+  bytes nonce = 8;
 }
