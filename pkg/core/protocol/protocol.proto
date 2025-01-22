@@ -145,5 +145,5 @@ message ManageEntityLegacy {
   string metadata = 5;
   string signature = 6;
   string signer = 7;
-  bytes nonce = 8;
+  string nonce = 8;
 }
