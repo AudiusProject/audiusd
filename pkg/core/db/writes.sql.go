@@ -72,6 +72,43 @@ func (q *Queries) DeleteRegisteredNode(ctx context.Context, cometAddress string)
 	return err
 }
 
+const exemptStorageProofs = `-- name: ExemptStorageProofs :exec
+update storage_proofs
+set status = 'exempt'
+where block_height = $1
+`
+
+func (q *Queries) ExemptStorageProofs(ctx context.Context, blockHeight int64) error {
+	_, err := q.db.Exec(ctx, exemptStorageProofs, blockHeight)
+	return err
+}
+
+const faultPoSChallenge = `-- name: FaultPoSChallenge :exec
+update pos_challenges
+set status = 'fault'
+where block_height = $1
+`
+
+func (q *Queries) FaultPoSChallenge(ctx context.Context, blockHeight int64) error {
+	_, err := q.db.Exec(ctx, faultPoSChallenge, blockHeight)
+	return err
+}
+
+const insertPoSChallenge = `-- name: InsertPoSChallenge :exec
+insert into pos_challenges (block_height, verifier_address)
+values ($1, $2)
+`
+
+type InsertPoSChallengeParams struct {
+	BlockHeight     int64
+	VerifierAddress string
+}
+
+func (q *Queries) InsertPoSChallenge(ctx context.Context, arg InsertPoSChallengeParams) error {
+	_, err := q.db.Exec(ctx, insertPoSChallenge, arg.BlockHeight, arg.VerifierAddress)
+	return err
+}
+
 const insertRegisteredNode = `-- name: InsertRegisteredNode :exec
 insert into core_validators(pub_key, endpoint, eth_address, comet_address, comet_pub_key, eth_block, node_type, sp_id)
 values ($1, $2, $3, $4, $5, $6, $7, $8)
@@ -98,6 +135,30 @@ func (q *Queries) InsertRegisteredNode(ctx context.Context, arg InsertRegistered
 		arg.EthBlock,
 		arg.NodeType,
 		arg.SpID,
+	)
+	return err
+}
+
+const insertStorageProof = `-- name: InsertStorageProof :exec
+insert into storage_proofs (block_height, address, encrypted_proof, decrypted_proof, status)
+values ($1, $2, $3, $4, $5)
+`
+
+type InsertStorageProofParams struct {
+	BlockHeight    int64
+	Address        string
+	EncryptedProof pgtype.Text
+	DecryptedProof pgtype.Text
+	Status         ProofStatus
+}
+
+func (q *Queries) InsertStorageProof(ctx context.Context, arg InsertStorageProofParams) error {
+	_, err := q.db.Exec(ctx, insertStorageProof,
+		arg.BlockHeight,
+		arg.Address,
+		arg.EncryptedProof,
+		arg.DecryptedProof,
+		arg.Status,
 	)
 	return err
 }
@@ -169,6 +230,47 @@ func (q *Queries) StoreTransaction(ctx context.Context, arg StoreTransactionPara
 		arg.TxHash,
 		arg.Transaction,
 		arg.CreatedAt,
+	)
+	return err
+}
+
+const updatePoSChallenge = `-- name: UpdatePoSChallenge :exec
+update pos_challenges
+set cid = $1, status = $2
+where block_height = $3
+`
+
+type UpdatePoSChallengeParams struct {
+	Cid         pgtype.Text
+	Status      ChallengeStatus
+	BlockHeight int64
+}
+
+func (q *Queries) UpdatePoSChallenge(ctx context.Context, arg UpdatePoSChallengeParams) error {
+	_, err := q.db.Exec(ctx, updatePoSChallenge, arg.Cid, arg.Status, arg.BlockHeight)
+	return err
+}
+
+const updateStorageProof = `-- name: UpdateStorageProof :exec
+insert into storage_proofs (block_height, address, encrypted_proof, decrypted_proof, status)
+values ($1, $2, $3, $4, $5)
+`
+
+type UpdateStorageProofParams struct {
+	BlockHeight    int64
+	Address        string
+	EncryptedProof pgtype.Text
+	DecryptedProof pgtype.Text
+	Status         ProofStatus
+}
+
+func (q *Queries) UpdateStorageProof(ctx context.Context, arg UpdateStorageProofParams) error {
+	_, err := q.db.Exec(ctx, updateStorageProof,
+		arg.BlockHeight,
+		arg.Address,
+		arg.EncryptedProof,
+		arg.DecryptedProof,
+		arg.Status,
 	)
 	return err
 }

@@ -33,6 +33,9 @@ type ProtocolSignedTransaction struct {
 	// sla rollup
 	SLARollup *ProtocolSLARollup `json:"slaRollup,omitempty"`
 
+	// storage proof
+	StorageProof *ProtocolStorageProof `json:"storageProof,omitempty"`
+
 	// validator deregistration
 	ValidatorDeregistration *ProtocolValidatorDeregistration `json:"validatorDeregistration,omitempty"`
 
@@ -53,6 +56,10 @@ func (m *ProtocolSignedTransaction) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateSLARollup(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateStorageProof(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -127,6 +134,25 @@ func (m *ProtocolSignedTransaction) validateSLARollup(formats strfmt.Registry) e
 	return nil
 }
 
+func (m *ProtocolSignedTransaction) validateStorageProof(formats strfmt.Registry) error {
+	if swag.IsZero(m.StorageProof) { // not required
+		return nil
+	}
+
+	if m.StorageProof != nil {
+		if err := m.StorageProof.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("storageProof")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("storageProof")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (m *ProtocolSignedTransaction) validateValidatorDeregistration(formats strfmt.Registry) error {
 	if swag.IsZero(m.ValidatorDeregistration) { // not required
 		return nil
@@ -178,6 +204,10 @@ func (m *ProtocolSignedTransaction) ContextValidate(ctx context.Context, formats
 	}
 
 	if err := m.contextValidateSLARollup(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidateStorageProof(ctx, formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -250,6 +280,27 @@ func (m *ProtocolSignedTransaction) contextValidateSLARollup(ctx context.Context
 				return ve.ValidateName("slaRollup")
 			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("slaRollup")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *ProtocolSignedTransaction) contextValidateStorageProof(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.StorageProof != nil {
+
+		if swag.IsZero(m.StorageProof) { // not required
+			return nil
+		}
+
+		if err := m.StorageProof.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("storageProof")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("storageProof")
 			}
 			return err
 		}

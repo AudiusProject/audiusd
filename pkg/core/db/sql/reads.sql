@@ -31,6 +31,11 @@ from core_validators
 where endpoint = $1
 limit 1;
 
+-- name: GetNodesByEndpoints :many
+select *
+from core_validators
+where endpoint = any($1::string[]);
+
 -- name: GetRegisteredNodesByType :many
 select *
 from core_validators
@@ -142,3 +147,9 @@ select * from core_transactions where block_id = $1 order by created_at desc;
 
 -- name: GetBlock :one
 select * from core_blocks where height = $1;
+
+-- name: GetIncompletePoSChallenges :many
+select * from pos_challenges where status = 'incomplete';
+
+-- name: GetStorageProofs :many
+select * from storage_proofs where block_height = $1;

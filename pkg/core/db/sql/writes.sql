@@ -46,3 +46,30 @@ values ($1, $2, $3, $4, $5);
 -- name: StoreTransaction :exec
 insert into core_transactions (block_id, index, tx_hash, transaction, created_at)
 values ($1, $2, $3, $4, $5);
+
+-- name: InsertPoSChallenge :exec
+insert into pos_challenges (block_height, verifier_address)
+values ($1, $2);
+
+-- name: UpdatePoSChallenge :exec
+update pos_challenges
+set cid = $1, status = $2
+where block_height = $3;
+
+-- name: FaultPoSChallenge :exec
+update pos_challenges
+set status = 'fault'
+where block_height = $1;
+
+-- name: InsertStorageProof :exec
+insert into storage_proofs (block_height, address, encrypted_proof, decrypted_proof, status)
+values ($1, $2, $3, $4, $5);
+
+-- name: UpdateStorageProof :exec
+insert into storage_proofs (block_height, address, encrypted_proof, decrypted_proof, status)
+values ($1, $2, $3, $4, $5);
+
+-- name: ExemptStorageProofs :exec
+update storage_proofs
+set status = 'exempt'
+where block_height = $1;

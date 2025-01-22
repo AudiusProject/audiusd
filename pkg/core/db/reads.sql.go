@@ -181,6 +181,36 @@ func (q *Queries) GetInProgressRollupReports(ctx context.Context) ([]SlaNodeRepo
 	return items, nil
 }
 
+const getIncompletePoSChallenges = `-- name: GetIncompletePoSChallenges :many
+select id, block_height, verifier_address, cid, status from pos_challenges where status = 'incomplete'
+`
+
+func (q *Queries) GetIncompletePoSChallenges(ctx context.Context) ([]PosChallenge, error) {
+	rows, err := q.db.Query(ctx, getIncompletePoSChallenges)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []PosChallenge
+	for rows.Next() {
+		var i PosChallenge
+		if err := rows.Scan(
+			&i.ID,
+			&i.BlockHeight,
+			&i.VerifierAddress,
+			&i.Cid,
+			&i.Status,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getLatestAppState = `-- name: GetLatestAppState :one
 select block_height, app_hash
 from core_app_state
@@ -239,6 +269,42 @@ func (q *Queries) GetNodeByEndpoint(ctx context.Context, endpoint string) (CoreV
 		&i.CometPubKey,
 	)
 	return i, err
+}
+
+const getNodesByEndpoints = `-- name: GetNodesByEndpoints :many
+select rowid, pub_key, endpoint, eth_address, comet_address, eth_block, node_type, sp_id, comet_pub_key
+from core_validators
+where endpoint = any($1::string[])
+`
+
+func (q *Queries) GetNodesByEndpoints(ctx context.Context, dollar_1 []string) ([]CoreValidator, error) {
+	rows, err := q.db.Query(ctx, getNodesByEndpoints, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CoreValidator
+	for rows.Next() {
+		var i CoreValidator
+		if err := rows.Scan(
+			&i.Rowid,
+			&i.PubKey,
+			&i.Endpoint,
+			&i.EthAddress,
+			&i.CometAddress,
+			&i.EthBlock,
+			&i.NodeType,
+			&i.SpID,
+			&i.CometPubKey,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getPreviousSlaRollupFromId = `-- name: GetPreviousSlaRollupFromId :one
@@ -595,6 +661,37 @@ func (q *Queries) GetSlaRollupWithId(ctx context.Context, id int32) (SlaRollup, 
 		&i.Time,
 	)
 	return i, err
+}
+
+const getStorageProofs = `-- name: GetStorageProofs :many
+select id, block_height, address, encrypted_proof, decrypted_proof, status from storage_proofs where block_height = $1
+`
+
+func (q *Queries) GetStorageProofs(ctx context.Context, blockHeight int64) ([]StorageProof, error) {
+	rows, err := q.db.Query(ctx, getStorageProofs, blockHeight)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []StorageProof
+	for rows.Next() {
+		var i StorageProof
+		if err := rows.Scan(
+			&i.ID,
+			&i.BlockHeight,
+			&i.Address,
+			&i.EncryptedProof,
+			&i.DecryptedProof,
+			&i.Status,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getTx = `-- name: GetTx :one

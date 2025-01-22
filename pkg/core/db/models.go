@@ -5,8 +5,99 @@
 package db
 
 import (
+	"database/sql/driver"
+	"fmt"
+
 	"github.com/jackc/pgx/v5/pgtype"
 )
+
+type ChallengeStatus string
+
+const (
+	ChallengeStatusIncomplete ChallengeStatus = "incomplete"
+	ChallengeStatusComplete   ChallengeStatus = "complete"
+	ChallengeStatusInvalid    ChallengeStatus = "invalid"
+	ChallengeStatusFault      ChallengeStatus = "fault"
+)
+
+func (e *ChallengeStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ChallengeStatus(s)
+	case string:
+		*e = ChallengeStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ChallengeStatus: %T", src)
+	}
+	return nil
+}
+
+type NullChallengeStatus struct {
+	ChallengeStatus ChallengeStatus
+	Valid           bool // Valid is true if ChallengeStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullChallengeStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.ChallengeStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.ChallengeStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullChallengeStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.ChallengeStatus), nil
+}
+
+type ProofStatus string
+
+const (
+	ProofStatusIncomplete ProofStatus = "incomplete"
+	ProofStatusPass       ProofStatus = "pass"
+	ProofStatusFail       ProofStatus = "fail"
+	ProofStatusExempt     ProofStatus = "exempt"
+)
+
+func (e *ProofStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ProofStatus(s)
+	case string:
+		*e = ProofStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ProofStatus: %T", src)
+	}
+	return nil
+}
+
+type NullProofStatus struct {
+	ProofStatus ProofStatus
+	Valid       bool // Valid is true if ProofStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullProofStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.ProofStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.ProofStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullProofStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.ProofStatus), nil
+}
 
 type CoreAppState struct {
 	BlockHeight int64
@@ -52,6 +143,14 @@ type CoreValidator struct {
 	CometPubKey  string
 }
 
+type PosChallenge struct {
+	ID              int32
+	BlockHeight     int64
+	VerifierAddress string
+	Cid             pgtype.Text
+	Status          ChallengeStatus
+}
+
 type SlaNodeReport struct {
 	ID             int32
 	Address        string
@@ -65,4 +164,13 @@ type SlaRollup struct {
 	BlockStart int64
 	BlockEnd   int64
 	Time       pgtype.Timestamp
+}
+
+type StorageProof struct {
+	ID             int32
+	BlockHeight    int64
+	Address        string
+	EncryptedProof pgtype.Text
+	DecryptedProof pgtype.Text
+	Status         ProofStatus
 }

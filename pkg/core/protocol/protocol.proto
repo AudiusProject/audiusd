@@ -43,6 +43,7 @@ message SignedTransaction {
     SlaRollup sla_rollup = 1002;
     ManageEntityLegacy manage_entity = 1003;
     ValidatorDeregistration validator_deregistration = 1004;
+    StorageProof storage_proof = 1005;
   }
 }
 
@@ -135,6 +136,17 @@ message SlaRollup {
 message SlaNodeReport {
   string address = 1;
   int32 num_blocks_proposed = 2;
+}
+
+message StorageProof {
+   int64 height = 1; 
+   bytes hash = 2;
+   string cid = 3;
+   string prover_address = 4;
+   string verifier_address = 5;
+   bytes encrypted_proof = 6;
+   bytes encrypted_secret = 7;
+   bytes ephemeral_public_key = 8;
 }
 
 message ManageEntityLegacy {

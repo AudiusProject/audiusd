@@ -322,6 +322,9 @@
         },
         "validatorDeregistration": {
           "$ref": "#/definitions/protocolValidatorDeregistration"
+        },
+        "storageProof": {
+          "$ref": "#/definitions/protocolStorageProof"
         }
       }
     },
@@ -358,6 +361,40 @@
             "type": "object",
             "$ref": "#/definitions/protocolSlaNodeReport"
           }
+        }
+      }
+    },
+    "protocolStorageProof": {
+      "type": "object",
+      "properties": {
+        "height": {
+          "type": "string",
+          "format": "int64"
+        },
+        "hash": {
+          "type": "string",
+          "format": "byte"
+        },
+        "cid": {
+          "type": "string"
+        },
+        "proverAddress": {
+          "type": "string"
+        },
+        "verifierAddress": {
+          "type": "string"
+        },
+        "encryptedProof": {
+          "type": "string",
+          "format": "byte"
+        },
+        "encryptedSecret": {
+          "type": "string",
+          "format": "byte"
+        },
+        "ephemeralPublicKey": {
+          "type": "string",
+          "format": "byte"
         }
       }
     },
