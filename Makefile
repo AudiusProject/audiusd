@@ -150,7 +150,7 @@ build-audiusd-local:
 	DOCKER_DEFAULT_PLATFORM=linux/arm64 docker build --target prod --build-arg GIT_SHA=$(GIT_SHA) -t audius/audiusd:local -f ./cmd/audiusd/Dockerfile ./
 
 .PHONY: audiusd-dev audiusd-dev-down
-audiusd-dev: audiusd-dev-down build-audiusd-dev
+audiusd-dev: audiusd-dev-down build-audiusd-dev build-audiusd-test
 	@docker compose \
 		--file='dev/docker-compose.yml' \
 		--project-name='dev' \
@@ -168,6 +168,9 @@ audiusd-dev-down:
 
 .PHONY: mediorum-test
 mediorum-test:
+	@if [ -z "$(AUDIUSD_TEST_IMAGE)" ]; then \
+		make build-audiusd-test; \
+	fi
 	@docker compose \
 		--file='dev/docker-compose.yml' \
 		--project-name='test' \
@@ -184,7 +187,10 @@ mediorum-test:
 
 .PHONY: core-test
 core-test:
-	AUDIUSD_HTTP_PORT=8080 AUDIUSD_HTTPS_PORT=8081 docker compose \
+	@if [ -z "$(AUDIUSD_TEST_IMAGE)" ]; then \
+		make build-audiusd-test; \
+	fi
+	docker compose \
 		--file='dev/docker-compose.yml' \
 		--project-name='test' \
 		--project-directory='./' \
