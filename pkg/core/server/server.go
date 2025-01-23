@@ -42,8 +42,9 @@ type Server struct {
 
 	txPubsub *TransactionHashPubsub
 
-	cache     *Cache
-	abciState *ABCIState
+	cache           *Cache
+	abciState       *ABCIState
+	stateSyncStatus *StateSyncStatus
 
 	core_proto.UnimplementedProtocolServer
 
@@ -84,13 +85,14 @@ func NewServer(config *config.Config, cconfig *cconfig.Config, logger *common.Lo
 		pool:      pool,
 		contracts: c,
 
-		db:        db.New(pool),
-		eth:       eth,
-		mempl:     mempl,
-		peers:     make(map[string]*sdk.Sdk),
-		txPubsub:  txPubsub,
-		cache:     NewCache(),
-		abciState: NewABCIState(),
+		db:              db.New(pool),
+		eth:             eth,
+		mempl:           mempl,
+		peers:           make(map[string]*sdk.Sdk),
+		txPubsub:        txPubsub,
+		cache:           NewCache(),
+		abciState:       NewABCIState(),
+		stateSyncStatus: NewStateSyncStatus(),
 
 		httpServer: httpServer,
 		grpcServer: grpcServer,

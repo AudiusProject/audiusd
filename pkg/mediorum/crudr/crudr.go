@@ -95,7 +95,7 @@ func New(selfHost string, myPrivateKey *ecdsa.PrivateKey, peerHosts []string, db
 
 	err = db.AutoMigrate(&Cursor{})
 	if err != nil {
-		panic(err)
+		panic(fmt.Errorf("error automigrating cursor: %v", err))
 	}
 
 	c := &Crudr{
