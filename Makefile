@@ -139,12 +139,15 @@ $(SQL_ARTIFACTS): $(SQL_SRCS)
 regen-go:
 	cd pkg/core && go generate ./...
 
-.PHONY: build-audiusd-test build-audiusd-dev
+.PHONY: build-audiusd-test build-audiusd-dev build-audiusd-local
 build-audiusd-test:
 	DOCKER_DEFAULT_PLATFORM=linux/arm64 docker build --target test --build-arg GIT_SHA=$(GIT_SHA) -t audius/audiusd:test -f ./cmd/audiusd/Dockerfile ./
 
 build-audiusd-dev:
 	DOCKER_DEFAULT_PLATFORM=linux/arm64 docker build --target dev --build-arg GIT_SHA=$(GIT_SHA) -t audius/audiusd:dev -f ./cmd/audiusd/Dockerfile ./
+
+build-audiusd-local:
+	DOCKER_DEFAULT_PLATFORM=linux/arm64 docker build --target prod --build-arg GIT_SHA=$(GIT_SHA) -t audius/audiusd:local -f ./cmd/audiusd/Dockerfile ./
 
 .PHONY: audiusd-dev audiusd-dev-down
 audiusd-dev: audiusd-dev-down build-audiusd-dev
@@ -181,7 +184,7 @@ mediorum-test:
 
 .PHONY: core-test
 core-test:
-	@docker compose \
+	AUDIUSD_HTTP_PORT=8080 AUDIUSD_HTTPS_PORT=8081 docker compose \
 		--file='dev/docker-compose.yml' \
 		--project-name='test' \
 		--project-directory='./' \
