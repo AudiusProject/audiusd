@@ -49,24 +49,21 @@ type Uptime struct {
 }
 
 func Run(ctx context.Context, logger *common.Logger) error {
-	discoveryEnv := os.Getenv("audius_discprov_env")
-	contentEnv := os.Getenv("MEDIORUM_ENV")
-	if discoveryEnv == "" && contentEnv == "" {
+	env := ""      // prod || stage
+	nodeType := "" // content || discovery
+	if os.Getenv("audius_discprov_url") != "" {
+		env = os.Getenv("audius_discprov_env")
+		nodeType = "discovery"
+	} else if os.Getenv("creatorNodeEndpoint") != "" {
+		env = os.Getenv("MEDIORUM_ENV")
+		nodeType = "content"
+	} else {
 		slog.Info("no envs set. sleeping forever...")
 		// block forever so container doesn't restart constantly
 		c := make(chan struct{})
 		<-c
 	}
-	env := ""      // prod || stage
-	nodeType := "" // content || discovery
-	if discoveryEnv != "" {
-		env = discoveryEnv
-		nodeType = "discovery"
-	} else {
-		env = contentEnv
-		nodeType = "content"
-	}
-	slog.Info("starting", "env", env)
+	slog.Info("starting", "env", env, "nodeType", nodeType)
 
 	switch env {
 	case "prod":
