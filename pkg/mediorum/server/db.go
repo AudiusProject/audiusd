@@ -137,6 +137,11 @@ func dbMustDial(dbPath string) *gorm.DB {
 	}
 
 	sqlDb, _ := db.DB()
+	// air doesn't reset client connections so this explicitly sets the client encoding
+	_, err = sqlDb.Exec("SET client_encoding TO 'UTF8';")
+	if err != nil {
+		panic(fmt.Sprintf("Failed to set client encoding: %v", err))
+	}
 	sqlDb.SetMaxOpenConns(50)
 
 	// db = db.Debug()
