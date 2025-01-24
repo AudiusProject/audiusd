@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sync/atomic"
 
+	"github.com/AudiusProject/audiusd/pkg/core/common"
 	"github.com/cometbft/cometbft/types"
 )
 
@@ -57,6 +58,14 @@ func (s *Server) startCache() error {
 			blockEvent := msg.Data().(types.EventDataNewBlock)
 			blockHeight := blockEvent.Block.Height
 			atomic.StoreInt64(&s.cache.currentHeight, blockHeight)
+
+			if blockHeight%100 == 0 {
+				go func(logger *common.Logger, height int64) {
+					if err := s.createStateBackup(height); err != nil {
+						logger.Errorf("could not create state backup: %v", err)
+					}
+				}(s.logger, blockHeight)
+			}
 		case err := <-subscription.Canceled():
 			s.logger.Errorf("Subscription cancelled: %v", err)
 			return nil

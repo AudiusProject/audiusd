@@ -129,7 +129,10 @@ type UploadCursor struct {
 func dbMustDial(dbPath string) *gorm.DB {
 	gormLogger := slogGorm.New()
 
-	db, err := gorm.Open(postgres.Open(dbPath), &gorm.Config{
+	db, err := gorm.Open(postgres.New(postgres.Config{
+		DSN:                  dbPath,
+		PreferSimpleProtocol: false,
+	}), &gorm.Config{
 		Logger: gormLogger,
 	})
 	if err != nil {
@@ -137,6 +140,13 @@ func dbMustDial(dbPath string) *gorm.DB {
 	}
 
 	sqlDb, _ := db.DB()
+
+	// air doesn't reset client connections so this explicitly sets the client encoding
+	_, err = sqlDb.Exec("SET client_encoding TO 'UTF8';")
+	if err != nil {
+		panic(fmt.Sprintf("Failed to set client encoding: %v", err))
+	}
+
 	sqlDb.SetMaxOpenConns(50)
 
 	// db = db.Debug()
@@ -149,7 +159,7 @@ func dbMigrate(crud *crudr.Crudr, myHost string) {
 	slog.Info("db: gorm automigrate")
 	err := crud.DB.AutoMigrate(&Upload{}, &RepairTracker{}, &UploadCursor{}, &StorageAndDbSize{}, &DailyMetrics{}, &MonthlyMetrics{}, &QmAudioAnalysis{}, &AudioPreview{})
 	if err != nil {
-		panic(err)
+		panic(fmt.Errorf("error automigrating crudr entities %v", err))
 	}
 
 	// register any models to be managed by crudr
