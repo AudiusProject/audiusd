@@ -77,7 +77,6 @@ type Config struct {
 	RPCladdr         string
 	P2PLaddr         string
 	PSQLConn         string
-	RetainBlocks     uint
 	PersistentPeers  string
 	Seeds            string
 	ExternalAddress  string
@@ -93,6 +92,8 @@ type Config struct {
 	GRPCladdr       string
 	CoreServerAddr  string
 	NodeEndpoint    string
+	Archive         bool
+	RetainHeight    int64
 
 	/* Ethereum Config */
 	EthRPCUrl          string
@@ -137,6 +138,8 @@ func ReadConfig(logger *common.Logger) (*Config, error) {
 	cfg.MaxInboundPeers = getEnvIntWithDefault("maxInboundPeers", 100)
 	// actively connect to 50 peers
 	cfg.MaxOutboundPeers = getEnvIntWithDefault("maxOutboundPeers", 50)
+
+	cfg.Archive = GetEnvWithDefault("archive", "false") == "true"
 
 	// check if discovery specific key is set
 	isDiscovery := os.Getenv("audius_delegate_private_key") != ""

@@ -146,7 +146,6 @@ func SetupNode(logger *common.Logger) (*Config, *cconfig.Config, error) {
 		cometConfig.Consensus.CreateEmptyBlocksInterval = 200 * time.Millisecond
 	}
 
-
 	cometConfig.P2P.PexReactor = true
 	cometConfig.P2P.AddrBookStrict = envConfig.AddrBookStrict
 	if envConfig.PersistentPeers != "" {
@@ -175,6 +174,14 @@ func SetupNode(logger *common.Logger) (*Config, *cconfig.Config, error) {
 	}
 	if envConfig.P2PLaddr != "" {
 		cometConfig.P2P.ListenAddress = envConfig.P2PLaddr
+	}
+
+	if !envConfig.Archive {
+		cometConfig.Storage.DiscardABCIResponses = true
+		cometConfig.Storage.Compact = true
+		cometConfig.Storage.CompactionInterval = 1000
+	} else {
+		logger.Info("running in archive mode")
 	}
 
 	return envConfig, cometConfig, nil
