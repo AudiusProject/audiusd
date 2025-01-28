@@ -171,7 +171,7 @@ func (s *Server) broadcastMempoolTransaction(key string, tx *MempoolTransaction)
 		return
 	}
 
-	peers := s.GetPeers()
+	peers := s.peers.GetPeers()
 	for _, peer := range peers {
 		go func(logger *common.Logger, peer *sdk.Sdk) {
 			params := protocol.NewProtocolForwardTransactionParams()

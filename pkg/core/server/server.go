@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 	"fmt"
-	"sync"
 
 	"github.com/AudiusProject/audiusd/pkg/core/common"
 	"github.com/AudiusProject/audiusd/pkg/core/config"
@@ -37,8 +36,8 @@ type Server struct {
 	rpc   *local.Local
 	mempl *Mempool
 
-	peers   map[string]*sdk.Sdk
-	peersMU sync.RWMutex
+	peers    *Peers
+	ethNodes *EthNodes
 
 	txPubsub *TransactionHashPubsub
 
@@ -46,10 +45,6 @@ type Server struct {
 	abciState *ABCIState
 
 	core_proto.UnimplementedProtocolServer
-
-	ethNodes          []*contracts.Node
-	duplicateEthNodes []*contracts.Node
-	ethNodeMU         sync.RWMutex
 
 	awaitHttpServerReady chan struct{}
 	awaitGrpcServerReady chan struct{}
@@ -73,8 +68,14 @@ func NewServer(config *config.Config, cconfig *cconfig.Config, logger *common.Lo
 	httpServer := echo.New()
 	grpcServer := grpc.NewServer()
 
-	ethNodes := []*contracts.Node{}
-	duplicateEthNodes := []*contracts.Node{}
+	ethNodes := &EthNodes{
+		ethNodes:          []*contracts.Node{},
+		duplicateEthNodes: []*contracts.Node{},
+	}
+
+	peers := &Peers{
+		peers: make(map[string]*sdk.Sdk),
+	}
 
 	s := &Server{
 		config:         config,
@@ -87,7 +88,7 @@ func NewServer(config *config.Config, cconfig *cconfig.Config, logger *common.Lo
 		db:        db.New(pool),
 		eth:       eth,
 		mempl:     mempl,
-		peers:     make(map[string]*sdk.Sdk),
+		peers:     peers,
 		txPubsub:  txPubsub,
 		cache:     NewCache(),
 		abciState: NewABCIState(),
@@ -95,8 +96,7 @@ func NewServer(config *config.Config, cconfig *cconfig.Config, logger *common.Lo
 		httpServer: httpServer,
 		grpcServer: grpcServer,
 
-		ethNodes:          ethNodes,
-		duplicateEthNodes: duplicateEthNodes,
+		ethNodes: ethNodes,
 
 		awaitHttpServerReady: make(chan struct{}),
 		awaitGrpcServerReady: make(chan struct{}),

@@ -121,7 +121,7 @@ func (s *Server) shouldProposeNewRollup(ctx context.Context, height int64) bool 
 }
 
 func (s *Server) finalizeSlaRollup(ctx context.Context, event *core_proto.SignedTransaction, txHash string) (*core_proto.SlaRollup, error) {
-	appDb := s.getDb()
+	appDb := s.getFinalizeBlockTransaction()
 	rollup := event.GetSlaRollup()
 
 	id, err := appDb.CommitSlaRollup(
