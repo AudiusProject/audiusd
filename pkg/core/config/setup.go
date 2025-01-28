@@ -176,9 +176,8 @@ func SetupNode(logger *common.Logger) (*Config, *cconfig.Config, error) {
 		cometConfig.P2P.ListenAddress = envConfig.P2PLaddr
 	}
 
-	// storage
 	cometConfig.Storage.Compact = true
-	cometConfig.Storage.CompactionInterval = 1000
+	cometConfig.Storage.CompactionInterval = 100
 	cometConfig.Storage.DiscardABCIResponses = true
 
 	return envConfig, cometConfig, nil

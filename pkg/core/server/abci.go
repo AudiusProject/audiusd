@@ -300,7 +300,18 @@ func (s *Server) Commit(ctx context.Context, commit *abcitypes.CommitRequest) (*
 	// reset abci finalized txs
 	state.finalizedTxs = []string{}
 
-	return &abcitypes.CommitResponse{}, nil
+	resp := &abcitypes.CommitResponse{}
+
+	retainHeight := int64(100) // how many blocks from head to keep
+	latestBlocks, err := s.db.GetRecentBlocks(ctx)
+	if err == nil && len(latestBlocks) > 0 {
+		latestIndexedHeight := latestBlocks[0].Height
+		if latestIndexedHeight > retainHeight {
+			resp.RetainHeight = latestIndexedHeight - retainHeight
+		}
+	}
+
+	return resp, nil
 }
 
 func (s *Server) ListSnapshots(_ context.Context, snapshots *abcitypes.ListSnapshotsRequest) (*abcitypes.ListSnapshotsResponse, error) {
