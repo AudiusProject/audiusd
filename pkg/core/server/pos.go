@@ -1,24 +1,24 @@
 package server
 
 import (
-	"bytes"
 	"context"
-	"crypto/aes"
-	"crypto/cipher"
-	"crypto/rand"
-	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"fmt"
-	"io"
-	"sort"
+	"slices"
 	"strings"
 	"time"
 
+	"github.com/AudiusProject/audiusd/pkg/core/common"
 	"github.com/AudiusProject/audiusd/pkg/core/db"
+	"github.com/AudiusProject/audiusd/pkg/core/gen/core_proto"
 	"github.com/AudiusProject/audiusd/pkg/pos"
+	"github.com/cometbft/cometbft/crypto/ed25519"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"golang.org/x/crypto/chacha20poly1305"
-	"golang.org/x/crypto/curve25519"
+	"github.com/jackc/pgx/v5/pgtype"
+	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -28,14 +28,14 @@ const (
 )
 
 // Called during FinalizeBlock. Keeps Proof of Storage subsystem up to date with current block.
-func (s *Server) syncPoS(latestBlockHash []byte, latestBlockHeight int64) error {
+func (s *Server) syncPoS(ctx context.Context, latestBlockHash []byte, latestBlockHeight int64) error {
 	if blockShouldTriggerNewPoSChallenge(latestBlockHash) {
-		if err := s.triggerNewPoSChallenge(latestBlockHash, latestBlockHeight); err != nil {
-			return err
+		err := s.db.InsertPoSChallenge(ctx, latestBlockHeight)
+		if err != nil {
+			return fmt.Errorf("Could not insert PoS challenge to db at height %d: %v", latestBlockHeight, err)
 		}
-	}
-	if err := s.updateExistingPoSChallenges(latestBlockHeight); err != nil {
-		return err
+		// TODO: disable in block sync mode
+		go s.sendPoSChallengeToMediorum(latestBlockHash, latestBlockHeight)
 	}
 	return nil
 }
@@ -45,53 +45,7 @@ func blockShouldTriggerNewPoSChallenge(blockHash []byte) bool {
 	return bhLen > 0 && blockHash[bhLen-1]&0x0f == 0
 }
 
-func (s *Server) triggerNewPoSChallenge(blockHash []byte, blockHeight int64) error {
-	verifier, err := s.getPoSVerifierForChallenge(blockHash)
-	if err != nil {
-		return fmt.Errorf("Could not get verifier for PoS challenge at height %d with hash %v: %v", blockHeight, blockHash, err)
-	}
-	err = s.db.InsertPoSChallenge(
-		context.Background(),
-		db.InsertPoSChallengeParams{blockHeight, verifier.CometAddress},
-	)
-	if err != nil {
-		return fmt.Errorf("Could not insert PoS challenge to db at height %d: %v", blockHeight, err)
-	}
-
-	// TODO: disable in block sync mode
-	go s.sendPoSChallengeToMediorum(blockHash, blockHeight, verifier.CometAddress, verifier.CometPubKey)
-	return nil
-}
-
-func (s *Server) updateExistingPoSChallenges(blockHeight int64) error {
-	ctx := context.Background()
-	openChallenges, err := s.db.GetIncompletePoSChallenges(ctx)
-	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
-		return fmt.Errorf("Could not fetch incomplete pos challenges from the database: %v", err)
-	}
-
-	for _, c := range openChallenges {
-		if blockHeight-c.BlockHeight >= int64(posChallengeDeadline) && strings.ToLower(c.VerifierAddress) == strings.ToLower(s.config.ProposerAddress) {
-			if err := s.verifyPoSChallenge(c.BlockHeight); err != nil {
-				return fmt.Errorf("Could not verify PoS challenge at block %d: %v", c.BlockHeight, err)
-			}
-		}
-
-		// Fault any challenges which have not been verified in the deadline
-		if blockHeight-c.BlockHeight >= int64(posVerificationDeadline) {
-			if err = s.db.FaultPoSChallenge(ctx, c.BlockHeight); err != nil {
-				return fmt.Errorf("Failed to update existing pos challenge at height %d: %v", c.BlockHeight, err)
-			}
-			// storage proofs are exempt because verifier faulted
-			if err = s.db.ExemptStorageProofs(ctx, c.BlockHeight); err != nil {
-				return fmt.Errorf("Failed to update existing storage proofs at height %d: %v", c.BlockHeight, err)
-			}
-		}
-	}
-	return nil
-}
-
-func (s *Server) sendPoSChallengeToMediorum(blockHash []byte, blockHeight int64, verifierAddr string, verifierPubKey string) {
+func (s *Server) sendPoSChallengeToMediorum(blockHash []byte, blockHeight int64) {
 	respChannel := make(chan pos.PoSResponse)
 	posReq := pos.PoSRequest{
 		Hash:     blockHash,
@@ -109,7 +63,7 @@ func (s *Server) sendPoSChallengeToMediorum(blockHash []byte, blockHeight int64,
 		// TODO: check if mediorum normalizes these endpoints in a way that core does not
 		nodes, err := s.db.GetNodesByEndpoints(ctx, response.Replicas)
 		if err != nil {
-			return fmt.Errorf("Failed to get all nodes for endpoints '%v': %v", replicaEndpoints, err)
+			s.logger.Error("Failed to get all registered comet nodes for endpoints", "endpoints", response.Replicas, "error", err)
 		}
 		prover_addresses := make([]string, 0, len(nodes))
 		for _, n := range nodes {
@@ -126,7 +80,7 @@ func (s *Server) sendPoSChallengeToMediorum(blockHash []byte, blockHeight int64,
 
 		// submit proof tx if we are part of the challenge
 		if len(response.Proof) > 0 {
-			err := s.submitStorageProofTx(blockHeight, blockHash, response.CID, prover_addresses, response.Proof, verifierAddr, verifierPubKey)
+			err := s.submitStorageProofTx(blockHeight, blockHash, response.CID, prover_addresses, response.Proof)
 			if err != nil {
 				s.logger.Error("Could not submit storage proof tx", "hash", blockHash, "error", err)
 			}
@@ -137,173 +91,279 @@ func (s *Server) sendPoSChallengeToMediorum(blockHash []byte, blockHeight int64,
 	}
 }
 
-// TODO: delete the following once we establish it is unneeded
-/*
-	func (s *Server) updatePoSChallengeWithMediorumInfo(blockHeight int64, replicaEndpoints []string) error {
-		dbTx, err := s.pool.Begin(ctx)
-		if err != nil {
-			return fmt.Errorf("Could not initialize db transaction from pool: %v", err)
-		}
-		defer dbTx.Rollback(ctx)
-		qtx := s.db.WithTx(dbTx)
-		for _, n := range nodes {
-			err := qtx.InsertStorageProof(
-				ctx,
-				db.InsertStorageProofParams{
-					BlockHeight:    blockHeight,
-					Address:        n.CometAddress,
-					EncryptedProof: pgtype.Text{},
-					DecryptedProof: pgtype.Text{},
-				},
-			)
-			if err != nil {
-				return fmt.Errorf("Could not insert empty storage proof for node %s", n.CometAddress)
-			}
-		}
-		dbTx.Commit(ctx)
-		return nil
+func (s *Server) submitStorageProofTx(height int64, hash []byte, cid string, replicaAddresses []string, proof []byte) error {
+	proofSig, err := s.config.CometKey.Sign(proof)
+	if err != nil {
+		return fmt.Errorf("Could not sign storage proof: %v", err)
 	}
-*/
+	proofTx := &core_proto.StorageProof{
+		Height:          height,
+		Cid:             cid,
+		Address:         s.config.ProposerAddress,
+		ProofSignature:  proofSig,
+		ProverAddresses: replicaAddresses,
+	}
 
-func (s *Server) verifyPoSChallenge(blockHeight int64) error {
-	ctx := context.Background()
-	_, err := s.db.GetStorageProofs(ctx, blockHeight)
-	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
-		return fmt.Errorf("Could not get storage proofs for block %d: %v", err)
+	txBytes, err := proto.Marshal(proofTx)
+	if err != nil {
+		return fmt.Errorf("failure to marshal proof tx: %v", err)
 	}
+
+	sig, err := common.EthSign(s.config.EthereumKey, txBytes)
+	if err != nil {
+		return fmt.Errorf("could not sign proof tx: %v", err)
+	}
+
+	tx := &core_proto.SignedTransaction{
+		Signature: sig,
+		RequestId: uuid.NewString(),
+		Transaction: &core_proto.SignedTransaction_StorageProof{
+			StorageProof: proofTx,
+		},
+	}
+
+	req := &core_proto.SendTransactionRequest{
+		Transaction: tx,
+	}
+
+	txhash, err := s.SendTransaction(context.Background(), req)
+	if err != nil {
+		return fmt.Errorf("send storage proof tx failed: %v", err)
+	}
+	s.logger.Infof("Sent storage proof for cid '%s' at height '%d', receipt '%s'", cid, height, txhash)
+
+	// Send the verification later.
+	go func() {
+		time.Sleep(posVerificationDelay)
+		s.submitStorageProofVerificationTx(height, proof)
+	}()
+
 	return nil
 }
 
-type VerifierTuple struct {
-	validator *db.CoreValidator
-	score     []byte
+func (s *Server) submitStorageProofVerificationTx(height int64, proof []byte) error {
+	verificationTx := &core_proto.StorageProofVerification{
+		Height: height,
+		Proof:  proof,
+	}
+
+	txBytes, err := proto.Marshal(verificationTx)
+	if err != nil {
+		return fmt.Errorf("failure to marshal proof tx: %v", err)
+	}
+
+	sig, err := common.EthSign(s.config.EthereumKey, txBytes)
+	if err != nil {
+		return fmt.Errorf("could not sign proof tx: %v", err)
+	}
+
+	tx := &core_proto.SignedTransaction{
+		Signature: sig,
+		RequestId: uuid.NewString(),
+		Transaction: &core_proto.SignedTransaction_StorageProofVerification{
+			StorageProofVerification: verificationTx,
+		},
+	}
+
+	req := &core_proto.SendTransactionRequest{
+		Transaction: tx,
+	}
+
+	txhash, err := s.SendTransaction(context.Background(), req)
+	if err != nil {
+		return fmt.Errorf("send storage proof verification tx failed: %v", err)
+	}
+	s.logger.Infof("Sent storage proof verification for pos challenge at height '%d', receipt '%s'", height, txhash)
+	return nil
 }
 
-type VerifierTuples []VerifierTuple
-
-func (s VerifierTuples) Len() int      { return len(s) }
-func (s VerifierTuples) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
-func (s VerifierTuples) Less(i, j int) bool {
-	c := bytes.Compare(s[i].score, s[j].score)
-	if c == 0 {
-		return s[i].validator.CometAddress < s[j].validator.CometAddress
+func (s *Server) isValidStorageProofTx(ctx context.Context, tx *core_proto.SignedTransaction, currentBlockHeight int64, enforceReplicas bool) error {
+	// validate signer == prover
+	sig := tx.GetSignature()
+	if sig == "" {
+		return fmt.Errorf("no signature provided for storage proof tx: %v", tx)
 	}
-	return c == -1
+	sp := tx.GetStorageProof()
+	if sp == nil {
+		return fmt.Errorf("unknown tx fell into isValidStorageProofTx: %v", tx)
+	}
+	txBytes, err := proto.Marshal(sp)
+	if err != nil {
+		return fmt.Errorf("could not unmarshal tx bytes: %v", err)
+	}
+	_, address, err := common.EthRecover(sig, txBytes)
+	if err != nil {
+		return fmt.Errorf("could not recover signer: %v", err)
+	}
+	node, err := s.db.GetRegisteredNodeByEthAddress(ctx, address)
+	if err != nil {
+		return fmt.Errorf("Could not get validator for address '%s': %v", err)
+	}
+	if strings.ToLower(node.CometAddress) != strings.ToLower(sp.Address) {
+		return fmt.Errorf("Proof is for '%s' but was signed by '%s'", sp.Address, node.CometAddress)
+	}
+
+	// validate height
+	height := sp.GetHeight()
+	if height == 0 {
+		return fmt.Errorf("Invalid height '%d' for storage proof", height)
+	}
+	if height-currentBlockHeight > posChallengeDeadline {
+		return fmt.Errorf("Proof submitted at height '%d' for challenge at height '%d' which is past the deadline", currentBlockHeight, height)
+	}
+
+	// validate existing ongoing challenge
+	posChallenge, err := s.db.GetPoSChallenge(ctx, height)
+	if err != nil {
+		return fmt.Errorf("Could not retrieve any ongoing pos challenges at height '%d': %v", height, err)
+	}
+	if enforceReplicas && posChallenge.ProverAddresses != nil && !slices.Contains(posChallenge.ProverAddresses, strings.ToLower(sp.Address)) {
+		// We think this proof does not belong to this challenge.
+		// Note: this should not be enforced during the finalize step.
+		return fmt.Errorf("Prover at address '%s' does not belong to replicaset.", sp.Address)
+	}
+
+	return nil
 }
 
-// Deterministically chooses a verifier for a Proof of Storage challenge based on the hash
-func (s *Server) getPoSVerifierForChallenge(hash []byte) (db.CoreValidator, error) {
-	var result db.CoreValidator
-	hasher := sha256.New()
-	validators, err := s.db.GetAllRegisteredNodesSorted(context.Background())
-	if err != nil || len(validators) == 0 {
-		return result, fmt.Errorf("Could not get registered nodes from db: %v", err)
+func (s *Server) isValidStorageProofVerificationTx(ctx context.Context, tx *core_proto.SignedTransaction, currentBlockHeight int64) error {
+	spv := tx.GetStorageProofVerification()
+	if spv == nil {
+		return fmt.Errorf("unknown tx fell into isValidStorageProofVerficationTx: %v", tx)
 	}
-	tuples := make(VerifierTuples, len(validators))
-	for i, validator := range validators {
-		hasher.Reset()
-		io.WriteString(hasher, validator.CometAddress)
-		hasher.Write(hash)
-		tuples[i] = VerifierTuple{&validator, hasher.Sum(nil)}
+
+	// validate height
+	height := spv.GetHeight()
+	if height == 0 {
+		return fmt.Errorf("Invalid height '%d' for storage proof", height)
 	}
-	sort.Sort(tuples)
-	result = *tuples[0].validator
-	return result, nil
+	if height-currentBlockHeight <= posChallengeDeadline {
+		return fmt.Errorf("Proof submitted at height '%d' for challenge at height '%d' which is before the deadline", currentBlockHeight, height)
+	}
+
+	// validate existing ongoing challenge
+	_, err := s.db.GetPoSChallenge(ctx, height)
+	if err != nil {
+		return fmt.Errorf("Could not retrieve any ongoing pos challenges at height '%d': %v", height, err)
+	}
+
+	return nil
 }
 
-func generateRandomSecret() ([]byte, error) {
-	secret := make([]byte, 16)
-	if _, err := rand.Read(secret); err != nil {
-		return nil, fmt.Errorf("failed to generate random secret: %v", err)
+func (s *Server) finalizeStorageProof(ctx context.Context, tx *core_proto.SignedTransaction, blockHeight int64) (*core_proto.StorageProof, error) {
+	if err := s.isValidStorageProofTx(ctx, tx, blockHeight, false); err != nil {
+		return nil, err
 	}
-	return secret, nil
+
+	sp := tx.GetStorageProof()
+	qtx := s.getDb()
+
+	// ignore duplicates
+	if _, err := qtx.GetStorageProof(ctx, db.GetStorageProofParams{sp.Height, sp.Address}); !errors.Is(err, pgx.ErrNoRows) {
+		s.logger.Error("Storage proof already exists, skipping.", "node", sp.Address, "height", sp.Height)
+		return sp, nil
+	}
+
+	proofSigStr := base64.StdEncoding.EncodeToString(sp.ProofSignature)
+
+	if err := qtx.InsertStorageProof(
+		ctx,
+		db.InsertStorageProofParams{
+			BlockHeight:     sp.Height,
+			Address:         sp.Address,
+			Cid:             pgtype.Text{sp.Cid, true},
+			ProofSignature:  pgtype.Text{proofSigStr, true},
+			ProverAddresses: sp.ProverAddresses,
+		},
+	); err != nil {
+		return nil, fmt.Errorf("Could not persist storage proof in db: %v", err)
+	}
+
+	return sp, nil
 }
 
-func encryptStorageProof(secret, proof, blockHash []byte) ([]byte, error) {
-	block, err := aes.NewCipher(secret)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create cipher: %v", err)
+func (s *Server) finalizeStorageProofVerification(ctx context.Context, tx *core_proto.SignedTransaction, currentBlockHeight int64) (*core_proto.StorageProofVerification, error) {
+	if err := s.isValidStorageProofVerificationTx(ctx, tx, currentBlockHeight); err != nil {
+		return nil, err
 	}
-	aesGCM, err := cipher.NewGCM(block)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create GCM: %v", err)
-	}
-	nonce := make([]byte, aesGCM.NonceSize())
-	copy(nonce, blockHash)
-	return aesGCM.Seal(nil, nonce[:aesGCM.NonceSize()], proof, nil), nil
-}
 
-func decryptStorageProof(encProof, secret, blockHash []byte) ([]byte, error) {
-	block, err := aes.NewCipher(secret)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create cipher: %v", err)
-	}
-	aesGCM, err := cipher.NewGCM(block)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create GCM: %v", err)
-	}
-	nonce := make([]byte, aesGCM.NonceSize())
-	copy(nonce, blockHash)
-	proof, err := aesGCM.Open(nil, nonce, encProof, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to decrypt data: %v", err)
-	}
-	return proof, nil
-}
+	spv := tx.GetStorageProofVerification()
+	qtx := s.getDb()
 
-func encryptPoSSecret(pubKey, secret, blockHash []byte) ([]byte, []byte, error) {
-	// 'Convert' Ed25519 public key to X25519 public key
-	var xPubKey [32]byte
-	copy(xPubKey[:], pubKey[:])
-
-	// Generate ephemeral X25519 key pair
-	var ephemeralPrivate, ephemeralPublic [32]byte
-	if _, err := rand.Read(ephemeralPrivate[:]); err != nil {
-		return nil, nil, fmt.Errorf("Could not generate ephemeral private key: %v", err)
-	}
-	curve25519.ScalarBaseMult(&ephemeralPublic, &ephemeralPrivate)
-
-	// Compute symmetric key
-	sharedSecret, err := curve25519.X25519(ephemeralPrivate[:], xPubKey[:])
+	challenge, err := qtx.GetPoSChallenge(ctx, spv.Height)
 	if err != nil {
-		return nil, nil, fmt.Errorf("Could not compute shared secret: %v", err)
+		return nil, fmt.Errorf("Could not pos challenge: %v", err)
 	}
-	symmetricKey := sha256.Sum256(sharedSecret)
+	if challenge.Status == db.ChallengeStatusComplete {
+		// challenge already resolved, no-op
+		return spv, nil
+	}
 
-	// Encrypt proof secret with ChaCha20-Poly1305
-	aead, err := chacha20poly1305.New(symmetricKey[:])
+	proofs, err := qtx.GetStorageProofs(ctx, spv.Height)
 	if err != nil {
-		return nil, nil, fmt.Errorf("Could not initialize cipher: %v", err)
+		return nil, fmt.Errorf("Could not fetch storage proofs: %v", err)
 	}
-	nonce := make([]byte, aead.NonceSize())
-	copy(nonce, blockHash)
-	ciphertext := aead.Seal(nil, nonce, secret, nil)
-	return ciphertext, ephemeralPublic[:], nil
-}
 
-func decryptPoSSecret(privateKey, secret, ephemeralPublicKey, blockHash []byte) ([]byte, error) {
-	// 'Convert' ed25519 private key to X25519 private key
-	var xKey [32]byte
-	copy(xKey[:], privateKey[:])
+	consensusNodes := make([]string, 0, len(proofs))
+	for _, p := range proofs {
+		node, err := qtx.GetRegisteredNodeByCometAddress(ctx, p.Address)
+		if err != nil {
+			return nil, fmt.Errorf("Could not fetch node with address %s: %v", p.Address, err)
+		}
 
-	var ePubKey [32]byte
-	copy(ePubKey[:], ephemeralPublicKey[:])
-
-	sharedSecret, err := curve25519.X25519(xKey[:], ePubKey[:])
-	if err != nil {
-		return nil, fmt.Errorf("Could not compute shared secret: %v", err)
+		sigBytes, err := base64.StdEncoding.DecodeString(p.ProofSignature.String)
+		if err != nil {
+			return nil, fmt.Errorf("Could not decode proof signature node at address %s: %v", node.CometAddress, err)
+		}
+		pubKeyBytes, err := base64.StdEncoding.DecodeString(node.CometPubKey)
+		if err != nil {
+			return nil, fmt.Errorf("Could not decode public key for node at address %s: %v", node.CometAddress, err)
+		}
+		pubKey := ed25519.PubKey(pubKeyBytes)
+		if pubKey.VerifySignature(spv.Proof, sigBytes) {
+			consensusNodes = append(consensusNodes, p.Address)
+		}
 	}
-	symmetricKey := sha256.Sum256(sharedSecret)
 
-	aead, err := chacha20poly1305.New(symmetricKey[:])
-	if err != nil {
-		return nil, fmt.Errorf("Could not initialize cipher: %v", err)
+	if len(consensusNodes) > len(proofs)/2 {
+		// we have a majority, we can resolve the challenge
+		proofStr := hex.EncodeToString(spv.Proof)
+		for _, p := range proofs {
+			if slices.Contains(consensusNodes, p.Address) {
+				err := qtx.UpdateStorageProof(
+					ctx,
+					db.UpdateStorageProofParams{
+						Proof:       pgtype.Text{proofStr, true},
+						Status:      db.ProofStatusPass,
+						BlockHeight: spv.Height,
+						Address:     p.Address,
+					},
+				)
+				if err != nil {
+					return nil, fmt.Errorf("Could not update storage proof for prover %s at height %d: %v", p.Address, spv.Height, err)
+				}
+			} else {
+				err := qtx.UpdateStorageProof(
+					ctx,
+					db.UpdateStorageProofParams{
+						Proof:       pgtype.Text{proofStr, true},
+						Status:      db.ProofStatusFail,
+						BlockHeight: spv.Height,
+						Address:     p.Address,
+					},
+				)
+				if err != nil {
+					return nil, fmt.Errorf("Could not update storage proof for prover %s at height %d: %v", p.Address, spv.Height, err)
+				}
+			}
+			// TODO: add failed storage proofs for missing provers
+		}
+
+		err := qtx.CompletePoSChallenge(ctx, spv.Height)
+		if err != nil {
+			return nil, fmt.Errorf("Could not complete pos challenge at height %d: %v", spv.Height, err)
+		}
 	}
-	nonce := make([]byte, aead.NonceSize())
-	copy(nonce, blockHash)
-	posSecret, err := aead.Open(nil, nonce, secret, nil)
-	if err != nil {
-		return nil, fmt.Errorf("Could not decrypt secret: %v", err)
-	}
-	return posSecret, nil
+
+	return spv, nil
 }

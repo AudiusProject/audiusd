@@ -261,7 +261,7 @@ func (s *Server) FinalizeBlock(ctx context.Context, req *abcitypes.FinalizeBlock
 	}
 
 	// Update proof of storage
-	s.syncPoS(req.Hash, req.Height)
+	s.syncPoS(ctx, req.Hash, req.Height)
 
 	nextAppHash := s.serializeAppState([]byte{}, req.GetTxs())
 

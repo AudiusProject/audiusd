@@ -325,6 +325,9 @@
         },
         "storageProof": {
           "$ref": "#/definitions/protocolStorageProof"
+        },
+        "storageProofVerification": {
+          "$ref": "#/definitions/protocolStorageProofVerification"
         }
       }
     },
@@ -384,6 +387,19 @@
           "type": "string"
         },
         "proofSignature": {
+          "type": "string",
+          "format": "byte"
+        }
+      }
+    },
+    "protocolStorageProofVerification": {
+      "type": "object",
+      "properties": {
+        "height": {
+          "type": "string",
+          "format": "int64"
+        },
+        "proof": {
           "type": "string",
           "format": "byte"
         }

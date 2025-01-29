@@ -44,6 +44,7 @@ message SignedTransaction {
     ManageEntityLegacy manage_entity = 1003;
     ValidatorDeregistration validator_deregistration = 1004;
     StorageProof storage_proof = 1005;
+    StorageProofVerification storage_proof_verification = 1006;
   }
 }
 

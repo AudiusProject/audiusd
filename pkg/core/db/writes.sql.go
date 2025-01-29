@@ -62,6 +62,17 @@ func (q *Queries) CommitSlaRollup(ctx context.Context, arg CommitSlaRollupParams
 	return id, err
 }
 
+const completePoSChallenge = `-- name: CompletePoSChallenge :exec
+update pos_challenges
+set status = 'complete'
+where block_height = $1
+`
+
+func (q *Queries) CompletePoSChallenge(ctx context.Context, blockHeight int64) error {
+	_, err := q.db.Exec(ctx, completePoSChallenge, blockHeight)
+	return err
+}
+
 const deleteRegisteredNode = `-- name: DeleteRegisteredNode :exec
 delete from core_validators
 where comet_address = $1
@@ -69,17 +80,6 @@ where comet_address = $1
 
 func (q *Queries) DeleteRegisteredNode(ctx context.Context, cometAddress string) error {
 	_, err := q.db.Exec(ctx, deleteRegisteredNode, cometAddress)
-	return err
-}
-
-const exemptStorageProofs = `-- name: ExemptStorageProofs :exec
-update storage_proofs
-set status = 'exempt'
-where block_height = $1
-`
-
-func (q *Queries) ExemptStorageProofs(ctx context.Context, blockHeight int64) error {
-	_, err := q.db.Exec(ctx, exemptStorageProofs, blockHeight)
 	return err
 }
 
