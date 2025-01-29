@@ -49,14 +49,6 @@ func (state *State) recalculateState() {
 	ctx := context.Background()
 	logger := state.logger
 
-	status, err := state.rpc.Status(ctx)
-	if err != nil {
-		logger.Errorf("could not get node status: %v", err)
-	} else {
-		state.totalBlocks = status.SyncInfo.LatestBlockHeight
-		state.isSyncing = status.SyncInfo.CatchingUp
-	}
-
 	recentTransactions, err := state.db.GetRecentTxs(ctx)
 	if err != nil {
 		logger.Errorf("could not get recent txs: %v", err)
@@ -64,12 +56,19 @@ func (state *State) recalculateState() {
 		state.latestTransactions = recentTransactions
 	}
 
-	// TODO: remove after audius-mainnet-alpha
-	totalTxs, err := state.db.GetTotalTxStats(ctx)
+	// on initial load
+	totalTxs, err := state.db.TotalTransactions(ctx)
 	if err != nil {
 		logger.Errorf("could not get total txs: %v", err)
 	} else {
 		state.totalTransactions = totalTxs
+	}
+
+	totalBlocks, err := state.db.TotalBlocks(ctx)
+	if err != nil {
+		logger.Errorf("could not get total blocks: %v", err)
+	} else {
+		state.totalBlocks = totalBlocks
 	}
 
 	totalPlays, err := state.db.TotalTransactionsByType(ctx, server.TrackPlaysProtoName)
@@ -119,6 +118,11 @@ func (state *State) recalculateState() {
 	}
 
 	state.latestBlocks = latestBlocks
+
+	status, err := state.rpc.Status(ctx)
+	if err == nil {
+		state.isSyncing = status.SyncInfo.CatchingUp
+	}
 }
 
 func (state *State) Start() error {

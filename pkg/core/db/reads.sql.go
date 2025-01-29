@@ -597,17 +597,6 @@ func (q *Queries) GetSlaRollupWithId(ctx context.Context, id int32) (SlaRollup, 
 	return i, err
 }
 
-const getTotalTxStats = `-- name: GetTotalTxStats :one
-select count(*) from core_tx_stats
-`
-
-func (q *Queries) GetTotalTxStats(ctx context.Context) (int64, error) {
-	row := q.db.QueryRow(ctx, getTotalTxStats)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
-}
-
 const getTx = `-- name: GetTx :one
 select rowid, block_id, index, tx_hash, transaction, created_at from core_transactions where lower(tx_hash) = lower($1) limit 1
 `
