@@ -82,8 +82,7 @@ func (s *Server) startABCI() error {
 
 	s.node = node
 
-	node.BlockStore().
-		s.logger.Info("said node was ready")
+	s.logger.Info("said node was ready")
 
 	s.rpc = local.New(s.node)
 	close(s.awaitRpcReady)
