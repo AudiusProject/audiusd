@@ -61,7 +61,6 @@ update pos_challenges
 set status = 'complete'
 where block_height = $1;
 
-
 -- name: InsertStorageProof :exec
 insert into storage_proofs (block_height, address, cid, proof_signature, prover_addresses)
 values ($1, $2, $3, $4, $5);
@@ -70,3 +69,7 @@ values ($1, $2, $3, $4, $5);
 update storage_proofs 
 set proof = $1, status = $2
 where block_height = $3 and address = $4;
+
+-- name: InsertFailedStorageProof :exec
+insert into storage_proofs (block_height, address, status)
+values ($1, $2, 'fail');

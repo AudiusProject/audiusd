@@ -83,6 +83,21 @@ func (q *Queries) DeleteRegisteredNode(ctx context.Context, cometAddress string)
 	return err
 }
 
+const insertFailedStorageProof = `-- name: InsertFailedStorageProof :exec
+insert into storage_proofs (block_height, address, status)
+values ($1, $2, 'fail')
+`
+
+type InsertFailedStorageProofParams struct {
+	BlockHeight int64
+	Address     string
+}
+
+func (q *Queries) InsertFailedStorageProof(ctx context.Context, arg InsertFailedStorageProofParams) error {
+	_, err := q.db.Exec(ctx, insertFailedStorageProof, arg.BlockHeight, arg.Address)
+	return err
+}
+
 const insertPoSChallenge = `-- name: InsertPoSChallenge :exec
 insert into pos_challenges (block_height)
 values ($1)

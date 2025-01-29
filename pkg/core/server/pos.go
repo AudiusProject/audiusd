@@ -305,6 +305,7 @@ func (s *Server) finalizeStorageProofVerification(ctx context.Context, tx *core_
 	}
 
 	consensusNodes := make([]string, 0, len(proofs))
+	consensusPeers := make(map[string]int)
 	for _, p := range proofs {
 		node, err := qtx.GetRegisteredNodeByCometAddress(ctx, p.Address)
 		if err != nil {
@@ -322,6 +323,15 @@ func (s *Server) finalizeStorageProofVerification(ctx context.Context, tx *core_
 		pubKey := ed25519.PubKey(pubKeyBytes)
 		if pubKey.VerifySignature(spv.Proof, sigBytes) {
 			consensusNodes = append(consensusNodes, p.Address)
+
+			// Track consensus on who the other provers were
+			for _, peer := range p.ProverAddresses {
+				if _, ok := consensusPeers[peer]; ok {
+					consensusPeers[peer]++
+				} else {
+					consensusPeers[peer] = 1
+				}
+			}
 		}
 	}
 
@@ -356,7 +366,18 @@ func (s *Server) finalizeStorageProofVerification(ctx context.Context, tx *core_
 					return nil, fmt.Errorf("Could not update storage proof for prover %s at height %d: %v", p.Address, spv.Height, err)
 				}
 			}
-			// TODO: add failed storage proofs for missing provers
+			delete(consensusPeers, p.Address)
+		}
+
+		// Add failed storage proofs for missing provers
+		for peer, vote := range consensusPeers {
+			if vote > len(proofs)/2 {
+				// a majority said this node was also a prover, but it did not provide a proof
+				qtx.InsertFailedStorageProof(
+					ctx,
+					db.InsertFailedStorageProofParams{spv.Height, peer},
+				)
+			}
 		}
 
 		err := qtx.CompletePoSChallenge(ctx, spv.Height)
