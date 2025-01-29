@@ -82,7 +82,8 @@ func (s *Server) startABCI() error {
 
 	s.node = node
 
-	s.logger.Info("said node was ready")
+	node.BlockStore().
+		s.logger.Info("said node was ready")
 
 	s.rpc = local.New(s.node)
 	close(s.awaitRpcReady)
@@ -302,12 +303,18 @@ func (s *Server) Commit(ctx context.Context, commit *abcitypes.CommitRequest) (*
 
 	resp := &abcitypes.CommitResponse{}
 
-	retainHeight := int64(100) // how many blocks from head to keep
-	latestBlocks, err := s.db.GetRecentBlocks(ctx)
-	if err == nil && len(latestBlocks) > 0 {
-		latestIndexedHeight := latestBlocks[0].Height
-		if latestIndexedHeight > retainHeight {
-			resp.RetainHeight = latestIndexedHeight - retainHeight
+	if !s.config.Archive {
+		retainHeight := s.config.RetainHeight
+		minPruneThreshold := s.config.RetainHeight
+
+		latestBlocks, err := s.db.GetRecentBlocks(ctx)
+		if err == nil && len(latestBlocks) > 0 {
+			latestIndexedHeight := latestBlocks[0].Height
+			pruneHeight := latestIndexedHeight - retainHeight
+
+			if pruneHeight >= minPruneThreshold {
+				resp.RetainHeight = pruneHeight
+			}
 		}
 	}
 

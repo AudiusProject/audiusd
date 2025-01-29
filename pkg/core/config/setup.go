@@ -177,8 +177,13 @@ func SetupNode(logger *common.Logger) (*Config, *cconfig.Config, error) {
 	}
 
 	cometConfig.Storage.Compact = true
-	cometConfig.Storage.CompactionInterval = 100
+	cometConfig.Storage.CompactionInterval = envConfig.RetainHeight - 1
 	cometConfig.Storage.DiscardABCIResponses = true
+
+	if envConfig.Archive {
+		logger.Info("running in archive mode, node will not prune blocks")
+		cometConfig.Storage.CompactionInterval = 0
+	}
 
 	return envConfig, cometConfig, nil
 }
