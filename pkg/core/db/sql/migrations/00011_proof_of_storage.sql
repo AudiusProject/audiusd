@@ -29,8 +29,8 @@ create table storage_proofs(
   unique (address, block_height)
 );
 
-create index idx_block_height on pos_challenges(block_height desc);
-create index idx_block_height on storage_proofs(block_height desc);
+create index idx_pos_challenges_block_height on pos_challenges(block_height desc);
+create index idx_storage_proofs_block_height on storage_proofs(block_height desc);
 
 -- +migrate Down
 drop table if exists pos_challenges;

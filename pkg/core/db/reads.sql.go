@@ -273,7 +273,7 @@ func (q *Queries) GetNodeByEndpoint(ctx context.Context, endpoint string) (CoreV
 const getNodesByEndpoints = `-- name: GetNodesByEndpoints :many
 select rowid, pub_key, endpoint, eth_address, comet_address, eth_block, node_type, sp_id, comet_pub_key
 from core_validators
-where endpoint = any($1::string[])
+where endpoint = any($1::text[])
 `
 
 func (q *Queries) GetNodesByEndpoints(ctx context.Context, dollar_1 []string) ([]CoreValidator, error) {

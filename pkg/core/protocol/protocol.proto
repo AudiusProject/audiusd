@@ -149,7 +149,7 @@ message StorageProof {
 
 message StorageProofVerification {
    int64 height = 1; 
-   bytes proof = 3;
+   bytes proof = 2;
 }
 
 message ManageEntityLegacy {

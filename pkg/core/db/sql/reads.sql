@@ -34,7 +34,7 @@ limit 1;
 -- name: GetNodesByEndpoints :many
 select *
 from core_validators
-where endpoint = any($1::string[]);
+where endpoint = any($1::text[]);
 
 -- name: GetRegisteredNodesByType :many
 select *
