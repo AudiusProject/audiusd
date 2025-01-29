@@ -14,10 +14,8 @@ import (
 type ChallengeStatus string
 
 const (
-	ChallengeStatusIncomplete ChallengeStatus = "incomplete"
+	ChallengeStatusUnresolved ChallengeStatus = "unresolved"
 	ChallengeStatusComplete   ChallengeStatus = "complete"
-	ChallengeStatusInvalid    ChallengeStatus = "invalid"
-	ChallengeStatusFault      ChallengeStatus = "fault"
 )
 
 func (e *ChallengeStatus) Scan(src interface{}) error {
@@ -58,10 +56,9 @@ func (ns NullChallengeStatus) Value() (driver.Value, error) {
 type ProofStatus string
 
 const (
-	ProofStatusIncomplete ProofStatus = "incomplete"
+	ProofStatusUnresolved ProofStatus = "unresolved"
 	ProofStatusPass       ProofStatus = "pass"
 	ProofStatusFail       ProofStatus = "fail"
-	ProofStatusExempt     ProofStatus = "exempt"
 )
 
 func (e *ProofStatus) Scan(src interface{}) error {
@@ -146,8 +143,7 @@ type CoreValidator struct {
 type PosChallenge struct {
 	ID              int32
 	BlockHeight     int64
-	VerifierAddress string
-	Cid             pgtype.Text
+	ProverAddresses []string
 	Status          ChallengeStatus
 }
 
@@ -167,10 +163,12 @@ type SlaRollup struct {
 }
 
 type StorageProof struct {
-	ID             int32
-	BlockHeight    int64
-	Address        string
-	EncryptedProof pgtype.Text
-	DecryptedProof pgtype.Text
-	Status         ProofStatus
+	ID              int32
+	BlockHeight     int64
+	Address         string
+	Cid             pgtype.Text
+	ProofSignature  pgtype.Text
+	Proof           pgtype.Text
+	ProverAddresses []string
+	Status          ProofStatus
 }

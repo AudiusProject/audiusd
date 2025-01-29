@@ -83,29 +83,13 @@ func (q *Queries) ExemptStorageProofs(ctx context.Context, blockHeight int64) er
 	return err
 }
 
-const faultPoSChallenge = `-- name: FaultPoSChallenge :exec
-update pos_challenges
-set status = 'fault'
-where block_height = $1
-`
-
-func (q *Queries) FaultPoSChallenge(ctx context.Context, blockHeight int64) error {
-	_, err := q.db.Exec(ctx, faultPoSChallenge, blockHeight)
-	return err
-}
-
 const insertPoSChallenge = `-- name: InsertPoSChallenge :exec
-insert into pos_challenges (block_height, verifier_address)
-values ($1, $2)
+insert into pos_challenges (block_height)
+values ($1)
 `
 
-type InsertPoSChallengeParams struct {
-	BlockHeight     int64
-	VerifierAddress string
-}
-
-func (q *Queries) InsertPoSChallenge(ctx context.Context, arg InsertPoSChallengeParams) error {
-	_, err := q.db.Exec(ctx, insertPoSChallenge, arg.BlockHeight, arg.VerifierAddress)
+func (q *Queries) InsertPoSChallenge(ctx context.Context, blockHeight int64) error {
+	_, err := q.db.Exec(ctx, insertPoSChallenge, blockHeight)
 	return err
 }
 
@@ -140,25 +124,25 @@ func (q *Queries) InsertRegisteredNode(ctx context.Context, arg InsertRegistered
 }
 
 const insertStorageProof = `-- name: InsertStorageProof :exec
-insert into storage_proofs (block_height, address, encrypted_proof, decrypted_proof, status)
+insert into storage_proofs (block_height, address, cid, proof_signature, prover_addresses)
 values ($1, $2, $3, $4, $5)
 `
 
 type InsertStorageProofParams struct {
-	BlockHeight    int64
-	Address        string
-	EncryptedProof pgtype.Text
-	DecryptedProof pgtype.Text
-	Status         ProofStatus
+	BlockHeight     int64
+	Address         string
+	Cid             pgtype.Text
+	ProofSignature  pgtype.Text
+	ProverAddresses []string
 }
 
 func (q *Queries) InsertStorageProof(ctx context.Context, arg InsertStorageProofParams) error {
 	_, err := q.db.Exec(ctx, insertStorageProof,
 		arg.BlockHeight,
 		arg.Address,
-		arg.EncryptedProof,
-		arg.DecryptedProof,
-		arg.Status,
+		arg.Cid,
+		arg.ProofSignature,
+		arg.ProverAddresses,
 	)
 	return err
 }
@@ -234,43 +218,41 @@ func (q *Queries) StoreTransaction(ctx context.Context, arg StoreTransactionPara
 	return err
 }
 
-const updatePoSChallenge = `-- name: UpdatePoSChallenge :exec
+const updatePoSChallengeProvers = `-- name: UpdatePoSChallengeProvers :exec
 update pos_challenges
-set cid = $1, status = $2
-where block_height = $3
+set prover_addresses = $1
+where block_height = $2
 `
 
-type UpdatePoSChallengeParams struct {
-	Cid         pgtype.Text
-	Status      ChallengeStatus
-	BlockHeight int64
+type UpdatePoSChallengeProversParams struct {
+	ProverAddresses []string
+	BlockHeight     int64
 }
 
-func (q *Queries) UpdatePoSChallenge(ctx context.Context, arg UpdatePoSChallengeParams) error {
-	_, err := q.db.Exec(ctx, updatePoSChallenge, arg.Cid, arg.Status, arg.BlockHeight)
+func (q *Queries) UpdatePoSChallengeProvers(ctx context.Context, arg UpdatePoSChallengeProversParams) error {
+	_, err := q.db.Exec(ctx, updatePoSChallengeProvers, arg.ProverAddresses, arg.BlockHeight)
 	return err
 }
 
 const updateStorageProof = `-- name: UpdateStorageProof :exec
-insert into storage_proofs (block_height, address, encrypted_proof, decrypted_proof, status)
-values ($1, $2, $3, $4, $5)
+update storage_proofs 
+set proof = $1, status = $2
+where block_height = $3 and address = $4
 `
 
 type UpdateStorageProofParams struct {
-	BlockHeight    int64
-	Address        string
-	EncryptedProof pgtype.Text
-	DecryptedProof pgtype.Text
-	Status         ProofStatus
+	Proof       pgtype.Text
+	Status      ProofStatus
+	BlockHeight int64
+	Address     string
 }
 
 func (q *Queries) UpdateStorageProof(ctx context.Context, arg UpdateStorageProofParams) error {
 	_, err := q.db.Exec(ctx, updateStorageProof,
+		arg.Proof,
+		arg.Status,
 		arg.BlockHeight,
 		arg.Address,
-		arg.EncryptedProof,
-		arg.DecryptedProof,
-		arg.Status,
 	)
 	return err
 }

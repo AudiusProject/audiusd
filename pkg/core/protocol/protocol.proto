@@ -140,13 +140,15 @@ message SlaNodeReport {
 
 message StorageProof {
    int64 height = 1; 
-   bytes hash = 2;
-   string cid = 3;
-   string prover_address = 4;
-   string verifier_address = 5;
-   bytes encrypted_proof = 6;
-   bytes encrypted_secret = 7;
-   bytes ephemeral_public_key = 8;
+   string address = 2;
+   repeated string prover_addresses = 3;
+   string cid = 4;
+   bytes proof_signature = 5;
+}
+
+message StorageProofVerification {
+   int64 height = 1; 
+   bytes proof = 3;
 }
 
 message ManageEntityLegacy {

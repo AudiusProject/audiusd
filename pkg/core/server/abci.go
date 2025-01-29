@@ -211,7 +211,7 @@ func (s *Server) FinalizeBlock(ctx context.Context, req *abcitypes.FinalizeBlock
 			txs[i] = &abcitypes.ExecTxResult{Code: abcitypes.CodeTypeOK}
 
 			txhash := s.toTxHash(signedTx)
-			finalizedTx, err := s.finalizeTransaction(ctx, signedTx, txhash, req.Misbehavior)
+			finalizedTx, err := s.finalizeTransaction(ctx, signedTx, txhash, req.Height, req.Misbehavior)
 			if err != nil {
 				s.logger.Errorf("error finalizing event: %v", err)
 				txs[i] = &abcitypes.ExecTxResult{Code: 2}
@@ -424,12 +424,22 @@ func (s *Server) validateBlockTxs(ctx context.Context, blockTime time.Time, bloc
 				return false, nil
 			}
 			alreadyContainsRollup = true
+		case *core_proto.SignedTransaction_StorageProof:
+			if err := s.isValidStorageProofTx(ctx, signedTx, blockHeight, true); err != nil {
+				s.logger.Error("Invalid block: invalid storage proof tx", "error", err)
+				return false, err
+			}
+		case *core_proto.SignedTransaction_StorageProofVerification:
+			if err := s.isValidStorageProofVerificationTx(ctx, signedTx, blockHeight); err != nil {
+				s.logger.Error("Invalid block: invalid storage proof verification tx", "error", err)
+				return false, err
+			}
 		}
 	}
 	return true, nil
 }
 
-func (s *Server) finalizeTransaction(ctx context.Context, msg *core_proto.SignedTransaction, txHash string, misbehavior []abcitypes.Misbehavior) (proto.Message, error) {
+func (s *Server) finalizeTransaction(ctx context.Context, msg *core_proto.SignedTransaction, txHash string, blockHeight int64, misbehavior []abcitypes.Misbehavior) (proto.Message, error) {
 	switch t := msg.Transaction.(type) {
 	case *core_proto.SignedTransaction_Plays:
 		return s.finalizePlayTransaction(ctx, msg)
@@ -441,6 +451,10 @@ func (s *Server) finalizeTransaction(ctx context.Context, msg *core_proto.Signed
 		return s.finalizeDeregisterNode(ctx, msg, misbehavior)
 	case *core_proto.SignedTransaction_SlaRollup:
 		return s.finalizeSlaRollup(ctx, msg, txHash)
+	case *core_proto.SignedTransaction_StorageProof:
+		return s.finalizeStorageProof(ctx, msg, blockHeight)
+	case *core_proto.SignedTransaction_StorageProofVerification:
+		return s.finalizeStorageProofVerification(ctx, msg, blockHeight)
 	default:
 		return nil, fmt.Errorf("unhandled proto event: %v %T", msg, t)
 	}

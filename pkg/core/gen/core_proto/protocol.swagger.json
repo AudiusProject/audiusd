@@ -371,28 +371,19 @@
           "type": "string",
           "format": "int64"
         },
-        "hash": {
-          "type": "string",
-          "format": "byte"
+        "address": {
+          "type": "string"
+        },
+        "proverAddresses": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         },
         "cid": {
           "type": "string"
         },
-        "proverAddress": {
-          "type": "string"
-        },
-        "verifierAddress": {
-          "type": "string"
-        },
-        "encryptedProof": {
-          "type": "string",
-          "format": "byte"
-        },
-        "encryptedSecret": {
-          "type": "string",
-          "format": "byte"
-        },
-        "ephemeralPublicKey": {
+        "proofSignature": {
           "type": "string",
           "format": "byte"
         }

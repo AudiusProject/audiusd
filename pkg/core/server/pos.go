@@ -7,29 +7,24 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"crypto/sha256"
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"io"
 	"sort"
+	"strings"
 	"time"
 
-	"github.com/AudiusProject/audiusd/pkg/core/common"
 	"github.com/AudiusProject/audiusd/pkg/core/db"
-	"github.com/AudiusProject/audiusd/pkg/core/gen/core_proto"
 	"github.com/AudiusProject/audiusd/pkg/pos"
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
 	"golang.org/x/crypto/chacha20poly1305"
 	"golang.org/x/crypto/curve25519"
-	"google.golang.org/protobuf/proto"
 )
 
 const (
 	mediorumPoSRequestTimeout = 1 * time.Second
 	posChallengeDeadline      = 2
-	posVerificationDeadline   = posChallengeDeadline + 4
+	posVerificationDelay      = posChallengeDeadline * 3 * time.Second
 )
 
 // Called during FinalizeBlock. Keeps Proof of Storage subsystem up to date with current block.
@@ -76,10 +71,7 @@ func (s *Server) updateExistingPoSChallenges(blockHeight int64) error {
 	}
 
 	for _, c := range openChallenges {
-		// Verify any outstanding challenges that this node is responsible for
-		// (only once the deadline for provers has been reached)
-		// TODO: disable in block sync mode
-		if blockHeight-c.BlockHeight >= int64(posChallengeDeadline) && c.VerifierAddress == s.config.ProposerAddress {
+		if blockHeight-c.BlockHeight >= int64(posChallengeDeadline) && strings.ToLower(c.VerifierAddress) == strings.ToLower(s.config.ProposerAddress) {
 			if err := s.verifyPoSChallenge(c.BlockHeight); err != nil {
 				return fmt.Errorf("Could not verify PoS challenge at block %d: %v", c.BlockHeight, err)
 			}
@@ -111,124 +103,67 @@ func (s *Server) sendPoSChallengeToMediorum(blockHash []byte, blockHeight int64,
 	timeout := time.After(mediorumPoSRequestTimeout)
 	select {
 	case response := <-respChannel:
+		ctx := context.Background()
+
+		// get validator nodes corresponding to mediorum's replica endpoints
+		// TODO: check if mediorum normalizes these endpoints in a way that core does not
+		nodes, err := s.db.GetNodesByEndpoints(ctx, response.Replicas)
+		if err != nil {
+			return fmt.Errorf("Failed to get all nodes for endpoints '%v': %v", replicaEndpoints, err)
+		}
+		prover_addresses := make([]string, 0, len(nodes))
+		for _, n := range nodes {
+			prover_addresses = append(prover_addresses, strings.ToLower(n.CometAddress))
+		}
+
+		// Add provers
+		if err := s.db.UpdatePoSChallengeProvers(
+			ctx,
+			db.UpdatePoSChallengeProversParams{prover_addresses, blockHeight},
+		); err != nil {
+			s.logger.Error("Could not update existing PoS challenge", "hash", blockHash, "error", err)
+		}
+
 		// submit proof tx if we are part of the challenge
 		if len(response.Proof) > 0 {
-			err := s.submitStorageProofTx(blockHeight, blockHash, response.CID, response.Replicas, response.Proof, verifierAddr, verifierPubKey)
+			err := s.submitStorageProofTx(blockHeight, blockHash, response.CID, prover_addresses, response.Proof, verifierAddr, verifierPubKey)
 			if err != nil {
 				s.logger.Error("Could not submit storage proof tx", "hash", blockHash, "error", err)
 			}
 		}
-		err := s.updatePoSChallengeWithMediorumInfo(blockHeight, response.CID, response.Replicas)
-		if err != nil {
-			s.logger.Error("Could not update existing PoS challenge", "hash", blockHash, "error", err)
-		}
+
 	case <-timeout:
 		s.logger.Info("No response from mediorum for PoS challenge.")
 	}
 }
 
-func (s *Server) updatePoSChallengeWithMediorumInfo(blockHeight int64, cid string, replicaEndpoints []string) error {
-	ctx := context.Background()
-
-	err := s.db.UpdatePoSChallenge(
-		ctx,
-		db.UpdatePoSChallengeParams{pgtype.Text{cid, true}, db.ChallengeStatusIncomplete, blockHeight},
-	)
-	if err != nil {
-		return fmt.Errorf("Could not update in-progress PoS challenge at height %d with cid %s: %v", blockHeight, cid, err)
-	}
-
-	nodes, err := s.db.GetNodesByEndpoints(ctx, replicaEndpoints)
-	if err != nil {
-		return fmt.Errorf("Failed to get all nodes for endpoints '%v': %v", replicaEndpoints, err)
-	} else if len(nodes) != len(replicaEndpoints) {
-		return fmt.Errorf("Failed to get all nodes for endpoints '%v': requested length does not match received length: '%v'", replicaEndpoints, nodes)
-	}
-
-	dbTx, err := s.pool.Begin(ctx)
-	if err != nil {
-		return fmt.Errorf("Could not initialize db transaction from pool: %v", err)
-	}
-	defer dbTx.Rollback(ctx)
-	qtx := s.db.WithTx(dbTx)
-	for _, n := range nodes {
-		err := qtx.InsertStorageProof(
-			ctx,
-			db.InsertStorageProofParams{
-				BlockHeight:    blockHeight,
-				Address:        n.CometAddress,
-				EncryptedProof: pgtype.Text{},
-				DecryptedProof: pgtype.Text{},
-				Status:         db.ProofStatusIncomplete,
-			},
-		)
+// TODO: delete the following once we establish it is unneeded
+/*
+	func (s *Server) updatePoSChallengeWithMediorumInfo(blockHeight int64, replicaEndpoints []string) error {
+		dbTx, err := s.pool.Begin(ctx)
 		if err != nil {
-			return fmt.Errorf("Could not insert empty storage proof for node %s", n.CometAddress)
+			return fmt.Errorf("Could not initialize db transaction from pool: %v", err)
 		}
+		defer dbTx.Rollback(ctx)
+		qtx := s.db.WithTx(dbTx)
+		for _, n := range nodes {
+			err := qtx.InsertStorageProof(
+				ctx,
+				db.InsertStorageProofParams{
+					BlockHeight:    blockHeight,
+					Address:        n.CometAddress,
+					EncryptedProof: pgtype.Text{},
+					DecryptedProof: pgtype.Text{},
+				},
+			)
+			if err != nil {
+				return fmt.Errorf("Could not insert empty storage proof for node %s", n.CometAddress)
+			}
+		}
+		dbTx.Commit(ctx)
+		return nil
 	}
-	dbTx.Commit(ctx)
-	return nil
-}
-
-func (s *Server) submitStorageProofTx(height int64, hash []byte, cid string, replicas []string, proof []byte, verifierAddress string, verifierPubKey string) error {
-	secret, err := generateRandomSecret()
-	if err != nil {
-		return fmt.Errorf("Could not generate random secret: %v", err)
-	}
-	encProof, err := encryptStorageProof(secret, proof, hash)
-	if err != nil {
-		return fmt.Errorf("Could not encrypt storage proof: %v", err)
-	}
-	pubKeyBytes, err := base64.StdEncoding.DecodeString(verifierPubKey)
-	if err != nil {
-		return fmt.Errorf("Could not decode public key: %v", err)
-	}
-	encSecret, ephPubKey, err := encryptPoSSecret(pubKeyBytes, secret, hash)
-	if err != nil {
-		return fmt.Errorf("Could not encrypt PoS secret: %v", err)
-	}
-	proofTx := &core_proto.StorageProof{
-		Height:             height,
-		Hash:               hash,
-		Cid:                cid,
-		ProverAddress:      s.config.ProposerAddress,
-		VerifierAddress:    verifierAddress,
-		EncryptedProof:     encProof,
-		EncryptedSecret:    encSecret,
-		EphemeralPublicKey: ephPubKey,
-	}
-
-	txBytes, err := proto.Marshal(proofTx)
-	if err != nil {
-		return fmt.Errorf("failure to marshal proof tx: %v", err)
-	}
-
-	sig, err := common.EthSign(s.config.EthereumKey, txBytes)
-	if err != nil {
-		return fmt.Errorf("could not sign proof tx: %v", err)
-	}
-
-	tx := &core_proto.SignedTransaction{
-		Signature: sig,
-		RequestId: uuid.NewString(),
-		Transaction: &core_proto.SignedTransaction_StorageProof{
-			StorageProof: proofTx,
-		},
-	}
-
-	req := &core_proto.SendTransactionRequest{
-		Transaction: tx,
-	}
-
-	txhash, err := s.SendTransaction(context.Background(), req)
-	if err != nil {
-		return fmt.Errorf("send storage proof tx failed: %v", err)
-	}
-
-	s.logger.Infof("Sent storage proof for cid '%s' at height '%d', receipt '%s'", cid, height, txhash)
-
-	return nil
-}
+*/
 
 func (s *Server) verifyPoSChallenge(blockHeight int64) error {
 	ctx := context.Background()

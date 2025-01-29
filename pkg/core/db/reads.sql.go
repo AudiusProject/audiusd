@@ -182,7 +182,7 @@ func (q *Queries) GetInProgressRollupReports(ctx context.Context) ([]SlaNodeRepo
 }
 
 const getIncompletePoSChallenges = `-- name: GetIncompletePoSChallenges :many
-select id, block_height, verifier_address, cid, status from pos_challenges where status = 'incomplete'
+select id, block_height, prover_addresses, status from pos_challenges where status = 'incomplete'
 `
 
 func (q *Queries) GetIncompletePoSChallenges(ctx context.Context) ([]PosChallenge, error) {
@@ -197,8 +197,7 @@ func (q *Queries) GetIncompletePoSChallenges(ctx context.Context) ([]PosChalleng
 		if err := rows.Scan(
 			&i.ID,
 			&i.BlockHeight,
-			&i.VerifierAddress,
-			&i.Cid,
+			&i.ProverAddresses,
 			&i.Status,
 		); err != nil {
 			return nil, err
@@ -305,6 +304,22 @@ func (q *Queries) GetNodesByEndpoints(ctx context.Context, dollar_1 []string) ([
 		return nil, err
 	}
 	return items, nil
+}
+
+const getPoSChallenge = `-- name: GetPoSChallenge :one
+select id, block_height, prover_addresses, status from pos_challenges where block_height = $1
+`
+
+func (q *Queries) GetPoSChallenge(ctx context.Context, blockHeight int64) (PosChallenge, error) {
+	row := q.db.QueryRow(ctx, getPoSChallenge, blockHeight)
+	var i PosChallenge
+	err := row.Scan(
+		&i.ID,
+		&i.BlockHeight,
+		&i.ProverAddresses,
+		&i.Status,
+	)
+	return i, err
 }
 
 const getPreviousSlaRollupFromId = `-- name: GetPreviousSlaRollupFromId :one
@@ -663,8 +678,33 @@ func (q *Queries) GetSlaRollupWithId(ctx context.Context, id int32) (SlaRollup, 
 	return i, err
 }
 
+const getStorageProof = `-- name: GetStorageProof :one
+select id, block_height, address, cid, proof_signature, proof, prover_addresses, status from storage_proofs where block_height = $1 and address = $2
+`
+
+type GetStorageProofParams struct {
+	BlockHeight int64
+	Address     string
+}
+
+func (q *Queries) GetStorageProof(ctx context.Context, arg GetStorageProofParams) (StorageProof, error) {
+	row := q.db.QueryRow(ctx, getStorageProof, arg.BlockHeight, arg.Address)
+	var i StorageProof
+	err := row.Scan(
+		&i.ID,
+		&i.BlockHeight,
+		&i.Address,
+		&i.Cid,
+		&i.ProofSignature,
+		&i.Proof,
+		&i.ProverAddresses,
+		&i.Status,
+	)
+	return i, err
+}
+
 const getStorageProofs = `-- name: GetStorageProofs :many
-select id, block_height, address, encrypted_proof, decrypted_proof, status from storage_proofs where block_height = $1
+select id, block_height, address, cid, proof_signature, proof, prover_addresses, status from storage_proofs where block_height = $1
 `
 
 func (q *Queries) GetStorageProofs(ctx context.Context, blockHeight int64) ([]StorageProof, error) {
@@ -680,8 +720,10 @@ func (q *Queries) GetStorageProofs(ctx context.Context, blockHeight int64) ([]St
 			&i.ID,
 			&i.BlockHeight,
 			&i.Address,
-			&i.EncryptedProof,
-			&i.DecryptedProof,
+			&i.Cid,
+			&i.ProofSignature,
+			&i.Proof,
+			&i.ProverAddresses,
 			&i.Status,
 		); err != nil {
 			return nil, err

@@ -17,33 +17,21 @@ import (
 // swagger:model protocolStorageProof
 type ProtocolStorageProof struct {
 
+	// address
+	Address string `json:"address,omitempty"`
+
 	// cid
 	Cid string `json:"cid,omitempty"`
-
-	// encrypted proof
-	// Format: byte
-	EncryptedProof strfmt.Base64 `json:"encryptedProof,omitempty"`
-
-	// encrypted secret
-	// Format: byte
-	EncryptedSecret strfmt.Base64 `json:"encryptedSecret,omitempty"`
-
-	// ephemeral public key
-	// Format: byte
-	EphemeralPublicKey strfmt.Base64 `json:"ephemeralPublicKey,omitempty"`
-
-	// hash
-	// Format: byte
-	Hash strfmt.Base64 `json:"hash,omitempty"`
 
 	// height
 	Height string `json:"height,omitempty"`
 
-	// prover address
-	ProverAddress string `json:"proverAddress,omitempty"`
+	// proof signature
+	// Format: byte
+	ProofSignature strfmt.Base64 `json:"proofSignature,omitempty"`
 
-	// verifier address
-	VerifierAddress string `json:"verifierAddress,omitempty"`
+	// prover addresses
+	ProverAddresses []string `json:"proverAddresses"`
 }
 
 // Validate validates this protocol storage proof

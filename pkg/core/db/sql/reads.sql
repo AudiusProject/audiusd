@@ -151,5 +151,11 @@ select * from core_blocks where height = $1;
 -- name: GetIncompletePoSChallenges :many
 select * from pos_challenges where status = 'incomplete';
 
+-- name: GetPoSChallenge :one
+select * from pos_challenges where block_height = $1;
+
+-- name: GetStorageProof :one
+select * from storage_proofs where block_height = $1 and address = $2;
+
 -- name: GetStorageProofs :many
 select * from storage_proofs where block_height = $1;

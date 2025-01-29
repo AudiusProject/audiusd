@@ -81,6 +81,8 @@ func (ss *MediorumServer) getStorageProofCIDFromBlockhash(blockhash []byte) (str
 		return "", err
 	}
 	var upload Upload
+	// TODO: ensure operator and ordering are correct
+	// TODO: only use CID's at least 10 minutes old?
 	err = ss.crud.DB.
 		Where("orig_file_cid < ?", fauxCid).
 		Order("orig_file_cid").

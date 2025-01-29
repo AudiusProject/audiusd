@@ -1,30 +1,31 @@
 -- +migrate Up
 
--- incomplete: challenge has not finialized or passed deadline yet
--- complete: challenge has been finalized and is valid
--- invalid: challenge was completed but results are inconclusive
--- fault: verifier failed to properly evaluate and share results
-create type challenge_status as enum ('incomplete', 'complete', 'invalid', 'fault');
+-- unresolved: no majority proof has been verified (yet), results are unknown/inconclusive
+-- complete: a majority proof has been verified and results are conclusive
+create type challenge_status as enum ('unresolved', 'complete');
 create table pos_challenges(
   id serial primary key,
   block_height bigint not null unique,
-  verifier_address text not null,
-  cid text,
-  status challenge_status not null default 'incomplete'
+  -- Storage nodes will add prover_addresses asynchronously and use it to reject spurious provers.
+  prover_addresses text[],
+  status challenge_status not null default 'unresolved'
 );
 
--- incomplete: challenge has not finialized or passed deadline yet
+-- unresolved: no majority proof has been verified (yet), results are unknown/inconclusive
 -- pass: node passed the challenge
 -- fail: node failed the challenge
--- exempt: challenge was deemed inconclusive or verifier faulted
-create type proof_status as enum ('incomplete', 'pass', 'fail', 'exempt');
+create type proof_status as enum ('unresolved', 'pass', 'fail');
 create table storage_proofs(
   id serial primary key,
   block_height bigint not null,
   address text not null,
-  encrypted_proof text,
-  decrypted_proof text,
-  status proof_status not null default 'incomplete',
+  -- What this prover believed the cid to be (useful for debugging).
+  cid text,
+  proof_signature text,
+  proof text,
+  -- What this prover believed the rendezvous replicas should have been.
+  prover_addresses text[] not null default '{}',
+  status proof_status not null default 'unresolved',
   unique (address, block_height)
 );
 
