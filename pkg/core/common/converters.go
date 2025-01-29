@@ -44,7 +44,7 @@ func SignedTxProtoIntoSignedTxOapi(tx *core_proto.SignedTransaction) *models.Pro
 			UserID:     fmt.Sprint(innerTx.ManageEntity.UserId),
 			Signature:  innerTx.ManageEntity.Signature,
 			Signer:     innerTx.ManageEntity.Signer,
-			Nonce:      fmt.Sprint(innerTx.ManageEntity.Nonce),
+			Nonce:      innerTx.ManageEntity.Nonce,
 		}
 	case *core_proto.SignedTransaction_ValidatorRegistration:
 		oapiTx.ValidatorRegistration = &models.ProtocolValidatorRegistration{
