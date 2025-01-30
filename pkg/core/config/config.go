@@ -134,7 +134,7 @@ func ReadConfig(logger *common.Logger) (*Config, error) {
 	cfg.CoreServerAddr = GetEnvWithDefault("coreServerAddr", "0.0.0.0:26659")
 
 	// allow up to 100 inbound connections
-	cfg.MaxInboundPeers = getEnvIntWithDefault("maxInboundPeers", 100)
+	cfg.MaxInboundPeers = getEnvIntWithDefault("maxInboundPeers", 200)
 	// actively connect to 50 peers
 	cfg.MaxOutboundPeers = getEnvIntWithDefault("maxOutboundPeers", 50)
 
