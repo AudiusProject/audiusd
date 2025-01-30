@@ -68,7 +68,7 @@ func (s *Server) sendPoSChallengeToMediorum(blockHash []byte, blockHeight int64)
 		}
 		prover_addresses := make([]string, 0, len(nodes))
 		for _, n := range nodes {
-			prover_addresses = append(prover_addresses, strings.ToLower(n.CometAddress))
+			prover_addresses = append(prover_addresses, n.CometAddress)
 		}
 
 		// Add provers
@@ -218,7 +218,7 @@ func (s *Server) isValidStorageProofTx(ctx context.Context, tx *core_proto.Signe
 	if err != nil {
 		return fmt.Errorf("Could not retrieve any ongoing pos challenges at height '%d': %v", height, err)
 	}
-	if enforceReplicas && posChallenge.ProverAddresses != nil && !slices.Contains(posChallenge.ProverAddresses, strings.ToLower(sp.Address)) {
+	if enforceReplicas && posChallenge.ProverAddresses != nil && !slices.Contains(posChallenge.ProverAddresses, sp.Address) {
 		// We think this proof does not belong to this challenge.
 		// Note: this should not be enforced during the finalize step.
 		return fmt.Errorf("Prover at address '%s' does not belong to replicaset.", sp.Address)
