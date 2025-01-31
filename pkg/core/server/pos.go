@@ -44,6 +44,8 @@ func (s *Server) syncPoS(ctx context.Context, latestBlockHash []byte, latestBloc
 
 func blockShouldTriggerNewPoSChallenge(blockHash []byte) bool {
 	bhLen := len(blockHash)
+	// Trigger if the last four bits of the blockhash are zero.
+	// There is a ~6.25% chance of this happening.
 	return bhLen > 0 && blockHash[bhLen-1]&0x0f == 0
 }
 
@@ -198,7 +200,7 @@ func (s *Server) isValidStorageProofTx(ctx context.Context, tx *core_proto.Signe
 	}
 	node, err := s.db.GetRegisteredNodeByEthAddress(ctx, address)
 	if err != nil {
-		return fmt.Errorf("Could not get validator for address '%s': %v", err)
+		return fmt.Errorf("Could not get validator for address '%s': %v", address, err)
 	}
 	if strings.ToLower(node.CometAddress) != strings.ToLower(sp.Address) {
 		return fmt.Errorf("Proof is for '%s' but was signed by '%s'", sp.Address, node.CometAddress)
