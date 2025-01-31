@@ -404,7 +404,8 @@ func (s *Server) validateBlockTxs(ctx context.Context, blockTime time.Time, bloc
 	for _, tx := range txs {
 		valid, err := s.validateBlockTx(ctx, blockTime, blockHeight, misbehavior, tx)
 		if err != nil {
-			return false, err
+			//return false, err
+			return false, nil
 		} else if !valid {
 			return false, nil
 		}
@@ -475,6 +476,9 @@ func (s *Server) finalizeTransaction(ctx context.Context, msg *core_proto.Signed
 }
 
 func (s *Server) persistTxStat(ctx context.Context, tx proto.Message, txhash string, height int64, blockTime time.Time) error {
+	if tx == nil {
+		return nil
+	}
 	if err := s.getDb().InsertTxStat(ctx, db.InsertTxStatParams{
 		TxType:      GetProtoTypeName(tx),
 		TxHash:      txhash,
