@@ -678,6 +678,23 @@ func (q *Queries) GetSlaRollupWithId(ctx context.Context, id int32) (SlaRollup, 
 	return i, err
 }
 
+const getSlaRollupWithTimestamp = `-- name: GetSlaRollupWithTimestamp :one
+select id, tx_hash, block_start, block_end, time from sla_rollups where time = $1
+`
+
+func (q *Queries) GetSlaRollupWithTimestamp(ctx context.Context, time pgtype.Timestamp) (SlaRollup, error) {
+	row := q.db.QueryRow(ctx, getSlaRollupWithTimestamp, time)
+	var i SlaRollup
+	err := row.Scan(
+		&i.ID,
+		&i.TxHash,
+		&i.BlockStart,
+		&i.BlockEnd,
+		&i.Time,
+	)
+	return i, err
+}
+
 const getStorageProof = `-- name: GetStorageProof :one
 select id, block_height, address, cid, proof_signature, proof, prover_addresses, status from storage_proofs where block_height = $1 and address = $2
 `

@@ -85,8 +85,12 @@ left join sla_node_reports nr
 on rr.id = nr.sla_rollup_id
 order by rr.time;
 
+-- name: GetSlaRollupWithTimestamp :one
+select * from sla_rollups where time = $1;
+
 -- name: GetSlaRollupWithId :one
 select * from sla_rollups where id = $1;
+
 
 -- name: GetPreviousSlaRollupFromId :one
 select * from sla_rollups

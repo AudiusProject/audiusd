@@ -31,7 +31,8 @@ const (
 func (s *Server) syncPoS(ctx context.Context, latestBlockHash []byte, latestBlockHeight int64) error {
 	if blockShouldTriggerNewPoSChallenge(latestBlockHash) {
 		s.logger.Info("PoS Challenge triggered", "height", latestBlockHeight, "hash", hex.EncodeToString(latestBlockHash))
-		err := s.db.InsertPoSChallenge(ctx, latestBlockHeight)
+		qtx := s.getDb()
+		err := qtx.InsertPoSChallenge(ctx, latestBlockHeight)
 		if err != nil {
 			return fmt.Errorf("Could not insert PoS challenge to db at height %d: %v", latestBlockHeight, err)
 		}
@@ -61,7 +62,6 @@ func (s *Server) sendPoSChallengeToMediorum(blockHash []byte, blockHeight int64)
 		ctx := context.Background()
 
 		// get validator nodes corresponding to mediorum's replica endpoints
-		// TODO: check if mediorum normalizes these endpoints in a way that core does not
 		nodes, err := s.db.GetNodesByEndpoints(ctx, response.Replicas)
 		if err != nil {
 			s.logger.Error("Failed to get all registered comet nodes for endpoints", "endpoints", response.Replicas, "error", err)
