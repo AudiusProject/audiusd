@@ -404,8 +404,7 @@ func (s *Server) validateBlockTxs(ctx context.Context, blockTime time.Time, bloc
 	for _, tx := range txs {
 		valid, err := s.validateBlockTx(ctx, blockTime, blockHeight, misbehavior, tx)
 		if err != nil {
-			//return false, err
-			return false, nil
+			return false, err
 		} else if !valid {
 			return false, nil
 		}
