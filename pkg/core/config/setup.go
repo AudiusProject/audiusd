@@ -109,14 +109,7 @@ func SetupNode(logger *common.Logger) (*Config, *cconfig.Config, error) {
 	}
 
 	// after succesful setup, setup comet config.toml
-
-	// postgres indexer config
-	cometConfig.TxIndex.Indexer = "psql"
-	cometConfig.TxIndex.PsqlConn = envConfig.PSQLConn
-	cometConfig.TxIndex.TableBlocks = "core_blocks"
-	cometConfig.TxIndex.TableTxResults = "core_tx_results"
-	cometConfig.TxIndex.TableEvents = "core_events"
-	cometConfig.TxIndex.TableAttributes = "core_attributes"
+	cometConfig.TxIndex.Indexer = "null"
 
 	// mempool
 	// block size restricted to 10mb

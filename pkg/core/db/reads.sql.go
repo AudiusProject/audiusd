@@ -102,7 +102,7 @@ func (q *Queries) GetAppStateAtHeight(ctx context.Context, blockHeight int64) (G
 }
 
 const getBlock = `-- name: GetBlock :one
-select rowid, height, chain_id, created_at from core_blocks where height = $1
+select rowid, height, chain_id, hash, proposer, created_at from core_blocks where height = $1
 `
 
 func (q *Queries) GetBlock(ctx context.Context, height int64) (CoreBlock, error) {
@@ -112,31 +112,33 @@ func (q *Queries) GetBlock(ctx context.Context, height int64) (CoreBlock, error)
 		&i.Rowid,
 		&i.Height,
 		&i.ChainID,
+		&i.Hash,
+		&i.Proposer,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const getBlockTransactions = `-- name: GetBlockTransactions :many
-select rowid, block_id, index, created_at, tx_hash, tx_result from core_tx_results where block_id = $1 order by created_at desc
+select rowid, block_id, index, tx_hash, transaction, created_at from core_transactions where block_id = $1 order by created_at desc
 `
 
-func (q *Queries) GetBlockTransactions(ctx context.Context, blockID int64) ([]CoreTxResult, error) {
+func (q *Queries) GetBlockTransactions(ctx context.Context, blockID int64) ([]CoreTransaction, error) {
 	rows, err := q.db.Query(ctx, getBlockTransactions, blockID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []CoreTxResult
+	var items []CoreTransaction
 	for rows.Next() {
-		var i CoreTxResult
+		var i CoreTransaction
 		if err := rows.Scan(
 			&i.Rowid,
 			&i.BlockID,
 			&i.Index,
-			&i.CreatedAt,
 			&i.TxHash,
-			&i.TxResult,
+			&i.Transaction,
+			&i.CreatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -168,6 +170,35 @@ func (q *Queries) GetInProgressRollupReports(ctx context.Context) ([]SlaNodeRepo
 			&i.Address,
 			&i.BlocksProposed,
 			&i.SlaRollupID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getIncompletePoSChallenges = `-- name: GetIncompletePoSChallenges :many
+select id, block_height, prover_addresses, status from pos_challenges where status = 'incomplete'
+`
+
+func (q *Queries) GetIncompletePoSChallenges(ctx context.Context) ([]PosChallenge, error) {
+	rows, err := q.db.Query(ctx, getIncompletePoSChallenges)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []PosChallenge
+	for rows.Next() {
+		var i PosChallenge
+		if err := rows.Scan(
+			&i.ID,
+			&i.BlockHeight,
+			&i.ProverAddresses,
+			&i.Status,
 		); err != nil {
 			return nil, err
 		}
@@ -239,6 +270,58 @@ func (q *Queries) GetNodeByEndpoint(ctx context.Context, endpoint string) (CoreV
 	return i, err
 }
 
+const getNodesByEndpoints = `-- name: GetNodesByEndpoints :many
+select rowid, pub_key, endpoint, eth_address, comet_address, eth_block, node_type, sp_id, comet_pub_key
+from core_validators
+where endpoint = any($1::text[])
+`
+
+func (q *Queries) GetNodesByEndpoints(ctx context.Context, dollar_1 []string) ([]CoreValidator, error) {
+	rows, err := q.db.Query(ctx, getNodesByEndpoints, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CoreValidator
+	for rows.Next() {
+		var i CoreValidator
+		if err := rows.Scan(
+			&i.Rowid,
+			&i.PubKey,
+			&i.Endpoint,
+			&i.EthAddress,
+			&i.CometAddress,
+			&i.EthBlock,
+			&i.NodeType,
+			&i.SpID,
+			&i.CometPubKey,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getPoSChallenge = `-- name: GetPoSChallenge :one
+select id, block_height, prover_addresses, status from pos_challenges where block_height = $1
+`
+
+func (q *Queries) GetPoSChallenge(ctx context.Context, blockHeight int64) (PosChallenge, error) {
+	row := q.db.QueryRow(ctx, getPoSChallenge, blockHeight)
+	var i PosChallenge
+	err := row.Scan(
+		&i.ID,
+		&i.BlockHeight,
+		&i.ProverAddresses,
+		&i.Status,
+	)
+	return i, err
+}
+
 const getPreviousSlaRollupFromId = `-- name: GetPreviousSlaRollupFromId :one
 select id, tx_hash, block_start, block_end, time from sla_rollups
 where time < (
@@ -262,7 +345,7 @@ func (q *Queries) GetPreviousSlaRollupFromId(ctx context.Context, id int32) (Sla
 }
 
 const getRecentBlocks = `-- name: GetRecentBlocks :many
-select rowid, height, chain_id, created_at from core_blocks order by created_at desc limit 10
+select rowid, height, chain_id, hash, proposer, created_at from core_blocks order by created_at desc limit 10
 `
 
 func (q *Queries) GetRecentBlocks(ctx context.Context) ([]CoreBlock, error) {
@@ -278,6 +361,8 @@ func (q *Queries) GetRecentBlocks(ctx context.Context) ([]CoreBlock, error) {
 			&i.Rowid,
 			&i.Height,
 			&i.ChainID,
+			&i.Hash,
+			&i.Proposer,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -415,25 +500,25 @@ func (q *Queries) GetRecentRollupsForNode(ctx context.Context, address string) (
 }
 
 const getRecentTxs = `-- name: GetRecentTxs :many
-select rowid, block_id, index, created_at, tx_hash, tx_result from core_tx_results order by created_at desc limit 10
+select rowid, block_id, index, tx_hash, transaction, created_at from core_transactions order by created_at desc limit 10
 `
 
-func (q *Queries) GetRecentTxs(ctx context.Context) ([]CoreTxResult, error) {
+func (q *Queries) GetRecentTxs(ctx context.Context) ([]CoreTransaction, error) {
 	rows, err := q.db.Query(ctx, getRecentTxs)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []CoreTxResult
+	var items []CoreTransaction
 	for rows.Next() {
-		var i CoreTxResult
+		var i CoreTransaction
 		if err := rows.Scan(
 			&i.Rowid,
 			&i.BlockID,
 			&i.Index,
-			&i.CreatedAt,
 			&i.TxHash,
-			&i.TxResult,
+			&i.Transaction,
+			&i.CreatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -593,20 +678,95 @@ func (q *Queries) GetSlaRollupWithId(ctx context.Context, id int32) (SlaRollup, 
 	return i, err
 }
 
-const getTx = `-- name: GetTx :one
-select rowid, block_id, index, created_at, tx_hash, tx_result from core_tx_results where lower(tx_hash) = lower($1) limit 1
+const getSlaRollupWithTimestamp = `-- name: GetSlaRollupWithTimestamp :one
+select id, tx_hash, block_start, block_end, time from sla_rollups where time = $1
 `
 
-func (q *Queries) GetTx(ctx context.Context, lower string) (CoreTxResult, error) {
+func (q *Queries) GetSlaRollupWithTimestamp(ctx context.Context, time pgtype.Timestamp) (SlaRollup, error) {
+	row := q.db.QueryRow(ctx, getSlaRollupWithTimestamp, time)
+	var i SlaRollup
+	err := row.Scan(
+		&i.ID,
+		&i.TxHash,
+		&i.BlockStart,
+		&i.BlockEnd,
+		&i.Time,
+	)
+	return i, err
+}
+
+const getStorageProof = `-- name: GetStorageProof :one
+select id, block_height, address, cid, proof_signature, proof, prover_addresses, status from storage_proofs where block_height = $1 and address = $2
+`
+
+type GetStorageProofParams struct {
+	BlockHeight int64
+	Address     string
+}
+
+func (q *Queries) GetStorageProof(ctx context.Context, arg GetStorageProofParams) (StorageProof, error) {
+	row := q.db.QueryRow(ctx, getStorageProof, arg.BlockHeight, arg.Address)
+	var i StorageProof
+	err := row.Scan(
+		&i.ID,
+		&i.BlockHeight,
+		&i.Address,
+		&i.Cid,
+		&i.ProofSignature,
+		&i.Proof,
+		&i.ProverAddresses,
+		&i.Status,
+	)
+	return i, err
+}
+
+const getStorageProofs = `-- name: GetStorageProofs :many
+select id, block_height, address, cid, proof_signature, proof, prover_addresses, status from storage_proofs where block_height = $1
+`
+
+func (q *Queries) GetStorageProofs(ctx context.Context, blockHeight int64) ([]StorageProof, error) {
+	rows, err := q.db.Query(ctx, getStorageProofs, blockHeight)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []StorageProof
+	for rows.Next() {
+		var i StorageProof
+		if err := rows.Scan(
+			&i.ID,
+			&i.BlockHeight,
+			&i.Address,
+			&i.Cid,
+			&i.ProofSignature,
+			&i.Proof,
+			&i.ProverAddresses,
+			&i.Status,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getTx = `-- name: GetTx :one
+select rowid, block_id, index, tx_hash, transaction, created_at from core_transactions where lower(tx_hash) = lower($1) limit 1
+`
+
+func (q *Queries) GetTx(ctx context.Context, lower string) (CoreTransaction, error) {
 	row := q.db.QueryRow(ctx, getTx, lower)
-	var i CoreTxResult
+	var i CoreTransaction
 	err := row.Scan(
 		&i.Rowid,
 		&i.BlockID,
 		&i.Index,
-		&i.CreatedAt,
 		&i.TxHash,
-		&i.TxResult,
+		&i.Transaction,
+		&i.CreatedAt,
 	)
 	return i, err
 }
@@ -623,7 +783,7 @@ func (q *Queries) TotalBlocks(ctx context.Context) (int64, error) {
 }
 
 const totalTransactions = `-- name: TotalTransactions :one
-select count(*) from core_tx_results
+select count(*) from core_transactions
 `
 
 func (q *Queries) TotalTransactions(ctx context.Context) (int64, error) {
@@ -645,7 +805,7 @@ func (q *Queries) TotalTransactionsByType(ctx context.Context, txType string) (i
 }
 
 const totalTxResults = `-- name: TotalTxResults :one
-select count(tx_hash) from core_tx_results
+select count(tx_hash) from core_transactions
 `
 
 func (q *Queries) TotalTxResults(ctx context.Context) (int64, error) {
