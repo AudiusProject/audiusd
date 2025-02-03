@@ -64,13 +64,6 @@ func (state *State) recalculateState() {
 		state.totalTransactions = totalTxs
 	}
 
-	totalBlocks, err := state.db.TotalBlocks(ctx)
-	if err != nil {
-		logger.Errorf("could not get total blocks: %v", err)
-	} else {
-		state.totalBlocks = totalBlocks
-	}
-
 	totalPlays, err := state.db.TotalTransactionsByType(ctx, server.TrackPlaysProtoName)
 	if err != nil {
 		logger.Errorf("could not get total plays: %v", err)
@@ -121,6 +114,7 @@ func (state *State) recalculateState() {
 
 	status, err := state.rpc.Status(ctx)
 	if err == nil {
+		state.totalBlocks = status.SyncInfo.LatestBlockHeight
 		state.isSyncing = status.SyncInfo.CatchingUp
 	}
 }
