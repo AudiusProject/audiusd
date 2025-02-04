@@ -121,7 +121,7 @@ func (s *Server) Start(ctx context.Context) error {
 	g.Go(s.startPeerManager)
 	g.Go(s.startEthNodeManager)
 	g.Go(s.startCache)
-	g.Go(s.startPebbleCompactor)
+	g.Go(s.startDataCompanion)
 
 	s.logger.Info("services started")
 

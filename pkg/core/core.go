@@ -57,7 +57,7 @@ func run(ctx context.Context, logger *common.Logger, posChannel chan pos.PoSRequ
 
 	s.CompactStateDB()
 	s.CompactBlockstoreDB()
-	logger.Info("finished pebble compaction")
+	logger.Info("finished compacting db")
 
 	// console gets run from core(main).go since it is an isolated go module
 	// unlike the other modules that register themselves on the echo http server

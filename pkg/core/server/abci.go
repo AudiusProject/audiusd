@@ -329,20 +329,8 @@ func (s *Server) Commit(ctx context.Context, commit *abcitypes.CommitRequest) (*
 	state.finalizedTxs = []string{}
 
 	resp := &abcitypes.CommitResponse{}
-
 	if !s.config.Archive {
-		retainHeight := s.config.RetainHeight
-		minPruneThreshold := s.config.RetainHeight
-
-		latestBlocks, err := s.db.GetRecentBlocks(ctx)
-		if err == nil && len(latestBlocks) > 0 {
-			latestIndexedHeight := latestBlocks[0].Height
-			pruneHeight := latestIndexedHeight - retainHeight
-
-			if pruneHeight >= minPruneThreshold {
-				resp.RetainHeight = pruneHeight
-			}
-		}
+		resp.RetainHeight = s.cache.currentHeight - s.config.RetainHeight
 	}
 
 	return resp, nil
