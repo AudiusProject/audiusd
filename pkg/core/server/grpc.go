@@ -147,7 +147,8 @@ func (s *Server) GetBlock(ctx context.Context, req *core_proto.GetBlockRequest) 
 		}, nil
 	}
 
-	block, err := s.db.GetBlock(ctx, req.Height)
+	// TODO: change this to db call after mainnet-alpha / indexers move along
+	block, err := s.rpc.Block(ctx, &req.Height)
 	if err != nil {
 		blockInFutureMsg := "must be less than or equal to the current blockchain height"
 		if strings.Contains(err.Error(), blockInFutureMsg) {
@@ -162,12 +163,10 @@ func (s *Server) GetBlock(ctx context.Context, req *core_proto.GetBlockRequest) 
 		return nil, err
 	}
 
-	blockTxs, err := s.db.GetBlockTransactions(ctx, req.Height)
-
 	txs := []*core_proto.SignedTransaction{}
-	for _, tx := range blockTxs {
+	for _, tx := range block.Block.Txs {
 		var transaction core_proto.SignedTransaction
-		err = proto.Unmarshal(tx.Transaction, &transaction)
+		err = proto.Unmarshal(tx, &transaction)
 		if err != nil {
 			return nil, err
 		}
@@ -175,13 +174,13 @@ func (s *Server) GetBlock(ctx context.Context, req *core_proto.GetBlockRequest) 
 	}
 
 	res := &core_proto.BlockResponse{
-		Blockhash:     block.Hash,
+		Blockhash:     block.BlockID.Hash.String(),
 		Chainid:       s.config.GenesisFile.ChainID,
-		Proposer:      block.Proposer,
-		Height:        block.Height,
+		Proposer:      block.Block.ProposerAddress.String(),
+		Height:        block.Block.Height,
 		Transactions:  txs,
 		CurrentHeight: currentHeight,
-		Timestamp:     timestamppb.New(block.CreatedAt.Time),
+		Timestamp:     timestamppb.New(block.Block.Time),
 	}
 
 	return res, nil
