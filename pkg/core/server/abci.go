@@ -328,7 +328,12 @@ func (s *Server) Commit(ctx context.Context, commit *abcitypes.CommitRequest) (*
 	// reset abci finalized txs
 	state.finalizedTxs = []string{}
 
-	return &abcitypes.CommitResponse{}, nil
+	resp := &abcitypes.CommitResponse{}
+	if !s.config.Archive {
+		resp.RetainHeight = s.cache.currentHeight - s.config.RetainHeight
+	}
+
+	return resp, nil
 }
 
 func (s *Server) ListSnapshots(_ context.Context, snapshots *abcitypes.ListSnapshotsRequest) (*abcitypes.ListSnapshotsResponse, error) {

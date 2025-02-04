@@ -4,6 +4,8 @@ go 1.23.1
 
 toolchain go1.23.4
 
+replace github.com/cometbft/cometbft => github.com/alecsavvy/cometbft v1.0.0-debug
+
 require (
 	github.com/a-h/templ v0.3.819
 	github.com/cometbft/cometbft v1.0.0
@@ -46,6 +48,7 @@ require (
 )
 
 require (
+	github.com/cockroachdb/pebble v1.1.2
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/go-openapi/errors v0.22.0
 	github.com/go-openapi/runtime v0.28.0
@@ -108,7 +111,6 @@ require (
 	github.com/cockroachdb/errors v1.11.3 // indirect
 	github.com/cockroachdb/fifo v0.0.0-20240606204812-0bbfbd93a7ce // indirect
 	github.com/cockroachdb/logtags v0.0.0-20230118201751-21c54148d20b // indirect
-	github.com/cockroachdb/pebble v1.1.2 // indirect
 	github.com/cockroachdb/redact v1.1.5 // indirect
 	github.com/cockroachdb/tokenbucket v0.0.0-20230807174530-cc333fc44b06 // indirect
 	github.com/cometbft/cometbft-db v1.0.1 // indirect

@@ -77,7 +77,6 @@ type Config struct {
 	RPCladdr         string
 	P2PLaddr         string
 	PSQLConn         string
-	RetainBlocks     uint
 	PersistentPeers  string
 	Seeds            string
 	ExternalAddress  string
@@ -85,6 +84,7 @@ type Config struct {
 	MaxInboundPeers  int
 	MaxOutboundPeers int
 	LogLevel         string
+	RetainHeight     int64
 
 	/* Audius Config */
 	Environment     string
@@ -93,6 +93,7 @@ type Config struct {
 	GRPCladdr       string
 	CoreServerAddr  string
 	NodeEndpoint    string
+	Archive         bool
 
 	/* Ethereum Config */
 	EthRPCUrl          string
@@ -128,7 +129,7 @@ func ReadConfig(logger *common.Logger) (*Config, error) {
 
 	var cfg Config
 	// comet config
-	cfg.LogLevel = GetEnvWithDefault("audius_core_log_level", "p2p:none,mempool:none,rpc:none,*:error")
+	cfg.LogLevel = GetEnvWithDefault("audius_core_log_level", "p2p:none,mempool:none,rpc:none,state:info,*:error")
 	cfg.RootDir = GetEnvWithDefault("audius_core_root_dir", homeDir+"/.audiusd")
 	cfg.RPCladdr = GetEnvWithDefault("rpcLaddr", "tcp://0.0.0.0:26657")
 	cfg.P2PLaddr = GetEnvWithDefault("p2pLaddr", "tcp://0.0.0.0:26656")
@@ -140,6 +141,9 @@ func ReadConfig(logger *common.Logger) (*Config, error) {
 	cfg.MaxInboundPeers = getEnvIntWithDefault("maxInboundPeers", 100)
 	// actively connect to 50 peers
 	cfg.MaxOutboundPeers = getEnvIntWithDefault("maxOutboundPeers", 50)
+
+	cfg.RetainHeight = int64(getEnvIntWithDefault("retainHeight", 20))
+	cfg.Archive = GetEnvWithDefault("archive", "false") == "true"
 
 	// check if discovery specific key is set
 	isDiscovery := os.Getenv("audius_delegate_private_key") != ""
