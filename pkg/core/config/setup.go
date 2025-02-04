@@ -169,13 +169,14 @@ func SetupNode(logger *common.Logger) (*Config, *cconfig.Config, error) {
 		cometConfig.P2P.ListenAddress = envConfig.P2PLaddr
 	}
 
+	cometConfig.Consensus.DoubleSignCheckHeight = 50
+	cometConfig.GRPC.BlockResultsService.Enabled = false
+
 	cometConfig.Storage.Compact = true
-	cometConfig.Storage.CompactionInterval = envConfig.RetainHeight - 1
-	cometConfig.Storage.DiscardABCIResponses = true
+	cometConfig.Storage.CompactionInterval = 40
 
 	if envConfig.Archive {
 		logger.Info("running in archive mode, node will not prune blocks")
-		cometConfig.Storage.CompactionInterval = 0
 	}
 
 	return envConfig, cometConfig, nil
