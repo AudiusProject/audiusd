@@ -27,9 +27,7 @@ RUN apt-get update && \
     libflac12 \
     postgresql-15 && \
     rm -rf /var/lib/apt/lists/* && \
-    update-ca-certificates \
-    procps \
-    bash
+    update-ca-certificates
 
 RUN mkdir -p /data/postgres && \
     chown -R postgres:postgres /data/postgres && \

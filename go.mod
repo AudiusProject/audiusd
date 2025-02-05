@@ -4,8 +4,6 @@ go 1.23.1
 
 toolchain go1.23.4
 
-replace github.com/cometbft/cometbft => github.com/alecsavvy/cometbft v1.0.0-debug
-
 require (
 	github.com/a-h/templ v0.3.819
 	github.com/cometbft/cometbft v1.0.0

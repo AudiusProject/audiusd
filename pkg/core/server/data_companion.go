@@ -45,11 +45,16 @@ func (s *Server) startDataCompanion() error {
 
 		s.logger.Infof("dc block results retain height: %d", blockResultsRetainHeight)
 
-		if err := conn.SetBlockRetainHeight(ctx, uint64(s.cache.currentHeight-s.config.RetainHeight)); err != nil {
+		retainHeight := s.cache.currentHeight - s.config.RetainHeight
+		if retainHeight < 1 {
+			retainHeight = 1
+		}
+
+		if err := conn.SetBlockRetainHeight(ctx, uint64(retainHeight)); err != nil {
 			s.logger.Errorf("dc could not set block retain height: %v", err)
 		}
 
-		if err := conn.SetBlockResultsRetainHeight(ctx, uint64(s.cache.currentHeight-s.config.RetainHeight)); err != nil {
+		if err := conn.SetBlockResultsRetainHeight(ctx, uint64(retainHeight)); err != nil {
 			s.logger.Errorf("dc could not set block results retain height: %v", err)
 		}
 	}

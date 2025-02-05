@@ -336,7 +336,11 @@ func (s *Server) Commit(ctx context.Context, commit *abcitypes.CommitRequest) (*
 
 	resp := &abcitypes.CommitResponse{}
 	if !s.config.Archive {
-		resp.RetainHeight = s.cache.currentHeight - s.config.RetainHeight
+		retainHeight := s.cache.currentHeight - s.config.RetainHeight
+		if retainHeight < 1 {
+			retainHeight = 1
+		}
+		resp.RetainHeight = retainHeight
 	}
 
 	return resp, nil
