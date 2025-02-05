@@ -304,11 +304,17 @@ func (s *Server) FinalizeBlock(ctx context.Context, req *abcitypes.FinalizeBlock
 	for _, vu := range validatorUpdatesMap {
 		validatorUpdates = append(validatorUpdates, vu)
 	}
-	return &abcitypes.FinalizeBlockResponse{
-		TxResults:        txs,
-		AppHash:          nextAppHash,
-		ValidatorUpdates: validatorUpdates,
-	}, nil
+
+	resp := &abcitypes.FinalizeBlockResponse{
+		TxResults: txs,
+		AppHash:   nextAppHash,
+	}
+
+	if validatorUpdates.Len() > 0 {
+		resp.ValidatorUpdates = validatorUpdates
+	}
+
+	return resp, nil
 }
 
 func (s *Server) Commit(ctx context.Context, commit *abcitypes.CommitRequest) (*abcitypes.CommitResponse, error) {
