@@ -163,3 +163,6 @@ select * from storage_proofs where block_height = $1 and address = $2;
 
 -- name: GetStorageProofs :many
 select * from storage_proofs where block_height = $1;
+
+-- name: GetLatestBlock :one
+select * from core_blocks order by height desc limit 1;

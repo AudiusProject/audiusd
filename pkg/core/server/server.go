@@ -93,7 +93,7 @@ func NewServer(config *config.Config, cconfig *cconfig.Config, logger *common.Lo
 		peers:     make(map[string]*sdk.Sdk),
 		txPubsub:  txPubsub,
 		cache:     NewCache(),
-		abciState: NewABCIState(),
+		abciState: NewABCIState(config.RetainHeight),
 
 		httpServer: httpServer,
 		grpcServer: grpcServer,
