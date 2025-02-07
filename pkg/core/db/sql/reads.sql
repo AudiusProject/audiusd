@@ -152,17 +152,31 @@ select * from core_transactions where block_id = $1 order by created_at desc;
 -- name: GetBlock :one
 select * from core_blocks where height = $1;
 
--- name: GetIncompletePoSChallenges :many
-select * from pos_challenges where status = 'incomplete';
-
--- name: GetPoSChallenge :one
-select * from pos_challenges where block_height = $1;
+-- name: GetStorageProofPeers :one
+select prover_addresses from storage_proof_peers where block_height = $1;
 
 -- name: GetStorageProof :one
 select * from storage_proofs where block_height = $1 and address = $2;
 
 -- name: GetStorageProofs :many
 select * from storage_proofs where block_height = $1;
+
+-- name: GetStorageProofRollups :many
+select 
+    address, 
+    count(*) filter (where status = 'fail') as failed_count,
+    count(*) as total_count
+from storage_proofs 
+where block_height >= $1 and block_height <= $2
+group by address;
+
+-- name: GetStorageProofsForNodeInRange :many
+select * from storage_proofs
+where block_height in (
+    select block_height
+    from storage_proofs sp
+    where sp.block_height >= $1 and sp.block_height <= $2 and sp.address = $3 
+);
 
 -- name: GetLatestBlock :one
 select * from core_blocks order by height desc limit 1;

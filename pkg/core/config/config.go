@@ -142,7 +142,8 @@ func ReadConfig(logger *common.Logger) (*Config, error) {
 	// actively connect to 50 peers
 	cfg.MaxOutboundPeers = getEnvIntWithDefault("maxOutboundPeers", 50)
 
-	cfg.RetainHeight = int64(getEnvIntWithDefault("retainHeight", 1024))
+	// (default) approximately one week of blocks
+	cfg.RetainHeight = int64(getEnvIntWithDefault("retainHeight", 604800))
 	cfg.Archive = GetEnvWithDefault("archive", "false") == "true"
 
 	// check if discovery specific key is set
