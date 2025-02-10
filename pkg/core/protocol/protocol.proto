@@ -77,9 +77,11 @@ message BlockResponse {
   string chainid = 2;
   string proposer = 3;
   int64 height = 4;
+  // TODO: deprecate in favor of txs
   repeated SignedTransaction transactions = 5;
   int64 current_height = 6;
   google.protobuf.Timestamp timestamp = 7;
+  repeated TransactionResponse transaction_responses = 8;
 }
 
 message GetNodeInfoRequest {}
@@ -160,5 +162,5 @@ message ManageEntityLegacy {
   string metadata = 5;
   string signature = 6;
   string signer = 7;
-  int64 nonce = 8;
+  string nonce = 8;
 }
