@@ -105,6 +105,7 @@ install-go-deps:
 	go install -v github.com/a-h/templ/cmd/templ@latest
 	go install -v github.com/ethereum/go-ethereum/cmd/abigen@latest
 	go install -v github.com/go-swagger/go-swagger/cmd/swagger@latest
+	go install github.com/99designs/gqlgen@latest
 
 go.sum: go.mod
 go.mod: $(GO_SRCS)
@@ -128,6 +129,11 @@ $(PROTO_ARTIFACTS): $(PROTO_SRCS)
 	@echo Regenerating protobuf code
 	cd pkg/core && buf --version && buf generate
 	cd pkg/core/gen/core_proto && swagger generate client -f protocol.swagger.json -t ../ --client-package=core_openapi
+
+.PHONY: regen-gql
+regen-gql:
+	@echo Regenerating gql code
+	cd pkg/core/gql && gqlgen generate
 
 .PHONY: regen-sql
 regen-sql: $(SQL_ARTIFACTS)
