@@ -64,6 +64,8 @@ message GetTransactionRequest {
 message TransactionResponse {
   string txhash = 1;
   SignedTransaction transaction = 2;
+  int64 block_height = 3;
+  string block_hash = 4;
 }
 
 message ForwardTransactionResponse {}

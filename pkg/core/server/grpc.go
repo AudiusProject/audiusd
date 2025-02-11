@@ -70,11 +70,23 @@ func (s *Server) SendTransaction(ctx context.Context, req *core_proto.SendTransa
 		return nil, fmt.Errorf("could not add tx to mempool %v", err)
 	}
 
+	tx, err := s.db.GetTx(ctx, txhash)
+	if err != nil {
+		return nil, err
+	}
+
+	block, err := s.db.GetBlock(ctx, tx.BlockID)
+	if err != nil {
+		return nil, err
+	}
+
 	select {
 	case <-txHashCh:
 		return &core_proto.TransactionResponse{
 			Txhash:      txhash,
 			Transaction: req.GetTransaction(),
+			BlockHeight: block.Height,
+			BlockHash: block.Hash,
 		}, nil
 	case <-time.After(30 * time.Second):
 		s.logger.Errorf("tx timeout waiting to be included %s", txhash)
@@ -130,9 +142,16 @@ func (s *Server) GetTransaction(ctx context.Context, req *core_proto.GetTransact
 		return nil, err
 	}
 
+	block, err := s.db.GetBlock(ctx, tx.BlockID)
+	if err != nil {
+		return nil, err
+	}
+
 	res := &core_proto.TransactionResponse{
 		Txhash:      txhash,
 		Transaction: &transaction,
+		BlockHeight: block.Height,
+		BlockHash: block.Hash,
 	}
 
 	return res, nil

@@ -459,6 +459,13 @@
         },
         "transaction": {
           "$ref": "#/definitions/protocolSignedTransaction"
+        },
+        "blockHeight": {
+          "type": "string",
+          "format": "int64"
+        },
+        "blockHash": {
+          "type": "string"
         }
       }
     },
