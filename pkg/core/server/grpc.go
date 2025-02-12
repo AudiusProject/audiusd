@@ -70,18 +70,18 @@ func (s *Server) SendTransaction(ctx context.Context, req *core_proto.SendTransa
 		return nil, fmt.Errorf("could not add tx to mempool %v", err)
 	}
 
-	tx, err := s.db.GetTx(ctx, txhash)
-	if err != nil {
-		return nil, err
-	}
-
-	block, err := s.db.GetBlock(ctx, tx.BlockID)
-	if err != nil {
-		return nil, err
-	}
-
 	select {
 	case <-txHashCh:
+		tx, err := s.db.GetTx(ctx, txhash)
+		if err != nil {
+			return nil, err
+		}
+	
+		block, err := s.db.GetBlock(ctx, tx.BlockID)
+		if err != nil {
+			return nil, err
+		}
+		
 		return &core_proto.TransactionResponse{
 			Txhash:      txhash,
 			Transaction: req.GetTransaction(),
