@@ -67,29 +67,60 @@ func (p *Pages) renderJSON(obj map[string]interface{}) string {
 
 templ (p *Pages) TxPageHTML(view *TxView) {
 	@p.layout.SiteFrame() {
-		<div class="uk-card">
-			<div class="uk-card-header">
-				<h1 class="font-semibold leading-none tracking-tight">
-					Transaction Details
-				</h1>
+		<div class="container mx-auto px-4 py-8" x-data="{
+			tx: null,
+			async loadTransaction() {
+				const hash = window.location.pathname.split('/').pop();
+				const query = `
+					query GetTransaction($hash: String) {
+						getTransaction(hash: $hash) {
+							hash
+							index
+						}
+					}
+				`;
+				
+				try {
+					const data = await $store.app.query(query, { hash });
+					if (data.getTransaction) {
+						this.tx = data.getTransaction;
+					}
+				} catch (err) {
+					console.error('Failed to load transaction:', err);
+				}
+			}
+		}" x-init="loadTransaction()">
+			<template x-if="tx">
+				<div>
+					<h1 class="text-3xl font-bold mb-6">Transaction Details</h1>
+
+					<!-- Transaction Info Card -->
+					<div class="bg-white rounded-lg shadow-lg overflow-hidden">
+						<div class="p-6">
+							<div class="space-y-6">
+								<div>
+									<h3 class="text-sm font-medium text-gray-500">Transaction Hash</h3>
+									<p class="mt-1 text-sm font-mono break-all" x-text="tx.hash"></p>
+								</div>
+								<div>
+									<h3 class="text-sm font-medium text-gray-500">Index</h3>
+									<p class="mt-1" x-text="tx.index"></p>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</template>
+
+			<!-- Loading State -->
+			<div x-show="$store.app.loading" class="flex justify-center items-center py-8">
+				<div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
 			</div>
-			<div class="uk-card-body space-y-2">
-				<div>
-					@p.components.Link("/tx/%s", view.Hash) {
-						<div>Hash: { view.Hash }</div>
-					}
-				</div>
-				<div>
-					@p.components.Link("/block/%s", view.Block) {
-						<div>Block: { view.Block }</div>
-					}
-				</div>
-				<div>
-					Age: { humanize.Time(view.Timestamp) }
-				</div>
-				<div class="text-small p-4 rounded-lg">
-					<pre class="bg-gray-100 p-4 rounded-lg overflow-x-scroll">{ p.renderJSON(p.toJSON(view.Tx)) }</pre>
-				</div>
+
+			<!-- Error State -->
+			<div x-show="$store.app.error" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mt-4" role="alert">
+				<strong class="font-bold">Error!</strong>
+				<span class="block sm:inline" x-text="$store.app.error"></span>
 			</div>
 		</div>
 	}

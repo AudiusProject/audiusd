@@ -20,86 +20,172 @@ templ (l *Layout) NavBlockData(totalBlocks, totalTxs string, syncing bool) {
 
 templ (l *Layout) SiteFrame() {
 	@l.Base() {
-		<div class="min-h-screen flex flex-col">
-			<div class="flex-none space-y-4 p-8 pt-6 bg-white shadow-md rounded-lg">
-				<div class="flex items-center justify-between space-y-2">
-					<div class="uk-navbar-item flex flex-col items-start space-y-4">
-						<a href="/console" class="flex items-center">
-							<img src={ assets.AudiusLogoBlackGlyph } alt="audius logo" class="h-12 w-12 object-contain"/>
-							<h1 class="text-2xl font-bold tracking-tight">Console</h1>
+		<div class="min-h-screen bg-gray-100" x-data="{ mobileMenuOpen: false }">
+			<!-- Navigation -->
+			<nav class="bg-white shadow-lg">
+				<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+					<div class="flex justify-between h-16">
+						<div class="flex">
+							<!-- Logo -->
+							<div class="flex-shrink-0 flex items-center">
+								<a href="/console" class="text-xl font-bold text-gray-800">Audius Console</a>
+							</div>
+
+							<!-- Desktop Navigation -->
+							<div class="hidden sm:ml-6 sm:flex sm:space-x-8">
+								<a href="/console/overview" class="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 border-b-2 border-transparent hover:border-gray-300">
+									Overview
+								</a>
+								<a href="/console/nodes" class="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 border-b-2 border-transparent hover:border-gray-300">
+									Nodes
+								</a>
+								<a href="/console/analytics" class="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 border-b-2 border-transparent hover:border-gray-300">
+									Analytics
+								</a>
+								<a href="/console/content" class="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 border-b-2 border-transparent hover:border-gray-300">
+									Content
+								</a>
+							</div>
+						</div>
+
+						<!-- Mobile menu button -->
+						<div class="flex items-center sm:hidden">
+							<button 
+								type="button" 
+								class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100"
+								@click="mobileMenuOpen = !mobileMenuOpen"
+							>
+								<span class="sr-only">Open main menu</span>
+								<!-- Icon when menu is closed -->
+								<svg 
+									x-show="!mobileMenuOpen" 
+									class="h-6 w-6" 
+									xmlns="http://www.w3.org/2000/svg" 
+									fill="none" 
+									viewBox="0 0 24 24" 
+									stroke="currentColor"
+								>
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+								</svg>
+								<!-- Icon when menu is open -->
+								<svg 
+									x-show="mobileMenuOpen" 
+									class="h-6 w-6" 
+									xmlns="http://www.w3.org/2000/svg" 
+									fill="none" 
+									viewBox="0 0 24 24" 
+									stroke="currentColor"
+								>
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+								</svg>
+							</button>
+						</div>
+					</div>
+				</div>
+
+				<!-- Mobile menu -->
+				<div x-show="mobileMenuOpen" class="sm:hidden">
+					<div class="pt-2 pb-3 space-y-1">
+						<a href="/console/overview" class="block pl-3 pr-4 py-2 text-base font-medium text-gray-700 hover:bg-gray-50">
+							Overview
 						</a>
-						<div class="space-y-4">
-							<ul class="uk-tab-alt max-w-96">
-								<li>
-									@l.components.Link("/overview") {
-										<div>Overview</div>
-									}
-								</li>
-								<li>
-									@l.components.Link("/analytics") {
-										<div>Analytics</div>
-									}
-								</li>
-								<li>
-									@l.components.Link("/nodes") {
-										<div>Nodes</div>
-									}
-								</li>
-								<li>
-									@l.components.Link("/content") {
-										<div>Content</div>
-									}
-								</li>
-								<li>
-									@l.components.Link("/uptime") {
-										<div>Uptime</div>
-									}
-								</li>
-							</ul>
-						</div>
-					</div>
-					<div class="flex items-center space-x-2">
-						<div class="text-left text-sm font-bold tracking-tight">
-							<div>
-								Chain ID:
-								<span>
-									@l.components.Link("/genesis") {
-										<span>{ l.config.GenesisFile.ChainID }</span>
-									}
-								</span>
-							</div>
-							<div>
-								Eth Address: 
-								<span>
-									@l.components.Link("/node/%s", l.config.WalletAddress) {
-										<span>{ l.config.WalletAddress }</span>
-									}
-								</span>
-							</div>
-							<div>
-								Comet Address: 
-								<span>
-									@l.components.Link("/node/%s", l.config.ProposerAddress) {
-										<span>{ l.config.ProposerAddress }</span>
-									}
-								</span>
-							</div>
-							<div hx-get="/console/fragments/nav/chain_data" hx-swap="innerHTML" hx-trigger="load, every 2s"></div>
-						</div>
+						<a href="/console/nodes" class="block pl-3 pr-4 py-2 text-base font-medium text-gray-700 hover:bg-gray-50">
+							Nodes
+						</a>
+						<a href="/console/analytics" class="block pl-3 pr-4 py-2 text-base font-medium text-gray-700 hover:bg-gray-50">
+							Analytics
+						</a>
+						<a href="/console/content" class="block pl-3 pr-4 py-2 text-base font-medium text-gray-700 hover:bg-gray-50">
+							Content
+						</a>
 					</div>
 				</div>
-			</div>
-			<div id="page-content" class="flex-grow space-y-4 p-8 pt-6 flex flex-col">
-				<div class="bg-white shadow-md rounded-lg p-4 flex-grow flex flex-col">
-					{ children... }
+			</nav>
+
+			<!-- Page Content -->
+			<main class="py-10">
+				<div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+					<div class="flex-none space-y-4 p-8 pt-6 bg-white shadow-md rounded-lg">
+						<div class="flex items-center justify-between space-y-2">
+							<div class="uk-navbar-item flex flex-col items-start space-y-4">
+								<a href="/console" class="flex items-center">
+									<img src={ assets.AudiusLogoBlackGlyph } alt="audius logo" class="h-12 w-12 object-contain"/>
+									<h1 class="text-2xl font-bold tracking-tight">Console</h1>
+								</a>
+								<div class="space-y-4">
+									<ul class="uk-tab-alt max-w-96">
+										<li>
+											@l.components.Link("/overview") {
+												<div>Overview</div>
+											}
+										</li>
+										<li>
+											@l.components.Link("/analytics") {
+												<div>Analytics</div>
+											}
+										</li>
+										<li>
+											@l.components.Link("/nodes") {
+												<div>Nodes</div>
+											}
+										</li>
+										<li>
+											@l.components.Link("/content") {
+												<div>Content</div>
+											}
+										</li>
+										<li>
+											@l.components.Link("/uptime") {
+												<div>Uptime</div>
+											}
+										</li>
+									</ul>
+								</div>
+							</div>
+							<div class="flex items-center space-x-2">
+								<div class="text-left text-sm font-bold tracking-tight">
+									<div>
+										Chain ID:
+										<span>
+											@l.components.Link("/genesis") {
+												<span>{ l.config.GenesisFile.ChainID }</span>
+											}
+										</span>
+									</div>
+									<div>
+										Eth Address: 
+										<span>
+											@l.components.Link("/node/%s", l.config.WalletAddress) {
+												<span>{ l.config.WalletAddress }</span>
+											}
+										</span>
+									</div>
+									<div>
+										Comet Address: 
+										<span>
+											@l.components.Link("/node/%s", l.config.ProposerAddress) {
+												<span>{ l.config.ProposerAddress }</span>
+											}
+										</span>
+									</div>
+									<div hx-get="/console/fragments/nav/chain_data" hx-swap="innerHTML" hx-trigger="load, every 2s"></div>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div id="page-content" class="flex-grow space-y-4 p-8 pt-6 flex flex-col">
+						<div class="bg-white shadow-md rounded-lg p-4 flex-grow flex flex-col">
+							{ children... }
+						</div>
+					</div>
+					<footer class="h-[3vh] w-full bg-gray-200 flex items-center justify-center p-3">
+						<div class="text-sm text-gray-600 flex justify-between w-full px-5">
+							<span>made with ⚡️ by the protocol team</span>
+							<span>version: <a href={ gitCommit } target="_blank">{ config.Version }</a></span>
+						</div>
+					</footer>
 				</div>
-			</div>
-			<footer class="h-[3vh] w-full bg-gray-200 flex items-center justify-center p-3">
-				<div class="text-sm text-gray-600 flex justify-between w-full px-5">
-					<span>made with ⚡️ by the protocol team</span>
-					<span>version: <a href={ gitCommit } target="_blank">{ config.Version }</a></span>
-				</div>
-			</footer>
+			</main>
 		</div>
 	}
 }

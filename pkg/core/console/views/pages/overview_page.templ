@@ -7,62 +7,107 @@ import (
 )
 
 type OverviewPageView struct {
-	Blocks []BlockView
-	Txs    []db.CoreTransaction
+	Blocks []*Block
+	Txs    []*Transaction
 }
 
 func (p *Pages) OverviewPageJSON() {}
 
 templ (p *Pages) OverviewPageHTML(data *OverviewPageView) {
 	@p.layout.SiteFrame() {
-		<div class="uk-grid-small uk-child-width-1-2@s uk-grid-match" uk-grid>
-			<div>
-				<div class="uk-card uk-card-default uk-card-body">
-					<h3 class="uk-card-title">Recent Blocks</h3>
-					for _, block := range data.Blocks {
-						<div class="text-sm">
-							<div class="p-6">
-								// <div>
-								// 	@p.components.Link("/block/%s", block.Hash) {
-								// 		<div>Hash: { block.Hash }</div>
-								// 	}
-								// </div>
-								// <div>
-								// 	@p.components.Link("/node/%s", block.Proposer) {
-								// 		<div>Proposer: { block.Proposer }</div>
-								// 	}
-								// </div>
-								<div>
-									@p.components.Link("/block/%d", block.Height) {
-										<div>Height: { fmt.Sprint(block.Height) }</div>
-									}
-								</div>
-								<div>
-									Transactions: { fmt.Sprint(len(block.Txs)) }
-								</div>
-								<div>
-									Age: { humanize.Time(block.Timestamp) }
-								</div>
-							</div>
-						</div>
+		<div class="container mx-auto px-4 py-8" x-data="{
+			blocks: [],
+			transactions: [],
+			async loadData() {
+				const query = `
+					query {
+						getBlock {
+							height
+							chainId
+							hash
+							proposer
+							transactions {
+								hash
+								index
+							}
+						}
 					}
+				`;
+				
+				try {
+					const data = await $store.app.query(query);
+					if (data.getBlock) {
+						this.blocks = [data.getBlock];
+						this.transactions = data.getBlock.transactions || [];
+					}
+				} catch (err) {
+					console.error('Failed to load data:', err);
+				}
+			}
+		}" x-init="loadData()">
+			<!-- Latest Blocks Section -->
+			<div class="mb-8">
+				<h2 class="text-2xl font-bold mb-4">Latest Blocks</h2>
+				<div class="bg-white rounded-lg shadow overflow-hidden">
+					<table class="min-w-full">
+						<thead class="bg-gray-50">
+							<tr>
+								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Height</th>
+								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hash</th>
+								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Proposer</th>
+								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Transactions</th>
+							</tr>
+						</thead>
+						<tbody class="divide-y divide-gray-200">
+							<template x-for="block in blocks" :key="block.hash">
+								<tr class="hover:bg-gray-50">
+									<td class="px-6 py-4 whitespace-nowrap text-sm" x-text="block.height"></td>
+									<td class="px-6 py-4 whitespace-nowrap text-sm">
+										<a :href="'/console/block/' + block.hash" class="text-blue-600 hover:text-blue-800" x-text="block.hash"></a>
+									</td>
+									<td class="px-6 py-4 whitespace-nowrap text-sm" x-text="block.proposer"></td>
+									<td class="px-6 py-4 whitespace-nowrap text-sm" x-text="block.transactions.length"></td>
+								</tr>
+							</template>
+						</tbody>
+					</table>
 				</div>
 			</div>
+
+			<!-- Latest Transactions Section -->
 			<div>
-				<div class="uk-card uk-card-default uk-card-body flex-grow overflow-y-auto">
-					<h3 class="uk-card-title">Recent Transactions</h3>
-					for _, tx := range data.Txs {
-						<div class="text-sm">
-							<div class="p-6">
-								<div>
-									<a href={ templ.URL(fmt.Sprintf("/console/tx/%s", tx.TxHash)) }>Hash: { tx.TxHash }</a>
-								</div>
-								<a href={ templ.URL(fmt.Sprintf("/console/block/%s", fmt.Sprint(tx.BlockID))) }>Block { fmt.Sprint(tx.BlockID) }</a>
-								<div>Time: { humanize.Time(tx.CreatedAt.Time) } </div>
-							</div>
-						</div>
-					}
+				<h2 class="text-2xl font-bold mb-4">Latest Transactions</h2>
+				<div class="bg-white rounded-lg shadow overflow-hidden">
+					<table class="min-w-full">
+						<thead class="bg-gray-50">
+							<tr>
+								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hash</th>
+								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Index</th>
+							</tr>
+						</thead>
+						<tbody class="divide-y divide-gray-200">
+							<template x-for="tx in transactions" :key="tx.hash">
+								<tr class="hover:bg-gray-50">
+									<td class="px-6 py-4 whitespace-nowrap text-sm">
+										<a :href="'/console/tx/' + tx.hash" class="text-blue-600 hover:text-blue-800" x-text="tx.hash"></a>
+									</td>
+									<td class="px-6 py-4 whitespace-nowrap text-sm" x-text="tx.index"></td>
+								</tr>
+							</template>
+						</tbody>
+					</table>
 				</div>
+			</div>
+
+			<!-- Loading State -->
+			<div x-show="$store.app.loading" class="flex justify-center items-center py-8">
+				<div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+			</div>
+
+			<!-- Error State -->
+			<div x-show="$store.app.error" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mt-4" role="alert">
+				<strong class="font-bold">Error!</strong>
+				<span class="block sm:inline" x-text="$store.app.error"></span>
 			</div>
 		</div>
 	}

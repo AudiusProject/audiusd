@@ -11,11 +11,12 @@ import (
 )
 
 type BlockView struct {
-	Height    int64
-	Hash      string
-	Proposer  string
-	Timestamp time.Time
-	Txs       [][]byte
+	Height     int64
+	Hash       string
+	Proposer   string
+	Timestamp  time.Time
+	ChainID    string
+	Txs        []Transaction
 }
 
 type BlockPageJSONResponse struct {
@@ -65,53 +66,109 @@ func (p *Pages) BlockPageJSON(data *BlockView) (*BlockPageJSONResponse, error) {
 	}, nil
 }
 
-templ (p *Pages) BlockPageHTML(view *BlockView) {
+templ (p *Pages) BlockPageHTML(data *BlockView) {
 	@p.layout.SiteFrame() {
-		<div class="flex justify-between mt-4 text-sm">
-			@p.components.Link("/block/%d", view.Height-1) {
-				<div>Previous Block</div>
-			}
-			@p.components.Link("/block/%d", view.Height+1) {
-				<div>Next Block</div>
-			}
-		</div>
-		<div class="p-4">
-			<h1 class="text-xl">
-				Block { fmt.Sprint(view.Height) } Details
-			</h1>
-			<div class="p-4 h-full">
-				// <div>
-				// 	@p.components.Link("/block/%s", view.Hash) {
-				// 		<div>Hash: { view.Hash }</div>
-				// 	}
-				// </div>
-				// <div>
-				// 	@p.components.Link("/nodes/%s", view.Proposer) {
-				// 		<div>Proposer: { view.Proposer }</div>
-				// 	}
-				// </div>
-				<div>
-					@p.components.Link("/block/%d", view.Height) {
-						<div>Height: { fmt.Sprint(view.Height) }</div>
+		<div class="container mx-auto px-4 py-8" x-data="{
+			block: null,
+			async loadBlock() {
+				const height = window.location.pathname.split('/').pop();
+				const query = `
+					query GetBlock($height: Int) {
+						getBlock(height: $height) {
+							height
+							chainId
+							hash
+							proposer
+							transactions {
+								hash
+								index
+							}
+						}
 					}
-				</div>
+				`;
+				
+				try {
+					const data = await $store.app.query(query, { height: parseInt(height) });
+					if (data.getBlock) {
+						this.block = data.getBlock;
+					}
+				} catch (err) {
+					console.error('Failed to load block:', err);
+				}
+			}
+		}" x-init="loadBlock()">
+			<template x-if="block">
 				<div>
-					Age: { humanize.Time(view.Timestamp) }
-				</div>
-				<div class="px-4 py-8 p text-md text-l">
-					Transactions
-					for _, tx := range view.Txs {
-						<div class="uk-card-body">
-							<div>
-								<div>
-									@p.components.Link("/tx/%s", p.components.ToTxHash(tx)) {
-										<div>Hash: { p.components.ToTxHash(tx) }</div>
-									}
+					<h1 class="text-3xl font-bold mb-6">Block Details</h1>
+
+					<!-- Block Info Card -->
+					<div class="bg-white rounded-lg shadow-lg overflow-hidden mb-8">
+						<div class="p-6">
+							<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+								<div class="space-y-4">
+									<div>
+										<h3 class="text-sm font-medium text-gray-500">Height</h3>
+										<p class="mt-1 text-lg" x-text="block.height"></p>
+									</div>
+									<div>
+										<h3 class="text-sm font-medium text-gray-500">Chain ID</h3>
+										<p class="mt-1 text-lg" x-text="block.chainId"></p>
+									</div>
+								</div>
+								<div class="space-y-4">
+									<div>
+										<h3 class="text-sm font-medium text-gray-500">Hash</h3>
+										<p class="mt-1 text-sm font-mono break-all" x-text="block.hash"></p>
+									</div>
+									<div>
+										<h3 class="text-sm font-medium text-gray-500">Proposer</h3>
+										<p class="mt-1">
+											<a :href="'/console/node/' + block.proposer" class="text-blue-600 hover:text-blue-800 font-mono" x-text="block.proposer"></a>
+										</p>
+									</div>
 								</div>
 							</div>
 						</div>
-					}
+					</div>
+
+					<!-- Transactions Table -->
+					<div class="bg-white rounded-lg shadow-lg overflow-hidden">
+						<div class="p-6">
+							<h2 class="text-xl font-semibold mb-4">Transactions</h2>
+							<div class="overflow-x-auto">
+								<table class="min-w-full">
+									<thead class="bg-gray-50">
+										<tr>
+											<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hash</th>
+											<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Index</th>
+										</tr>
+									</thead>
+									<tbody class="divide-y divide-gray-200">
+										<template x-for="tx in block.transactions" :key="tx.hash">
+											<tr class="hover:bg-gray-50">
+												<td class="px-6 py-4 whitespace-nowrap">
+													<a :href="'/console/tx/' + tx.hash" class="text-blue-600 hover:text-blue-800 font-mono text-sm" x-text="tx.hash"></a>
+												</td>
+												<td class="px-6 py-4 whitespace-nowrap text-sm" x-text="tx.index"></td>
+											</tr>
+										</template>
+									</tbody>
+								</table>
+							</div>
+						</div>
+					</div>
 				</div>
+			</template>
+
+			<!-- Loading State -->
+			<div x-show="$store.app.loading" class="flex justify-center items-center py-8">
+				<div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+			</div>
+
+			<!-- Error State -->
+			<div x-show="$store.app.error" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mt-4" role="alert">
+				<strong class="font-bold">Error!</strong>
+				<span class="block sm:inline" x-text="$store.app.error"></span>
 			</div>
 		</div>
 	}

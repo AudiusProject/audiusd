@@ -3,36 +3,89 @@ package pages
 import "github.com/AudiusProject/audiusd/pkg/core/db"
 
 type NodesView struct {
-	Nodes []db.CoreValidator
+	Nodes []NodeView
+}
+
+type NodeView struct {
+	Endpoint     string
+	EthAddress   string
+	CometAddress string
 }
 
 templ (p *Pages) NodesPageHTML(data *NodesView) {
 	@p.layout.SiteFrame() {
-		for _, node := range data.Nodes {
-			<div class="uk-padding-small">
-				<div class="uk-card">
-					<div class="uk-card-header">
-						<h2>
-							@p.components.ExternalLink("%s/%s", node.Endpoint, "/console") {
-								<div>{ node.Endpoint }</div>
-							}
-						</h2>
-					</div>
-					<div class="uk-card-body text-sm">
-						<div>
-							@p.components.Link("/node/%s", node.EthAddress) {
-								<div>Eth Address: { node.EthAddress } </div>
-							}
+		<div class="container mx-auto px-4 py-8" x-data="{
+			nodes: [],
+			async loadNodes() {
+				const query = `
+					query {
+						getNodeInfo {
+							chainid
+							synced
+							comet_address
+							eth_address
+							current_height
+						}
+					}
+				`;
+				
+				try {
+					const data = await $store.app.query(query);
+					if (data.getNodeInfo) {
+						this.nodes = [data.getNodeInfo];
+					}
+				} catch (err) {
+					console.error('Failed to load nodes:', err);
+				}
+			}
+		}" x-init="loadNodes()">
+			<h1 class="text-3xl font-bold mb-6">Network Nodes</h1>
+
+			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+				<template x-for="node in nodes" :key="node.comet_address">
+					<div class="bg-white rounded-lg shadow-lg overflow-hidden">
+						<div class="p-6">
+							<h2 class="text-xl font-semibold mb-4" x-text="node.chainid + ' Node'"></h2>
+							
+							<div class="space-y-3">
+								<div class="flex items-center">
+									<span class="text-gray-600 font-medium w-32">Status:</span>
+									<span class="flex items-center">
+										<span class="h-3 w-3 rounded-full mr-2" :class="node.synced ? 'bg-green-500' : 'bg-red-500'"></span>
+										<span x-text="node.synced ? 'Synced' : 'Not Synced'"></span>
+									</span>
+								</div>
+
+								<div class="flex items-center">
+									<span class="text-gray-600 font-medium w-32">Height:</span>
+									<span x-text="node.current_height"></span>
+								</div>
+
+								<div class="flex items-center">
+									<span class="text-gray-600 font-medium w-32">Comet Address:</span>
+									<span class="text-sm font-mono break-all" x-text="node.comet_address"></span>
+								</div>
+
+								<div class="flex items-center">
+									<span class="text-gray-600 font-medium w-32">ETH Address:</span>
+									<span class="text-sm font-mono break-all" x-text="node.eth_address"></span>
+								</div>
+							</div>
 						</div>
-						<div>
-							@p.components.Link("/node/%s", node.CometAddress) {
-								<div>Comet Address: { node.CometAddress } </div>
-							}
-						</div>
-						<div>Eth Block: { node.EthBlock }</div>
 					</div>
-				</div>
+				</template>
 			</div>
-		}
+
+			<!-- Loading State -->
+			<div x-show="$store.app.loading" class="flex justify-center items-center py-8">
+				<div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+			</div>
+
+			<!-- Error State -->
+			<div x-show="$store.app.error" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mt-4" role="alert">
+				<strong class="font-bold">Error!</strong>
+				<span class="block sm:inline" x-text="$store.app.error"></span>
+			</div>
+		</div>
 	}
 }

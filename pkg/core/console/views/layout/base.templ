@@ -10,16 +10,49 @@ templ (l *Layout) Base() {
 			<title>Audius Console</title>
 			<link rel="icon" href={ assets.AudiusLogoBlackGlyph } type="image/x-icon"/>
 			<script src="https://cdn.tailwindcss.com"></script>
-			<script src="https://d3js.org/d3.v7.min.js"></script>
-			<script src="https://cdn.jsdelivr.net/npm/htmx.org@1.8.0/dist/htmx.min.js"></script>
-			<link rel="stylesheet" href="https://unpkg.com/franken-ui@1.1.0/dist/css/core.min.css"/>
-			<script src="https://unpkg.com/franken-ui@1.1.0/dist/js/core.iife.js" type="module"></script>
-			<script src="https://unpkg.com/franken-ui@1.1.0/dist/js/icon.iife.js" type="module"></script>
-			<script src="/console/assets/js/main.js" type="module"></script>
+			<script src="https://unpkg.com/alpinejs@3.13.7/dist/cdn.min.js" defer></script>
+			<script src="https://unpkg.com/graphql-request@6.1.0/dist/index.umd.min.js"></script>
+			<script>
+				// Initialize GraphQL client
+				const gqlClient = new GraphQLRequest.GraphQLClient('/core/gql');
+				
+				// Global Alpine store for shared state
+				document.addEventListener('alpine:init', () => {
+					Alpine.store('app', {
+						loading: false,
+						error: null,
+						async query(query, variables = {}) {
+							try {
+								this.loading = true;
+								this.error = null;
+								return await gqlClient.request(query, variables);
+							} catch (err) {
+								this.error = err.message;
+								throw err;
+							} finally {
+								this.loading = false;
+							}
+						}
+					});
+				});
+			</script>
+			<style>
+				[x-cloak] { display: none !important; }
+				.loading { opacity: 0.5; pointer-events: none; }
+			</style>
 		</head>
 		<body
 			class="bg-gray-100 text-gray-900 font-sans"
+			x-data
 		>
+			<div x-cloak x-show="$store.app.loading" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+				<div class="bg-white p-4 rounded-lg shadow-lg">
+					Loading...
+				</div>
+			</div>
+			<div x-cloak x-show="$store.app.error" class="fixed top-4 right-4 bg-red-500 text-white p-4 rounded-lg shadow-lg">
+				<div x-text="$store.app.error"></div>
+			</div>
 			{ children... }
 		</body>
 	</html>
