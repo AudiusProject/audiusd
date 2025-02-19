@@ -178,6 +178,9 @@ func (s *Server) GetBlock(ctx context.Context, req *core_proto.GetBlockRequest) 
 	}
 
 	blockTxs, err := s.db.GetBlockTransactions(ctx, req.Height)
+	if err != nil && !errors.Is(err, pgx.ErrNoRows){
+		return nil, err
+	}
 
 	txs := []*core_proto.SignedTransaction{}
 	tx_responses := []*core_proto.TransactionResponse{}
