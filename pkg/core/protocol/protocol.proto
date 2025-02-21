@@ -32,6 +32,12 @@ service Protocol {
   rpc Ping(PingRequest) returns (PingResponse) {
     option (google.api.http) = {get: "/core/grpc/ping"};
   }
+  rpc GetRegistrationAttestation(RegistrationAttestationRequest) returns (RegistrationAttestationResponse) {
+    option (google.api.http) = {
+      post: "/core/grpc/attest"
+      body: "registration"
+    };
+  }
 }
 
 message SignedTransaction {
@@ -39,12 +45,13 @@ message SignedTransaction {
   string request_id = 2;
   oneof transaction {
     TrackPlays plays = 1000;
-    ValidatorRegistration validator_registration = 1001;
+    ValidatorRegistrationLegacy validator_registration_legacy = 1001;
     SlaRollup sla_rollup = 1002;
     ManageEntityLegacy manage_entity = 1003;
     ValidatorDeregistration validator_deregistration = 1004;
     StorageProof storage_proof = 1005;
     StorageProofVerification storage_proof_verification = 1006;
+    ValidatorRegistration validator_registration = 1007;
   }
 }
 
@@ -100,7 +107,7 @@ message TrackPlays {
   repeated TrackPlay plays = 1;
 }
 
-message ValidatorRegistration {
+message ValidatorRegistrationLegacy {
   string endpoint = 1;
   string comet_address = 2;
   string eth_block = 3;
@@ -108,6 +115,23 @@ message ValidatorRegistration {
   string sp_id = 5;
   bytes pub_key = 6;
   int64 power = 7;
+}
+
+message ValidatorRegistration {
+  repeated string attestations = 1;
+  EthRegistration eth_registration = 2;
+  string comet_address = 3;
+  bytes pub_key = 4;
+  int64 power = 5;
+}
+
+message EthRegistration {
+  string delegate_wallet = 1;
+  string endpoint = 2;
+  string node_type = 3;
+  int64 eth_block = 4;
+  string sp_id = 5;
+  google.protobuf.Timestamp timestamp = 6;
 }
 
 message ValidatorDeregistration {
@@ -165,4 +189,13 @@ message ManageEntityLegacy {
   string signature = 6;
   string signer = 7;
   string nonce = 8;
+}
+
+message RegistrationAttestationRequest {
+  EthRegistration registration = 1;
+}
+
+message RegistrationAttestationResponse {
+  string signature = 1;
+  EthRegistration registration = 2;
 }

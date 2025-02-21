@@ -1,11 +1,14 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"math/big"
 	"time"
 
 	"github.com/AudiusProject/audiusd/pkg/core/contracts"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/labstack/echo/v4"
 )
 
@@ -95,4 +98,22 @@ func (s *Server) getEthNodesHandler(c echo.Context) error {
 		DuplicateNodes: s.duplicateEthNodes,
 	}
 	return c.JSON(200, res)
+}
+
+func (s *Server) isNodeRegisteredOnEthereum(delegateWallet common.Address, endpoint string, ethBlock *big.Int) bool {
+	s.ethNodeMU.RLock()
+	defer s.ethNodeMU.RUnlock()
+	for _, node := range s.ethNodes {
+		if bytes.EqualFold(delegateWallet.Bytes(), node.DelegateOwnerWallet.Bytes()) {
+			continue
+		}
+		if endpoint != node.Endpoint {
+			continue
+		}
+		if node.BlockNumber.Cmp(ethBlock) != 0 {
+			continue
+		}
+		return true
+	}
+	return false
 }

@@ -16,6 +16,38 @@
     "application/json"
   ],
   "paths": {
+    "/core/grpc/attest": {
+      "post": {
+        "operationId": "Protocol_GetRegistrationAttestation",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/protocolRegistrationAttestationResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "registration",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/protocolEthRegistration"
+            }
+          }
+        ],
+        "tags": [
+          "Protocol"
+        ]
+      }
+    },
     "/core/grpc/block/{height}": {
       "get": {
         "operationId": "Protocol_GetBlock",
@@ -243,6 +275,31 @@
         }
       }
     },
+    "protocolEthRegistration": {
+      "type": "object",
+      "properties": {
+        "delegateWallet": {
+          "type": "string"
+        },
+        "endpoint": {
+          "type": "string"
+        },
+        "nodeType": {
+          "type": "string"
+        },
+        "ethBlock": {
+          "type": "string",
+          "format": "int64"
+        },
+        "spId": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
     "protocolForwardTransactionResponse": {
       "type": "object"
     },
@@ -306,6 +363,17 @@
         }
       }
     },
+    "protocolRegistrationAttestationResponse": {
+      "type": "object",
+      "properties": {
+        "signature": {
+          "type": "string"
+        },
+        "registration": {
+          "$ref": "#/definitions/protocolEthRegistration"
+        }
+      }
+    },
     "protocolSignedTransaction": {
       "type": "object",
       "properties": {
@@ -318,8 +386,8 @@
         "plays": {
           "$ref": "#/definitions/protocolTrackPlays"
         },
-        "validatorRegistration": {
-          "$ref": "#/definitions/protocolValidatorRegistration"
+        "validatorRegistrationLegacy": {
+          "$ref": "#/definitions/protocolValidatorRegistrationLegacy"
         },
         "slaRollup": {
           "$ref": "#/definitions/protocolSlaRollup"
@@ -335,6 +403,9 @@
         },
         "storageProofVerification": {
           "$ref": "#/definitions/protocolStorageProofVerification"
+        },
+        "validatorRegistration": {
+          "$ref": "#/definitions/protocolValidatorRegistration"
         }
       }
     },
@@ -482,6 +553,31 @@
       }
     },
     "protocolValidatorRegistration": {
+      "type": "object",
+      "properties": {
+        "attestations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "ethRegistration": {
+          "$ref": "#/definitions/protocolEthRegistration"
+        },
+        "cometAddress": {
+          "type": "string"
+        },
+        "pubKey": {
+          "type": "string",
+          "format": "byte"
+        },
+        "power": {
+          "type": "string",
+          "format": "int64"
+        }
+      }
+    },
+    "protocolValidatorRegistrationLegacy": {
       "type": "object",
       "properties": {
         "endpoint": {

@@ -117,6 +117,10 @@ type Config struct {
 	CometModule   bool
 	PprofModule   bool
 
+	/* Attestation Thresholds */
+	AttRegistrationMin   int // minimum number of attestations needed to register a new node
+	AttRegistrationRSize int // rendezvous size for registration attestations (should be >= to AttRegistrationMin)
+
 	/* Feature Flags */
 	EnablePoS bool
 }
@@ -145,6 +149,9 @@ func ReadConfig(logger *common.Logger) (*Config, error) {
 	// (default) approximately one week of blocks
 	cfg.RetainHeight = int64(getEnvIntWithDefault("retainHeight", 604800))
 	cfg.Archive = GetEnvWithDefault("archive", "false") == "true"
+
+	cfg.AttRegistrationMin = 5
+	cfg.AttRegistrationRSize = 10
 
 	// check if discovery specific key is set
 	isDiscovery := os.Getenv("audius_delegate_private_key") != ""
