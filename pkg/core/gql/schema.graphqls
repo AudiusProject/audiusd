@@ -13,24 +13,7 @@ type Transaction {
   blockHeight: Int!
   timestamp: String!
   data: String! # Base64 encoded transaction data
-}
-
-type Query {
-  getBlock(height: Int): Block
-  getTransaction(hash: String): Transaction
-
-  # Overview queries
-  getLatestBlocks(limit: Int = 10): [Block!]!
-  getLatestTransactions(limit: Int = 10): [Transaction!]!
-
-  # Analytics queries
-  getAnalytics: Analytics!
-  getTransactionStats(hours: Int = 24): [TransactionStat!]!
-
-  # Storage proof queries
-  getStorageProofs(startBlock: Int!, endBlock: Int!, address: String): [StorageProof!]!
-  getNodeUptime(address: String!, rollupId: Int): NodeUptime
-  getAllValidatorUptimes(rollupId: Int): [NodeUptime!]!
+  type: String  # Transaction type (e.g., "TrackPlays", "ManageEntity")
 }
 
 type Analytics {
@@ -47,12 +30,41 @@ type TransactionStat {
   txType: String!
 }
 
+type Node {
+  address: String!
+  endpoint: String!
+  ethAddress: String!
+  cometAddress: String!
+  cometPubKey: String
+  nodeType: String!
+  spId: String
+}
+
 type StorageProof {
   blockHeight: Int!
   proverAddress: String!
   proverEndpoint: String
   cid: String!
   status: String!
+  proofSignature: String
+  proof: String
+}
+
+type SLARollup {
+  id: Int!
+  txHash: String!
+  blockStart: Int!
+  blockEnd: Int!
+  timestamp: String!
+  nodeReports: [SLANodeReport!]!
+}
+
+type SLANodeReport {
+  address: String!
+  blocksProposed: Int!
+  quota: Int!
+  posChallengesFailed: Int!
+  posChallengesTotal: Int!
 }
 
 type NodeUptime {
@@ -73,4 +85,34 @@ type SLAReport {
   posChallengesFailed: Int!
   posChallengesTotal: Int!
   timestamp: String!
+}
+
+type Query {
+  # Block queries
+  getBlock(height: Int): Block
+  getLatestBlock: Block
+  getLatestBlocks(limit: Int = 10): [Block!]!
+  
+  # Transaction queries
+  getTransaction(hash: String!): Transaction
+  getLatestTransactions(limit: Int = 10): [Transaction!]!
+  
+  # Analytics queries
+  getAnalytics: Analytics!
+  getTransactionStats(hours: Int = 24): [TransactionStat!]!
+  
+  # Node queries
+  getAllNodes: [Node!]!
+  getNode(address: String!): Node
+  getNodesByType(type: String!): [Node!]!
+  
+  # Storage proof queries
+  getStorageProofs(startBlock: Int!, endBlock: Int!, address: String): [StorageProof!]!
+  getStorageProofsByBlock(height: Int!): [StorageProof!]!
+  
+  # SLA/Uptime queries
+  getLatestSLARollup: SLARollup!
+  getSLARollup(id: Int!): SLARollup
+  getNodeUptime(address: String!, rollupId: Int): NodeUptime
+  getAllValidatorUptimes(rollupId: Int): [NodeUptime!]!
 }
