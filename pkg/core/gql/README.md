@@ -5,7 +5,7 @@
 ### Get Block by Height
 ```graphql
 query {
-  getBlock(height: 74000) {
+  getBlock(height: 100) {
     height
     chainId
     hash
@@ -256,8 +256,8 @@ query {
 ```graphql
 query {
   getStorageProofs(
-    startBlock: 74000
-    endBlock: 75000
+    startBlock: 100
+    endBlock: 200
     address: "0x123..."
   ) {
     blockHeight
@@ -272,12 +272,73 @@ query {
 ### Get Storage Proofs by Block
 ```graphql
 query {
-  getStorageProofsByBlock(height: 74000) {
+  getStorageProofsByBlock(height: 100) {
     blockHeight
     proverAddress
     cid
     status
     proofSignature
+  }
+}
+```
+
+## Combined Queries
+
+You can combine multiple queries into a single request. Here are some examples:
+
+### Get Latest Block and Analytics
+```graphql
+query {
+  latestBlock: getLatestBlock {
+    height
+    chainId
+    hash
+    proposer
+  }
+  analytics: getAnalytics {
+    totalBlocks
+    totalTransactions
+    totalValidators
+  }
+}
+```
+
+### Get Node Info with Latest SLA Report
+```graphql
+query {
+  node: getNode(address: "0x123...") {
+    address
+    nodeType
+    endpoint
+  }
+  uptime: getNodeUptime(address: "0x123...") {
+    isValidator
+    activeReport {
+      blocksProposed
+      quota
+    }
+  }
+}
+```
+
+### Get Network Overview
+```graphql
+query {
+  analytics: getAnalytics {
+    totalBlocks
+    totalValidators
+  }
+  latestBlocks: getLatestBlocks(limit: 3) {
+    height
+    proposer
+  }
+  latestTxs: getLatestTransactions(limit: 3) {
+    hash
+    type
+  }
+  nodes: getAllNodes {
+    address
+    nodeType
   }
 }
 ```

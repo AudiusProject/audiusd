@@ -111,7 +111,7 @@ func (r *queryGraphQLServer) GetAllNodes(ctx context.Context) ([]*core_gql.Node,
 			EthAddress:   node.EthAddress,
 			CometAddress: node.CometAddress,
 			CometPubKey:  &node.CometPubKey,
-			NodeType:     string(node.NodeType),
+			NodeType:     node.NodeType,
 			SpID:         &node.SpID,
 		})
 	}
@@ -337,7 +337,7 @@ func (r *queryGraphQLServer) GetNode(ctx context.Context, address string) (*core
 				EthAddress:   node.EthAddress,
 				CometAddress: node.CometAddress,
 				CometPubKey:  &node.CometPubKey,
-				NodeType:     string(node.NodeType),
+				NodeType:     node.NodeType,
 				SpID:         &node.SpID,
 			}, nil
 		}
@@ -353,14 +353,14 @@ func (r *queryGraphQLServer) GetNodesByType(ctx context.Context, nodeType string
 
 	result := []*core_gql.Node{}
 	for _, node := range nodes {
-		if string(node.NodeType) == nodeType {
+		if node.NodeType == nodeType {
 			result = append(result, &core_gql.Node{
 				Address:      node.CometAddress,
 				Endpoint:     node.Endpoint,
 				EthAddress:   node.EthAddress,
 				CometAddress: node.CometAddress,
 				CometPubKey:  &node.CometPubKey,
-				NodeType:     string(node.NodeType),
+				NodeType:     node.NodeType,
 				SpID:         &node.SpID,
 			})
 		}
