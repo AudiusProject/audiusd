@@ -46,15 +46,15 @@ func SignedTxProtoIntoSignedTxOapi(tx *core_proto.SignedTransaction) *models.Pro
 			Signer:     innerTx.ManageEntity.Signer,
 			Nonce:      fmt.Sprint(innerTx.ManageEntity.Nonce),
 		}
-	case *core_proto.SignedTransaction_ValidatorRegistration:
-		oapiTx.ValidatorRegistration = &models.ProtocolValidatorRegistration{
-			CometAddress: innerTx.ValidatorRegistration.CometAddress,
-			Endpoint:     innerTx.ValidatorRegistration.Endpoint,
-			EthBlock:     innerTx.ValidatorRegistration.EthBlock,
-			NodeType:     innerTx.ValidatorRegistration.NodeType,
-			SpID:         innerTx.ValidatorRegistration.SpId,
-			Power:        fmt.Sprint(innerTx.ValidatorRegistration.Power),
-			PubKey:       innerTx.ValidatorRegistration.PubKey,
+	case *core_proto.SignedTransaction_ValidatorRegistrationLegacy:
+		oapiTx.ValidatorRegistrationLegacy = &models.ProtocolValidatorRegistrationLegacy{
+			CometAddress: innerTx.ValidatorRegistrationLegacy.CometAddress,
+			Endpoint:     innerTx.ValidatorRegistrationLegacy.Endpoint,
+			EthBlock:     innerTx.ValidatorRegistrationLegacy.EthBlock,
+			NodeType:     innerTx.ValidatorRegistrationLegacy.NodeType,
+			SpID:         innerTx.ValidatorRegistrationLegacy.SpId,
+			Power:        fmt.Sprint(innerTx.ValidatorRegistrationLegacy.Power),
+			PubKey:       innerTx.ValidatorRegistrationLegacy.PubKey,
 		}
 	case *core_proto.SignedTransaction_ValidatorDeregistration:
 		oapiTx.ValidatorDeregistration = &models.ProtocolValidatorDeregistration{
