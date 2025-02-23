@@ -45,6 +45,8 @@ POSTGRES_USER="postgres"
 POSTGRES_PASSWORD="postgres"
 POSTGRES_DATA_DIR=${POSTGRES_DATA_DIR:-/data/postgres}
 export dbUrl="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5432/${POSTGRES_DB}?sslmode=disable"
+export uptimeDataDir=${uptimeDataDir:-/data/bolt}
+export audius_core_root_dir=${audius_core_root_dir:-/data/bolt}
 
 setup_postgres() {
     PG_BIN="/usr/lib/postgresql/15/bin"
