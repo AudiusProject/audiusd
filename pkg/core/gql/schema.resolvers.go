@@ -215,18 +215,14 @@ func (r *queryGraphQLServer) GetLatestBlock(ctx context.Context) (*core_gql.Bloc
 }
 
 func (r *queryGraphQLServer) GetLatestBlocks(ctx context.Context, limit *int) ([]*core_gql.Block, error) {
-	blocks, err := r.db.GetRecentBlocks(ctx)
-	if err != nil {
-		return nil, err
+	l := int64(10)
+	if limit != nil {
+		l = int64(*limit)
 	}
 
-	// Apply limit if specified
-	l := 10
-	if limit != nil {
-		l = *limit
-	}
-	if l < len(blocks) {
-		blocks = blocks[:l]
+	blocks, err := r.db.GetRecentBlocks(ctx, l)
+	if err != nil {
+		return nil, err
 	}
 
 	result := []*core_gql.Block{}
