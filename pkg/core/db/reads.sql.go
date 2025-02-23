@@ -473,11 +473,11 @@ func (q *Queries) GetRecentRollupsForNode(ctx context.Context, address string) (
 }
 
 const getRecentTxs = `-- name: GetRecentTxs :many
-select rowid, block_id, index, tx_hash, transaction, created_at from core_transactions order by created_at desc limit 10
+select rowid, block_id, index, tx_hash, transaction, created_at from core_transactions order by created_at desc limit $1
 `
 
-func (q *Queries) GetRecentTxs(ctx context.Context) ([]CoreTransaction, error) {
-	rows, err := q.db.Query(ctx, getRecentTxs)
+func (q *Queries) GetRecentTxs(ctx context.Context, limit int32) ([]CoreTransaction, error) {
+	rows, err := q.db.Query(ctx, getRecentTxs, limit)
 	if err != nil {
 		return nil, err
 	}

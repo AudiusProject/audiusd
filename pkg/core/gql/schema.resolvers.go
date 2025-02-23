@@ -215,9 +215,10 @@ func (r *queryGraphQLServer) GetLatestBlock(ctx context.Context) (*core_gql.Bloc
 }
 
 func (r *queryGraphQLServer) GetLatestBlocks(ctx context.Context, limit *int) ([]*core_gql.Block, error) {
-	l := int64(10)
+	// Default limit to 10 if not specified
+	l := int32(10)
 	if limit != nil {
-		l = int64(*limit)
+		l = int32(*limit)
 	}
 
 	blocks, err := r.db.GetRecentBlocks(ctx, l)
@@ -285,18 +286,15 @@ func (r *queryGraphQLServer) GetLatestSLARollup(ctx context.Context) (*core_gql.
 }
 
 func (r *queryGraphQLServer) GetLatestTransactions(ctx context.Context, limit *int) ([]*core_gql.Transaction, error) {
-	txs, err := r.db.GetRecentTxs(ctx)
-	if err != nil {
-		return nil, err
+	// Default limit to 10 if not specified
+	l := int32(10)
+	if limit != nil {
+		l = int32(*limit)
 	}
 
-	// Apply limit if specified
-	l := 10
-	if limit != nil {
-		l = *limit
-	}
-	if l < len(txs) {
-		txs = txs[:l]
+	txs, err := r.db.GetRecentTxs(ctx, l)
+	if err != nil {
+		return nil, err
 	}
 
 	result := []*core_gql.Transaction{}
