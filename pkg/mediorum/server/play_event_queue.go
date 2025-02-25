@@ -78,8 +78,7 @@ func (ss *MediorumServer) processPlayRecordBatch() error {
 		return nil
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
+	ctx := context.Background()
 
 	ss.logger.Info("processing plays from event queue", "count", len(plays))
 

@@ -157,7 +157,10 @@ func (ss *MediorumServer) serveBlob(c echo.Context) error {
 			return c.String(401, "mp3 streaming is blocked. Please use Discovery /v1/tracks/:encodedId/stream")
 		}
 		// track metrics in separate threads
-		go ss.logTrackListen(c)
+		if err := ss.logTrackListen(c); err != nil {
+			ss.logger.Error("failed to log track listen", "error", err)
+			// Don't return the error since this is not critical for streaming
+		}
 		setTimingHeader(c)
 		go ss.recordMetric(StreamTrack)
 
@@ -263,7 +266,7 @@ func (ss *MediorumServer) findAndPullBlob(_ context.Context, key string) (string
 	return "", errors.New("no host found with " + key)
 }
 
-func (ss *MediorumServer) logTrackListen(c echo.Context) {
+func (ss *MediorumServer) logTrackListen(c echo.Context) error {
 	skipPlayCountQuery, _ := strconv.ParseBool(c.QueryParam("skip_play_count"))
 
 	identityConfigured := os.Getenv("identityService") == "" && ss.Config.Env != "dev"
@@ -276,7 +279,7 @@ func (ss *MediorumServer) logTrackListen(c echo.Context) {
 	if skipPlayCount {
 		// todo: skip count for trusted notifier requests should be inferred
 		// by the requesting entity and not some query param
-		return
+		return nil
 	}
 
 	httpClient := http.Client{
@@ -286,7 +289,7 @@ func (ss *MediorumServer) logTrackListen(c echo.Context) {
 	sig, err := signature.ParseFromQueryString(c.QueryParam("signature"))
 	if err != nil {
 		ss.logger.Warn("unable to parse signature for request", "signature", c.QueryParam("signature"), "remote_addr", c.Request().RemoteAddr, "url", c.Request().URL)
-		return
+		return nil
 	}
 
 	// as per CN `userId: req.userId ?? delegateOwnerWallet`
@@ -308,7 +311,7 @@ func (ss *MediorumServer) logTrackListen(c echo.Context) {
 	signatureData, err := signature.GenerateListenTimestampAndSignature(ss.Config.privateKey)
 	if err != nil {
 		ss.logger.Error("unable to build request", "err", err)
-		return
+		return nil
 	}
 
 	body := map[string]interface{}{
@@ -354,20 +357,20 @@ func (ss *MediorumServer) logTrackListen(c echo.Context) {
 	buf, err := json.Marshal(body)
 	if err != nil {
 		ss.logger.Error("unable to build request", "err", err)
-		return
+		return nil
 	}
 
 	req, err := signature.SignedPost(endpoint, "application/json", bytes.NewReader(buf), ss.Config.privateKey, ss.Config.Self.Host)
 	if err != nil {
 		ss.logger.Error("unable to build request", "err", err)
-		return
+		return nil
 	}
 	req.Header.Add("x-forwarded-for", c.RealIP())
 
 	res, err := httpClient.Do(req)
 	if err != nil {
 		ss.logger.Error("unable to POST to listen service", "err", err)
-		return
+		return nil
 	}
 	defer res.Body.Close()
 
@@ -377,6 +380,8 @@ func (ss *MediorumServer) logTrackListen(c echo.Context) {
 			ss.logger.Warn(fmt.Sprintf("unsuccessful POST [%d] %s", res.StatusCode, resBody))
 		}
 	}
+
+	return nil
 }
 
 // checks signature from discovery node
