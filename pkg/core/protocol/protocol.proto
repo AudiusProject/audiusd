@@ -45,6 +45,7 @@ message SignedTransaction {
     ValidatorDeregistration validator_deregistration = 1004;
     StorageProof storage_proof = 1005;
     StorageProofVerification storage_proof_verification = 1006;
+    string memo = 1007;
   }
 }
 

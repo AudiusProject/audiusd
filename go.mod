@@ -263,6 +263,7 @@ require (
 	github.com/multiformats/go-multibase v0.0.3 // indirect
 	github.com/multiformats/go-varint v0.0.6 // indirect
 	github.com/onsi/gomega v1.33.1
+	github.com/serialx/hashring v0.0.0-20200727003509-22c0c7ab6b1b
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	golang.org/x/net v0.33.0 // indirect
 	golang.org/x/sys v0.29.0 // indirect
