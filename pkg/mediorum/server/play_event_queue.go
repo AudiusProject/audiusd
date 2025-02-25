@@ -73,15 +73,15 @@ func (ss *MediorumServer) startPlayEventQueue() {
 }
 
 func (ss *MediorumServer) processPlayRecordBatch() error {
-	// require all operations in process batch take at most 30 seconds
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
 	plays := ss.playEventQueue.popPlayEventBatch()
-	ss.logger.Info("popped plays off event queue: %v", plays)
 	if len(plays) == 0 {
 		return nil
 	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	ss.logger.Info("processing plays from event queue", "count", len(plays))
 
 	// assemble batch of plays into core tx
 	sdk := ss.coreSdk
