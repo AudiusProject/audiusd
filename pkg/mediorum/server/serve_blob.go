@@ -269,10 +269,9 @@ func (ss *MediorumServer) logTrackListen(c echo.Context) {
 	identityConfigured := os.Getenv("identityService") == "" && ss.Config.Env != "dev"
 	rangePresent := !rangeIsFirstByte(c.Request().Header.Get("Range"))
 	methodNotGET := c.Request().Method != "GET"
-	refererMatches := strings.Contains(c.Request().Header.Get("Referer"), c.Request().URL.String())
 
-	skipPlayCount := skipPlayCountQuery || identityConfigured || rangePresent || methodNotGET || refererMatches
-	ss.logger.Info("skip plays", "skipPlayCountQuery", skipPlayCountQuery, "identity", identityConfigured, "range", rangePresent, "methodNotGet", methodNotGET, "referrer", refererMatches)
+	skipPlayCount := skipPlayCountQuery || identityConfigured || rangePresent || methodNotGET
+	ss.logger.Info("skip plays", "skipPlayCountQuery", skipPlayCountQuery, "identity", identityConfigured, "range", rangePresent, "methodNotGet", methodNotGET)
 
 	if skipPlayCount {
 		// todo: skip count for trusted notifier requests should be inferred
