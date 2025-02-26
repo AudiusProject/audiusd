@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/AudiusProject/audiusd/pkg/core/db"
 	"github.com/AudiusProject/audiusd/pkg/core/gen/core_proto"
-	"github.com/AudiusProject/audiusd/pkg/core/server"
 	"github.com/dustin/go-humanize"
 	"google.golang.org/protobuf/proto"
 )
@@ -14,13 +13,27 @@ type TxData struct {
 	db.CoreTransaction
 }
 
-func NewTxData(tx db.CoreTransaction) *TxData {
+func NewTxData(tx db.CoreTransaction) TxData {
 	txType := "Unknown"
 	var stx core_proto.SignedTransaction
 	if err := proto.Unmarshal(tx.Transaction, &stx); err == nil {
-		txType = server.GetProtoTypeName(&stx)
+		if stx.GetPlays() != nil {
+			txType = "Plays"
+		} else if stx.GetManageEntity() != nil {
+			txType = "ManageEntity"
+		} else if stx.GetSlaRollup() != nil {
+			txType = "SLARollup"
+		} else if stx.GetStorageProof() != nil {
+			txType = "StorageProof"
+		} else if stx.GetValidatorRegistration() != nil {
+			txType = "ValidatorRegistration"
+		} else if stx.GetValidatorDeregistration() != nil {
+			txType = "ValidatorDeregistration"
+		} else if stx.GetStorageProofVerification() != nil {
+			txType = "StorageProofVerification"
+		}
 	}
-	return &TxData{
+	return TxData{
 		TxType:          txType,
 		CoreTransaction: tx,
 	}
