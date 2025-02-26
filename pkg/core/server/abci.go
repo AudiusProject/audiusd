@@ -10,6 +10,7 @@ import (
 
 	"github.com/AudiusProject/audiusd/pkg/core/common"
 	"github.com/AudiusProject/audiusd/pkg/core/db"
+	"github.com/AudiusProject/audiusd/pkg/core/etl"
 	"github.com/AudiusProject/audiusd/pkg/core/gen/core_proto"
 	abcitypes "github.com/cometbft/cometbft/abci/types"
 	cfg "github.com/cometbft/cometbft/config"
@@ -257,6 +258,18 @@ func (s *Server) FinalizeBlock(ctx context.Context, req *abcitypes.FinalizeBlock
 				CreatedAt:   s.db.ToPgxTimestamp(req.Time),
 			}); err != nil {
 				s.logger.Errorf("failed to store transaction: %v", err)
+			}
+
+			// Write decoded transaction using ETL
+			if err := s.etl.WriteTx(ctx, &etl.DecodedTransaction{
+				BlockHeight: req.Height,
+				TxIndex:     int32(i),
+				TxHash:      txhash,
+				TxType:      etl.GetProtoTypeName(signedTx),
+				TxData:      signedTx,
+				CreatedAt:   req.Time,
+			}); err != nil {
+				s.logger.Errorf("failed to write decoded transaction: %v", err)
 			}
 
 			if err := s.persistTxStat(ctx, finalizedTx, txhash, req.Height, req.Time); err != nil {
