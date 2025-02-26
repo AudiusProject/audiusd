@@ -11,6 +11,7 @@ import (
 
 	"github.com/AudiusProject/audiusd/pkg/core/common"
 	"github.com/AudiusProject/audiusd/pkg/core/contracts"
+	"github.com/AudiusProject/audiusd/pkg/core/gen/core_openapi/protocol"
 	"github.com/AudiusProject/audiusd/pkg/core/gen/core_proto"
 	"github.com/AudiusProject/audiusd/pkg/logger"
 
@@ -20,7 +21,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func (s *Server) startRegistryBridge() error {
@@ -166,7 +166,7 @@ func (s *Server) registerSelfOnComet(ctx context.Context, delegateOwnerWallet ge
 
 	nodes, err := s.db.GetAllRegisteredNodes(ctx)
 	if err != nil {
-		return fmt.Errorf("Failed to get all registered nodes: %v", err)
+		return fmt.Errorf("failed to get all registered nodes: %v", err)
 	}
 	keyBytes := make([]byte, 8)
 	binary.BigEndian.PutUint64(keyBytes, ethBlock.Uint64())
@@ -178,17 +178,17 @@ func (s *Server) registerSelfOnComet(ctx context.Context, delegateOwnerWallet ge
 		NodeType:       common.HexToUtf8(serviceType),
 		EthBlock:       ethBlock.Int64(),
 		SpId:           spID,
-		Timestamp:      timestamppb.New(time.Now()),
 	}
-	req := &core_proto.RegistrationAttestationRequest{Registration: ethReg}
+	params := protocol.NewProtocolGetRegistrationAttestationParams()
+	params.SetRegistration(common.EthRegistrationProtoIntoEthRegistrationOapi(ethReg))
 	for addr, _ := range rendezvous {
 		if peer, ok := peers[addr]; ok {
-			resp, err := peer.GetRegistrationAttestation(ctx, req)
+			resp, err := peer.ProtocolGetRegistrationAttestation(params)
 			if err != nil {
-				s.logger.Error("Failed to get registration attestation from %s: %v", peer.OAPIEndpoint, err)
+				s.logger.Error("failed to get registration attestation from %s: %v", peer.OAPIEndpoint, err)
 				continue
 			}
-			attestations = append(attestations, resp.Signature)
+			attestations = append(attestations, resp.Payload.Signature)
 		}
 	}
 

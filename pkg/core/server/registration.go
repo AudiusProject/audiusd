@@ -68,14 +68,14 @@ func (s *Server) isValidRegisterNodeTx(tx *core_proto.SignedTransaction) error {
 		return fmt.Errorf("address '%s' is already registered on comet, node %s attempted to acquire it", vr.GetCometAddress(), er.GetEndpoint())
 	}
 
-	atts := vr.GetAttestations()
-	if atts == nil {
-		return fmt.Errorf("No attestations provided to RegisterNode tx: %v", tx)
-	}
-
 	nodes, err := s.db.GetAllRegisteredNodes(context.Background())
 	if err != nil {
 		return fmt.Errorf("Failed to get core validators while validating registration: %v", err)
+	}
+
+	atts := vr.GetAttestations()
+	if atts == nil {
+		atts = make([]string, 0) // empty attestations are expected at genesis
 	}
 
 	requiredAttestations := min(len(nodes), s.config.AttRegistrationMin)

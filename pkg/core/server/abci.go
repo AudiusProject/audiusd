@@ -455,6 +455,11 @@ func (s *Server) validateBlockTx(ctx context.Context, blockTime time.Time, block
 	switch signedTx.Transaction.(type) {
 	case *core_proto.SignedTransaction_Plays:
 	case *core_proto.SignedTransaction_ValidatorRegistration:
+		if err := s.isValidRegisterNodeTx(signedTx); err != nil {
+			s.logger.Error("Invalid block: invalid register node tx", "error", err)
+			return false, nil
+		}
+	case *core_proto.SignedTransaction_ValidatorRegistrationLegacy:
 		if err := s.isValidLegacyRegisterNodeTx(signedTx); err != nil {
 			s.logger.Error("Invalid block: invalid register node tx", "error", err)
 			return false, nil
@@ -495,6 +500,8 @@ func (s *Server) finalizeTransaction(ctx context.Context, req *abcitypes.Finaliz
 		return s.finalizeManageEntity(ctx, msg)
 	case *core_proto.SignedTransaction_ValidatorRegistration:
 		return s.finalizeRegisterNode(ctx, msg, req.Time)
+	case *core_proto.SignedTransaction_ValidatorRegistrationLegacy:
+		return s.finalizeLegacyRegisterNode(ctx, msg, req.Time)
 	case *core_proto.SignedTransaction_ValidatorDeregistration:
 		return s.finalizeDeregisterNode(ctx, msg, misbehavior)
 	case *core_proto.SignedTransaction_SlaRollup:

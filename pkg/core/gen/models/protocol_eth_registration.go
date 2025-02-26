@@ -8,10 +8,8 @@ package models
 import (
 	"context"
 
-	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
-	"github.com/go-openapi/validate"
 )
 
 // ProtocolEthRegistration protocol eth registration
@@ -33,35 +31,10 @@ type ProtocolEthRegistration struct {
 
 	// sp Id
 	SpID string `json:"spId,omitempty"`
-
-	// timestamp
-	// Format: date-time
-	Timestamp strfmt.DateTime `json:"timestamp,omitempty"`
 }
 
 // Validate validates this protocol eth registration
 func (m *ProtocolEthRegistration) Validate(formats strfmt.Registry) error {
-	var res []error
-
-	if err := m.validateTimestamp(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if len(res) > 0 {
-		return errors.CompositeValidationError(res...)
-	}
-	return nil
-}
-
-func (m *ProtocolEthRegistration) validateTimestamp(formats strfmt.Registry) error {
-	if swag.IsZero(m.Timestamp) { // not required
-		return nil
-	}
-
-	if err := validate.FormatOf("timestamp", "body", "date-time", m.Timestamp.String(), formats); err != nil {
-		return err
-	}
-
 	return nil
 }
 
