@@ -339,7 +339,7 @@ func (r *queryGraphQLServer) GetNode(ctx context.Context, address string) (*core
 	return nil, fmt.Errorf("node not found")
 }
 
-func (r *queryGraphQLServer) GetNodesByType(ctx context.Context, nodeType string) ([]*core_gql.Node, error) {
+func (r *queryGraphQLServer) GetNodesByType(ctx context.Context, type_ string) ([]*core_gql.Node, error) {
 	nodes, err := r.db.GetAllRegisteredNodes(ctx)
 	if err != nil {
 		return nil, err
@@ -347,7 +347,7 @@ func (r *queryGraphQLServer) GetNodesByType(ctx context.Context, nodeType string
 
 	result := []*core_gql.Node{}
 	for _, node := range nodes {
-		if node.NodeType == nodeType {
+		if node.NodeType == type_ {
 			result = append(result, &core_gql.Node{
 				Address:      node.CometAddress,
 				Endpoint:     node.Endpoint,
