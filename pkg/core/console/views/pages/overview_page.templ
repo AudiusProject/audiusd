@@ -3,12 +3,32 @@ package pages
 import (
 	"fmt"
 	"github.com/AudiusProject/audiusd/pkg/core/db"
+	"github.com/AudiusProject/audiusd/pkg/core/gen/core_proto"
+	"github.com/AudiusProject/audiusd/pkg/core/server"
 	"github.com/dustin/go-humanize"
+	"google.golang.org/protobuf/proto"
 )
+
+type TxData struct {
+	TxType string
+	db.CoreTransaction
+}
+
+func NewTxData(tx db.CoreTransaction) *TxData {
+	txType := "Unknown"
+	var stx core_proto.SignedTransaction
+	if err := proto.Unmarshal(tx.Transaction, &stx); err == nil {
+		txType = server.GetProtoTypeName(&stx)
+	}
+	return &TxData{
+		TxType:          txType,
+		CoreTransaction: tx,
+	}
+}
 
 type OverviewPageView struct {
 	Blocks []BlockView
-	Txs    []db.CoreTransaction
+	Txs    []TxData
 }
 
 func (p *Pages) OverviewPageJSON() {}
@@ -22,16 +42,16 @@ templ (p *Pages) OverviewPageHTML(data *OverviewPageView) {
 					for _, block := range data.Blocks {
 						<div class="text-sm">
 							<div class="p-6">
-								// <div>
-								// 	@p.components.Link("/block/%s", block.Hash) {
-								// 		<div>Hash: { block.Hash }</div>
-								// 	}
-								// </div>
-								// <div>
-								// 	@p.components.Link("/node/%s", block.Proposer) {
-								// 		<div>Proposer: { block.Proposer }</div>
-								// 	}
-								// </div>
+								<div>
+									@p.components.Link("/block/%s", block.Hash) {
+										<div>Hash: { block.Hash }</div>
+									}
+								</div>
+								<div>
+									@p.components.Link("/node/%s", block.Proposer) {
+										<div>Proposer: { block.ProposerEndpoint }</div>
+									}
+								</div>
 								<div>
 									@p.components.Link("/block/%d", block.Height) {
 										<div>Height: { fmt.Sprint(block.Height) }</div>
@@ -58,6 +78,9 @@ templ (p *Pages) OverviewPageHTML(data *OverviewPageView) {
 									<a href={ templ.URL(fmt.Sprintf("/console/tx/%s", tx.TxHash)) }>Hash: { tx.TxHash }</a>
 								</div>
 								<a href={ templ.URL(fmt.Sprintf("/console/block/%s", fmt.Sprint(tx.BlockID))) }>Block { fmt.Sprint(tx.BlockID) }</a>
+								<div>
+									Type: { tx.TxType }
+								</div>
 								<div>Time: { humanize.Time(tx.CreatedAt.Time) } </div>
 							</div>
 						</div>
