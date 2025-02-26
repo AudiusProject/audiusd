@@ -104,7 +104,7 @@ func (s *Server) isNodeRegisteredOnEthereum(delegateWallet common.Address, endpo
 	s.ethNodeMU.RLock()
 	defer s.ethNodeMU.RUnlock()
 	for _, node := range s.ethNodes {
-		if bytes.EqualFold(delegateWallet.Bytes(), node.DelegateOwnerWallet.Bytes()) {
+		if !bytes.EqualFold(delegateWallet.Bytes(), node.DelegateOwnerWallet.Bytes()) {
 			continue
 		}
 		if endpoint != node.Endpoint {

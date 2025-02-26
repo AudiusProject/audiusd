@@ -307,7 +307,7 @@ func (s *Server) GetRegistrationAttestation(ctx context.Context, req *core_proto
 		ethcommon.HexToAddress(ethReg.DelegateWallet),
 		ethReg.Endpoint,
 		big.NewInt(ethReg.EthBlock),
-	) || time.Since(ethReg.Timestamp.AsTime()) > 48*time.Hour || ethReg.Timestamp.AsTime().After(time.Now()) {
+	) {
 		s.logger.Error(
 			"Could not attest to node eth registration",
 			"delegate",

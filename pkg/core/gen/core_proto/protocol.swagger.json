@@ -287,16 +287,12 @@
         "nodeType": {
           "type": "string"
         },
-        "ethBlock": {
-          "type": "string",
-          "format": "int64"
-        },
         "spId": {
           "type": "string"
         },
-        "timestamp": {
+        "ethBlock": {
           "type": "string",
-          "format": "date-time"
+          "format": "int64"
         }
       }
     },

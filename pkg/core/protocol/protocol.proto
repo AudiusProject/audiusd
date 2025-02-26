@@ -129,9 +129,8 @@ message EthRegistration {
   string delegate_wallet = 1;
   string endpoint = 2;
   string node_type = 3;
-  int64 eth_block = 4;
-  string sp_id = 5;
-  google.protobuf.Timestamp timestamp = 6;
+  string sp_id = 4;
+  int64 eth_block = 5;
 }
 
 message ValidatorDeregistration {
