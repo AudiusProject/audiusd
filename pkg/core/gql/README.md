@@ -89,6 +89,64 @@ query {
 }
 ```
 
+## Decoded Transactions
+
+### Get Decoded Transaction by Hash
+```graphql
+query {
+  getDecodedTransaction(hash: "0x123...") {
+    blockHeight
+    txIndex
+    txHash
+    txType
+    txData
+    createdAt
+  }
+}
+```
+
+### Get Latest Decoded Transactions
+```graphql
+query {
+  getLatestDecodedTransactions(limit: 10) {
+    blockHeight
+    txIndex
+    txHash
+    txType
+    txData
+    createdAt
+  }
+}
+```
+
+### Get Decoded Transactions by Type
+```graphql
+query {
+  getDecodedTransactionsByType(txType: "Plays", limit: 10) {
+    blockHeight
+    txIndex
+    txHash
+    txType
+    txData
+    createdAt
+  }
+}
+```
+
+### Get Decoded Transactions by Block Height
+```graphql
+query {
+  getDecodedTransactionsByBlock(height: 100) {
+    blockHeight
+    txIndex
+    txHash
+    txType
+    txData
+    createdAt
+  }
+}
+```
+
 ## Analytics
 
 ### Get Protocol Analytics
