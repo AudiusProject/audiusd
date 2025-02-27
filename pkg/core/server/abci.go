@@ -260,7 +260,6 @@ func (s *Server) FinalizeBlock(ctx context.Context, req *abcitypes.FinalizeBlock
 				s.logger.Errorf("failed to store transaction: %v", err)
 			}
 
-			// Write decoded transaction using ETL
 			if err := s.etl.WriteTx(ctx, &etl.DecodedTransaction{
 				BlockHeight: req.Height,
 				TxIndex:     int32(i),

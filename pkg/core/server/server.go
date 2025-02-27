@@ -80,7 +80,6 @@ func NewServer(config *config.Config, cconfig *cconfig.Config, logger *common.Lo
 	ethNodes := []*contracts.Node{}
 	duplicateEthNodes := []*contracts.Node{}
 
-	// create ETL
 	etl := etl.NewETL(pool, logger)
 
 	s := &Server{
