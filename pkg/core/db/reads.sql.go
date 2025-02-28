@@ -150,6 +150,100 @@ func (q *Queries) GetBlockTransactions(ctx context.Context, blockID int64) ([]Co
 	return items, nil
 }
 
+const getDecodedTx = `-- name: GetDecodedTx :one
+select id, block_height, tx_index, tx_hash, tx_type, tx_data, created_at from core_decoded_tx
+where tx_hash = $1 limit 1
+`
+
+func (q *Queries) GetDecodedTx(ctx context.Context, txHash string) (CoreDecodedTx, error) {
+	row := q.db.QueryRow(ctx, getDecodedTx, txHash)
+	var i CoreDecodedTx
+	err := row.Scan(
+		&i.ID,
+		&i.BlockHeight,
+		&i.TxIndex,
+		&i.TxHash,
+		&i.TxType,
+		&i.TxData,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getDecodedTxsByBlock = `-- name: GetDecodedTxsByBlock :many
+select id, block_height, tx_index, tx_hash, tx_type, tx_data, created_at from core_decoded_tx
+where block_height = $1
+order by tx_index asc
+`
+
+func (q *Queries) GetDecodedTxsByBlock(ctx context.Context, blockHeight int64) ([]CoreDecodedTx, error) {
+	rows, err := q.db.Query(ctx, getDecodedTxsByBlock, blockHeight)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CoreDecodedTx
+	for rows.Next() {
+		var i CoreDecodedTx
+		if err := rows.Scan(
+			&i.ID,
+			&i.BlockHeight,
+			&i.TxIndex,
+			&i.TxHash,
+			&i.TxType,
+			&i.TxData,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getDecodedTxsByType = `-- name: GetDecodedTxsByType :many
+select id, block_height, tx_index, tx_hash, tx_type, tx_data, created_at from core_decoded_tx
+where tx_type = $1
+order by block_height desc, tx_index desc
+limit $2
+`
+
+type GetDecodedTxsByTypeParams struct {
+	TxType string
+	Limit  int32
+}
+
+func (q *Queries) GetDecodedTxsByType(ctx context.Context, arg GetDecodedTxsByTypeParams) ([]CoreDecodedTx, error) {
+	rows, err := q.db.Query(ctx, getDecodedTxsByType, arg.TxType, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CoreDecodedTx
+	for rows.Next() {
+		var i CoreDecodedTx
+		if err := rows.Scan(
+			&i.ID,
+			&i.BlockHeight,
+			&i.TxIndex,
+			&i.TxHash,
+			&i.TxType,
+			&i.TxData,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getInProgressRollupReports = `-- name: GetInProgressRollupReports :many
 select id, address, blocks_proposed, sla_rollup_id from sla_node_reports
 where sla_rollup_id is null 
@@ -216,6 +310,40 @@ func (q *Queries) GetLatestBlock(ctx context.Context) (CoreBlock, error) {
 		&i.CreatedAt,
 	)
 	return i, err
+}
+
+const getLatestDecodedTxs = `-- name: GetLatestDecodedTxs :many
+select id, block_height, tx_index, tx_hash, tx_type, tx_data, created_at from core_decoded_tx
+order by block_height desc, tx_index desc
+limit $1
+`
+
+func (q *Queries) GetLatestDecodedTxs(ctx context.Context, limit int32) ([]CoreDecodedTx, error) {
+	rows, err := q.db.Query(ctx, getLatestDecodedTxs, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CoreDecodedTx
+	for rows.Next() {
+		var i CoreDecodedTx
+		if err := rows.Scan(
+			&i.ID,
+			&i.BlockHeight,
+			&i.TxIndex,
+			&i.TxHash,
+			&i.TxType,
+			&i.TxData,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getLatestSlaRollup = `-- name: GetLatestSlaRollup :one

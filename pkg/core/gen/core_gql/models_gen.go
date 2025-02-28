@@ -19,6 +19,15 @@ type Block struct {
 	Timestamp    string         `json:"timestamp"`
 }
 
+type DecodedTransaction struct {
+	BlockHeight int    `json:"blockHeight"`
+	TxIndex     int    `json:"txIndex"`
+	TxHash      string `json:"txHash"`
+	TxType      string `json:"txType"`
+	TxData      string `json:"txData"`
+	CreatedAt   string `json:"createdAt"`
+}
+
 type Node struct {
 	Address      string  `json:"address"`
 	Endpoint     string  `json:"endpoint"`
