@@ -58,7 +58,11 @@ type ClientService interface {
 
 	ProtocolGetBlock(params *ProtocolGetBlockParams, opts ...ClientOption) (*ProtocolGetBlockOK, error)
 
+	ProtocolGetHeight(params *ProtocolGetHeightParams, opts ...ClientOption) (*ProtocolGetHeightOK, error)
+
 	ProtocolGetNodeInfo(params *ProtocolGetNodeInfoParams, opts ...ClientOption) (*ProtocolGetNodeInfoOK, error)
+
+	ProtocolGetRegistrationAttestation(params *ProtocolGetRegistrationAttestationParams, opts ...ClientOption) (*ProtocolGetRegistrationAttestationOK, error)
 
 	ProtocolGetTransaction(params *ProtocolGetTransactionParams, opts ...ClientOption) (*ProtocolGetTransactionOK, error)
 
@@ -144,6 +148,43 @@ func (a *Client) ProtocolGetBlock(params *ProtocolGetBlockParams, opts ...Client
 }
 
 /*
+ProtocolGetHeight protocol get height API
+*/
+func (a *Client) ProtocolGetHeight(params *ProtocolGetHeightParams, opts ...ClientOption) (*ProtocolGetHeightOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewProtocolGetHeightParams()
+	}
+	op := &runtime.ClientOperation{
+		ID:                 "Protocol_GetHeight",
+		Method:             "GET",
+		PathPattern:        "/core/grpc/height",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ProtocolGetHeightReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*ProtocolGetHeightOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*ProtocolGetHeightDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
 ProtocolGetNodeInfo protocol get node info API
 */
 func (a *Client) ProtocolGetNodeInfo(params *ProtocolGetNodeInfoParams, opts ...ClientOption) (*ProtocolGetNodeInfoOK, error) {
@@ -177,6 +218,43 @@ func (a *Client) ProtocolGetNodeInfo(params *ProtocolGetNodeInfoParams, opts ...
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*ProtocolGetNodeInfoDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+ProtocolGetRegistrationAttestation protocol get registration attestation API
+*/
+func (a *Client) ProtocolGetRegistrationAttestation(params *ProtocolGetRegistrationAttestationParams, opts ...ClientOption) (*ProtocolGetRegistrationAttestationOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewProtocolGetRegistrationAttestationParams()
+	}
+	op := &runtime.ClientOperation{
+		ID:                 "Protocol_GetRegistrationAttestation",
+		Method:             "POST",
+		PathPattern:        "/core/grpc/attest",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ProtocolGetRegistrationAttestationReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*ProtocolGetRegistrationAttestationOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*ProtocolGetRegistrationAttestationDefault)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 

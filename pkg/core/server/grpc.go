@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/big"
 	"net"
 	"reflect"
 	"strings"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/AudiusProject/audiusd/pkg/core/common"
 	"github.com/AudiusProject/audiusd/pkg/core/gen/core_proto"
+	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/iancoleman/strcase"
 	"github.com/jackc/pgx/v5"
 	"google.golang.org/protobuf/proto"
@@ -212,6 +214,12 @@ func (s *Server) GetBlock(ctx context.Context, req *core_proto.GetBlockRequest) 
 	return res, nil
 }
 
+func (s *Server) GetHeight(ctx context.Context, req *core_proto.GetHeightRequest) (*core_proto.HeightResponse, error) {
+	return &core_proto.HeightResponse{
+		Height: s.cache.currentHeight,
+	}, nil
+}
+
 func (s *Server) GetNodeInfo(ctx context.Context, req *core_proto.GetNodeInfoRequest) (*core_proto.NodeInfoResponse, error) {
 	status, err := s.rpc.Status(ctx)
 	if err != nil {
@@ -293,4 +301,48 @@ func (s *Server) getBlockRpcFallback(ctx context.Context, height int64) (*core_p
 	}
 
 	return res, nil
+}
+
+func (s *Server) GetRegistrationAttestation(ctx context.Context, req *core_proto.RegistrationAttestationRequest) (*core_proto.RegistrationAttestationResponse, error) {
+	ethReg := req.GetRegistration()
+	if ethReg == nil {
+		return nil, errors.New("empty registration attestation")
+	}
+
+	if ethReg.ReferenceHeight > s.cache.currentHeight {
+		return nil, fmt.Errorf("Cannot sign registration request with reference height %d (current height is %d)", ethReg.ReferenceHeight, s.cache.currentHeight)
+	}
+
+	if !s.isNodeRegisteredOnEthereum(
+		ethcommon.HexToAddress(ethReg.DelegateWallet),
+		ethReg.Endpoint,
+		big.NewInt(ethReg.EthBlock),
+	) {
+		s.logger.Error(
+			"Could not attest to node eth registration",
+			"delegate",
+			ethReg.DelegateWallet,
+			"endpoint",
+			ethReg.Endpoint,
+			"eth block",
+			ethReg.EthBlock,
+		)
+		return nil, errors.New("node is not registered on ethereum")
+	}
+
+	ethRegBytes, err := proto.Marshal(ethReg)
+	if err != nil {
+		s.logger.Error("could not marshal ethereum registration", "error", err)
+		return nil, err
+	}
+	sig, err := common.EthSign(s.config.EthereumKey, ethRegBytes)
+	if err != nil {
+		s.logger.Error("could not sign ethereum registration", "error", err)
+		return nil, err
+	}
+
+	return &core_proto.RegistrationAttestationResponse{
+		Signature:    sig,
+		Registration: ethReg,
+	}, nil
 }

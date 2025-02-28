@@ -46,8 +46,16 @@ func SignedTxProtoIntoSignedTxOapi(tx *core_proto.SignedTransaction) *models.Pro
 			Signer:     innerTx.ManageEntity.Signer,
 			Nonce:      fmt.Sprint(innerTx.ManageEntity.Nonce),
 		}
+	case *core_proto.SignedTransaction_ValidatorRegistrationV2:
+		oapiTx.ValidatorRegistrationV2 = &models.ProtocolValidatorRegistration{
+			Attestations:    innerTx.ValidatorRegistrationV2.Attestations,
+			EthRegistration: EthRegistrationProtoIntoEthRegistrationOapi(innerTx.ValidatorRegistrationV2.EthRegistration),
+			CometAddress:    innerTx.ValidatorRegistrationV2.CometAddress,
+			Power:           fmt.Sprint(innerTx.ValidatorRegistrationV2.Power),
+			PubKey:          innerTx.ValidatorRegistrationV2.PubKey,
+		}
 	case *core_proto.SignedTransaction_ValidatorRegistration:
-		oapiTx.ValidatorRegistration = &models.ProtocolValidatorRegistration{
+		oapiTx.ValidatorRegistration = &models.ProtocolValidatorRegistrationLegacy{
 			CometAddress: innerTx.ValidatorRegistration.CometAddress,
 			Endpoint:     innerTx.ValidatorRegistration.Endpoint,
 			EthBlock:     innerTx.ValidatorRegistration.EthBlock,
@@ -77,4 +85,14 @@ func SignedTxProtoIntoSignedTxOapi(tx *core_proto.SignedTransaction) *models.Pro
 	}
 
 	return oapiTx
+}
+
+func EthRegistrationProtoIntoEthRegistrationOapi(ethReg *core_proto.EthRegistration) *models.ProtocolEthRegistration {
+	return &models.ProtocolEthRegistration{
+		DelegateWallet: ethReg.DelegateWallet,
+		Endpoint:       ethReg.Endpoint,
+		NodeType:       ethReg.NodeType,
+		EthBlock:       fmt.Sprint(ethReg.EthBlock),
+		SpID:           ethReg.SpId,
+	}
 }
