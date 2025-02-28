@@ -79,6 +79,28 @@
         ]
       }
     },
+    "/core/grpc/height": {
+      "get": {
+        "operationId": "Protocol_GetHeight",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/protocolHeightResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "Protocol"
+        ]
+      }
+    },
     "/core/grpc/node_info": {
       "get": {
         "operationId": "Protocol_GetNodeInfo",
@@ -293,11 +315,24 @@
         "ethBlock": {
           "type": "string",
           "format": "int64"
+        },
+        "referenceHeight": {
+          "type": "string",
+          "format": "int64"
         }
       }
     },
     "protocolForwardTransactionResponse": {
       "type": "object"
+    },
+    "protocolHeightResponse": {
+      "type": "object",
+      "properties": {
+        "height": {
+          "type": "string",
+          "format": "int64"
+        }
+      }
     },
     "protocolManageEntityLegacy": {
       "type": "object",
@@ -382,7 +417,7 @@
         "plays": {
           "$ref": "#/definitions/protocolTrackPlays"
         },
-        "validatorRegistrationLegacy": {
+        "validatorRegistration": {
           "$ref": "#/definitions/protocolValidatorRegistrationLegacy"
         },
         "slaRollup": {
@@ -400,7 +435,7 @@
         "storageProofVerification": {
           "$ref": "#/definitions/protocolStorageProofVerification"
         },
-        "validatorRegistration": {
+        "validatorRegistrationV2": {
           "$ref": "#/definitions/protocolValidatorRegistration"
         }
       }

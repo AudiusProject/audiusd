@@ -1,12 +1,10 @@
-package server
+package common
 
 import (
 	"bytes"
 	"crypto/sha256"
 	"io"
 	"sort"
-
-	"github.com/AudiusProject/audiusd/pkg/core/db"
 )
 
 type NodeTuple struct {
@@ -28,18 +26,18 @@ func (s NodeTuples) Less(i, j int) bool {
 
 // Returns the first `size` number of addresses from a list of all validators sorted
 // by a hashing function. The hashing is seeded according to the given key.
-func getAttestorRendezvous(nodes []db.CoreValidator, key []byte, size int) map[string]bool {
-	tuples := make(NodeTuples, len(nodes))
+func GetAttestorRendezvous(validatorAddresses []string, key []byte, size int) map[string]bool {
+	tuples := make(NodeTuples, len(validatorAddresses))
 
 	hasher := sha256.New()
-	for i, node := range nodes {
+	for i, addr := range validatorAddresses {
 		hasher.Reset()
-		io.WriteString(hasher, node.EthAddress)
+		io.WriteString(hasher, addr)
 		hasher.Write(key)
-		tuples[i] = NodeTuple{node.EthAddress, hasher.Sum(nil)}
+		tuples[i] = NodeTuple{addr, hasher.Sum(nil)}
 	}
 	sort.Sort(tuples)
-	result := make(map[string]bool, len(nodes))
+	result := make(map[string]bool, len(validatorAddresses))
 	bound := min(len(tuples), size)
 	for i, tup := range tuples {
 		if i >= bound {

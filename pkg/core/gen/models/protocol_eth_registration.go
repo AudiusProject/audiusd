@@ -29,6 +29,9 @@ type ProtocolEthRegistration struct {
 	// node type
 	NodeType string `json:"nodeType,omitempty"`
 
+	// reference height
+	ReferenceHeight string `json:"referenceHeight,omitempty"`
+
 	// sp Id
 	SpID string `json:"spId,omitempty"`
 }

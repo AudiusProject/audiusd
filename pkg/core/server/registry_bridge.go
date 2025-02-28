@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strconv"
 	"time"
 
 	"github.com/AudiusProject/audiusd/pkg/core/common"
@@ -164,13 +165,32 @@ func (s *Server) registerSelfOnComet(ctx context.Context, delegateOwnerWallet ge
 		return fmt.Errorf("invalid node type: %v", err)
 	}
 
-	nodes, err := s.db.GetAllRegisteredNodes(ctx)
-	if err != nil {
+	addrs, err := s.db.GetAllEthAddressesOfRegisteredNodes(ctx)
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		return fmt.Errorf("failed to get all registered nodes: %v", err)
 	}
 	keyBytes := make([]byte, 8)
 	binary.BigEndian.PutUint64(keyBytes, ethBlock.Uint64())
-	rendezvous := getAttestorRendezvous(nodes, keyBytes, s.config.AttRegistrationRSize)
+	rendezvous := common.GetAttestorRendezvous(addrs, keyBytes, s.config.AttRegistrationRSize)
+
+	// Get latest comet block height from peers (this node is likely syncing)
+	var cometBlockHeight int64
+	for addr, _ := range rendezvous {
+		if peer, ok := peers[addr]; ok && addr != delegateOwnerWallet.Hex() {
+			resp, err := peer.ProtocolGetHeight(protocol.NewProtocolGetHeightParams())
+			if err != nil {
+				s.logger.Error("failed to get latest block height from %s: %v", peer.OAPIEndpoint, err)
+				continue
+			}
+			heightResp, err := strconv.ParseInt(resp.Payload.Height, 10, 64)
+			if err != nil {
+				s.logger.Error("failed to parse latest block height from %s: %v", peer.OAPIEndpoint, err)
+				continue
+			}
+			cometBlockHeight = max(heightResp, cometBlockHeight)
+		}
+	}
+
 	attestations := make([]string, 0, s.config.AttRegistrationRSize)
 	ethReg := &core_proto.EthRegistration{
 		DelegateWallet: delegateOwnerWallet.Hex(),
@@ -213,8 +233,8 @@ func (s *Server) registerSelfOnComet(ctx context.Context, delegateOwnerWallet ge
 	tx := &core_proto.SignedTransaction{
 		Signature: sig,
 		RequestId: uuid.NewString(),
-		Transaction: &core_proto.SignedTransaction_ValidatorRegistration{
-			ValidatorRegistration: registrationTx,
+		Transaction: &core_proto.SignedTransaction_ValidatorRegistrationV2{
+			ValidatorRegistrationV2: registrationTx,
 		},
 	}
 

@@ -23,6 +23,7 @@ const (
 	Protocol_ForwardTransaction_FullMethodName         = "/protocol.Protocol/ForwardTransaction"
 	Protocol_GetTransaction_FullMethodName             = "/protocol.Protocol/GetTransaction"
 	Protocol_GetBlock_FullMethodName                   = "/protocol.Protocol/GetBlock"
+	Protocol_GetHeight_FullMethodName                  = "/protocol.Protocol/GetHeight"
 	Protocol_GetNodeInfo_FullMethodName                = "/protocol.Protocol/GetNodeInfo"
 	Protocol_Ping_FullMethodName                       = "/protocol.Protocol/Ping"
 	Protocol_GetRegistrationAttestation_FullMethodName = "/protocol.Protocol/GetRegistrationAttestation"
@@ -36,6 +37,7 @@ type ProtocolClient interface {
 	ForwardTransaction(ctx context.Context, in *ForwardTransactionRequest, opts ...grpc.CallOption) (*ForwardTransactionResponse, error)
 	GetTransaction(ctx context.Context, in *GetTransactionRequest, opts ...grpc.CallOption) (*TransactionResponse, error)
 	GetBlock(ctx context.Context, in *GetBlockRequest, opts ...grpc.CallOption) (*BlockResponse, error)
+	GetHeight(ctx context.Context, in *GetHeightRequest, opts ...grpc.CallOption) (*HeightResponse, error)
 	GetNodeInfo(ctx context.Context, in *GetNodeInfoRequest, opts ...grpc.CallOption) (*NodeInfoResponse, error)
 	Ping(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*PingResponse, error)
 	GetRegistrationAttestation(ctx context.Context, in *RegistrationAttestationRequest, opts ...grpc.CallOption) (*RegistrationAttestationResponse, error)
@@ -85,6 +87,15 @@ func (c *protocolClient) GetBlock(ctx context.Context, in *GetBlockRequest, opts
 	return out, nil
 }
 
+func (c *protocolClient) GetHeight(ctx context.Context, in *GetHeightRequest, opts ...grpc.CallOption) (*HeightResponse, error) {
+	out := new(HeightResponse)
+	err := c.cc.Invoke(ctx, Protocol_GetHeight_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *protocolClient) GetNodeInfo(ctx context.Context, in *GetNodeInfoRequest, opts ...grpc.CallOption) (*NodeInfoResponse, error) {
 	out := new(NodeInfoResponse)
 	err := c.cc.Invoke(ctx, Protocol_GetNodeInfo_FullMethodName, in, out, opts...)
@@ -120,6 +131,7 @@ type ProtocolServer interface {
 	ForwardTransaction(context.Context, *ForwardTransactionRequest) (*ForwardTransactionResponse, error)
 	GetTransaction(context.Context, *GetTransactionRequest) (*TransactionResponse, error)
 	GetBlock(context.Context, *GetBlockRequest) (*BlockResponse, error)
+	GetHeight(context.Context, *GetHeightRequest) (*HeightResponse, error)
 	GetNodeInfo(context.Context, *GetNodeInfoRequest) (*NodeInfoResponse, error)
 	Ping(context.Context, *PingRequest) (*PingResponse, error)
 	GetRegistrationAttestation(context.Context, *RegistrationAttestationRequest) (*RegistrationAttestationResponse, error)
@@ -141,6 +153,9 @@ func (UnimplementedProtocolServer) GetTransaction(context.Context, *GetTransacti
 }
 func (UnimplementedProtocolServer) GetBlock(context.Context, *GetBlockRequest) (*BlockResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetBlock not implemented")
+}
+func (UnimplementedProtocolServer) GetHeight(context.Context, *GetHeightRequest) (*HeightResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetHeight not implemented")
 }
 func (UnimplementedProtocolServer) GetNodeInfo(context.Context, *GetNodeInfoRequest) (*NodeInfoResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetNodeInfo not implemented")
@@ -236,6 +251,24 @@ func _Protocol_GetBlock_Handler(srv interface{}, ctx context.Context, dec func(i
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Protocol_GetHeight_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetHeightRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProtocolServer).GetHeight(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Protocol_GetHeight_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProtocolServer).GetHeight(ctx, req.(*GetHeightRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _Protocol_GetNodeInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetNodeInfoRequest)
 	if err := dec(in); err != nil {
@@ -312,6 +345,10 @@ var Protocol_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetBlock",
 			Handler:    _Protocol_GetBlock_Handler,
+		},
+		{
+			MethodName: "GetHeight",
+			Handler:    _Protocol_GetHeight_Handler,
 		},
 		{
 			MethodName: "GetNodeInfo",
