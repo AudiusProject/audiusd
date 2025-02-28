@@ -70,13 +70,54 @@ type CoreBlock struct {
 }
 
 type CoreDecodedTx struct {
-	ID          int64
-	BlockHeight int64
-	TxIndex     int32
-	TxHash      string
-	TxType      string
-	TxData      []byte
-	CreatedAt   pgtype.Timestamptz
+	ID                          int64
+	BlockHeight                 int64
+	TxIndex                     int32
+	TxHash                      string
+	TxType                      string
+	CreatedAt                   pgtype.Timestamptz
+	Signature                   pgtype.Text
+	RequestID                   pgtype.Text
+	ValidatorEndpoint           pgtype.Text
+	ValidatorCometAddress       pgtype.Text
+	ValidatorEthBlock           pgtype.Text
+	ValidatorNodeType           pgtype.Text
+	ValidatorSpID               pgtype.Text
+	ValidatorPubKey             []byte
+	ValidatorPower              pgtype.Int8
+	DeregistrationCometAddress  pgtype.Text
+	DeregistrationPubKey        []byte
+	SlaTimestamp                pgtype.Timestamptz
+	SlaBlockStart               pgtype.Int8
+	SlaBlockEnd                 pgtype.Int8
+	SlaReports                  []byte
+	StorageProofHeight          pgtype.Int8
+	StorageProofAddress         pgtype.Text
+	StorageProofProverAddresses []string
+	StorageProofCid             pgtype.Text
+	StorageProofSignature       []byte
+	StorageVerificationHeight   pgtype.Int8
+	StorageVerificationProof    []byte
+	ManageEntityUserID          pgtype.Int8
+	ManageEntityType            pgtype.Text
+	ManageEntityID              pgtype.Int8
+	ManageEntityAction          pgtype.Text
+	ManageEntityMetadata        pgtype.Text
+	ManageEntitySignature       pgtype.Text
+	ManageEntitySigner          pgtype.Text
+	ManageEntityNonce           pgtype.Text
+}
+
+type CoreDecodedTxPlay struct {
+	ID        int64
+	TxHash    string
+	UserID    string
+	TrackID   string
+	Timestamp pgtype.Timestamptz
+	Signature pgtype.Text
+	City      pgtype.Text
+	Region    pgtype.Text
+	Country   pgtype.Text
 }
 
 type CoreTransaction struct {
