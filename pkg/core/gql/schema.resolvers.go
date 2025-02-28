@@ -159,6 +159,95 @@ func (r *queryGraphQLServer) GetLatestTransactions(ctx context.Context, limit *i
 	return result, nil
 }
 
+func (r *queryGraphQLServer) GetDecodedTransaction(ctx context.Context, hash string) (*core_gql.DecodedTransaction, error) {
+	tx, err := r.db.GetDecodedTx(ctx, hash)
+	if err != nil {
+		return nil, err
+	}
+
+	return &core_gql.DecodedTransaction{
+		BlockHeight: int(tx.BlockHeight),
+		TxIndex:     int(tx.TxIndex),
+		TxHash:      tx.TxHash,
+		TxType:      tx.TxType,
+		TxData:      string(tx.TxData),
+		CreatedAt:   tx.CreatedAt.Time.String(),
+	}, nil
+}
+
+func (r *queryGraphQLServer) GetLatestDecodedTransactions(ctx context.Context, limit *int) ([]*core_gql.DecodedTransaction, error) {
+	l := int32(10)
+	if limit != nil {
+		l = int32(*limit)
+	}
+
+	txs, err := r.db.GetLatestDecodedTxs(ctx, l)
+	if err != nil {
+		return nil, err
+	}
+
+	result := []*core_gql.DecodedTransaction{}
+	for _, tx := range txs {
+		result = append(result, &core_gql.DecodedTransaction{
+			BlockHeight: int(tx.BlockHeight),
+			TxIndex:     int(tx.TxIndex),
+			TxHash:      tx.TxHash,
+			TxType:      tx.TxType,
+			TxData:      string(tx.TxData),
+			CreatedAt:   tx.CreatedAt.Time.String(),
+		})
+	}
+	return result, nil
+}
+
+func (r *queryGraphQLServer) GetDecodedTransactionsByType(ctx context.Context, txType string, limit *int) ([]*core_gql.DecodedTransaction, error) {
+	l := int32(10)
+	if limit != nil {
+		l = int32(*limit)
+	}
+
+	txs, err := r.db.GetDecodedTxsByType(ctx, db.GetDecodedTxsByTypeParams{
+		TxType: txType,
+		Limit:  l,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	result := []*core_gql.DecodedTransaction{}
+	for _, tx := range txs {
+		result = append(result, &core_gql.DecodedTransaction{
+			BlockHeight: int(tx.BlockHeight),
+			TxIndex:     int(tx.TxIndex),
+			TxHash:      tx.TxHash,
+			TxType:      tx.TxType,
+			TxData:      string(tx.TxData),
+			CreatedAt:   tx.CreatedAt.Time.String(),
+		})
+	}
+	return result, nil
+}
+
+func (r *queryGraphQLServer) GetDecodedTransactionsByBlock(ctx context.Context, height int) ([]*core_gql.DecodedTransaction, error) {
+	txs, err := r.db.GetDecodedTxsByBlock(ctx, int64(height))
+	if err != nil {
+		return nil, err
+	}
+
+	result := []*core_gql.DecodedTransaction{}
+	for _, tx := range txs {
+		result = append(result, &core_gql.DecodedTransaction{
+			BlockHeight: int(tx.BlockHeight),
+			TxIndex:     int(tx.TxIndex),
+			TxHash:      tx.TxHash,
+			TxType:      tx.TxType,
+			TxData:      string(tx.TxData),
+			CreatedAt:   tx.CreatedAt.Time.String(),
+		})
+	}
+	return result, nil
+}
+
 func (r *queryGraphQLServer) GetAnalytics(ctx context.Context) (*core_gql.Analytics, error) {
 	totalBlocks, err := r.db.TotalBlocks(ctx)
 	if err != nil {

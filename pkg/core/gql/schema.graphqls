@@ -87,6 +87,15 @@ type SLAReport {
   timestamp: String!
 }
 
+type DecodedTransaction {
+  blockHeight: Int!
+  txIndex: Int!
+  txHash: String!
+  txType: String!
+  txData: String! # JSON string of decoded transaction data
+  createdAt: String!
+}
+
 type Query {
   # Block queries
   getBlock(height: Int): Block
@@ -96,6 +105,12 @@ type Query {
   # Transaction queries
   getTransaction(hash: String!): Transaction
   getLatestTransactions(limit: Int = 10): [Transaction!]!
+  
+  # Decoded Transaction queries
+  getDecodedTransaction(hash: String!): DecodedTransaction
+  getLatestDecodedTransactions(limit: Int = 10): [DecodedTransaction!]!
+  getDecodedTransactionsByType(txType: String!, limit: Int = 10): [DecodedTransaction!]!
+  getDecodedTransactionsByBlock(height: Int!): [DecodedTransaction!]!
   
   # Analytics queries
   getAnalytics: Analytics!

@@ -180,3 +180,23 @@ where block_height in (
 
 -- name: GetLatestBlock :one
 select * from core_blocks order by height desc limit 1;
+
+-- name: GetDecodedTx :one
+select * from core_decoded_tx
+where tx_hash = $1 limit 1;
+
+-- name: GetLatestDecodedTxs :many
+select * from core_decoded_tx
+order by block_height desc, tx_index desc
+limit $1;
+
+-- name: GetDecodedTxsByType :many
+select * from core_decoded_tx
+where tx_type = $1
+order by block_height desc, tx_index desc
+limit $2;
+
+-- name: GetDecodedTxsByBlock :many
+select * from core_decoded_tx
+where block_height = $1
+order by tx_index asc;

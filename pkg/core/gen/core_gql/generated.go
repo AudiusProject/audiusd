@@ -61,6 +61,15 @@ type ComplexityRoot struct {
 		Transactions func(childComplexity int) int
 	}
 
+	DecodedTransaction struct {
+		BlockHeight func(childComplexity int) int
+		CreatedAt   func(childComplexity int) int
+		TxData      func(childComplexity int) int
+		TxHash      func(childComplexity int) int
+		TxIndex     func(childComplexity int) int
+		TxType      func(childComplexity int) int
+	}
+
 	Node struct {
 		Address      func(childComplexity int) int
 		CometAddress func(childComplexity int) int
@@ -80,22 +89,26 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		GetAllNodes             func(childComplexity int) int
-		GetAllValidatorUptimes  func(childComplexity int, rollupID *int) int
-		GetAnalytics            func(childComplexity int) int
-		GetBlock                func(childComplexity int, height *int) int
-		GetLatestBlock          func(childComplexity int) int
-		GetLatestBlocks         func(childComplexity int, limit *int) int
-		GetLatestSLARollup      func(childComplexity int) int
-		GetLatestTransactions   func(childComplexity int, limit *int) int
-		GetNode                 func(childComplexity int, address string) int
-		GetNodeUptime           func(childComplexity int, address string, rollupID *int) int
-		GetNodesByType          func(childComplexity int, typeArg string) int
-		GetSLARollup            func(childComplexity int, id int) int
-		GetStorageProofs        func(childComplexity int, startBlock int, endBlock int, address *string) int
-		GetStorageProofsByBlock func(childComplexity int, height int) int
-		GetTransaction          func(childComplexity int, hash string) int
-		GetTransactionStats     func(childComplexity int, hours *int) int
+		GetAllNodes                   func(childComplexity int) int
+		GetAllValidatorUptimes        func(childComplexity int, rollupID *int) int
+		GetAnalytics                  func(childComplexity int) int
+		GetBlock                      func(childComplexity int, height *int) int
+		GetDecodedTransaction         func(childComplexity int, hash string) int
+		GetDecodedTransactionsByBlock func(childComplexity int, height int) int
+		GetDecodedTransactionsByType  func(childComplexity int, txType string, limit *int) int
+		GetLatestBlock                func(childComplexity int) int
+		GetLatestBlocks               func(childComplexity int, limit *int) int
+		GetLatestDecodedTransactions  func(childComplexity int, limit *int) int
+		GetLatestSLARollup            func(childComplexity int) int
+		GetLatestTransactions         func(childComplexity int, limit *int) int
+		GetNode                       func(childComplexity int, address string) int
+		GetNodeUptime                 func(childComplexity int, address string, rollupID *int) int
+		GetNodesByType                func(childComplexity int, typeArg string) int
+		GetSLARollup                  func(childComplexity int, id int) int
+		GetStorageProofs              func(childComplexity int, startBlock int, endBlock int, address *string) int
+		GetStorageProofsByBlock       func(childComplexity int, height int) int
+		GetTransaction                func(childComplexity int, hash string) int
+		GetTransactionStats           func(childComplexity int, hours *int) int
 	}
 
 	SLANodeReport struct {
@@ -159,6 +172,10 @@ type QueryResolver interface {
 	GetLatestBlocks(ctx context.Context, limit *int) ([]*Block, error)
 	GetTransaction(ctx context.Context, hash string) (*Transaction, error)
 	GetLatestTransactions(ctx context.Context, limit *int) ([]*Transaction, error)
+	GetDecodedTransaction(ctx context.Context, hash string) (*DecodedTransaction, error)
+	GetLatestDecodedTransactions(ctx context.Context, limit *int) ([]*DecodedTransaction, error)
+	GetDecodedTransactionsByType(ctx context.Context, txType string, limit *int) ([]*DecodedTransaction, error)
+	GetDecodedTransactionsByBlock(ctx context.Context, height int) ([]*DecodedTransaction, error)
 	GetAnalytics(ctx context.Context) (*Analytics, error)
 	GetTransactionStats(ctx context.Context, hours *int) ([]*TransactionStat, error)
 	GetAllNodes(ctx context.Context) ([]*Node, error)
@@ -267,6 +284,48 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Block.Transactions(childComplexity), true
+
+	case "DecodedTransaction.blockHeight":
+		if e.complexity.DecodedTransaction.BlockHeight == nil {
+			break
+		}
+
+		return e.complexity.DecodedTransaction.BlockHeight(childComplexity), true
+
+	case "DecodedTransaction.createdAt":
+		if e.complexity.DecodedTransaction.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.DecodedTransaction.CreatedAt(childComplexity), true
+
+	case "DecodedTransaction.txData":
+		if e.complexity.DecodedTransaction.TxData == nil {
+			break
+		}
+
+		return e.complexity.DecodedTransaction.TxData(childComplexity), true
+
+	case "DecodedTransaction.txHash":
+		if e.complexity.DecodedTransaction.TxHash == nil {
+			break
+		}
+
+		return e.complexity.DecodedTransaction.TxHash(childComplexity), true
+
+	case "DecodedTransaction.txIndex":
+		if e.complexity.DecodedTransaction.TxIndex == nil {
+			break
+		}
+
+		return e.complexity.DecodedTransaction.TxIndex(childComplexity), true
+
+	case "DecodedTransaction.txType":
+		if e.complexity.DecodedTransaction.TxType == nil {
+			break
+		}
+
+		return e.complexity.DecodedTransaction.TxType(childComplexity), true
 
 	case "Node.address":
 		if e.complexity.Node.Address == nil {
@@ -390,6 +449,42 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.GetBlock(childComplexity, args["height"].(*int)), true
 
+	case "Query.getDecodedTransaction":
+		if e.complexity.Query.GetDecodedTransaction == nil {
+			break
+		}
+
+		args, err := ec.field_Query_getDecodedTransaction_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GetDecodedTransaction(childComplexity, args["hash"].(string)), true
+
+	case "Query.getDecodedTransactionsByBlock":
+		if e.complexity.Query.GetDecodedTransactionsByBlock == nil {
+			break
+		}
+
+		args, err := ec.field_Query_getDecodedTransactionsByBlock_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GetDecodedTransactionsByBlock(childComplexity, args["height"].(int)), true
+
+	case "Query.getDecodedTransactionsByType":
+		if e.complexity.Query.GetDecodedTransactionsByType == nil {
+			break
+		}
+
+		args, err := ec.field_Query_getDecodedTransactionsByType_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GetDecodedTransactionsByType(childComplexity, args["txType"].(string), args["limit"].(*int)), true
+
 	case "Query.getLatestBlock":
 		if e.complexity.Query.GetLatestBlock == nil {
 			break
@@ -408,6 +503,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.GetLatestBlocks(childComplexity, args["limit"].(*int)), true
+
+	case "Query.getLatestDecodedTransactions":
+		if e.complexity.Query.GetLatestDecodedTransactions == nil {
+			break
+		}
+
+		args, err := ec.field_Query_getLatestDecodedTransactions_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GetLatestDecodedTransactions(childComplexity, args["limit"].(*int)), true
 
 	case "Query.getLatestSLARollup":
 		if e.complexity.Query.GetLatestSLARollup == nil {
@@ -954,6 +1061,15 @@ type SLAReport {
   timestamp: String!
 }
 
+type DecodedTransaction {
+  blockHeight: Int!
+  txIndex: Int!
+  txHash: String!
+  txType: String!
+  txData: String! # JSON string of decoded transaction data
+  createdAt: String!
+}
+
 type Query {
   # Block queries
   getBlock(height: Int): Block
@@ -963,6 +1079,12 @@ type Query {
   # Transaction queries
   getTransaction(hash: String!): Transaction
   getLatestTransactions(limit: Int = 10): [Transaction!]!
+  
+  # Decoded Transaction queries
+  getDecodedTransaction(hash: String!): DecodedTransaction
+  getLatestDecodedTransactions(limit: Int = 10): [DecodedTransaction!]!
+  getDecodedTransactionsByType(txType: String!, limit: Int = 10): [DecodedTransaction!]!
+  getDecodedTransactionsByBlock(height: Int!): [DecodedTransaction!]!
   
   # Analytics queries
   getAnalytics: Analytics!
@@ -1075,6 +1197,113 @@ func (ec *executionContext) field_Query_getBlock_argsHeight(
 	return zeroVal, nil
 }
 
+func (ec *executionContext) field_Query_getDecodedTransaction_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Query_getDecodedTransaction_argsHash(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["hash"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Query_getDecodedTransaction_argsHash(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	if _, ok := rawArgs["hash"]; !ok {
+		var zeroVal string
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("hash"))
+	if tmp, ok := rawArgs["hash"]; ok {
+		return ec.unmarshalNString2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query_getDecodedTransactionsByBlock_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Query_getDecodedTransactionsByBlock_argsHeight(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["height"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Query_getDecodedTransactionsByBlock_argsHeight(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (int, error) {
+	if _, ok := rawArgs["height"]; !ok {
+		var zeroVal int
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("height"))
+	if tmp, ok := rawArgs["height"]; ok {
+		return ec.unmarshalNInt2int(ctx, tmp)
+	}
+
+	var zeroVal int
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query_getDecodedTransactionsByType_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Query_getDecodedTransactionsByType_argsTxType(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["txType"] = arg0
+	arg1, err := ec.field_Query_getDecodedTransactionsByType_argsLimit(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg1
+	return args, nil
+}
+func (ec *executionContext) field_Query_getDecodedTransactionsByType_argsTxType(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	if _, ok := rawArgs["txType"]; !ok {
+		var zeroVal string
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("txType"))
+	if tmp, ok := rawArgs["txType"]; ok {
+		return ec.unmarshalNString2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query_getDecodedTransactionsByType_argsLimit(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (*int, error) {
+	if _, ok := rawArgs["limit"]; !ok {
+		var zeroVal *int
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("limit"))
+	if tmp, ok := rawArgs["limit"]; ok {
+		return ec.unmarshalOInt2ᚖint(ctx, tmp)
+	}
+
+	var zeroVal *int
+	return zeroVal, nil
+}
+
 func (ec *executionContext) field_Query_getLatestBlocks_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -1086,6 +1315,34 @@ func (ec *executionContext) field_Query_getLatestBlocks_args(ctx context.Context
 	return args, nil
 }
 func (ec *executionContext) field_Query_getLatestBlocks_argsLimit(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (*int, error) {
+	if _, ok := rawArgs["limit"]; !ok {
+		var zeroVal *int
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("limit"))
+	if tmp, ok := rawArgs["limit"]; ok {
+		return ec.unmarshalOInt2ᚖint(ctx, tmp)
+	}
+
+	var zeroVal *int
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query_getLatestDecodedTransactions_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Query_getLatestDecodedTransactions_argsLimit(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Query_getLatestDecodedTransactions_argsLimit(
 	ctx context.Context,
 	rawArgs map[string]any,
 ) (*int, error) {
@@ -2042,6 +2299,270 @@ func (ec *executionContext) fieldContext_Block_timestamp(_ context.Context, fiel
 	return fc, nil
 }
 
+func (ec *executionContext) _DecodedTransaction_blockHeight(ctx context.Context, field graphql.CollectedField, obj *DecodedTransaction) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_DecodedTransaction_blockHeight(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.BlockHeight, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_DecodedTransaction_blockHeight(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "DecodedTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _DecodedTransaction_txIndex(ctx context.Context, field graphql.CollectedField, obj *DecodedTransaction) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_DecodedTransaction_txIndex(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.TxIndex, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_DecodedTransaction_txIndex(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "DecodedTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _DecodedTransaction_txHash(ctx context.Context, field graphql.CollectedField, obj *DecodedTransaction) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_DecodedTransaction_txHash(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.TxHash, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_DecodedTransaction_txHash(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "DecodedTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _DecodedTransaction_txType(ctx context.Context, field graphql.CollectedField, obj *DecodedTransaction) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_DecodedTransaction_txType(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.TxType, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_DecodedTransaction_txType(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "DecodedTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _DecodedTransaction_txData(ctx context.Context, field graphql.CollectedField, obj *DecodedTransaction) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_DecodedTransaction_txData(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.TxData, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_DecodedTransaction_txData(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "DecodedTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _DecodedTransaction_createdAt(ctx context.Context, field graphql.CollectedField, obj *DecodedTransaction) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_DecodedTransaction_createdAt(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.CreatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_DecodedTransaction_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "DecodedTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Node_address(ctx context.Context, field graphql.CollectedField, obj *Node) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Node_address(ctx, field)
 	if err != nil {
@@ -2920,6 +3441,279 @@ func (ec *executionContext) fieldContext_Query_getLatestTransactions(ctx context
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Query_getLatestTransactions_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_getDecodedTransaction(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_getDecodedTransaction(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().GetDecodedTransaction(rctx, fc.Args["hash"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*DecodedTransaction)
+	fc.Result = res
+	return ec.marshalODecodedTransaction2ᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐDecodedTransaction(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_getDecodedTransaction(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "blockHeight":
+				return ec.fieldContext_DecodedTransaction_blockHeight(ctx, field)
+			case "txIndex":
+				return ec.fieldContext_DecodedTransaction_txIndex(ctx, field)
+			case "txHash":
+				return ec.fieldContext_DecodedTransaction_txHash(ctx, field)
+			case "txType":
+				return ec.fieldContext_DecodedTransaction_txType(ctx, field)
+			case "txData":
+				return ec.fieldContext_DecodedTransaction_txData(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_DecodedTransaction_createdAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type DecodedTransaction", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_getDecodedTransaction_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_getLatestDecodedTransactions(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_getLatestDecodedTransactions(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().GetLatestDecodedTransactions(rctx, fc.Args["limit"].(*int))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*DecodedTransaction)
+	fc.Result = res
+	return ec.marshalNDecodedTransaction2ᚕᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐDecodedTransactionᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_getLatestDecodedTransactions(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "blockHeight":
+				return ec.fieldContext_DecodedTransaction_blockHeight(ctx, field)
+			case "txIndex":
+				return ec.fieldContext_DecodedTransaction_txIndex(ctx, field)
+			case "txHash":
+				return ec.fieldContext_DecodedTransaction_txHash(ctx, field)
+			case "txType":
+				return ec.fieldContext_DecodedTransaction_txType(ctx, field)
+			case "txData":
+				return ec.fieldContext_DecodedTransaction_txData(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_DecodedTransaction_createdAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type DecodedTransaction", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_getLatestDecodedTransactions_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_getDecodedTransactionsByType(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_getDecodedTransactionsByType(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().GetDecodedTransactionsByType(rctx, fc.Args["txType"].(string), fc.Args["limit"].(*int))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*DecodedTransaction)
+	fc.Result = res
+	return ec.marshalNDecodedTransaction2ᚕᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐDecodedTransactionᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_getDecodedTransactionsByType(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "blockHeight":
+				return ec.fieldContext_DecodedTransaction_blockHeight(ctx, field)
+			case "txIndex":
+				return ec.fieldContext_DecodedTransaction_txIndex(ctx, field)
+			case "txHash":
+				return ec.fieldContext_DecodedTransaction_txHash(ctx, field)
+			case "txType":
+				return ec.fieldContext_DecodedTransaction_txType(ctx, field)
+			case "txData":
+				return ec.fieldContext_DecodedTransaction_txData(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_DecodedTransaction_createdAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type DecodedTransaction", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_getDecodedTransactionsByType_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_getDecodedTransactionsByBlock(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_getDecodedTransactionsByBlock(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().GetDecodedTransactionsByBlock(rctx, fc.Args["height"].(int))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*DecodedTransaction)
+	fc.Result = res
+	return ec.marshalNDecodedTransaction2ᚕᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐDecodedTransactionᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_getDecodedTransactionsByBlock(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "blockHeight":
+				return ec.fieldContext_DecodedTransaction_blockHeight(ctx, field)
+			case "txIndex":
+				return ec.fieldContext_DecodedTransaction_txIndex(ctx, field)
+			case "txHash":
+				return ec.fieldContext_DecodedTransaction_txHash(ctx, field)
+			case "txType":
+				return ec.fieldContext_DecodedTransaction_txType(ctx, field)
+			case "txData":
+				return ec.fieldContext_DecodedTransaction_txData(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_DecodedTransaction_createdAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type DecodedTransaction", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_getDecodedTransactionsByBlock_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -7438,6 +8232,70 @@ func (ec *executionContext) _Block(ctx context.Context, sel ast.SelectionSet, ob
 	return out
 }
 
+var decodedTransactionImplementors = []string{"DecodedTransaction"}
+
+func (ec *executionContext) _DecodedTransaction(ctx context.Context, sel ast.SelectionSet, obj *DecodedTransaction) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, decodedTransactionImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("DecodedTransaction")
+		case "blockHeight":
+			out.Values[i] = ec._DecodedTransaction_blockHeight(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "txIndex":
+			out.Values[i] = ec._DecodedTransaction_txIndex(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "txHash":
+			out.Values[i] = ec._DecodedTransaction_txHash(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "txType":
+			out.Values[i] = ec._DecodedTransaction_txType(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "txData":
+			out.Values[i] = ec._DecodedTransaction_txData(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createdAt":
+			out.Values[i] = ec._DecodedTransaction_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var nodeImplementors = []string{"Node"}
 
 func (ec *executionContext) _Node(ctx context.Context, sel ast.SelectionSet, obj *Node) graphql.Marshaler {
@@ -7665,6 +8523,91 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_getLatestTransactions(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "getDecodedTransaction":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getDecodedTransaction(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "getLatestDecodedTransactions":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getLatestDecodedTransactions(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "getDecodedTransactionsByType":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getDecodedTransactionsByType(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "getDecodedTransactionsByBlock":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getDecodedTransactionsByBlock(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -8731,6 +9674,60 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
+func (ec *executionContext) marshalNDecodedTransaction2ᚕᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐDecodedTransactionᚄ(ctx context.Context, sel ast.SelectionSet, v []*DecodedTransaction) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNDecodedTransaction2ᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐDecodedTransaction(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNDecodedTransaction2ᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐDecodedTransaction(ctx context.Context, sel ast.SelectionSet, v *DecodedTransaction) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._DecodedTransaction(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNInt2int(ctx context.Context, v any) (int, error) {
 	res, err := graphql.UnmarshalInt(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -9437,6 +10434,13 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	}
 	res := graphql.MarshalBoolean(*v)
 	return res
+}
+
+func (ec *executionContext) marshalODecodedTransaction2ᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐDecodedTransaction(ctx context.Context, sel ast.SelectionSet, v *DecodedTransaction) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._DecodedTransaction(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOInt2ᚖint(ctx context.Context, v any) (*int, error) {
