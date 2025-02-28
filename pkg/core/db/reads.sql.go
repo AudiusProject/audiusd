@@ -150,6 +150,187 @@ func (q *Queries) GetBlockTransactions(ctx context.Context, blockID int64) ([]Co
 	return items, nil
 }
 
+const getDecodedTx = `-- name: GetDecodedTx :one
+select id, block_height, tx_index, tx_hash, tx_type, created_at, signature, request_id, validator_endpoint, validator_comet_address, validator_eth_block, validator_node_type, validator_sp_id, validator_pub_key, validator_power, deregistration_comet_address, deregistration_pub_key, sla_timestamp, sla_block_start, sla_block_end, sla_reports, storage_proof_height, storage_proof_address, storage_proof_prover_addresses, storage_proof_cid, storage_proof_signature, storage_verification_height, storage_verification_proof, manage_entity_user_id, manage_entity_type, manage_entity_id, manage_entity_action, manage_entity_metadata, manage_entity_signature, manage_entity_signer, manage_entity_nonce from core_decoded_tx
+where tx_hash = $1 limit 1
+`
+
+func (q *Queries) GetDecodedTx(ctx context.Context, txHash string) (CoreDecodedTx, error) {
+	row := q.db.QueryRow(ctx, getDecodedTx, txHash)
+	var i CoreDecodedTx
+	err := row.Scan(
+		&i.ID,
+		&i.BlockHeight,
+		&i.TxIndex,
+		&i.TxHash,
+		&i.TxType,
+		&i.CreatedAt,
+		&i.Signature,
+		&i.RequestID,
+		&i.ValidatorEndpoint,
+		&i.ValidatorCometAddress,
+		&i.ValidatorEthBlock,
+		&i.ValidatorNodeType,
+		&i.ValidatorSpID,
+		&i.ValidatorPubKey,
+		&i.ValidatorPower,
+		&i.DeregistrationCometAddress,
+		&i.DeregistrationPubKey,
+		&i.SlaTimestamp,
+		&i.SlaBlockStart,
+		&i.SlaBlockEnd,
+		&i.SlaReports,
+		&i.StorageProofHeight,
+		&i.StorageProofAddress,
+		&i.StorageProofProverAddresses,
+		&i.StorageProofCid,
+		&i.StorageProofSignature,
+		&i.StorageVerificationHeight,
+		&i.StorageVerificationProof,
+		&i.ManageEntityUserID,
+		&i.ManageEntityType,
+		&i.ManageEntityID,
+		&i.ManageEntityAction,
+		&i.ManageEntityMetadata,
+		&i.ManageEntitySignature,
+		&i.ManageEntitySigner,
+		&i.ManageEntityNonce,
+	)
+	return i, err
+}
+
+const getDecodedTxsByBlock = `-- name: GetDecodedTxsByBlock :many
+select id, block_height, tx_index, tx_hash, tx_type, created_at, signature, request_id, validator_endpoint, validator_comet_address, validator_eth_block, validator_node_type, validator_sp_id, validator_pub_key, validator_power, deregistration_comet_address, deregistration_pub_key, sla_timestamp, sla_block_start, sla_block_end, sla_reports, storage_proof_height, storage_proof_address, storage_proof_prover_addresses, storage_proof_cid, storage_proof_signature, storage_verification_height, storage_verification_proof, manage_entity_user_id, manage_entity_type, manage_entity_id, manage_entity_action, manage_entity_metadata, manage_entity_signature, manage_entity_signer, manage_entity_nonce from core_decoded_tx
+where block_height = $1
+order by tx_index asc
+`
+
+func (q *Queries) GetDecodedTxsByBlock(ctx context.Context, blockHeight int64) ([]CoreDecodedTx, error) {
+	rows, err := q.db.Query(ctx, getDecodedTxsByBlock, blockHeight)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CoreDecodedTx
+	for rows.Next() {
+		var i CoreDecodedTx
+		if err := rows.Scan(
+			&i.ID,
+			&i.BlockHeight,
+			&i.TxIndex,
+			&i.TxHash,
+			&i.TxType,
+			&i.CreatedAt,
+			&i.Signature,
+			&i.RequestID,
+			&i.ValidatorEndpoint,
+			&i.ValidatorCometAddress,
+			&i.ValidatorEthBlock,
+			&i.ValidatorNodeType,
+			&i.ValidatorSpID,
+			&i.ValidatorPubKey,
+			&i.ValidatorPower,
+			&i.DeregistrationCometAddress,
+			&i.DeregistrationPubKey,
+			&i.SlaTimestamp,
+			&i.SlaBlockStart,
+			&i.SlaBlockEnd,
+			&i.SlaReports,
+			&i.StorageProofHeight,
+			&i.StorageProofAddress,
+			&i.StorageProofProverAddresses,
+			&i.StorageProofCid,
+			&i.StorageProofSignature,
+			&i.StorageVerificationHeight,
+			&i.StorageVerificationProof,
+			&i.ManageEntityUserID,
+			&i.ManageEntityType,
+			&i.ManageEntityID,
+			&i.ManageEntityAction,
+			&i.ManageEntityMetadata,
+			&i.ManageEntitySignature,
+			&i.ManageEntitySigner,
+			&i.ManageEntityNonce,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getDecodedTxsByType = `-- name: GetDecodedTxsByType :many
+select id, block_height, tx_index, tx_hash, tx_type, created_at, signature, request_id, validator_endpoint, validator_comet_address, validator_eth_block, validator_node_type, validator_sp_id, validator_pub_key, validator_power, deregistration_comet_address, deregistration_pub_key, sla_timestamp, sla_block_start, sla_block_end, sla_reports, storage_proof_height, storage_proof_address, storage_proof_prover_addresses, storage_proof_cid, storage_proof_signature, storage_verification_height, storage_verification_proof, manage_entity_user_id, manage_entity_type, manage_entity_id, manage_entity_action, manage_entity_metadata, manage_entity_signature, manage_entity_signer, manage_entity_nonce from core_decoded_tx
+where tx_type = $1
+order by block_height desc, tx_index desc
+limit $2
+`
+
+type GetDecodedTxsByTypeParams struct {
+	TxType string
+	Limit  int32
+}
+
+func (q *Queries) GetDecodedTxsByType(ctx context.Context, arg GetDecodedTxsByTypeParams) ([]CoreDecodedTx, error) {
+	rows, err := q.db.Query(ctx, getDecodedTxsByType, arg.TxType, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CoreDecodedTx
+	for rows.Next() {
+		var i CoreDecodedTx
+		if err := rows.Scan(
+			&i.ID,
+			&i.BlockHeight,
+			&i.TxIndex,
+			&i.TxHash,
+			&i.TxType,
+			&i.CreatedAt,
+			&i.Signature,
+			&i.RequestID,
+			&i.ValidatorEndpoint,
+			&i.ValidatorCometAddress,
+			&i.ValidatorEthBlock,
+			&i.ValidatorNodeType,
+			&i.ValidatorSpID,
+			&i.ValidatorPubKey,
+			&i.ValidatorPower,
+			&i.DeregistrationCometAddress,
+			&i.DeregistrationPubKey,
+			&i.SlaTimestamp,
+			&i.SlaBlockStart,
+			&i.SlaBlockEnd,
+			&i.SlaReports,
+			&i.StorageProofHeight,
+			&i.StorageProofAddress,
+			&i.StorageProofProverAddresses,
+			&i.StorageProofCid,
+			&i.StorageProofSignature,
+			&i.StorageVerificationHeight,
+			&i.StorageVerificationProof,
+			&i.ManageEntityUserID,
+			&i.ManageEntityType,
+			&i.ManageEntityID,
+			&i.ManageEntityAction,
+			&i.ManageEntityMetadata,
+			&i.ManageEntitySignature,
+			&i.ManageEntitySigner,
+			&i.ManageEntityNonce,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getInProgressRollupReports = `-- name: GetInProgressRollupReports :many
 select id, address, blocks_proposed, sla_rollup_id from sla_node_reports
 where sla_rollup_id is null 
@@ -218,6 +399,69 @@ func (q *Queries) GetLatestBlock(ctx context.Context) (CoreBlock, error) {
 	return i, err
 }
 
+const getLatestDecodedTxs = `-- name: GetLatestDecodedTxs :many
+select id, block_height, tx_index, tx_hash, tx_type, created_at, signature, request_id, validator_endpoint, validator_comet_address, validator_eth_block, validator_node_type, validator_sp_id, validator_pub_key, validator_power, deregistration_comet_address, deregistration_pub_key, sla_timestamp, sla_block_start, sla_block_end, sla_reports, storage_proof_height, storage_proof_address, storage_proof_prover_addresses, storage_proof_cid, storage_proof_signature, storage_verification_height, storage_verification_proof, manage_entity_user_id, manage_entity_type, manage_entity_id, manage_entity_action, manage_entity_metadata, manage_entity_signature, manage_entity_signer, manage_entity_nonce from core_decoded_tx
+order by block_height desc, tx_index desc
+limit $1
+`
+
+func (q *Queries) GetLatestDecodedTxs(ctx context.Context, limit int32) ([]CoreDecodedTx, error) {
+	rows, err := q.db.Query(ctx, getLatestDecodedTxs, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CoreDecodedTx
+	for rows.Next() {
+		var i CoreDecodedTx
+		if err := rows.Scan(
+			&i.ID,
+			&i.BlockHeight,
+			&i.TxIndex,
+			&i.TxHash,
+			&i.TxType,
+			&i.CreatedAt,
+			&i.Signature,
+			&i.RequestID,
+			&i.ValidatorEndpoint,
+			&i.ValidatorCometAddress,
+			&i.ValidatorEthBlock,
+			&i.ValidatorNodeType,
+			&i.ValidatorSpID,
+			&i.ValidatorPubKey,
+			&i.ValidatorPower,
+			&i.DeregistrationCometAddress,
+			&i.DeregistrationPubKey,
+			&i.SlaTimestamp,
+			&i.SlaBlockStart,
+			&i.SlaBlockEnd,
+			&i.SlaReports,
+			&i.StorageProofHeight,
+			&i.StorageProofAddress,
+			&i.StorageProofProverAddresses,
+			&i.StorageProofCid,
+			&i.StorageProofSignature,
+			&i.StorageVerificationHeight,
+			&i.StorageVerificationProof,
+			&i.ManageEntityUserID,
+			&i.ManageEntityType,
+			&i.ManageEntityID,
+			&i.ManageEntityAction,
+			&i.ManageEntityMetadata,
+			&i.ManageEntitySignature,
+			&i.ManageEntitySigner,
+			&i.ManageEntityNonce,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getLatestSlaRollup = `-- name: GetLatestSlaRollup :one
 select id, tx_hash, block_start, block_end, time from sla_rollups order by time desc limit 1
 `
@@ -284,6 +528,281 @@ func (q *Queries) GetNodesByEndpoints(ctx context.Context, dollar_1 []string) ([
 			&i.NodeType,
 			&i.SpID,
 			&i.CometPubKey,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getPlaysByCountry = `-- name: GetPlaysByCountry :many
+select p.id, p.tx_hash, p.user_id, p.track_id, p.timestamp, p.signature, p.city, p.region, p.country, t.block_height, t.created_at
+from core_decoded_tx_plays p
+join core_decoded_tx t on t.tx_hash = p.tx_hash
+where p.country = $1
+order by p.timestamp desc
+limit $2
+`
+
+type GetPlaysByCountryParams struct {
+	Country pgtype.Text
+	Limit   int32
+}
+
+type GetPlaysByCountryRow struct {
+	ID          int64
+	TxHash      string
+	UserID      string
+	TrackID     string
+	Timestamp   pgtype.Timestamptz
+	Signature   pgtype.Text
+	City        pgtype.Text
+	Region      pgtype.Text
+	Country     pgtype.Text
+	BlockHeight int64
+	CreatedAt   pgtype.Timestamptz
+}
+
+func (q *Queries) GetPlaysByCountry(ctx context.Context, arg GetPlaysByCountryParams) ([]GetPlaysByCountryRow, error) {
+	rows, err := q.db.Query(ctx, getPlaysByCountry, arg.Country, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetPlaysByCountryRow
+	for rows.Next() {
+		var i GetPlaysByCountryRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.TxHash,
+			&i.UserID,
+			&i.TrackID,
+			&i.Timestamp,
+			&i.Signature,
+			&i.City,
+			&i.Region,
+			&i.Country,
+			&i.BlockHeight,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getPlaysByTimeRange = `-- name: GetPlaysByTimeRange :many
+select p.id, p.tx_hash, p.user_id, p.track_id, p.timestamp, p.signature, p.city, p.region, p.country, t.block_height, t.created_at
+from core_decoded_tx_plays p
+join core_decoded_tx t on t.tx_hash = p.tx_hash
+where p.timestamp >= $1 and p.timestamp <= $2
+order by p.timestamp desc
+`
+
+type GetPlaysByTimeRangeParams struct {
+	Timestamp   pgtype.Timestamptz
+	Timestamp_2 pgtype.Timestamptz
+}
+
+type GetPlaysByTimeRangeRow struct {
+	ID          int64
+	TxHash      string
+	UserID      string
+	TrackID     string
+	Timestamp   pgtype.Timestamptz
+	Signature   pgtype.Text
+	City        pgtype.Text
+	Region      pgtype.Text
+	Country     pgtype.Text
+	BlockHeight int64
+	CreatedAt   pgtype.Timestamptz
+}
+
+func (q *Queries) GetPlaysByTimeRange(ctx context.Context, arg GetPlaysByTimeRangeParams) ([]GetPlaysByTimeRangeRow, error) {
+	rows, err := q.db.Query(ctx, getPlaysByTimeRange, arg.Timestamp, arg.Timestamp_2)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetPlaysByTimeRangeRow
+	for rows.Next() {
+		var i GetPlaysByTimeRangeRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.TxHash,
+			&i.UserID,
+			&i.TrackID,
+			&i.Timestamp,
+			&i.Signature,
+			&i.City,
+			&i.Region,
+			&i.Country,
+			&i.BlockHeight,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getPlaysByTrack = `-- name: GetPlaysByTrack :many
+select p.id, p.tx_hash, p.user_id, p.track_id, p.timestamp, p.signature, p.city, p.region, p.country, t.block_height, t.created_at
+from core_decoded_tx_plays p
+join core_decoded_tx t on t.tx_hash = p.tx_hash
+where p.track_id = $1
+order by p.timestamp desc
+limit $2
+`
+
+type GetPlaysByTrackParams struct {
+	TrackID string
+	Limit   int32
+}
+
+type GetPlaysByTrackRow struct {
+	ID          int64
+	TxHash      string
+	UserID      string
+	TrackID     string
+	Timestamp   pgtype.Timestamptz
+	Signature   pgtype.Text
+	City        pgtype.Text
+	Region      pgtype.Text
+	Country     pgtype.Text
+	BlockHeight int64
+	CreatedAt   pgtype.Timestamptz
+}
+
+func (q *Queries) GetPlaysByTrack(ctx context.Context, arg GetPlaysByTrackParams) ([]GetPlaysByTrackRow, error) {
+	rows, err := q.db.Query(ctx, getPlaysByTrack, arg.TrackID, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetPlaysByTrackRow
+	for rows.Next() {
+		var i GetPlaysByTrackRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.TxHash,
+			&i.UserID,
+			&i.TrackID,
+			&i.Timestamp,
+			&i.Signature,
+			&i.City,
+			&i.Region,
+			&i.Country,
+			&i.BlockHeight,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getPlaysByTxHash = `-- name: GetPlaysByTxHash :many
+select id, tx_hash, user_id, track_id, timestamp, signature, city, region, country from core_decoded_tx_plays
+where tx_hash = $1
+order by timestamp asc
+`
+
+func (q *Queries) GetPlaysByTxHash(ctx context.Context, txHash string) ([]CoreDecodedTxPlay, error) {
+	rows, err := q.db.Query(ctx, getPlaysByTxHash, txHash)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CoreDecodedTxPlay
+	for rows.Next() {
+		var i CoreDecodedTxPlay
+		if err := rows.Scan(
+			&i.ID,
+			&i.TxHash,
+			&i.UserID,
+			&i.TrackID,
+			&i.Timestamp,
+			&i.Signature,
+			&i.City,
+			&i.Region,
+			&i.Country,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getPlaysByUser = `-- name: GetPlaysByUser :many
+select p.id, p.tx_hash, p.user_id, p.track_id, p.timestamp, p.signature, p.city, p.region, p.country, t.block_height, t.created_at
+from core_decoded_tx_plays p
+join core_decoded_tx t on t.tx_hash = p.tx_hash
+where p.user_id = $1
+order by p.timestamp desc
+limit $2
+`
+
+type GetPlaysByUserParams struct {
+	UserID string
+	Limit  int32
+}
+
+type GetPlaysByUserRow struct {
+	ID          int64
+	TxHash      string
+	UserID      string
+	TrackID     string
+	Timestamp   pgtype.Timestamptz
+	Signature   pgtype.Text
+	City        pgtype.Text
+	Region      pgtype.Text
+	Country     pgtype.Text
+	BlockHeight int64
+	CreatedAt   pgtype.Timestamptz
+}
+
+func (q *Queries) GetPlaysByUser(ctx context.Context, arg GetPlaysByUserParams) ([]GetPlaysByUserRow, error) {
+	rows, err := q.db.Query(ctx, getPlaysByUser, arg.UserID, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetPlaysByUserRow
+	for rows.Next() {
+		var i GetPlaysByUserRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.TxHash,
+			&i.UserID,
+			&i.TrackID,
+			&i.Timestamp,
+			&i.Signature,
+			&i.City,
+			&i.Region,
+			&i.Country,
+			&i.BlockHeight,
+			&i.CreatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -836,6 +1355,57 @@ func (q *Queries) GetTx(ctx context.Context, lower string) (CoreTransaction, err
 		&i.TxHash,
 		&i.Transaction,
 		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const insertPlay = `-- name: InsertPlay :one
+insert into core_decoded_tx_plays (
+    tx_hash,
+    user_id,
+    track_id,
+    timestamp,
+    signature,
+    city,
+    region,
+    country
+) values ($1, $2, $3, $4, $5, $6, $7, $8)
+returning id, tx_hash, user_id, track_id, timestamp, signature, city, region, country
+`
+
+type InsertPlayParams struct {
+	TxHash    string
+	UserID    string
+	TrackID   string
+	Timestamp pgtype.Timestamptz
+	Signature pgtype.Text
+	City      pgtype.Text
+	Region    pgtype.Text
+	Country   pgtype.Text
+}
+
+func (q *Queries) InsertPlay(ctx context.Context, arg InsertPlayParams) (CoreDecodedTxPlay, error) {
+	row := q.db.QueryRow(ctx, insertPlay,
+		arg.TxHash,
+		arg.UserID,
+		arg.TrackID,
+		arg.Timestamp,
+		arg.Signature,
+		arg.City,
+		arg.Region,
+		arg.Country,
+	)
+	var i CoreDecodedTxPlay
+	err := row.Scan(
+		&i.ID,
+		&i.TxHash,
+		&i.UserID,
+		&i.TrackID,
+		&i.Timestamp,
+		&i.Signature,
+		&i.City,
+		&i.Region,
+		&i.Country,
 	)
 	return i, err
 }

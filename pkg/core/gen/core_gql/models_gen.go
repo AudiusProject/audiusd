@@ -19,6 +19,45 @@ type Block struct {
 	Timestamp    string         `json:"timestamp"`
 }
 
+type DecodedTransaction struct {
+	BlockHeight                 int              `json:"blockHeight"`
+	TxIndex                     int              `json:"txIndex"`
+	TxHash                      string           `json:"txHash"`
+	TxType                      string           `json:"txType"`
+	CreatedAt                   string           `json:"createdAt"`
+	Signature                   *string          `json:"signature,omitempty"`
+	RequestID                   *string          `json:"requestId,omitempty"`
+	ValidatorEndpoint           *string          `json:"validatorEndpoint,omitempty"`
+	ValidatorCometAddress       *string          `json:"validatorCometAddress,omitempty"`
+	ValidatorEthBlock           *string          `json:"validatorEthBlock,omitempty"`
+	ValidatorNodeType           *string          `json:"validatorNodeType,omitempty"`
+	ValidatorSpID               *string          `json:"validatorSpId,omitempty"`
+	ValidatorPubKey             *string          `json:"validatorPubKey,omitempty"`
+	ValidatorPower              *int             `json:"validatorPower,omitempty"`
+	DeregistrationCometAddress  *string          `json:"deregistrationCometAddress,omitempty"`
+	DeregistrationPubKey        *string          `json:"deregistrationPubKey,omitempty"`
+	SLATimestamp                *string          `json:"slaTimestamp,omitempty"`
+	SLABlockStart               *int             `json:"slaBlockStart,omitempty"`
+	SLABlockEnd                 *int             `json:"slaBlockEnd,omitempty"`
+	SLAReports                  []*SLANodeReport `json:"slaReports,omitempty"`
+	StorageProofHeight          *int             `json:"storageProofHeight,omitempty"`
+	StorageProofAddress         *string          `json:"storageProofAddress,omitempty"`
+	StorageProofProverAddresses []*string        `json:"storageProofProverAddresses,omitempty"`
+	StorageProofCid             *string          `json:"storageProofCid,omitempty"`
+	StorageProofSignature       *string          `json:"storageProofSignature,omitempty"`
+	StorageVerificationHeight   *int             `json:"storageVerificationHeight,omitempty"`
+	StorageVerificationProof    *string          `json:"storageVerificationProof,omitempty"`
+	ManageEntityUserID          *int             `json:"manageEntityUserId,omitempty"`
+	ManageEntityType            *string          `json:"manageEntityType,omitempty"`
+	ManageEntityID              *int             `json:"manageEntityId,omitempty"`
+	ManageEntityAction          *string          `json:"manageEntityAction,omitempty"`
+	ManageEntityMetadata        *string          `json:"manageEntityMetadata,omitempty"`
+	ManageEntitySignature       *string          `json:"manageEntitySignature,omitempty"`
+	ManageEntitySigner          *string          `json:"manageEntitySigner,omitempty"`
+	ManageEntityNonce           *string          `json:"manageEntityNonce,omitempty"`
+	Plays                       []*TrackPlay     `json:"plays,omitempty"`
+}
+
 type Node struct {
 	Address      string  `json:"address"`
 	Endpoint     string  `json:"endpoint"`
@@ -77,6 +116,20 @@ type StorageProof struct {
 	Status         string  `json:"status"`
 	ProofSignature *string `json:"proofSignature,omitempty"`
 	Proof          *string `json:"proof,omitempty"`
+}
+
+type TrackPlay struct {
+	ID          int     `json:"id"`
+	TxHash      string  `json:"txHash"`
+	UserID      string  `json:"userId"`
+	TrackID     string  `json:"trackId"`
+	Timestamp   string  `json:"timestamp"`
+	Signature   *string `json:"signature,omitempty"`
+	City        *string `json:"city,omitempty"`
+	Region      *string `json:"region,omitempty"`
+	Country     *string `json:"country,omitempty"`
+	BlockHeight *int    `json:"blockHeight,omitempty"`
+	CreatedAt   *string `json:"createdAt,omitempty"`
 }
 
 type Transaction struct {

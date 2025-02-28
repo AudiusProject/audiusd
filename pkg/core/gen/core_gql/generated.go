@@ -61,6 +61,45 @@ type ComplexityRoot struct {
 		Transactions func(childComplexity int) int
 	}
 
+	DecodedTransaction struct {
+		BlockHeight                 func(childComplexity int) int
+		CreatedAt                   func(childComplexity int) int
+		DeregistrationCometAddress  func(childComplexity int) int
+		DeregistrationPubKey        func(childComplexity int) int
+		ManageEntityAction          func(childComplexity int) int
+		ManageEntityID              func(childComplexity int) int
+		ManageEntityMetadata        func(childComplexity int) int
+		ManageEntityNonce           func(childComplexity int) int
+		ManageEntitySignature       func(childComplexity int) int
+		ManageEntitySigner          func(childComplexity int) int
+		ManageEntityType            func(childComplexity int) int
+		ManageEntityUserID          func(childComplexity int) int
+		Plays                       func(childComplexity int) int
+		RequestID                   func(childComplexity int) int
+		SLABlockEnd                 func(childComplexity int) int
+		SLABlockStart               func(childComplexity int) int
+		SLAReports                  func(childComplexity int) int
+		SLATimestamp                func(childComplexity int) int
+		Signature                   func(childComplexity int) int
+		StorageProofAddress         func(childComplexity int) int
+		StorageProofCid             func(childComplexity int) int
+		StorageProofHeight          func(childComplexity int) int
+		StorageProofProverAddresses func(childComplexity int) int
+		StorageProofSignature       func(childComplexity int) int
+		StorageVerificationHeight   func(childComplexity int) int
+		StorageVerificationProof    func(childComplexity int) int
+		TxHash                      func(childComplexity int) int
+		TxIndex                     func(childComplexity int) int
+		TxType                      func(childComplexity int) int
+		ValidatorCometAddress       func(childComplexity int) int
+		ValidatorEndpoint           func(childComplexity int) int
+		ValidatorEthBlock           func(childComplexity int) int
+		ValidatorNodeType           func(childComplexity int) int
+		ValidatorPower              func(childComplexity int) int
+		ValidatorPubKey             func(childComplexity int) int
+		ValidatorSpID               func(childComplexity int) int
+	}
+
 	Node struct {
 		Address      func(childComplexity int) int
 		CometAddress func(childComplexity int) int
@@ -80,22 +119,31 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		GetAllNodes             func(childComplexity int) int
-		GetAllValidatorUptimes  func(childComplexity int, rollupID *int) int
-		GetAnalytics            func(childComplexity int) int
-		GetBlock                func(childComplexity int, height *int) int
-		GetLatestBlock          func(childComplexity int) int
-		GetLatestBlocks         func(childComplexity int, limit *int) int
-		GetLatestSLARollup      func(childComplexity int) int
-		GetLatestTransactions   func(childComplexity int, limit *int) int
-		GetNode                 func(childComplexity int, address string) int
-		GetNodeUptime           func(childComplexity int, address string, rollupID *int) int
-		GetNodesByType          func(childComplexity int, typeArg string) int
-		GetSLARollup            func(childComplexity int, id int) int
-		GetStorageProofs        func(childComplexity int, startBlock int, endBlock int, address *string) int
-		GetStorageProofsByBlock func(childComplexity int, height int) int
-		GetTransaction          func(childComplexity int, hash string) int
-		GetTransactionStats     func(childComplexity int, hours *int) int
+		GetAllNodes                   func(childComplexity int) int
+		GetAllValidatorUptimes        func(childComplexity int, rollupID *int) int
+		GetAnalytics                  func(childComplexity int) int
+		GetBlock                      func(childComplexity int, height *int) int
+		GetDecodedTransaction         func(childComplexity int, hash string) int
+		GetDecodedTransactionsByBlock func(childComplexity int, height int) int
+		GetDecodedTransactionsByType  func(childComplexity int, txType string, limit *int) int
+		GetLatestBlock                func(childComplexity int) int
+		GetLatestBlocks               func(childComplexity int, limit *int) int
+		GetLatestDecodedTransactions  func(childComplexity int, limit *int) int
+		GetLatestSLARollup            func(childComplexity int) int
+		GetLatestTransactions         func(childComplexity int, limit *int) int
+		GetNode                       func(childComplexity int, address string) int
+		GetNodeUptime                 func(childComplexity int, address string, rollupID *int) int
+		GetNodesByType                func(childComplexity int, typeArg string) int
+		GetPlaysByCountry             func(childComplexity int, country string, limit *int) int
+		GetPlaysByTimeRange           func(childComplexity int, startTime string, endTime string) int
+		GetPlaysByTrack               func(childComplexity int, trackID string, limit *int) int
+		GetPlaysByTxHash              func(childComplexity int, txHash string) int
+		GetPlaysByUser                func(childComplexity int, userID string, limit *int) int
+		GetSLARollup                  func(childComplexity int, id int) int
+		GetStorageProofs              func(childComplexity int, startBlock int, endBlock int, address *string) int
+		GetStorageProofsByBlock       func(childComplexity int, height int) int
+		GetTransaction                func(childComplexity int, hash string) int
+		GetTransactionStats           func(childComplexity int, hours *int) int
 	}
 
 	SLANodeReport struct {
@@ -137,6 +185,20 @@ type ComplexityRoot struct {
 		Status         func(childComplexity int) int
 	}
 
+	TrackPlay struct {
+		BlockHeight func(childComplexity int) int
+		City        func(childComplexity int) int
+		Country     func(childComplexity int) int
+		CreatedAt   func(childComplexity int) int
+		ID          func(childComplexity int) int
+		Region      func(childComplexity int) int
+		Signature   func(childComplexity int) int
+		Timestamp   func(childComplexity int) int
+		TrackID     func(childComplexity int) int
+		TxHash      func(childComplexity int) int
+		UserID      func(childComplexity int) int
+	}
+
 	Transaction struct {
 		BlockHeight func(childComplexity int) int
 		Data        func(childComplexity int) int
@@ -159,6 +221,15 @@ type QueryResolver interface {
 	GetLatestBlocks(ctx context.Context, limit *int) ([]*Block, error)
 	GetTransaction(ctx context.Context, hash string) (*Transaction, error)
 	GetLatestTransactions(ctx context.Context, limit *int) ([]*Transaction, error)
+	GetDecodedTransaction(ctx context.Context, hash string) (*DecodedTransaction, error)
+	GetLatestDecodedTransactions(ctx context.Context, limit *int) ([]*DecodedTransaction, error)
+	GetDecodedTransactionsByType(ctx context.Context, txType string, limit *int) ([]*DecodedTransaction, error)
+	GetDecodedTransactionsByBlock(ctx context.Context, height int) ([]*DecodedTransaction, error)
+	GetPlaysByTxHash(ctx context.Context, txHash string) ([]*TrackPlay, error)
+	GetPlaysByUser(ctx context.Context, userID string, limit *int) ([]*TrackPlay, error)
+	GetPlaysByTrack(ctx context.Context, trackID string, limit *int) ([]*TrackPlay, error)
+	GetPlaysByTimeRange(ctx context.Context, startTime string, endTime string) ([]*TrackPlay, error)
+	GetPlaysByCountry(ctx context.Context, country string, limit *int) ([]*TrackPlay, error)
 	GetAnalytics(ctx context.Context) (*Analytics, error)
 	GetTransactionStats(ctx context.Context, hours *int) ([]*TransactionStat, error)
 	GetAllNodes(ctx context.Context) ([]*Node, error)
@@ -267,6 +338,258 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Block.Transactions(childComplexity), true
+
+	case "DecodedTransaction.blockHeight":
+		if e.complexity.DecodedTransaction.BlockHeight == nil {
+			break
+		}
+
+		return e.complexity.DecodedTransaction.BlockHeight(childComplexity), true
+
+	case "DecodedTransaction.createdAt":
+		if e.complexity.DecodedTransaction.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.DecodedTransaction.CreatedAt(childComplexity), true
+
+	case "DecodedTransaction.deregistrationCometAddress":
+		if e.complexity.DecodedTransaction.DeregistrationCometAddress == nil {
+			break
+		}
+
+		return e.complexity.DecodedTransaction.DeregistrationCometAddress(childComplexity), true
+
+	case "DecodedTransaction.deregistrationPubKey":
+		if e.complexity.DecodedTransaction.DeregistrationPubKey == nil {
+			break
+		}
+
+		return e.complexity.DecodedTransaction.DeregistrationPubKey(childComplexity), true
+
+	case "DecodedTransaction.manageEntityAction":
+		if e.complexity.DecodedTransaction.ManageEntityAction == nil {
+			break
+		}
+
+		return e.complexity.DecodedTransaction.ManageEntityAction(childComplexity), true
+
+	case "DecodedTransaction.manageEntityId":
+		if e.complexity.DecodedTransaction.ManageEntityID == nil {
+			break
+		}
+
+		return e.complexity.DecodedTransaction.ManageEntityID(childComplexity), true
+
+	case "DecodedTransaction.manageEntityMetadata":
+		if e.complexity.DecodedTransaction.ManageEntityMetadata == nil {
+			break
+		}
+
+		return e.complexity.DecodedTransaction.ManageEntityMetadata(childComplexity), true
+
+	case "DecodedTransaction.manageEntityNonce":
+		if e.complexity.DecodedTransaction.ManageEntityNonce == nil {
+			break
+		}
+
+		return e.complexity.DecodedTransaction.ManageEntityNonce(childComplexity), true
+
+	case "DecodedTransaction.manageEntitySignature":
+		if e.complexity.DecodedTransaction.ManageEntitySignature == nil {
+			break
+		}
+
+		return e.complexity.DecodedTransaction.ManageEntitySignature(childComplexity), true
+
+	case "DecodedTransaction.manageEntitySigner":
+		if e.complexity.DecodedTransaction.ManageEntitySigner == nil {
+			break
+		}
+
+		return e.complexity.DecodedTransaction.ManageEntitySigner(childComplexity), true
+
+	case "DecodedTransaction.manageEntityType":
+		if e.complexity.DecodedTransaction.ManageEntityType == nil {
+			break
+		}
+
+		return e.complexity.DecodedTransaction.ManageEntityType(childComplexity), true
+
+	case "DecodedTransaction.manageEntityUserId":
+		if e.complexity.DecodedTransaction.ManageEntityUserID == nil {
+			break
+		}
+
+		return e.complexity.DecodedTransaction.ManageEntityUserID(childComplexity), true
+
+	case "DecodedTransaction.plays":
+		if e.complexity.DecodedTransaction.Plays == nil {
+			break
+		}
+
+		return e.complexity.DecodedTransaction.Plays(childComplexity), true
+
+	case "DecodedTransaction.requestId":
+		if e.complexity.DecodedTransaction.RequestID == nil {
+			break
+		}
+
+		return e.complexity.DecodedTransaction.RequestID(childComplexity), true
+
+	case "DecodedTransaction.slaBlockEnd":
+		if e.complexity.DecodedTransaction.SLABlockEnd == nil {
+			break
+		}
+
+		return e.complexity.DecodedTransaction.SLABlockEnd(childComplexity), true
+
+	case "DecodedTransaction.slaBlockStart":
+		if e.complexity.DecodedTransaction.SLABlockStart == nil {
+			break
+		}
+
+		return e.complexity.DecodedTransaction.SLABlockStart(childComplexity), true
+
+	case "DecodedTransaction.slaReports":
+		if e.complexity.DecodedTransaction.SLAReports == nil {
+			break
+		}
+
+		return e.complexity.DecodedTransaction.SLAReports(childComplexity), true
+
+	case "DecodedTransaction.slaTimestamp":
+		if e.complexity.DecodedTransaction.SLATimestamp == nil {
+			break
+		}
+
+		return e.complexity.DecodedTransaction.SLATimestamp(childComplexity), true
+
+	case "DecodedTransaction.signature":
+		if e.complexity.DecodedTransaction.Signature == nil {
+			break
+		}
+
+		return e.complexity.DecodedTransaction.Signature(childComplexity), true
+
+	case "DecodedTransaction.storageProofAddress":
+		if e.complexity.DecodedTransaction.StorageProofAddress == nil {
+			break
+		}
+
+		return e.complexity.DecodedTransaction.StorageProofAddress(childComplexity), true
+
+	case "DecodedTransaction.storageProofCid":
+		if e.complexity.DecodedTransaction.StorageProofCid == nil {
+			break
+		}
+
+		return e.complexity.DecodedTransaction.StorageProofCid(childComplexity), true
+
+	case "DecodedTransaction.storageProofHeight":
+		if e.complexity.DecodedTransaction.StorageProofHeight == nil {
+			break
+		}
+
+		return e.complexity.DecodedTransaction.StorageProofHeight(childComplexity), true
+
+	case "DecodedTransaction.storageProofProverAddresses":
+		if e.complexity.DecodedTransaction.StorageProofProverAddresses == nil {
+			break
+		}
+
+		return e.complexity.DecodedTransaction.StorageProofProverAddresses(childComplexity), true
+
+	case "DecodedTransaction.storageProofSignature":
+		if e.complexity.DecodedTransaction.StorageProofSignature == nil {
+			break
+		}
+
+		return e.complexity.DecodedTransaction.StorageProofSignature(childComplexity), true
+
+	case "DecodedTransaction.storageVerificationHeight":
+		if e.complexity.DecodedTransaction.StorageVerificationHeight == nil {
+			break
+		}
+
+		return e.complexity.DecodedTransaction.StorageVerificationHeight(childComplexity), true
+
+	case "DecodedTransaction.storageVerificationProof":
+		if e.complexity.DecodedTransaction.StorageVerificationProof == nil {
+			break
+		}
+
+		return e.complexity.DecodedTransaction.StorageVerificationProof(childComplexity), true
+
+	case "DecodedTransaction.txHash":
+		if e.complexity.DecodedTransaction.TxHash == nil {
+			break
+		}
+
+		return e.complexity.DecodedTransaction.TxHash(childComplexity), true
+
+	case "DecodedTransaction.txIndex":
+		if e.complexity.DecodedTransaction.TxIndex == nil {
+			break
+		}
+
+		return e.complexity.DecodedTransaction.TxIndex(childComplexity), true
+
+	case "DecodedTransaction.txType":
+		if e.complexity.DecodedTransaction.TxType == nil {
+			break
+		}
+
+		return e.complexity.DecodedTransaction.TxType(childComplexity), true
+
+	case "DecodedTransaction.validatorCometAddress":
+		if e.complexity.DecodedTransaction.ValidatorCometAddress == nil {
+			break
+		}
+
+		return e.complexity.DecodedTransaction.ValidatorCometAddress(childComplexity), true
+
+	case "DecodedTransaction.validatorEndpoint":
+		if e.complexity.DecodedTransaction.ValidatorEndpoint == nil {
+			break
+		}
+
+		return e.complexity.DecodedTransaction.ValidatorEndpoint(childComplexity), true
+
+	case "DecodedTransaction.validatorEthBlock":
+		if e.complexity.DecodedTransaction.ValidatorEthBlock == nil {
+			break
+		}
+
+		return e.complexity.DecodedTransaction.ValidatorEthBlock(childComplexity), true
+
+	case "DecodedTransaction.validatorNodeType":
+		if e.complexity.DecodedTransaction.ValidatorNodeType == nil {
+			break
+		}
+
+		return e.complexity.DecodedTransaction.ValidatorNodeType(childComplexity), true
+
+	case "DecodedTransaction.validatorPower":
+		if e.complexity.DecodedTransaction.ValidatorPower == nil {
+			break
+		}
+
+		return e.complexity.DecodedTransaction.ValidatorPower(childComplexity), true
+
+	case "DecodedTransaction.validatorPubKey":
+		if e.complexity.DecodedTransaction.ValidatorPubKey == nil {
+			break
+		}
+
+		return e.complexity.DecodedTransaction.ValidatorPubKey(childComplexity), true
+
+	case "DecodedTransaction.validatorSpId":
+		if e.complexity.DecodedTransaction.ValidatorSpID == nil {
+			break
+		}
+
+		return e.complexity.DecodedTransaction.ValidatorSpID(childComplexity), true
 
 	case "Node.address":
 		if e.complexity.Node.Address == nil {
@@ -390,6 +713,42 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.GetBlock(childComplexity, args["height"].(*int)), true
 
+	case "Query.getDecodedTransaction":
+		if e.complexity.Query.GetDecodedTransaction == nil {
+			break
+		}
+
+		args, err := ec.field_Query_getDecodedTransaction_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GetDecodedTransaction(childComplexity, args["hash"].(string)), true
+
+	case "Query.getDecodedTransactionsByBlock":
+		if e.complexity.Query.GetDecodedTransactionsByBlock == nil {
+			break
+		}
+
+		args, err := ec.field_Query_getDecodedTransactionsByBlock_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GetDecodedTransactionsByBlock(childComplexity, args["height"].(int)), true
+
+	case "Query.getDecodedTransactionsByType":
+		if e.complexity.Query.GetDecodedTransactionsByType == nil {
+			break
+		}
+
+		args, err := ec.field_Query_getDecodedTransactionsByType_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GetDecodedTransactionsByType(childComplexity, args["txType"].(string), args["limit"].(*int)), true
+
 	case "Query.getLatestBlock":
 		if e.complexity.Query.GetLatestBlock == nil {
 			break
@@ -408,6 +767,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.GetLatestBlocks(childComplexity, args["limit"].(*int)), true
+
+	case "Query.getLatestDecodedTransactions":
+		if e.complexity.Query.GetLatestDecodedTransactions == nil {
+			break
+		}
+
+		args, err := ec.field_Query_getLatestDecodedTransactions_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GetLatestDecodedTransactions(childComplexity, args["limit"].(*int)), true
 
 	case "Query.getLatestSLARollup":
 		if e.complexity.Query.GetLatestSLARollup == nil {
@@ -463,6 +834,66 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.GetNodesByType(childComplexity, args["type"].(string)), true
+
+	case "Query.getPlaysByCountry":
+		if e.complexity.Query.GetPlaysByCountry == nil {
+			break
+		}
+
+		args, err := ec.field_Query_getPlaysByCountry_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GetPlaysByCountry(childComplexity, args["country"].(string), args["limit"].(*int)), true
+
+	case "Query.getPlaysByTimeRange":
+		if e.complexity.Query.GetPlaysByTimeRange == nil {
+			break
+		}
+
+		args, err := ec.field_Query_getPlaysByTimeRange_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GetPlaysByTimeRange(childComplexity, args["startTime"].(string), args["endTime"].(string)), true
+
+	case "Query.getPlaysByTrack":
+		if e.complexity.Query.GetPlaysByTrack == nil {
+			break
+		}
+
+		args, err := ec.field_Query_getPlaysByTrack_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GetPlaysByTrack(childComplexity, args["trackId"].(string), args["limit"].(*int)), true
+
+	case "Query.getPlaysByTxHash":
+		if e.complexity.Query.GetPlaysByTxHash == nil {
+			break
+		}
+
+		args, err := ec.field_Query_getPlaysByTxHash_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GetPlaysByTxHash(childComplexity, args["txHash"].(string)), true
+
+	case "Query.getPlaysByUser":
+		if e.complexity.Query.GetPlaysByUser == nil {
+			break
+		}
+
+		args, err := ec.field_Query_getPlaysByUser_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GetPlaysByUser(childComplexity, args["userId"].(string), args["limit"].(*int)), true
 
 	case "Query.getSLARollup":
 		if e.complexity.Query.GetSLARollup == nil {
@@ -713,6 +1144,83 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.StorageProof.Status(childComplexity), true
 
+	case "TrackPlay.blockHeight":
+		if e.complexity.TrackPlay.BlockHeight == nil {
+			break
+		}
+
+		return e.complexity.TrackPlay.BlockHeight(childComplexity), true
+
+	case "TrackPlay.city":
+		if e.complexity.TrackPlay.City == nil {
+			break
+		}
+
+		return e.complexity.TrackPlay.City(childComplexity), true
+
+	case "TrackPlay.country":
+		if e.complexity.TrackPlay.Country == nil {
+			break
+		}
+
+		return e.complexity.TrackPlay.Country(childComplexity), true
+
+	case "TrackPlay.createdAt":
+		if e.complexity.TrackPlay.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.TrackPlay.CreatedAt(childComplexity), true
+
+	case "TrackPlay.id":
+		if e.complexity.TrackPlay.ID == nil {
+			break
+		}
+
+		return e.complexity.TrackPlay.ID(childComplexity), true
+
+	case "TrackPlay.region":
+		if e.complexity.TrackPlay.Region == nil {
+			break
+		}
+
+		return e.complexity.TrackPlay.Region(childComplexity), true
+
+	case "TrackPlay.signature":
+		if e.complexity.TrackPlay.Signature == nil {
+			break
+		}
+
+		return e.complexity.TrackPlay.Signature(childComplexity), true
+
+	case "TrackPlay.timestamp":
+		if e.complexity.TrackPlay.Timestamp == nil {
+			break
+		}
+
+		return e.complexity.TrackPlay.Timestamp(childComplexity), true
+
+	case "TrackPlay.trackId":
+		if e.complexity.TrackPlay.TrackID == nil {
+			break
+		}
+
+		return e.complexity.TrackPlay.TrackID(childComplexity), true
+
+	case "TrackPlay.txHash":
+		if e.complexity.TrackPlay.TxHash == nil {
+			break
+		}
+
+		return e.complexity.TrackPlay.TxHash(childComplexity), true
+
+	case "TrackPlay.userId":
+		if e.complexity.TrackPlay.UserID == nil {
+			break
+		}
+
+		return e.complexity.TrackPlay.UserID(childComplexity), true
+
 	case "Transaction.blockHeight":
 		if e.complexity.Transaction.BlockHeight == nil {
 			break
@@ -954,6 +1462,75 @@ type SLAReport {
   timestamp: String!
 }
 
+type TrackPlay {
+  id: Int!
+  txHash: String!
+  userId: String!
+  trackId: String!
+  timestamp: String!
+  signature: String
+  city: String
+  region: String
+  country: String
+  blockHeight: Int
+  createdAt: String
+}
+
+type DecodedTransaction {
+  blockHeight: Int!
+  txIndex: Int!
+  txHash: String!
+  txType: String!
+  createdAt: String!
+
+  # Common fields
+  signature: String
+  requestId: String
+
+  # ValidatorRegistration fields
+  validatorEndpoint: String
+  validatorCometAddress: String
+  validatorEthBlock: String
+  validatorNodeType: String
+  validatorSpId: String
+  validatorPubKey: String
+  validatorPower: Int
+
+  # ValidatorDeregistration fields
+  deregistrationCometAddress: String
+  deregistrationPubKey: String
+
+  # SlaRollup fields
+  slaTimestamp: String
+  slaBlockStart: Int
+  slaBlockEnd: Int
+  slaReports: [SLANodeReport]
+
+  # StorageProof fields
+  storageProofHeight: Int
+  storageProofAddress: String
+  storageProofProverAddresses: [String]
+  storageProofCid: String
+  storageProofSignature: String
+
+  # StorageProofVerification fields
+  storageVerificationHeight: Int
+  storageVerificationProof: String
+
+  # ManageEntity fields
+  manageEntityUserId: Int
+  manageEntityType: String
+  manageEntityId: Int
+  manageEntityAction: String
+  manageEntityMetadata: String
+  manageEntitySignature: String
+  manageEntitySigner: String
+  manageEntityNonce: String
+
+  # Associated plays
+  plays: [TrackPlay]
+}
+
 type Query {
   # Block queries
   getBlock(height: Int): Block
@@ -963,6 +1540,19 @@ type Query {
   # Transaction queries
   getTransaction(hash: String!): Transaction
   getLatestTransactions(limit: Int = 10): [Transaction!]!
+  
+  # Decoded Transaction queries
+  getDecodedTransaction(hash: String!): DecodedTransaction
+  getLatestDecodedTransactions(limit: Int = 10): [DecodedTransaction!]!
+  getDecodedTransactionsByType(txType: String!, limit: Int = 10): [DecodedTransaction!]!
+  getDecodedTransactionsByBlock(height: Int!): [DecodedTransaction!]!
+  
+  # Play queries
+  getPlaysByTxHash(txHash: String!): [TrackPlay!]!
+  getPlaysByUser(userId: String!, limit: Int = 10): [TrackPlay!]!
+  getPlaysByTrack(trackId: String!, limit: Int = 10): [TrackPlay!]!
+  getPlaysByTimeRange(startTime: String!, endTime: String!): [TrackPlay!]!
+  getPlaysByCountry(country: String!, limit: Int = 10): [TrackPlay!]!
   
   # Analytics queries
   getAnalytics: Analytics!
@@ -1075,6 +1665,113 @@ func (ec *executionContext) field_Query_getBlock_argsHeight(
 	return zeroVal, nil
 }
 
+func (ec *executionContext) field_Query_getDecodedTransaction_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Query_getDecodedTransaction_argsHash(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["hash"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Query_getDecodedTransaction_argsHash(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	if _, ok := rawArgs["hash"]; !ok {
+		var zeroVal string
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("hash"))
+	if tmp, ok := rawArgs["hash"]; ok {
+		return ec.unmarshalNString2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query_getDecodedTransactionsByBlock_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Query_getDecodedTransactionsByBlock_argsHeight(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["height"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Query_getDecodedTransactionsByBlock_argsHeight(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (int, error) {
+	if _, ok := rawArgs["height"]; !ok {
+		var zeroVal int
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("height"))
+	if tmp, ok := rawArgs["height"]; ok {
+		return ec.unmarshalNInt2int(ctx, tmp)
+	}
+
+	var zeroVal int
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query_getDecodedTransactionsByType_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Query_getDecodedTransactionsByType_argsTxType(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["txType"] = arg0
+	arg1, err := ec.field_Query_getDecodedTransactionsByType_argsLimit(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg1
+	return args, nil
+}
+func (ec *executionContext) field_Query_getDecodedTransactionsByType_argsTxType(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	if _, ok := rawArgs["txType"]; !ok {
+		var zeroVal string
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("txType"))
+	if tmp, ok := rawArgs["txType"]; ok {
+		return ec.unmarshalNString2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query_getDecodedTransactionsByType_argsLimit(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (*int, error) {
+	if _, ok := rawArgs["limit"]; !ok {
+		var zeroVal *int
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("limit"))
+	if tmp, ok := rawArgs["limit"]; ok {
+		return ec.unmarshalOInt2ᚖint(ctx, tmp)
+	}
+
+	var zeroVal *int
+	return zeroVal, nil
+}
+
 func (ec *executionContext) field_Query_getLatestBlocks_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -1086,6 +1783,34 @@ func (ec *executionContext) field_Query_getLatestBlocks_args(ctx context.Context
 	return args, nil
 }
 func (ec *executionContext) field_Query_getLatestBlocks_argsLimit(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (*int, error) {
+	if _, ok := rawArgs["limit"]; !ok {
+		var zeroVal *int
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("limit"))
+	if tmp, ok := rawArgs["limit"]; ok {
+		return ec.unmarshalOInt2ᚖint(ctx, tmp)
+	}
+
+	var zeroVal *int
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query_getLatestDecodedTransactions_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Query_getLatestDecodedTransactions_argsLimit(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Query_getLatestDecodedTransactions_argsLimit(
 	ctx context.Context,
 	rawArgs map[string]any,
 ) (*int, error) {
@@ -1235,6 +1960,238 @@ func (ec *executionContext) field_Query_getNodesByType_argsType(
 	}
 
 	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query_getPlaysByCountry_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Query_getPlaysByCountry_argsCountry(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["country"] = arg0
+	arg1, err := ec.field_Query_getPlaysByCountry_argsLimit(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg1
+	return args, nil
+}
+func (ec *executionContext) field_Query_getPlaysByCountry_argsCountry(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	if _, ok := rawArgs["country"]; !ok {
+		var zeroVal string
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("country"))
+	if tmp, ok := rawArgs["country"]; ok {
+		return ec.unmarshalNString2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query_getPlaysByCountry_argsLimit(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (*int, error) {
+	if _, ok := rawArgs["limit"]; !ok {
+		var zeroVal *int
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("limit"))
+	if tmp, ok := rawArgs["limit"]; ok {
+		return ec.unmarshalOInt2ᚖint(ctx, tmp)
+	}
+
+	var zeroVal *int
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query_getPlaysByTimeRange_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Query_getPlaysByTimeRange_argsStartTime(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["startTime"] = arg0
+	arg1, err := ec.field_Query_getPlaysByTimeRange_argsEndTime(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["endTime"] = arg1
+	return args, nil
+}
+func (ec *executionContext) field_Query_getPlaysByTimeRange_argsStartTime(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	if _, ok := rawArgs["startTime"]; !ok {
+		var zeroVal string
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("startTime"))
+	if tmp, ok := rawArgs["startTime"]; ok {
+		return ec.unmarshalNString2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query_getPlaysByTimeRange_argsEndTime(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	if _, ok := rawArgs["endTime"]; !ok {
+		var zeroVal string
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("endTime"))
+	if tmp, ok := rawArgs["endTime"]; ok {
+		return ec.unmarshalNString2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query_getPlaysByTrack_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Query_getPlaysByTrack_argsTrackID(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["trackId"] = arg0
+	arg1, err := ec.field_Query_getPlaysByTrack_argsLimit(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg1
+	return args, nil
+}
+func (ec *executionContext) field_Query_getPlaysByTrack_argsTrackID(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	if _, ok := rawArgs["trackId"]; !ok {
+		var zeroVal string
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("trackId"))
+	if tmp, ok := rawArgs["trackId"]; ok {
+		return ec.unmarshalNString2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query_getPlaysByTrack_argsLimit(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (*int, error) {
+	if _, ok := rawArgs["limit"]; !ok {
+		var zeroVal *int
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("limit"))
+	if tmp, ok := rawArgs["limit"]; ok {
+		return ec.unmarshalOInt2ᚖint(ctx, tmp)
+	}
+
+	var zeroVal *int
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query_getPlaysByTxHash_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Query_getPlaysByTxHash_argsTxHash(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["txHash"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Query_getPlaysByTxHash_argsTxHash(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	if _, ok := rawArgs["txHash"]; !ok {
+		var zeroVal string
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("txHash"))
+	if tmp, ok := rawArgs["txHash"]; ok {
+		return ec.unmarshalNString2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query_getPlaysByUser_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Query_getPlaysByUser_argsUserID(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["userId"] = arg0
+	arg1, err := ec.field_Query_getPlaysByUser_argsLimit(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg1
+	return args, nil
+}
+func (ec *executionContext) field_Query_getPlaysByUser_argsUserID(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	if _, ok := rawArgs["userId"]; !ok {
+		var zeroVal string
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
+	if tmp, ok := rawArgs["userId"]; ok {
+		return ec.unmarshalNString2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query_getPlaysByUser_argsLimit(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (*int, error) {
+	if _, ok := rawArgs["limit"]; !ok {
+		var zeroVal *int
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("limit"))
+	if tmp, ok := rawArgs["limit"]; ok {
+		return ec.unmarshalOInt2ᚖint(ctx, tmp)
+	}
+
+	var zeroVal *int
 	return zeroVal, nil
 }
 
@@ -2037,6 +2994,1533 @@ func (ec *executionContext) fieldContext_Block_timestamp(_ context.Context, fiel
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _DecodedTransaction_blockHeight(ctx context.Context, field graphql.CollectedField, obj *DecodedTransaction) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_DecodedTransaction_blockHeight(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.BlockHeight, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_DecodedTransaction_blockHeight(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "DecodedTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _DecodedTransaction_txIndex(ctx context.Context, field graphql.CollectedField, obj *DecodedTransaction) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_DecodedTransaction_txIndex(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.TxIndex, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_DecodedTransaction_txIndex(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "DecodedTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _DecodedTransaction_txHash(ctx context.Context, field graphql.CollectedField, obj *DecodedTransaction) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_DecodedTransaction_txHash(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.TxHash, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_DecodedTransaction_txHash(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "DecodedTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _DecodedTransaction_txType(ctx context.Context, field graphql.CollectedField, obj *DecodedTransaction) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_DecodedTransaction_txType(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.TxType, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_DecodedTransaction_txType(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "DecodedTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _DecodedTransaction_createdAt(ctx context.Context, field graphql.CollectedField, obj *DecodedTransaction) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_DecodedTransaction_createdAt(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.CreatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_DecodedTransaction_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "DecodedTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _DecodedTransaction_signature(ctx context.Context, field graphql.CollectedField, obj *DecodedTransaction) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_DecodedTransaction_signature(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Signature, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_DecodedTransaction_signature(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "DecodedTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _DecodedTransaction_requestId(ctx context.Context, field graphql.CollectedField, obj *DecodedTransaction) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_DecodedTransaction_requestId(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.RequestID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_DecodedTransaction_requestId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "DecodedTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _DecodedTransaction_validatorEndpoint(ctx context.Context, field graphql.CollectedField, obj *DecodedTransaction) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_DecodedTransaction_validatorEndpoint(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ValidatorEndpoint, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_DecodedTransaction_validatorEndpoint(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "DecodedTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _DecodedTransaction_validatorCometAddress(ctx context.Context, field graphql.CollectedField, obj *DecodedTransaction) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_DecodedTransaction_validatorCometAddress(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ValidatorCometAddress, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_DecodedTransaction_validatorCometAddress(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "DecodedTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _DecodedTransaction_validatorEthBlock(ctx context.Context, field graphql.CollectedField, obj *DecodedTransaction) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_DecodedTransaction_validatorEthBlock(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ValidatorEthBlock, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_DecodedTransaction_validatorEthBlock(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "DecodedTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _DecodedTransaction_validatorNodeType(ctx context.Context, field graphql.CollectedField, obj *DecodedTransaction) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_DecodedTransaction_validatorNodeType(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ValidatorNodeType, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_DecodedTransaction_validatorNodeType(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "DecodedTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _DecodedTransaction_validatorSpId(ctx context.Context, field graphql.CollectedField, obj *DecodedTransaction) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_DecodedTransaction_validatorSpId(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ValidatorSpID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_DecodedTransaction_validatorSpId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "DecodedTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _DecodedTransaction_validatorPubKey(ctx context.Context, field graphql.CollectedField, obj *DecodedTransaction) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_DecodedTransaction_validatorPubKey(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ValidatorPubKey, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_DecodedTransaction_validatorPubKey(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "DecodedTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _DecodedTransaction_validatorPower(ctx context.Context, field graphql.CollectedField, obj *DecodedTransaction) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_DecodedTransaction_validatorPower(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ValidatorPower, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*int)
+	fc.Result = res
+	return ec.marshalOInt2ᚖint(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_DecodedTransaction_validatorPower(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "DecodedTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _DecodedTransaction_deregistrationCometAddress(ctx context.Context, field graphql.CollectedField, obj *DecodedTransaction) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_DecodedTransaction_deregistrationCometAddress(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.DeregistrationCometAddress, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_DecodedTransaction_deregistrationCometAddress(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "DecodedTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _DecodedTransaction_deregistrationPubKey(ctx context.Context, field graphql.CollectedField, obj *DecodedTransaction) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_DecodedTransaction_deregistrationPubKey(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.DeregistrationPubKey, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_DecodedTransaction_deregistrationPubKey(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "DecodedTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _DecodedTransaction_slaTimestamp(ctx context.Context, field graphql.CollectedField, obj *DecodedTransaction) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_DecodedTransaction_slaTimestamp(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.SLATimestamp, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_DecodedTransaction_slaTimestamp(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "DecodedTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _DecodedTransaction_slaBlockStart(ctx context.Context, field graphql.CollectedField, obj *DecodedTransaction) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_DecodedTransaction_slaBlockStart(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.SLABlockStart, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*int)
+	fc.Result = res
+	return ec.marshalOInt2ᚖint(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_DecodedTransaction_slaBlockStart(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "DecodedTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _DecodedTransaction_slaBlockEnd(ctx context.Context, field graphql.CollectedField, obj *DecodedTransaction) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_DecodedTransaction_slaBlockEnd(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.SLABlockEnd, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*int)
+	fc.Result = res
+	return ec.marshalOInt2ᚖint(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_DecodedTransaction_slaBlockEnd(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "DecodedTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _DecodedTransaction_slaReports(ctx context.Context, field graphql.CollectedField, obj *DecodedTransaction) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_DecodedTransaction_slaReports(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.SLAReports, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*SLANodeReport)
+	fc.Result = res
+	return ec.marshalOSLANodeReport2ᚕᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐSLANodeReport(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_DecodedTransaction_slaReports(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "DecodedTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "address":
+				return ec.fieldContext_SLANodeReport_address(ctx, field)
+			case "blocksProposed":
+				return ec.fieldContext_SLANodeReport_blocksProposed(ctx, field)
+			case "quota":
+				return ec.fieldContext_SLANodeReport_quota(ctx, field)
+			case "posChallengesFailed":
+				return ec.fieldContext_SLANodeReport_posChallengesFailed(ctx, field)
+			case "posChallengesTotal":
+				return ec.fieldContext_SLANodeReport_posChallengesTotal(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type SLANodeReport", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _DecodedTransaction_storageProofHeight(ctx context.Context, field graphql.CollectedField, obj *DecodedTransaction) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_DecodedTransaction_storageProofHeight(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.StorageProofHeight, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*int)
+	fc.Result = res
+	return ec.marshalOInt2ᚖint(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_DecodedTransaction_storageProofHeight(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "DecodedTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _DecodedTransaction_storageProofAddress(ctx context.Context, field graphql.CollectedField, obj *DecodedTransaction) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_DecodedTransaction_storageProofAddress(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.StorageProofAddress, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_DecodedTransaction_storageProofAddress(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "DecodedTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _DecodedTransaction_storageProofProverAddresses(ctx context.Context, field graphql.CollectedField, obj *DecodedTransaction) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_DecodedTransaction_storageProofProverAddresses(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.StorageProofProverAddresses, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*string)
+	fc.Result = res
+	return ec.marshalOString2ᚕᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_DecodedTransaction_storageProofProverAddresses(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "DecodedTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _DecodedTransaction_storageProofCid(ctx context.Context, field graphql.CollectedField, obj *DecodedTransaction) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_DecodedTransaction_storageProofCid(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.StorageProofCid, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_DecodedTransaction_storageProofCid(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "DecodedTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _DecodedTransaction_storageProofSignature(ctx context.Context, field graphql.CollectedField, obj *DecodedTransaction) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_DecodedTransaction_storageProofSignature(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.StorageProofSignature, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_DecodedTransaction_storageProofSignature(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "DecodedTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _DecodedTransaction_storageVerificationHeight(ctx context.Context, field graphql.CollectedField, obj *DecodedTransaction) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_DecodedTransaction_storageVerificationHeight(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.StorageVerificationHeight, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*int)
+	fc.Result = res
+	return ec.marshalOInt2ᚖint(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_DecodedTransaction_storageVerificationHeight(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "DecodedTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _DecodedTransaction_storageVerificationProof(ctx context.Context, field graphql.CollectedField, obj *DecodedTransaction) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_DecodedTransaction_storageVerificationProof(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.StorageVerificationProof, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_DecodedTransaction_storageVerificationProof(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "DecodedTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _DecodedTransaction_manageEntityUserId(ctx context.Context, field graphql.CollectedField, obj *DecodedTransaction) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_DecodedTransaction_manageEntityUserId(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ManageEntityUserID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*int)
+	fc.Result = res
+	return ec.marshalOInt2ᚖint(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_DecodedTransaction_manageEntityUserId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "DecodedTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _DecodedTransaction_manageEntityType(ctx context.Context, field graphql.CollectedField, obj *DecodedTransaction) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_DecodedTransaction_manageEntityType(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ManageEntityType, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_DecodedTransaction_manageEntityType(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "DecodedTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _DecodedTransaction_manageEntityId(ctx context.Context, field graphql.CollectedField, obj *DecodedTransaction) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_DecodedTransaction_manageEntityId(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ManageEntityID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*int)
+	fc.Result = res
+	return ec.marshalOInt2ᚖint(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_DecodedTransaction_manageEntityId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "DecodedTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _DecodedTransaction_manageEntityAction(ctx context.Context, field graphql.CollectedField, obj *DecodedTransaction) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_DecodedTransaction_manageEntityAction(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ManageEntityAction, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_DecodedTransaction_manageEntityAction(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "DecodedTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _DecodedTransaction_manageEntityMetadata(ctx context.Context, field graphql.CollectedField, obj *DecodedTransaction) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_DecodedTransaction_manageEntityMetadata(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ManageEntityMetadata, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_DecodedTransaction_manageEntityMetadata(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "DecodedTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _DecodedTransaction_manageEntitySignature(ctx context.Context, field graphql.CollectedField, obj *DecodedTransaction) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_DecodedTransaction_manageEntitySignature(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ManageEntitySignature, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_DecodedTransaction_manageEntitySignature(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "DecodedTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _DecodedTransaction_manageEntitySigner(ctx context.Context, field graphql.CollectedField, obj *DecodedTransaction) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_DecodedTransaction_manageEntitySigner(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ManageEntitySigner, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_DecodedTransaction_manageEntitySigner(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "DecodedTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _DecodedTransaction_manageEntityNonce(ctx context.Context, field graphql.CollectedField, obj *DecodedTransaction) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_DecodedTransaction_manageEntityNonce(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ManageEntityNonce, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_DecodedTransaction_manageEntityNonce(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "DecodedTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _DecodedTransaction_plays(ctx context.Context, field graphql.CollectedField, obj *DecodedTransaction) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_DecodedTransaction_plays(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Plays, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*TrackPlay)
+	fc.Result = res
+	return ec.marshalOTrackPlay2ᚕᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐTrackPlay(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_DecodedTransaction_plays(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "DecodedTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_TrackPlay_id(ctx, field)
+			case "txHash":
+				return ec.fieldContext_TrackPlay_txHash(ctx, field)
+			case "userId":
+				return ec.fieldContext_TrackPlay_userId(ctx, field)
+			case "trackId":
+				return ec.fieldContext_TrackPlay_trackId(ctx, field)
+			case "timestamp":
+				return ec.fieldContext_TrackPlay_timestamp(ctx, field)
+			case "signature":
+				return ec.fieldContext_TrackPlay_signature(ctx, field)
+			case "city":
+				return ec.fieldContext_TrackPlay_city(ctx, field)
+			case "region":
+				return ec.fieldContext_TrackPlay_region(ctx, field)
+			case "country":
+				return ec.fieldContext_TrackPlay_country(ctx, field)
+			case "blockHeight":
+				return ec.fieldContext_TrackPlay_blockHeight(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_TrackPlay_createdAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type TrackPlay", field.Name)
 		},
 	}
 	return fc, nil
@@ -2920,6 +5404,914 @@ func (ec *executionContext) fieldContext_Query_getLatestTransactions(ctx context
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Query_getLatestTransactions_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_getDecodedTransaction(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_getDecodedTransaction(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().GetDecodedTransaction(rctx, fc.Args["hash"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*DecodedTransaction)
+	fc.Result = res
+	return ec.marshalODecodedTransaction2ᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐDecodedTransaction(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_getDecodedTransaction(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "blockHeight":
+				return ec.fieldContext_DecodedTransaction_blockHeight(ctx, field)
+			case "txIndex":
+				return ec.fieldContext_DecodedTransaction_txIndex(ctx, field)
+			case "txHash":
+				return ec.fieldContext_DecodedTransaction_txHash(ctx, field)
+			case "txType":
+				return ec.fieldContext_DecodedTransaction_txType(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_DecodedTransaction_createdAt(ctx, field)
+			case "signature":
+				return ec.fieldContext_DecodedTransaction_signature(ctx, field)
+			case "requestId":
+				return ec.fieldContext_DecodedTransaction_requestId(ctx, field)
+			case "validatorEndpoint":
+				return ec.fieldContext_DecodedTransaction_validatorEndpoint(ctx, field)
+			case "validatorCometAddress":
+				return ec.fieldContext_DecodedTransaction_validatorCometAddress(ctx, field)
+			case "validatorEthBlock":
+				return ec.fieldContext_DecodedTransaction_validatorEthBlock(ctx, field)
+			case "validatorNodeType":
+				return ec.fieldContext_DecodedTransaction_validatorNodeType(ctx, field)
+			case "validatorSpId":
+				return ec.fieldContext_DecodedTransaction_validatorSpId(ctx, field)
+			case "validatorPubKey":
+				return ec.fieldContext_DecodedTransaction_validatorPubKey(ctx, field)
+			case "validatorPower":
+				return ec.fieldContext_DecodedTransaction_validatorPower(ctx, field)
+			case "deregistrationCometAddress":
+				return ec.fieldContext_DecodedTransaction_deregistrationCometAddress(ctx, field)
+			case "deregistrationPubKey":
+				return ec.fieldContext_DecodedTransaction_deregistrationPubKey(ctx, field)
+			case "slaTimestamp":
+				return ec.fieldContext_DecodedTransaction_slaTimestamp(ctx, field)
+			case "slaBlockStart":
+				return ec.fieldContext_DecodedTransaction_slaBlockStart(ctx, field)
+			case "slaBlockEnd":
+				return ec.fieldContext_DecodedTransaction_slaBlockEnd(ctx, field)
+			case "slaReports":
+				return ec.fieldContext_DecodedTransaction_slaReports(ctx, field)
+			case "storageProofHeight":
+				return ec.fieldContext_DecodedTransaction_storageProofHeight(ctx, field)
+			case "storageProofAddress":
+				return ec.fieldContext_DecodedTransaction_storageProofAddress(ctx, field)
+			case "storageProofProverAddresses":
+				return ec.fieldContext_DecodedTransaction_storageProofProverAddresses(ctx, field)
+			case "storageProofCid":
+				return ec.fieldContext_DecodedTransaction_storageProofCid(ctx, field)
+			case "storageProofSignature":
+				return ec.fieldContext_DecodedTransaction_storageProofSignature(ctx, field)
+			case "storageVerificationHeight":
+				return ec.fieldContext_DecodedTransaction_storageVerificationHeight(ctx, field)
+			case "storageVerificationProof":
+				return ec.fieldContext_DecodedTransaction_storageVerificationProof(ctx, field)
+			case "manageEntityUserId":
+				return ec.fieldContext_DecodedTransaction_manageEntityUserId(ctx, field)
+			case "manageEntityType":
+				return ec.fieldContext_DecodedTransaction_manageEntityType(ctx, field)
+			case "manageEntityId":
+				return ec.fieldContext_DecodedTransaction_manageEntityId(ctx, field)
+			case "manageEntityAction":
+				return ec.fieldContext_DecodedTransaction_manageEntityAction(ctx, field)
+			case "manageEntityMetadata":
+				return ec.fieldContext_DecodedTransaction_manageEntityMetadata(ctx, field)
+			case "manageEntitySignature":
+				return ec.fieldContext_DecodedTransaction_manageEntitySignature(ctx, field)
+			case "manageEntitySigner":
+				return ec.fieldContext_DecodedTransaction_manageEntitySigner(ctx, field)
+			case "manageEntityNonce":
+				return ec.fieldContext_DecodedTransaction_manageEntityNonce(ctx, field)
+			case "plays":
+				return ec.fieldContext_DecodedTransaction_plays(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type DecodedTransaction", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_getDecodedTransaction_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_getLatestDecodedTransactions(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_getLatestDecodedTransactions(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().GetLatestDecodedTransactions(rctx, fc.Args["limit"].(*int))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*DecodedTransaction)
+	fc.Result = res
+	return ec.marshalNDecodedTransaction2ᚕᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐDecodedTransactionᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_getLatestDecodedTransactions(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "blockHeight":
+				return ec.fieldContext_DecodedTransaction_blockHeight(ctx, field)
+			case "txIndex":
+				return ec.fieldContext_DecodedTransaction_txIndex(ctx, field)
+			case "txHash":
+				return ec.fieldContext_DecodedTransaction_txHash(ctx, field)
+			case "txType":
+				return ec.fieldContext_DecodedTransaction_txType(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_DecodedTransaction_createdAt(ctx, field)
+			case "signature":
+				return ec.fieldContext_DecodedTransaction_signature(ctx, field)
+			case "requestId":
+				return ec.fieldContext_DecodedTransaction_requestId(ctx, field)
+			case "validatorEndpoint":
+				return ec.fieldContext_DecodedTransaction_validatorEndpoint(ctx, field)
+			case "validatorCometAddress":
+				return ec.fieldContext_DecodedTransaction_validatorCometAddress(ctx, field)
+			case "validatorEthBlock":
+				return ec.fieldContext_DecodedTransaction_validatorEthBlock(ctx, field)
+			case "validatorNodeType":
+				return ec.fieldContext_DecodedTransaction_validatorNodeType(ctx, field)
+			case "validatorSpId":
+				return ec.fieldContext_DecodedTransaction_validatorSpId(ctx, field)
+			case "validatorPubKey":
+				return ec.fieldContext_DecodedTransaction_validatorPubKey(ctx, field)
+			case "validatorPower":
+				return ec.fieldContext_DecodedTransaction_validatorPower(ctx, field)
+			case "deregistrationCometAddress":
+				return ec.fieldContext_DecodedTransaction_deregistrationCometAddress(ctx, field)
+			case "deregistrationPubKey":
+				return ec.fieldContext_DecodedTransaction_deregistrationPubKey(ctx, field)
+			case "slaTimestamp":
+				return ec.fieldContext_DecodedTransaction_slaTimestamp(ctx, field)
+			case "slaBlockStart":
+				return ec.fieldContext_DecodedTransaction_slaBlockStart(ctx, field)
+			case "slaBlockEnd":
+				return ec.fieldContext_DecodedTransaction_slaBlockEnd(ctx, field)
+			case "slaReports":
+				return ec.fieldContext_DecodedTransaction_slaReports(ctx, field)
+			case "storageProofHeight":
+				return ec.fieldContext_DecodedTransaction_storageProofHeight(ctx, field)
+			case "storageProofAddress":
+				return ec.fieldContext_DecodedTransaction_storageProofAddress(ctx, field)
+			case "storageProofProverAddresses":
+				return ec.fieldContext_DecodedTransaction_storageProofProverAddresses(ctx, field)
+			case "storageProofCid":
+				return ec.fieldContext_DecodedTransaction_storageProofCid(ctx, field)
+			case "storageProofSignature":
+				return ec.fieldContext_DecodedTransaction_storageProofSignature(ctx, field)
+			case "storageVerificationHeight":
+				return ec.fieldContext_DecodedTransaction_storageVerificationHeight(ctx, field)
+			case "storageVerificationProof":
+				return ec.fieldContext_DecodedTransaction_storageVerificationProof(ctx, field)
+			case "manageEntityUserId":
+				return ec.fieldContext_DecodedTransaction_manageEntityUserId(ctx, field)
+			case "manageEntityType":
+				return ec.fieldContext_DecodedTransaction_manageEntityType(ctx, field)
+			case "manageEntityId":
+				return ec.fieldContext_DecodedTransaction_manageEntityId(ctx, field)
+			case "manageEntityAction":
+				return ec.fieldContext_DecodedTransaction_manageEntityAction(ctx, field)
+			case "manageEntityMetadata":
+				return ec.fieldContext_DecodedTransaction_manageEntityMetadata(ctx, field)
+			case "manageEntitySignature":
+				return ec.fieldContext_DecodedTransaction_manageEntitySignature(ctx, field)
+			case "manageEntitySigner":
+				return ec.fieldContext_DecodedTransaction_manageEntitySigner(ctx, field)
+			case "manageEntityNonce":
+				return ec.fieldContext_DecodedTransaction_manageEntityNonce(ctx, field)
+			case "plays":
+				return ec.fieldContext_DecodedTransaction_plays(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type DecodedTransaction", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_getLatestDecodedTransactions_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_getDecodedTransactionsByType(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_getDecodedTransactionsByType(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().GetDecodedTransactionsByType(rctx, fc.Args["txType"].(string), fc.Args["limit"].(*int))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*DecodedTransaction)
+	fc.Result = res
+	return ec.marshalNDecodedTransaction2ᚕᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐDecodedTransactionᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_getDecodedTransactionsByType(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "blockHeight":
+				return ec.fieldContext_DecodedTransaction_blockHeight(ctx, field)
+			case "txIndex":
+				return ec.fieldContext_DecodedTransaction_txIndex(ctx, field)
+			case "txHash":
+				return ec.fieldContext_DecodedTransaction_txHash(ctx, field)
+			case "txType":
+				return ec.fieldContext_DecodedTransaction_txType(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_DecodedTransaction_createdAt(ctx, field)
+			case "signature":
+				return ec.fieldContext_DecodedTransaction_signature(ctx, field)
+			case "requestId":
+				return ec.fieldContext_DecodedTransaction_requestId(ctx, field)
+			case "validatorEndpoint":
+				return ec.fieldContext_DecodedTransaction_validatorEndpoint(ctx, field)
+			case "validatorCometAddress":
+				return ec.fieldContext_DecodedTransaction_validatorCometAddress(ctx, field)
+			case "validatorEthBlock":
+				return ec.fieldContext_DecodedTransaction_validatorEthBlock(ctx, field)
+			case "validatorNodeType":
+				return ec.fieldContext_DecodedTransaction_validatorNodeType(ctx, field)
+			case "validatorSpId":
+				return ec.fieldContext_DecodedTransaction_validatorSpId(ctx, field)
+			case "validatorPubKey":
+				return ec.fieldContext_DecodedTransaction_validatorPubKey(ctx, field)
+			case "validatorPower":
+				return ec.fieldContext_DecodedTransaction_validatorPower(ctx, field)
+			case "deregistrationCometAddress":
+				return ec.fieldContext_DecodedTransaction_deregistrationCometAddress(ctx, field)
+			case "deregistrationPubKey":
+				return ec.fieldContext_DecodedTransaction_deregistrationPubKey(ctx, field)
+			case "slaTimestamp":
+				return ec.fieldContext_DecodedTransaction_slaTimestamp(ctx, field)
+			case "slaBlockStart":
+				return ec.fieldContext_DecodedTransaction_slaBlockStart(ctx, field)
+			case "slaBlockEnd":
+				return ec.fieldContext_DecodedTransaction_slaBlockEnd(ctx, field)
+			case "slaReports":
+				return ec.fieldContext_DecodedTransaction_slaReports(ctx, field)
+			case "storageProofHeight":
+				return ec.fieldContext_DecodedTransaction_storageProofHeight(ctx, field)
+			case "storageProofAddress":
+				return ec.fieldContext_DecodedTransaction_storageProofAddress(ctx, field)
+			case "storageProofProverAddresses":
+				return ec.fieldContext_DecodedTransaction_storageProofProverAddresses(ctx, field)
+			case "storageProofCid":
+				return ec.fieldContext_DecodedTransaction_storageProofCid(ctx, field)
+			case "storageProofSignature":
+				return ec.fieldContext_DecodedTransaction_storageProofSignature(ctx, field)
+			case "storageVerificationHeight":
+				return ec.fieldContext_DecodedTransaction_storageVerificationHeight(ctx, field)
+			case "storageVerificationProof":
+				return ec.fieldContext_DecodedTransaction_storageVerificationProof(ctx, field)
+			case "manageEntityUserId":
+				return ec.fieldContext_DecodedTransaction_manageEntityUserId(ctx, field)
+			case "manageEntityType":
+				return ec.fieldContext_DecodedTransaction_manageEntityType(ctx, field)
+			case "manageEntityId":
+				return ec.fieldContext_DecodedTransaction_manageEntityId(ctx, field)
+			case "manageEntityAction":
+				return ec.fieldContext_DecodedTransaction_manageEntityAction(ctx, field)
+			case "manageEntityMetadata":
+				return ec.fieldContext_DecodedTransaction_manageEntityMetadata(ctx, field)
+			case "manageEntitySignature":
+				return ec.fieldContext_DecodedTransaction_manageEntitySignature(ctx, field)
+			case "manageEntitySigner":
+				return ec.fieldContext_DecodedTransaction_manageEntitySigner(ctx, field)
+			case "manageEntityNonce":
+				return ec.fieldContext_DecodedTransaction_manageEntityNonce(ctx, field)
+			case "plays":
+				return ec.fieldContext_DecodedTransaction_plays(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type DecodedTransaction", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_getDecodedTransactionsByType_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_getDecodedTransactionsByBlock(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_getDecodedTransactionsByBlock(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().GetDecodedTransactionsByBlock(rctx, fc.Args["height"].(int))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*DecodedTransaction)
+	fc.Result = res
+	return ec.marshalNDecodedTransaction2ᚕᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐDecodedTransactionᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_getDecodedTransactionsByBlock(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "blockHeight":
+				return ec.fieldContext_DecodedTransaction_blockHeight(ctx, field)
+			case "txIndex":
+				return ec.fieldContext_DecodedTransaction_txIndex(ctx, field)
+			case "txHash":
+				return ec.fieldContext_DecodedTransaction_txHash(ctx, field)
+			case "txType":
+				return ec.fieldContext_DecodedTransaction_txType(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_DecodedTransaction_createdAt(ctx, field)
+			case "signature":
+				return ec.fieldContext_DecodedTransaction_signature(ctx, field)
+			case "requestId":
+				return ec.fieldContext_DecodedTransaction_requestId(ctx, field)
+			case "validatorEndpoint":
+				return ec.fieldContext_DecodedTransaction_validatorEndpoint(ctx, field)
+			case "validatorCometAddress":
+				return ec.fieldContext_DecodedTransaction_validatorCometAddress(ctx, field)
+			case "validatorEthBlock":
+				return ec.fieldContext_DecodedTransaction_validatorEthBlock(ctx, field)
+			case "validatorNodeType":
+				return ec.fieldContext_DecodedTransaction_validatorNodeType(ctx, field)
+			case "validatorSpId":
+				return ec.fieldContext_DecodedTransaction_validatorSpId(ctx, field)
+			case "validatorPubKey":
+				return ec.fieldContext_DecodedTransaction_validatorPubKey(ctx, field)
+			case "validatorPower":
+				return ec.fieldContext_DecodedTransaction_validatorPower(ctx, field)
+			case "deregistrationCometAddress":
+				return ec.fieldContext_DecodedTransaction_deregistrationCometAddress(ctx, field)
+			case "deregistrationPubKey":
+				return ec.fieldContext_DecodedTransaction_deregistrationPubKey(ctx, field)
+			case "slaTimestamp":
+				return ec.fieldContext_DecodedTransaction_slaTimestamp(ctx, field)
+			case "slaBlockStart":
+				return ec.fieldContext_DecodedTransaction_slaBlockStart(ctx, field)
+			case "slaBlockEnd":
+				return ec.fieldContext_DecodedTransaction_slaBlockEnd(ctx, field)
+			case "slaReports":
+				return ec.fieldContext_DecodedTransaction_slaReports(ctx, field)
+			case "storageProofHeight":
+				return ec.fieldContext_DecodedTransaction_storageProofHeight(ctx, field)
+			case "storageProofAddress":
+				return ec.fieldContext_DecodedTransaction_storageProofAddress(ctx, field)
+			case "storageProofProverAddresses":
+				return ec.fieldContext_DecodedTransaction_storageProofProverAddresses(ctx, field)
+			case "storageProofCid":
+				return ec.fieldContext_DecodedTransaction_storageProofCid(ctx, field)
+			case "storageProofSignature":
+				return ec.fieldContext_DecodedTransaction_storageProofSignature(ctx, field)
+			case "storageVerificationHeight":
+				return ec.fieldContext_DecodedTransaction_storageVerificationHeight(ctx, field)
+			case "storageVerificationProof":
+				return ec.fieldContext_DecodedTransaction_storageVerificationProof(ctx, field)
+			case "manageEntityUserId":
+				return ec.fieldContext_DecodedTransaction_manageEntityUserId(ctx, field)
+			case "manageEntityType":
+				return ec.fieldContext_DecodedTransaction_manageEntityType(ctx, field)
+			case "manageEntityId":
+				return ec.fieldContext_DecodedTransaction_manageEntityId(ctx, field)
+			case "manageEntityAction":
+				return ec.fieldContext_DecodedTransaction_manageEntityAction(ctx, field)
+			case "manageEntityMetadata":
+				return ec.fieldContext_DecodedTransaction_manageEntityMetadata(ctx, field)
+			case "manageEntitySignature":
+				return ec.fieldContext_DecodedTransaction_manageEntitySignature(ctx, field)
+			case "manageEntitySigner":
+				return ec.fieldContext_DecodedTransaction_manageEntitySigner(ctx, field)
+			case "manageEntityNonce":
+				return ec.fieldContext_DecodedTransaction_manageEntityNonce(ctx, field)
+			case "plays":
+				return ec.fieldContext_DecodedTransaction_plays(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type DecodedTransaction", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_getDecodedTransactionsByBlock_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_getPlaysByTxHash(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_getPlaysByTxHash(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().GetPlaysByTxHash(rctx, fc.Args["txHash"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*TrackPlay)
+	fc.Result = res
+	return ec.marshalNTrackPlay2ᚕᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐTrackPlayᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_getPlaysByTxHash(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_TrackPlay_id(ctx, field)
+			case "txHash":
+				return ec.fieldContext_TrackPlay_txHash(ctx, field)
+			case "userId":
+				return ec.fieldContext_TrackPlay_userId(ctx, field)
+			case "trackId":
+				return ec.fieldContext_TrackPlay_trackId(ctx, field)
+			case "timestamp":
+				return ec.fieldContext_TrackPlay_timestamp(ctx, field)
+			case "signature":
+				return ec.fieldContext_TrackPlay_signature(ctx, field)
+			case "city":
+				return ec.fieldContext_TrackPlay_city(ctx, field)
+			case "region":
+				return ec.fieldContext_TrackPlay_region(ctx, field)
+			case "country":
+				return ec.fieldContext_TrackPlay_country(ctx, field)
+			case "blockHeight":
+				return ec.fieldContext_TrackPlay_blockHeight(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_TrackPlay_createdAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type TrackPlay", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_getPlaysByTxHash_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_getPlaysByUser(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_getPlaysByUser(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().GetPlaysByUser(rctx, fc.Args["userId"].(string), fc.Args["limit"].(*int))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*TrackPlay)
+	fc.Result = res
+	return ec.marshalNTrackPlay2ᚕᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐTrackPlayᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_getPlaysByUser(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_TrackPlay_id(ctx, field)
+			case "txHash":
+				return ec.fieldContext_TrackPlay_txHash(ctx, field)
+			case "userId":
+				return ec.fieldContext_TrackPlay_userId(ctx, field)
+			case "trackId":
+				return ec.fieldContext_TrackPlay_trackId(ctx, field)
+			case "timestamp":
+				return ec.fieldContext_TrackPlay_timestamp(ctx, field)
+			case "signature":
+				return ec.fieldContext_TrackPlay_signature(ctx, field)
+			case "city":
+				return ec.fieldContext_TrackPlay_city(ctx, field)
+			case "region":
+				return ec.fieldContext_TrackPlay_region(ctx, field)
+			case "country":
+				return ec.fieldContext_TrackPlay_country(ctx, field)
+			case "blockHeight":
+				return ec.fieldContext_TrackPlay_blockHeight(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_TrackPlay_createdAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type TrackPlay", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_getPlaysByUser_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_getPlaysByTrack(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_getPlaysByTrack(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().GetPlaysByTrack(rctx, fc.Args["trackId"].(string), fc.Args["limit"].(*int))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*TrackPlay)
+	fc.Result = res
+	return ec.marshalNTrackPlay2ᚕᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐTrackPlayᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_getPlaysByTrack(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_TrackPlay_id(ctx, field)
+			case "txHash":
+				return ec.fieldContext_TrackPlay_txHash(ctx, field)
+			case "userId":
+				return ec.fieldContext_TrackPlay_userId(ctx, field)
+			case "trackId":
+				return ec.fieldContext_TrackPlay_trackId(ctx, field)
+			case "timestamp":
+				return ec.fieldContext_TrackPlay_timestamp(ctx, field)
+			case "signature":
+				return ec.fieldContext_TrackPlay_signature(ctx, field)
+			case "city":
+				return ec.fieldContext_TrackPlay_city(ctx, field)
+			case "region":
+				return ec.fieldContext_TrackPlay_region(ctx, field)
+			case "country":
+				return ec.fieldContext_TrackPlay_country(ctx, field)
+			case "blockHeight":
+				return ec.fieldContext_TrackPlay_blockHeight(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_TrackPlay_createdAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type TrackPlay", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_getPlaysByTrack_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_getPlaysByTimeRange(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_getPlaysByTimeRange(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().GetPlaysByTimeRange(rctx, fc.Args["startTime"].(string), fc.Args["endTime"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*TrackPlay)
+	fc.Result = res
+	return ec.marshalNTrackPlay2ᚕᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐTrackPlayᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_getPlaysByTimeRange(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_TrackPlay_id(ctx, field)
+			case "txHash":
+				return ec.fieldContext_TrackPlay_txHash(ctx, field)
+			case "userId":
+				return ec.fieldContext_TrackPlay_userId(ctx, field)
+			case "trackId":
+				return ec.fieldContext_TrackPlay_trackId(ctx, field)
+			case "timestamp":
+				return ec.fieldContext_TrackPlay_timestamp(ctx, field)
+			case "signature":
+				return ec.fieldContext_TrackPlay_signature(ctx, field)
+			case "city":
+				return ec.fieldContext_TrackPlay_city(ctx, field)
+			case "region":
+				return ec.fieldContext_TrackPlay_region(ctx, field)
+			case "country":
+				return ec.fieldContext_TrackPlay_country(ctx, field)
+			case "blockHeight":
+				return ec.fieldContext_TrackPlay_blockHeight(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_TrackPlay_createdAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type TrackPlay", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_getPlaysByTimeRange_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_getPlaysByCountry(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_getPlaysByCountry(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().GetPlaysByCountry(rctx, fc.Args["country"].(string), fc.Args["limit"].(*int))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*TrackPlay)
+	fc.Result = res
+	return ec.marshalNTrackPlay2ᚕᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐTrackPlayᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_getPlaysByCountry(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_TrackPlay_id(ctx, field)
+			case "txHash":
+				return ec.fieldContext_TrackPlay_txHash(ctx, field)
+			case "userId":
+				return ec.fieldContext_TrackPlay_userId(ctx, field)
+			case "trackId":
+				return ec.fieldContext_TrackPlay_trackId(ctx, field)
+			case "timestamp":
+				return ec.fieldContext_TrackPlay_timestamp(ctx, field)
+			case "signature":
+				return ec.fieldContext_TrackPlay_signature(ctx, field)
+			case "city":
+				return ec.fieldContext_TrackPlay_city(ctx, field)
+			case "region":
+				return ec.fieldContext_TrackPlay_region(ctx, field)
+			case "country":
+				return ec.fieldContext_TrackPlay_country(ctx, field)
+			case "blockHeight":
+				return ec.fieldContext_TrackPlay_blockHeight(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_TrackPlay_createdAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type TrackPlay", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_getPlaysByCountry_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -4953,6 +8345,472 @@ func (ec *executionContext) _StorageProof_proof(ctx context.Context, field graph
 func (ec *executionContext) fieldContext_StorageProof_proof(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "StorageProof",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TrackPlay_id(ctx context.Context, field graphql.CollectedField, obj *TrackPlay) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_TrackPlay_id(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_TrackPlay_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TrackPlay",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TrackPlay_txHash(ctx context.Context, field graphql.CollectedField, obj *TrackPlay) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_TrackPlay_txHash(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.TxHash, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_TrackPlay_txHash(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TrackPlay",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TrackPlay_userId(ctx context.Context, field graphql.CollectedField, obj *TrackPlay) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_TrackPlay_userId(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.UserID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_TrackPlay_userId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TrackPlay",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TrackPlay_trackId(ctx context.Context, field graphql.CollectedField, obj *TrackPlay) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_TrackPlay_trackId(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.TrackID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_TrackPlay_trackId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TrackPlay",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TrackPlay_timestamp(ctx context.Context, field graphql.CollectedField, obj *TrackPlay) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_TrackPlay_timestamp(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Timestamp, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_TrackPlay_timestamp(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TrackPlay",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TrackPlay_signature(ctx context.Context, field graphql.CollectedField, obj *TrackPlay) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_TrackPlay_signature(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Signature, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_TrackPlay_signature(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TrackPlay",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TrackPlay_city(ctx context.Context, field graphql.CollectedField, obj *TrackPlay) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_TrackPlay_city(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.City, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_TrackPlay_city(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TrackPlay",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TrackPlay_region(ctx context.Context, field graphql.CollectedField, obj *TrackPlay) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_TrackPlay_region(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Region, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_TrackPlay_region(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TrackPlay",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TrackPlay_country(ctx context.Context, field graphql.CollectedField, obj *TrackPlay) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_TrackPlay_country(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Country, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_TrackPlay_country(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TrackPlay",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TrackPlay_blockHeight(ctx context.Context, field graphql.CollectedField, obj *TrackPlay) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_TrackPlay_blockHeight(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.BlockHeight, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*int)
+	fc.Result = res
+	return ec.marshalOInt2ᚖint(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_TrackPlay_blockHeight(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TrackPlay",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TrackPlay_createdAt(ctx context.Context, field graphql.CollectedField, obj *TrackPlay) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_TrackPlay_createdAt(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.CreatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_TrackPlay_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TrackPlay",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -7438,6 +11296,127 @@ func (ec *executionContext) _Block(ctx context.Context, sel ast.SelectionSet, ob
 	return out
 }
 
+var decodedTransactionImplementors = []string{"DecodedTransaction"}
+
+func (ec *executionContext) _DecodedTransaction(ctx context.Context, sel ast.SelectionSet, obj *DecodedTransaction) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, decodedTransactionImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("DecodedTransaction")
+		case "blockHeight":
+			out.Values[i] = ec._DecodedTransaction_blockHeight(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "txIndex":
+			out.Values[i] = ec._DecodedTransaction_txIndex(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "txHash":
+			out.Values[i] = ec._DecodedTransaction_txHash(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "txType":
+			out.Values[i] = ec._DecodedTransaction_txType(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createdAt":
+			out.Values[i] = ec._DecodedTransaction_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "signature":
+			out.Values[i] = ec._DecodedTransaction_signature(ctx, field, obj)
+		case "requestId":
+			out.Values[i] = ec._DecodedTransaction_requestId(ctx, field, obj)
+		case "validatorEndpoint":
+			out.Values[i] = ec._DecodedTransaction_validatorEndpoint(ctx, field, obj)
+		case "validatorCometAddress":
+			out.Values[i] = ec._DecodedTransaction_validatorCometAddress(ctx, field, obj)
+		case "validatorEthBlock":
+			out.Values[i] = ec._DecodedTransaction_validatorEthBlock(ctx, field, obj)
+		case "validatorNodeType":
+			out.Values[i] = ec._DecodedTransaction_validatorNodeType(ctx, field, obj)
+		case "validatorSpId":
+			out.Values[i] = ec._DecodedTransaction_validatorSpId(ctx, field, obj)
+		case "validatorPubKey":
+			out.Values[i] = ec._DecodedTransaction_validatorPubKey(ctx, field, obj)
+		case "validatorPower":
+			out.Values[i] = ec._DecodedTransaction_validatorPower(ctx, field, obj)
+		case "deregistrationCometAddress":
+			out.Values[i] = ec._DecodedTransaction_deregistrationCometAddress(ctx, field, obj)
+		case "deregistrationPubKey":
+			out.Values[i] = ec._DecodedTransaction_deregistrationPubKey(ctx, field, obj)
+		case "slaTimestamp":
+			out.Values[i] = ec._DecodedTransaction_slaTimestamp(ctx, field, obj)
+		case "slaBlockStart":
+			out.Values[i] = ec._DecodedTransaction_slaBlockStart(ctx, field, obj)
+		case "slaBlockEnd":
+			out.Values[i] = ec._DecodedTransaction_slaBlockEnd(ctx, field, obj)
+		case "slaReports":
+			out.Values[i] = ec._DecodedTransaction_slaReports(ctx, field, obj)
+		case "storageProofHeight":
+			out.Values[i] = ec._DecodedTransaction_storageProofHeight(ctx, field, obj)
+		case "storageProofAddress":
+			out.Values[i] = ec._DecodedTransaction_storageProofAddress(ctx, field, obj)
+		case "storageProofProverAddresses":
+			out.Values[i] = ec._DecodedTransaction_storageProofProverAddresses(ctx, field, obj)
+		case "storageProofCid":
+			out.Values[i] = ec._DecodedTransaction_storageProofCid(ctx, field, obj)
+		case "storageProofSignature":
+			out.Values[i] = ec._DecodedTransaction_storageProofSignature(ctx, field, obj)
+		case "storageVerificationHeight":
+			out.Values[i] = ec._DecodedTransaction_storageVerificationHeight(ctx, field, obj)
+		case "storageVerificationProof":
+			out.Values[i] = ec._DecodedTransaction_storageVerificationProof(ctx, field, obj)
+		case "manageEntityUserId":
+			out.Values[i] = ec._DecodedTransaction_manageEntityUserId(ctx, field, obj)
+		case "manageEntityType":
+			out.Values[i] = ec._DecodedTransaction_manageEntityType(ctx, field, obj)
+		case "manageEntityId":
+			out.Values[i] = ec._DecodedTransaction_manageEntityId(ctx, field, obj)
+		case "manageEntityAction":
+			out.Values[i] = ec._DecodedTransaction_manageEntityAction(ctx, field, obj)
+		case "manageEntityMetadata":
+			out.Values[i] = ec._DecodedTransaction_manageEntityMetadata(ctx, field, obj)
+		case "manageEntitySignature":
+			out.Values[i] = ec._DecodedTransaction_manageEntitySignature(ctx, field, obj)
+		case "manageEntitySigner":
+			out.Values[i] = ec._DecodedTransaction_manageEntitySigner(ctx, field, obj)
+		case "manageEntityNonce":
+			out.Values[i] = ec._DecodedTransaction_manageEntityNonce(ctx, field, obj)
+		case "plays":
+			out.Values[i] = ec._DecodedTransaction_plays(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var nodeImplementors = []string{"Node"}
 
 func (ec *executionContext) _Node(ctx context.Context, sel ast.SelectionSet, obj *Node) graphql.Marshaler {
@@ -7665,6 +11644,201 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_getLatestTransactions(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "getDecodedTransaction":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getDecodedTransaction(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "getLatestDecodedTransactions":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getLatestDecodedTransactions(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "getDecodedTransactionsByType":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getDecodedTransactionsByType(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "getDecodedTransactionsByBlock":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getDecodedTransactionsByBlock(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "getPlaysByTxHash":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getPlaysByTxHash(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "getPlaysByUser":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getPlaysByUser(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "getPlaysByTrack":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getPlaysByTrack(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "getPlaysByTimeRange":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getPlaysByTimeRange(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "getPlaysByCountry":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getPlaysByCountry(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -8180,6 +12354,77 @@ func (ec *executionContext) _StorageProof(ctx context.Context, sel ast.Selection
 			out.Values[i] = ec._StorageProof_proofSignature(ctx, field, obj)
 		case "proof":
 			out.Values[i] = ec._StorageProof_proof(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var trackPlayImplementors = []string{"TrackPlay"}
+
+func (ec *executionContext) _TrackPlay(ctx context.Context, sel ast.SelectionSet, obj *TrackPlay) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, trackPlayImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("TrackPlay")
+		case "id":
+			out.Values[i] = ec._TrackPlay_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "txHash":
+			out.Values[i] = ec._TrackPlay_txHash(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "userId":
+			out.Values[i] = ec._TrackPlay_userId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "trackId":
+			out.Values[i] = ec._TrackPlay_trackId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "timestamp":
+			out.Values[i] = ec._TrackPlay_timestamp(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "signature":
+			out.Values[i] = ec._TrackPlay_signature(ctx, field, obj)
+		case "city":
+			out.Values[i] = ec._TrackPlay_city(ctx, field, obj)
+		case "region":
+			out.Values[i] = ec._TrackPlay_region(ctx, field, obj)
+		case "country":
+			out.Values[i] = ec._TrackPlay_country(ctx, field, obj)
+		case "blockHeight":
+			out.Values[i] = ec._TrackPlay_blockHeight(ctx, field, obj)
+		case "createdAt":
+			out.Values[i] = ec._TrackPlay_createdAt(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -8731,6 +12976,60 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
+func (ec *executionContext) marshalNDecodedTransaction2ᚕᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐDecodedTransactionᚄ(ctx context.Context, sel ast.SelectionSet, v []*DecodedTransaction) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNDecodedTransaction2ᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐDecodedTransaction(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNDecodedTransaction2ᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐDecodedTransaction(ctx context.Context, sel ast.SelectionSet, v *DecodedTransaction) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._DecodedTransaction(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNInt2int(ctx context.Context, v any) (int, error) {
 	res, err := graphql.UnmarshalInt(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -9043,6 +13342,60 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) marshalNTrackPlay2ᚕᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐTrackPlayᚄ(ctx context.Context, sel ast.SelectionSet, v []*TrackPlay) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNTrackPlay2ᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐTrackPlay(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNTrackPlay2ᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐTrackPlay(ctx context.Context, sel ast.SelectionSet, v *TrackPlay) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._TrackPlay(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNTransaction2ᚕᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐTransactionᚄ(ctx context.Context, sel ast.SelectionSet, v []*Transaction) graphql.Marshaler {
@@ -9439,6 +13792,13 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	return res
 }
 
+func (ec *executionContext) marshalODecodedTransaction2ᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐDecodedTransaction(ctx context.Context, sel ast.SelectionSet, v *DecodedTransaction) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._DecodedTransaction(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalOInt2ᚖint(ctx context.Context, v any) (*int, error) {
 	if v == nil {
 		return nil, nil
@@ -9469,11 +13829,91 @@ func (ec *executionContext) marshalONodeUptime2ᚖgithubᚗcomᚋAudiusProject�
 	return ec._NodeUptime(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalOSLANodeReport2ᚕᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐSLANodeReport(ctx context.Context, sel ast.SelectionSet, v []*SLANodeReport) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalOSLANodeReport2ᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐSLANodeReport(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	return ret
+}
+
+func (ec *executionContext) marshalOSLANodeReport2ᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐSLANodeReport(ctx context.Context, sel ast.SelectionSet, v *SLANodeReport) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._SLANodeReport(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalOSLARollup2ᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐSLARollup(ctx context.Context, sel ast.SelectionSet, v *SLARollup) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._SLARollup(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOString2ᚕᚖstring(ctx context.Context, v any) ([]*string, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []any
+	if v != nil {
+		vSlice = graphql.CoerceList(v)
+	}
+	var err error
+	res := make([]*string, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalOString2ᚖstring(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalOString2ᚕᚖstring(ctx context.Context, sel ast.SelectionSet, v []*string) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalOString2ᚖstring(ctx, sel, v[i])
+	}
+
+	return ret
 }
 
 func (ec *executionContext) unmarshalOString2ᚖstring(ctx context.Context, v any) (*string, error) {
@@ -9490,6 +13930,54 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 	}
 	res := graphql.MarshalString(*v)
 	return res
+}
+
+func (ec *executionContext) marshalOTrackPlay2ᚕᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐTrackPlay(ctx context.Context, sel ast.SelectionSet, v []*TrackPlay) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalOTrackPlay2ᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐTrackPlay(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	return ret
+}
+
+func (ec *executionContext) marshalOTrackPlay2ᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐTrackPlay(ctx context.Context, sel ast.SelectionSet, v *TrackPlay) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._TrackPlay(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalOTransaction2ᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐTransaction(ctx context.Context, sel ast.SelectionSet, v *Transaction) graphql.Marshaler {

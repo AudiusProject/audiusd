@@ -180,3 +180,72 @@ where block_height in (
 
 -- name: GetLatestBlock :one
 select * from core_blocks order by height desc limit 1;
+
+-- name: GetDecodedTx :one
+select * from core_decoded_tx
+where tx_hash = $1 limit 1;
+
+-- name: GetLatestDecodedTxs :many
+select * from core_decoded_tx
+order by block_height desc, tx_index desc
+limit $1;
+
+-- name: GetDecodedTxsByType :many
+select * from core_decoded_tx
+where tx_type = $1
+order by block_height desc, tx_index desc
+limit $2;
+
+-- name: GetDecodedTxsByBlock :many
+select * from core_decoded_tx
+where block_height = $1
+order by tx_index asc;
+
+-- name: GetPlaysByTxHash :many
+select * from core_decoded_tx_plays
+where tx_hash = $1
+order by timestamp asc;
+
+-- name: GetPlaysByUser :many
+select p.*, t.block_height, t.created_at
+from core_decoded_tx_plays p
+join core_decoded_tx t on t.tx_hash = p.tx_hash
+where p.user_id = $1
+order by p.timestamp desc
+limit $2;
+
+-- name: GetPlaysByTrack :many
+select p.*, t.block_height, t.created_at
+from core_decoded_tx_plays p
+join core_decoded_tx t on t.tx_hash = p.tx_hash
+where p.track_id = $1
+order by p.timestamp desc
+limit $2;
+
+-- name: GetPlaysByTimeRange :many
+select p.*, t.block_height, t.created_at
+from core_decoded_tx_plays p
+join core_decoded_tx t on t.tx_hash = p.tx_hash
+where p.timestamp >= $1 and p.timestamp <= $2
+order by p.timestamp desc;
+
+-- name: GetPlaysByCountry :many
+select p.*, t.block_height, t.created_at
+from core_decoded_tx_plays p
+join core_decoded_tx t on t.tx_hash = p.tx_hash
+where p.country = $1
+order by p.timestamp desc
+limit $2;
+
+-- name: InsertPlay :one
+insert into core_decoded_tx_plays (
+    tx_hash,
+    user_id,
+    track_id,
+    timestamp,
+    signature,
+    city,
+    region,
+    country
+) values ($1, $2, $3, $4, $5, $6, $7, $8)
+returning *;

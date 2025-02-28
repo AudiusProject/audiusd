@@ -89,6 +89,195 @@ query {
 }
 ```
 
+## Decoded Transactions
+
+### Get Decoded Transaction
+```graphql
+query {
+  getDecodedTransaction(hash: "0x123...") {
+    blockHeight
+    txIndex
+    txHash
+    txType
+    createdAt
+    signature
+    requestId
+    
+    # Fields based on transaction type
+    validatorEndpoint
+    validatorCometAddress
+    validatorEthBlock
+    validatorNodeType
+    validatorSpId
+    validatorPubKey
+    validatorPower
+    
+    deregistrationCometAddress
+    deregistrationPubKey
+    
+    slaTimestamp
+    slaBlockStart
+    slaBlockEnd
+    slaReports {
+      address
+      blocksProposed
+    }
+    
+    storageProofHeight
+    storageProofAddress
+    storageProofProverAddresses
+    storageProofCid
+    storageProofSignature
+    
+    storageVerificationHeight
+    storageVerificationProof
+    
+    manageEntityUserId
+    manageEntityType
+    manageEntityId
+    manageEntityAction
+    manageEntityMetadata
+    manageEntitySignature
+    manageEntitySigner
+    manageEntityNonce
+  }
+}
+```
+
+### Get Latest Decoded Transactions
+```graphql
+query {
+  getLatestDecodedTransactions(limit: 10) {
+    blockHeight
+    txIndex
+    txHash
+    txType
+    createdAt
+  }
+}
+```
+
+### Get Decoded Transactions by Type
+```graphql
+query {
+  getDecodedTransactionsByType(txType: "Plays", limit: 10) {
+    blockHeight
+    txIndex
+    txHash
+    txType
+    createdAt
+  }
+}
+```
+
+### Get Decoded Transactions by Block Height
+```graphql
+query {
+  getDecodedTransactionsByBlock(height: 100) {
+    blockHeight
+    txIndex
+    txHash
+    txType
+    createdAt
+  }
+}
+```
+
+### Get Track Plays by Transaction Hash
+```graphql
+query {
+  getPlaysByTxHash(txHash: "0x123...") {
+    id
+    txHash
+    userId
+    trackId
+    timestamp
+    signature
+    city
+    region
+    country
+    blockHeight
+    createdAt
+  }
+}
+```
+
+### Get Track Plays by User
+```graphql
+query {
+  getPlaysByUser(userId: "123", limit: 10) {
+    id
+    txHash
+    userId
+    trackId
+    timestamp
+    signature
+    city
+    region
+    country
+    blockHeight
+    createdAt
+  }
+}
+```
+
+### Get Track Plays by Track
+```graphql
+query {
+  getPlaysByTrack(trackId: "123", limit: 10) {
+    id
+    txHash
+    userId
+    trackId
+    timestamp
+    signature
+    city
+    region
+    country
+    blockHeight
+    createdAt
+  }
+}
+```
+
+### Get Track Plays by Time Range
+```graphql
+query {
+  getPlaysByTimeRange(startTime: "2024-01-01T00:00:00Z", endTime: "2024-01-02T00:00:00Z") {
+    id
+    txHash
+    userId
+    trackId
+    timestamp
+    signature
+    city
+    region
+    country
+    blockHeight
+    createdAt
+  }
+}
+```
+
+### Get Track Plays by Country
+```graphql
+query {
+  getPlaysByCountry(country: "US", limit: 10) {
+    id
+    txHash
+    userId
+    trackId
+    timestamp
+    signature
+    city
+    region
+    country
+    blockHeight
+    createdAt
+  }
+}
+```
+
 ## Analytics
 
 ### Get Protocol Analytics

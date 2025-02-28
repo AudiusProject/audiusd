@@ -87,6 +87,75 @@ type SLAReport {
   timestamp: String!
 }
 
+type TrackPlay {
+  id: Int!
+  txHash: String!
+  userId: String!
+  trackId: String!
+  timestamp: String!
+  signature: String
+  city: String
+  region: String
+  country: String
+  blockHeight: Int
+  createdAt: String
+}
+
+type DecodedTransaction {
+  blockHeight: Int!
+  txIndex: Int!
+  txHash: String!
+  txType: String!
+  createdAt: String!
+
+  # Common fields
+  signature: String
+  requestId: String
+
+  # ValidatorRegistration fields
+  validatorEndpoint: String
+  validatorCometAddress: String
+  validatorEthBlock: String
+  validatorNodeType: String
+  validatorSpId: String
+  validatorPubKey: String
+  validatorPower: Int
+
+  # ValidatorDeregistration fields
+  deregistrationCometAddress: String
+  deregistrationPubKey: String
+
+  # SlaRollup fields
+  slaTimestamp: String
+  slaBlockStart: Int
+  slaBlockEnd: Int
+  slaReports: [SLANodeReport]
+
+  # StorageProof fields
+  storageProofHeight: Int
+  storageProofAddress: String
+  storageProofProverAddresses: [String]
+  storageProofCid: String
+  storageProofSignature: String
+
+  # StorageProofVerification fields
+  storageVerificationHeight: Int
+  storageVerificationProof: String
+
+  # ManageEntity fields
+  manageEntityUserId: Int
+  manageEntityType: String
+  manageEntityId: Int
+  manageEntityAction: String
+  manageEntityMetadata: String
+  manageEntitySignature: String
+  manageEntitySigner: String
+  manageEntityNonce: String
+
+  # Associated plays
+  plays: [TrackPlay]
+}
+
 type Query {
   # Block queries
   getBlock(height: Int): Block
@@ -96,6 +165,19 @@ type Query {
   # Transaction queries
   getTransaction(hash: String!): Transaction
   getLatestTransactions(limit: Int = 10): [Transaction!]!
+  
+  # Decoded Transaction queries
+  getDecodedTransaction(hash: String!): DecodedTransaction
+  getLatestDecodedTransactions(limit: Int = 10): [DecodedTransaction!]!
+  getDecodedTransactionsByType(txType: String!, limit: Int = 10): [DecodedTransaction!]!
+  getDecodedTransactionsByBlock(height: Int!): [DecodedTransaction!]!
+  
+  # Play queries
+  getPlaysByTxHash(txHash: String!): [TrackPlay!]!
+  getPlaysByUser(userId: String!, limit: Int = 10): [TrackPlay!]!
+  getPlaysByTrack(trackId: String!, limit: Int = 10): [TrackPlay!]!
+  getPlaysByTimeRange(startTime: String!, endTime: String!): [TrackPlay!]!
+  getPlaysByCountry(country: String!, limit: Int = 10): [TrackPlay!]!
   
   # Analytics queries
   getAnalytics: Analytics!

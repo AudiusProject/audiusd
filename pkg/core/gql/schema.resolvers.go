@@ -6,7 +6,10 @@ package gql
 
 import (
 	"context"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/AudiusProject/audiusd/pkg/core/db"
 	"github.com/AudiusProject/audiusd/pkg/core/gen/core_gql"
@@ -155,6 +158,563 @@ func (r *queryGraphQLServer) GetLatestTransactions(ctx context.Context, limit *i
 			Data:        string(tx.Transaction),
 			Type:        nil, // TODO: Implement transaction type detection from tx data
 		})
+	}
+	return result, nil
+}
+
+func (r *queryGraphQLServer) GetDecodedTransaction(ctx context.Context, hash string) (*core_gql.DecodedTransaction, error) {
+	tx, err := r.db.GetDecodedTx(ctx, hash)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert validator pub key to hex string if present
+	var validatorPubKey *string
+	if tx.ValidatorPubKey != nil {
+		hexStr := hex.EncodeToString(tx.ValidatorPubKey)
+		validatorPubKey = &hexStr
+	}
+
+	// Convert deregistration pub key to hex string if present
+	var deregPubKey *string
+	if tx.DeregistrationPubKey != nil {
+		hexStr := hex.EncodeToString(tx.DeregistrationPubKey)
+		deregPubKey = &hexStr
+	}
+
+	// Convert storage proof signature to hex string if present
+	var storageProofSig *string
+	if tx.StorageProofSignature != nil {
+		hexStr := hex.EncodeToString(tx.StorageProofSignature)
+		storageProofSig = &hexStr
+	}
+
+	// Convert storage verification proof to hex string if present
+	var storageVerificationProof *string
+	if tx.StorageVerificationProof != nil {
+		hexStr := hex.EncodeToString(tx.StorageVerificationProof)
+		storageVerificationProof = &hexStr
+	}
+
+	// Convert nullable text fields
+	var signature, requestID, validatorEndpoint, validatorCometAddress, validatorEthBlock,
+		validatorNodeType, validatorSpID, deregistrationCometAddress, storageProofAddress,
+		storageProofCid, manageEntityType, manageEntityAction, manageEntityMetadata,
+		manageEntitySignature, manageEntitySigner, manageEntityNonce *string
+
+	if tx.Signature.Valid {
+		signature = &tx.Signature.String
+	}
+	if tx.RequestID.Valid {
+		requestID = &tx.RequestID.String
+	}
+	if tx.ValidatorEndpoint.Valid {
+		validatorEndpoint = &tx.ValidatorEndpoint.String
+	}
+	if tx.ValidatorCometAddress.Valid {
+		validatorCometAddress = &tx.ValidatorCometAddress.String
+	}
+	if tx.ValidatorEthBlock.Valid {
+		validatorEthBlock = &tx.ValidatorEthBlock.String
+	}
+	if tx.ValidatorNodeType.Valid {
+		validatorNodeType = &tx.ValidatorNodeType.String
+	}
+	if tx.ValidatorSpID.Valid {
+		validatorSpID = &tx.ValidatorSpID.String
+	}
+	if tx.DeregistrationCometAddress.Valid {
+		deregistrationCometAddress = &tx.DeregistrationCometAddress.String
+	}
+	if tx.StorageProofAddress.Valid {
+		storageProofAddress = &tx.StorageProofAddress.String
+	}
+	if tx.StorageProofCid.Valid {
+		storageProofCid = &tx.StorageProofCid.String
+	}
+	if tx.ManageEntityType.Valid {
+		manageEntityType = &tx.ManageEntityType.String
+	}
+	if tx.ManageEntityAction.Valid {
+		manageEntityAction = &tx.ManageEntityAction.String
+	}
+	if tx.ManageEntityMetadata.Valid {
+		manageEntityMetadata = &tx.ManageEntityMetadata.String
+	}
+	if tx.ManageEntitySignature.Valid {
+		manageEntitySignature = &tx.ManageEntitySignature.String
+	}
+	if tx.ManageEntitySigner.Valid {
+		manageEntitySigner = &tx.ManageEntitySigner.String
+	}
+	if tx.ManageEntityNonce.Valid {
+		manageEntityNonce = &tx.ManageEntityNonce.String
+	}
+
+	// Convert nullable int fields
+	var validatorPower, storageProofHeight, storageVerificationHeight,
+		manageEntityUserID, manageEntityID, slaBlockStart, slaBlockEnd *int
+
+	if tx.ValidatorPower.Valid {
+		p := int(tx.ValidatorPower.Int64)
+		validatorPower = &p
+	}
+	if tx.StorageProofHeight.Valid {
+		h := int(tx.StorageProofHeight.Int64)
+		storageProofHeight = &h
+	}
+	if tx.StorageVerificationHeight.Valid {
+		h := int(tx.StorageVerificationHeight.Int64)
+		storageVerificationHeight = &h
+	}
+	if tx.ManageEntityUserID.Valid {
+		id := int(tx.ManageEntityUserID.Int64)
+		manageEntityUserID = &id
+	}
+	if tx.ManageEntityID.Valid {
+		id := int(tx.ManageEntityID.Int64)
+		manageEntityID = &id
+	}
+	if tx.SlaBlockStart.Valid {
+		s := int(tx.SlaBlockStart.Int64)
+		slaBlockStart = &s
+	}
+	if tx.SlaBlockEnd.Valid {
+		e := int(tx.SlaBlockEnd.Int64)
+		slaBlockEnd = &e
+	}
+
+	// Convert SLA reports from JSON if present
+	var slaReports []*core_gql.SLANodeReport
+	if tx.SlaReports != nil {
+		var reports []struct {
+			Address           string `json:"address"`
+			NumBlocksProposed int32  `json:"num_blocks_proposed"`
+		}
+		if err := json.Unmarshal(tx.SlaReports, &reports); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal SLA reports: %w", err)
+		}
+		slaReports = make([]*core_gql.SLANodeReport, len(reports))
+		for i, report := range reports {
+			slaReports[i] = &core_gql.SLANodeReport{
+				Address:        report.Address,
+				BlocksProposed: int(report.NumBlocksProposed),
+			}
+		}
+	}
+
+	// Convert prover addresses array
+	var proverAddresses []*string
+	if tx.StorageProofProverAddresses != nil {
+		proverAddresses = make([]*string, len(tx.StorageProofProverAddresses))
+		for i, addr := range tx.StorageProofProverAddresses {
+			proverAddresses[i] = &addr
+		}
+	}
+
+	// Convert SLA timestamp
+	var slaTimestamp *string
+	if tx.SlaTimestamp.Valid {
+		t := tx.SlaTimestamp.Time.String()
+		slaTimestamp = &t
+	}
+
+	return &core_gql.DecodedTransaction{
+		BlockHeight: int(tx.BlockHeight),
+		TxIndex:     int(tx.TxIndex),
+		TxHash:      tx.TxHash,
+		TxType:      tx.TxType,
+		CreatedAt:   tx.CreatedAt.Time.String(),
+
+		// Common fields
+		Signature: signature,
+		RequestID: requestID,
+
+		// ValidatorRegistration fields
+		ValidatorEndpoint:     validatorEndpoint,
+		ValidatorCometAddress: validatorCometAddress,
+		ValidatorEthBlock:     validatorEthBlock,
+		ValidatorNodeType:     validatorNodeType,
+		ValidatorSpID:         validatorSpID,
+		ValidatorPubKey:       validatorPubKey,
+		ValidatorPower:        validatorPower,
+
+		// ValidatorDeregistration fields
+		DeregistrationCometAddress: deregistrationCometAddress,
+		DeregistrationPubKey:       deregPubKey,
+
+		// SlaRollup fields
+		SLATimestamp:  slaTimestamp,
+		SLABlockStart: slaBlockStart,
+		SLABlockEnd:   slaBlockEnd,
+		SLAReports:    slaReports,
+
+		// StorageProof fields
+		StorageProofHeight:          storageProofHeight,
+		StorageProofAddress:         storageProofAddress,
+		StorageProofProverAddresses: proverAddresses,
+		StorageProofCid:             storageProofCid,
+		StorageProofSignature:       storageProofSig,
+
+		// StorageProofVerification fields
+		StorageVerificationHeight: storageVerificationHeight,
+		StorageVerificationProof:  storageVerificationProof,
+
+		// ManageEntity fields
+		ManageEntityUserID:    manageEntityUserID,
+		ManageEntityType:      manageEntityType,
+		ManageEntityID:        manageEntityID,
+		ManageEntityAction:    manageEntityAction,
+		ManageEntityMetadata:  manageEntityMetadata,
+		ManageEntitySignature: manageEntitySignature,
+		ManageEntitySigner:    manageEntitySigner,
+		ManageEntityNonce:     manageEntityNonce,
+	}, nil
+}
+
+func (r *queryGraphQLServer) GetLatestDecodedTransactions(ctx context.Context, limit *int) ([]*core_gql.DecodedTransaction, error) {
+	l := int32(10)
+	if limit != nil {
+		l = int32(*limit)
+	}
+
+	txs, err := r.db.GetLatestDecodedTxs(ctx, l)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]*core_gql.DecodedTransaction, len(txs))
+	for i, tx := range txs {
+		result[i] = &core_gql.DecodedTransaction{
+			BlockHeight: int(tx.BlockHeight),
+			TxIndex:     int(tx.TxIndex),
+			TxHash:      tx.TxHash,
+			TxType:      tx.TxType,
+			CreatedAt:   tx.CreatedAt.Time.String(),
+		}
+	}
+	return result, nil
+}
+
+func (r *queryGraphQLServer) GetDecodedTransactionsByType(ctx context.Context, txType string, limit *int) ([]*core_gql.DecodedTransaction, error) {
+	l := int32(10)
+	if limit != nil {
+		l = int32(*limit)
+	}
+
+	txs, err := r.db.GetDecodedTxsByType(ctx, db.GetDecodedTxsByTypeParams{
+		TxType: txType,
+		Limit:  l,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]*core_gql.DecodedTransaction, len(txs))
+	for i, tx := range txs {
+		result[i] = &core_gql.DecodedTransaction{
+			BlockHeight: int(tx.BlockHeight),
+			TxIndex:     int(tx.TxIndex),
+			TxHash:      tx.TxHash,
+			TxType:      tx.TxType,
+			CreatedAt:   tx.CreatedAt.Time.String(),
+		}
+	}
+	return result, nil
+}
+
+func (r *queryGraphQLServer) GetDecodedTransactionsByBlock(ctx context.Context, height int) ([]*core_gql.DecodedTransaction, error) {
+	txs, err := r.db.GetDecodedTxsByBlock(ctx, int64(height))
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]*core_gql.DecodedTransaction, len(txs))
+	for i, tx := range txs {
+		result[i] = &core_gql.DecodedTransaction{
+			BlockHeight: int(tx.BlockHeight),
+			TxIndex:     int(tx.TxIndex),
+			TxHash:      tx.TxHash,
+			TxType:      tx.TxType,
+			CreatedAt:   tx.CreatedAt.Time.String(),
+		}
+	}
+	return result, nil
+}
+
+func (r *queryGraphQLServer) GetPlaysByTxHash(ctx context.Context, txHash string) ([]*core_gql.TrackPlay, error) {
+	plays, err := r.db.GetPlaysByTxHash(ctx, txHash)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]*core_gql.TrackPlay, len(plays))
+	for i, play := range plays {
+		var signature, city, region, country *string
+		if play.Signature.Valid {
+			signature = &play.Signature.String
+		}
+		if play.City.Valid {
+			city = &play.City.String
+		}
+		if play.Region.Valid {
+			region = &play.Region.String
+		}
+		if play.Country.Valid {
+			country = &play.Country.String
+		}
+
+		result[i] = &core_gql.TrackPlay{
+			ID:        int(play.ID),
+			TxHash:    play.TxHash,
+			UserID:    play.UserID,
+			TrackID:   play.TrackID,
+			Timestamp: play.Timestamp.Time.String(),
+			Signature: signature,
+			City:      city,
+			Region:    region,
+			Country:   country,
+		}
+	}
+	return result, nil
+}
+
+func (r *queryGraphQLServer) GetPlaysByUser(ctx context.Context, userID string, limit *int) ([]*core_gql.TrackPlay, error) {
+	l := int32(10)
+	if limit != nil {
+		l = int32(*limit)
+	}
+
+	plays, err := r.db.GetPlaysByUser(ctx, db.GetPlaysByUserParams{
+		UserID: userID,
+		Limit:  l,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]*core_gql.TrackPlay, len(plays))
+	for i, play := range plays {
+		var signature, city, region, country *string
+		var blockHeight *int
+		var createdAt *string
+
+		if play.Signature.Valid {
+			signature = &play.Signature.String
+		}
+		if play.City.Valid {
+			city = &play.City.String
+		}
+		if play.Region.Valid {
+			region = &play.Region.String
+		}
+		if play.Country.Valid {
+			country = &play.Country.String
+		}
+
+		// BlockHeight is not nullable in the database
+		h := int(play.BlockHeight)
+		blockHeight = &h
+
+		if play.CreatedAt.Valid {
+			t := play.CreatedAt.Time.String()
+			createdAt = &t
+		}
+
+		result[i] = &core_gql.TrackPlay{
+			ID:          int(play.ID),
+			TxHash:      play.TxHash,
+			UserID:      play.UserID,
+			TrackID:     play.TrackID,
+			Timestamp:   play.Timestamp.Time.String(),
+			Signature:   signature,
+			City:        city,
+			Region:      region,
+			Country:     country,
+			BlockHeight: blockHeight,
+			CreatedAt:   createdAt,
+		}
+	}
+	return result, nil
+}
+
+func (r *queryGraphQLServer) GetPlaysByTrack(ctx context.Context, trackID string, limit *int) ([]*core_gql.TrackPlay, error) {
+	l := int32(10)
+	if limit != nil {
+		l = int32(*limit)
+	}
+
+	plays, err := r.db.GetPlaysByTrack(ctx, db.GetPlaysByTrackParams{
+		TrackID: trackID,
+		Limit:   l,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]*core_gql.TrackPlay, len(plays))
+	for i, play := range plays {
+		var signature, city, region, country *string
+		var blockHeight *int
+		var createdAt *string
+
+		if play.Signature.Valid {
+			signature = &play.Signature.String
+		}
+		if play.City.Valid {
+			city = &play.City.String
+		}
+		if play.Region.Valid {
+			region = &play.Region.String
+		}
+		if play.Country.Valid {
+			country = &play.Country.String
+		}
+
+		// BlockHeight is not nullable in the database
+		h := int(play.BlockHeight)
+		blockHeight = &h
+
+		if play.CreatedAt.Valid {
+			t := play.CreatedAt.Time.String()
+			createdAt = &t
+		}
+
+		result[i] = &core_gql.TrackPlay{
+			ID:          int(play.ID),
+			TxHash:      play.TxHash,
+			UserID:      play.UserID,
+			TrackID:     play.TrackID,
+			Timestamp:   play.Timestamp.Time.String(),
+			Signature:   signature,
+			City:        city,
+			Region:      region,
+			Country:     country,
+			BlockHeight: blockHeight,
+			CreatedAt:   createdAt,
+		}
+	}
+	return result, nil
+}
+
+func (r *queryGraphQLServer) GetPlaysByTimeRange(ctx context.Context, startTime string, endTime string) ([]*core_gql.TrackPlay, error) {
+	start, err := time.Parse(time.RFC3339, startTime)
+	if err != nil {
+		return nil, fmt.Errorf("invalid start time format: %w", err)
+	}
+	end, err := time.Parse(time.RFC3339, endTime)
+	if err != nil {
+		return nil, fmt.Errorf("invalid end time format: %w", err)
+	}
+
+	plays, err := r.db.GetPlaysByTimeRange(ctx, db.GetPlaysByTimeRangeParams{
+		Timestamp:   pgtype.Timestamptz{Time: start, Valid: true},
+		Timestamp_2: pgtype.Timestamptz{Time: end, Valid: true},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]*core_gql.TrackPlay, len(plays))
+	for i, play := range plays {
+		var signature, city, region, country *string
+		var blockHeight *int
+		var createdAt *string
+
+		if play.Signature.Valid {
+			signature = &play.Signature.String
+		}
+		if play.City.Valid {
+			city = &play.City.String
+		}
+		if play.Region.Valid {
+			region = &play.Region.String
+		}
+		if play.Country.Valid {
+			country = &play.Country.String
+		}
+
+		// BlockHeight is not nullable in the database
+		h := int(play.BlockHeight)
+		blockHeight = &h
+
+		if play.CreatedAt.Valid {
+			t := play.CreatedAt.Time.String()
+			createdAt = &t
+		}
+
+		result[i] = &core_gql.TrackPlay{
+			ID:          int(play.ID),
+			TxHash:      play.TxHash,
+			UserID:      play.UserID,
+			TrackID:     play.TrackID,
+			Timestamp:   play.Timestamp.Time.String(),
+			Signature:   signature,
+			City:        city,
+			Region:      region,
+			Country:     country,
+			BlockHeight: blockHeight,
+			CreatedAt:   createdAt,
+		}
+	}
+	return result, nil
+}
+
+func (r *queryGraphQLServer) GetPlaysByCountry(ctx context.Context, country string, limit *int) ([]*core_gql.TrackPlay, error) {
+	l := int32(10)
+	if limit != nil {
+		l = int32(*limit)
+	}
+
+	plays, err := r.db.GetPlaysByCountry(ctx, db.GetPlaysByCountryParams{
+		Country: pgtype.Text{String: country, Valid: true},
+		Limit:   l,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]*core_gql.TrackPlay, len(plays))
+	for i, play := range plays {
+		var signature, city, region, country *string
+		var blockHeight *int
+		var createdAt *string
+
+		if play.Signature.Valid {
+			signature = &play.Signature.String
+		}
+		if play.City.Valid {
+			city = &play.City.String
+		}
+		if play.Region.Valid {
+			region = &play.Region.String
+		}
+		if play.Country.Valid {
+			country = &play.Country.String
+		}
+
+		// BlockHeight is not nullable in the database
+		h := int(play.BlockHeight)
+		blockHeight = &h
+
+		if play.CreatedAt.Valid {
+			t := play.CreatedAt.Time.String()
+			createdAt = &t
+		}
+
+		result[i] = &core_gql.TrackPlay{
+			ID:          int(play.ID),
+			TxHash:      play.TxHash,
+			UserID:      play.UserID,
+			TrackID:     play.TrackID,
+			Timestamp:   play.Timestamp.Time.String(),
+			Signature:   signature,
+			City:        city,
+			Region:      region,
+			Country:     country,
+			BlockHeight: blockHeight,
+			CreatedAt:   createdAt,
+		}
 	}
 	return result, nil
 }
