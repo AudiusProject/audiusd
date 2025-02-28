@@ -43,10 +43,10 @@ type ProtocolSignedTransaction struct {
 	ValidatorDeregistration *ProtocolValidatorDeregistration `json:"validatorDeregistration,omitempty"`
 
 	// validator registration
-	ValidatorRegistration *ProtocolValidatorRegistration `json:"validatorRegistration,omitempty"`
+	ValidatorRegistration *ProtocolValidatorRegistrationLegacy `json:"validatorRegistration,omitempty"`
 
-	// validator registration legacy
-	ValidatorRegistrationLegacy *ProtocolValidatorRegistrationLegacy `json:"validatorRegistrationLegacy,omitempty"`
+	// validator registration v2
+	ValidatorRegistrationV2 *ProtocolValidatorRegistration `json:"validatorRegistrationV2,omitempty"`
 }
 
 // Validate validates this protocol signed transaction
@@ -81,7 +81,7 @@ func (m *ProtocolSignedTransaction) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
-	if err := m.validateValidatorRegistrationLegacy(formats); err != nil {
+	if err := m.validateValidatorRegistrationV2(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -224,17 +224,17 @@ func (m *ProtocolSignedTransaction) validateValidatorRegistration(formats strfmt
 	return nil
 }
 
-func (m *ProtocolSignedTransaction) validateValidatorRegistrationLegacy(formats strfmt.Registry) error {
-	if swag.IsZero(m.ValidatorRegistrationLegacy) { // not required
+func (m *ProtocolSignedTransaction) validateValidatorRegistrationV2(formats strfmt.Registry) error {
+	if swag.IsZero(m.ValidatorRegistrationV2) { // not required
 		return nil
 	}
 
-	if m.ValidatorRegistrationLegacy != nil {
-		if err := m.ValidatorRegistrationLegacy.Validate(formats); err != nil {
+	if m.ValidatorRegistrationV2 != nil {
+		if err := m.ValidatorRegistrationV2.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
-				return ve.ValidateName("validatorRegistrationLegacy")
+				return ve.ValidateName("validatorRegistrationV2")
 			} else if ce, ok := err.(*errors.CompositeError); ok {
-				return ce.ValidateName("validatorRegistrationLegacy")
+				return ce.ValidateName("validatorRegistrationV2")
 			}
 			return err
 		}
@@ -275,7 +275,7 @@ func (m *ProtocolSignedTransaction) ContextValidate(ctx context.Context, formats
 		res = append(res, err)
 	}
 
-	if err := m.contextValidateValidatorRegistrationLegacy(ctx, formats); err != nil {
+	if err := m.contextValidateValidatorRegistrationV2(ctx, formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -432,19 +432,19 @@ func (m *ProtocolSignedTransaction) contextValidateValidatorRegistration(ctx con
 	return nil
 }
 
-func (m *ProtocolSignedTransaction) contextValidateValidatorRegistrationLegacy(ctx context.Context, formats strfmt.Registry) error {
+func (m *ProtocolSignedTransaction) contextValidateValidatorRegistrationV2(ctx context.Context, formats strfmt.Registry) error {
 
-	if m.ValidatorRegistrationLegacy != nil {
+	if m.ValidatorRegistrationV2 != nil {
 
-		if swag.IsZero(m.ValidatorRegistrationLegacy) { // not required
+		if swag.IsZero(m.ValidatorRegistrationV2) { // not required
 			return nil
 		}
 
-		if err := m.ValidatorRegistrationLegacy.ContextValidate(ctx, formats); err != nil {
+		if err := m.ValidatorRegistrationV2.ContextValidate(ctx, formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
-				return ve.ValidateName("validatorRegistrationLegacy")
+				return ve.ValidateName("validatorRegistrationV2")
 			} else if ce, ok := err.(*errors.CompositeError); ok {
-				return ce.ValidateName("validatorRegistrationLegacy")
+				return ce.ValidateName("validatorRegistrationV2")
 			}
 			return err
 		}

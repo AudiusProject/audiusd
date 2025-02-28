@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
-	"time"
 
 	"github.com/AudiusProject/audiusd/pkg/core/common"
 	"github.com/AudiusProject/audiusd/pkg/core/db"
@@ -21,13 +20,15 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-func (s *Server) isValidRegisterNodeTx(tx *core_proto.SignedTransaction) error {
+const maxRegistrationAge = 24 * 60 * 60 // Registration requests are only valid for approx 24 hours
+
+func (s *Server) isValidRegisterNodeTx(ctx context.Context, tx *core_proto.SignedTransaction, blockHeight int64) error {
 	sig := tx.GetSignature()
 	if sig == "" {
 		return fmt.Errorf("no signature provided for registration tx: %v", tx)
 	}
 
-	vr := tx.GetValidatorRegistration()
+	vr := tx.GetValidatorRegistrationV2()
 	if vr == nil {
 		return fmt.Errorf("unknown tx fell into isValidRegisterNodeTx: %v", tx)
 	}
@@ -36,6 +37,7 @@ func (s *Server) isValidRegisterNodeTx(tx *core_proto.SignedTransaction) error {
 		return fmt.Errorf("Empty eth registration fell into isValidRegisterNodeTx: %v", tx)
 	}
 
+	// convert to bytes for signature recovery
 	vrBytes, err := proto.Marshal(vr)
 	if err != nil {
 		return fmt.Errorf("could not marshal registration tx: %v", err)
@@ -45,6 +47,7 @@ func (s *Server) isValidRegisterNodeTx(tx *core_proto.SignedTransaction) error {
 		return fmt.Errorf("could not marshal ethereum registration: %v", err)
 	}
 
+	// validate address
 	_, address, err := common.EthRecover(tx.GetSignature(), vrBytes)
 	if err != nil {
 		return fmt.Errorf("could not recover msg sig: %v", err)
@@ -52,10 +55,13 @@ func (s *Server) isValidRegisterNodeTx(tx *core_proto.SignedTransaction) error {
 	if address != er.GetDelegateWallet() {
 		return fmt.Errorf("Signature address '%s' does not match ethereum registration '%s'", address, er.GetDelegateWallet())
 	}
+
+	// validate voting power
 	if vr.GetPower() != int64(s.config.ValidatorVotingPower) {
 		return fmt.Errorf("invalid voting power '%d'", vr.GetPower())
 	}
 
+	// validate pub key
 	if len(vr.GetPubKey()) == 0 {
 		return fmt.Errorf("public Key missing from %s registration tx", er.GetEndpoint())
 	}
@@ -64,24 +70,29 @@ func (s *Server) isValidRegisterNodeTx(tx *core_proto.SignedTransaction) error {
 		return fmt.Errorf("address does not match public key: %s %s", vrPubKey.Address(), vr.GetCometAddress())
 	}
 
+	// ensure comet address is not already taken
 	if _, err := s.db.GetRegisteredNodeByCometAddress(context.Background(), vr.GetCometAddress()); !errors.Is(err, pgx.ErrNoRows) {
 		return fmt.Errorf("address '%s' is already registered on comet, node %s attempted to acquire it", vr.GetCometAddress(), er.GetEndpoint())
 	}
 
-	nodes, err := s.db.GetAllRegisteredNodes(context.Background())
-	if err != nil {
-		return fmt.Errorf("Failed to get core validators while validating registration: %v", err)
+	// validate age of request
+	if er.ReferenceHeight > blockHeight || er.ReferenceHeight < blockHeight-maxRegistrationAge {
+		return fmt.Errorf("Registration request for '%s' with reference height %d is too old (current height is %d)", er.GetEndpoint(), er.ReferenceHeight, blockHeight)
 	}
 
+	// validate attestations
+	addrs, err := s.db.GetAllEthAddressesOfRegisteredNodes(ctx)
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return fmt.Errorf("Failed to get core validators while validating registration: %v", err)
+	}
 	atts := vr.GetAttestations()
 	if atts == nil {
 		atts = make([]string, 0) // empty attestations are expected at genesis
 	}
-
-	requiredAttestations := min(len(nodes), s.config.AttRegistrationMin)
+	requiredAttestations := min(len(addrs), s.config.AttRegistrationMin)
 	keyBytes := make([]byte, 8)
 	binary.BigEndian.PutUint64(keyBytes, uint64(er.GetEthBlock()))
-	rendezvous := getAttestorRendezvous(nodes, keyBytes, s.config.AttRegistrationRSize)
+	rendezvous := common.GetAttestorRendezvous(addrs, keyBytes, s.config.AttRegistrationRSize)
 	for _, att := range atts {
 		_, address, err := common.EthRecover(att, erBytes)
 		if err != nil {
@@ -99,13 +110,13 @@ func (s *Server) isValidRegisterNodeTx(tx *core_proto.SignedTransaction) error {
 	return nil
 }
 
-func (s *Server) finalizeRegisterNode(ctx context.Context, tx *core_proto.SignedTransaction, blockTime time.Time) (*core_proto.ValidatorRegistration, error) {
-	if err := s.isValidRegisterNodeTx(tx); err != nil {
+func (s *Server) finalizeRegisterNode(ctx context.Context, tx *core_proto.SignedTransaction, blockHeight int64) (*core_proto.ValidatorRegistration, error) {
+	if err := s.isValidRegisterNodeTx(ctx, tx, blockHeight); err != nil {
 		return nil, fmt.Errorf("invalid register node tx: %v", err)
 	}
 
 	qtx := s.getDb()
-	vr := tx.GetValidatorRegistration()
+	vr := tx.GetValidatorRegistrationV2()
 	er := vr.GetEthRegistration()
 
 	sig := tx.GetSignature()

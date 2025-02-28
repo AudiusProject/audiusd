@@ -26,6 +26,9 @@ service Protocol {
   rpc GetBlock(GetBlockRequest) returns (BlockResponse) {
     option (google.api.http) = {get: "/core/grpc/block/{height}"};
   }
+  rpc GetHeight(GetHeightRequest) returns (HeightResponse) {
+    option (google.api.http) = {get: "/core/grpc/height"};
+  }
   rpc GetNodeInfo(GetNodeInfoRequest) returns (NodeInfoResponse) {
     option (google.api.http) = {get: "/core/grpc/node_info"};
   }
@@ -45,13 +48,13 @@ message SignedTransaction {
   string request_id = 2;
   oneof transaction {
     TrackPlays plays = 1000;
-    ValidatorRegistrationLegacy validator_registration_legacy = 1001;
+    ValidatorRegistrationLegacy validator_registration = 1001;
     SlaRollup sla_rollup = 1002;
     ManageEntityLegacy manage_entity = 1003;
     ValidatorDeregistration validator_deregistration = 1004;
     StorageProof storage_proof = 1005;
     StorageProofVerification storage_proof_verification = 1006;
-    ValidatorRegistration validator_registration = 1007;
+    ValidatorRegistration validator_registration_v2 = 1007;
   }
 }
 
@@ -131,6 +134,7 @@ message EthRegistration {
   string node_type = 3;
   string sp_id = 4;
   int64 eth_block = 5;
+  int64 reference_height = 6;
 }
 
 message ValidatorDeregistration {
@@ -197,4 +201,10 @@ message RegistrationAttestationRequest {
 message RegistrationAttestationResponse {
   string signature = 1;
   EthRegistration registration = 2;
+}
+
+message GetHeightRequest {}
+
+message HeightResponse {
+    int64 height = 1;
 }

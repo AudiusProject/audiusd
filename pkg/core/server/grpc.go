@@ -214,6 +214,12 @@ func (s *Server) GetBlock(ctx context.Context, req *core_proto.GetBlockRequest) 
 	return res, nil
 }
 
+func (s *Server) GetHeight(ctx context.Context, req *core_proto.GetHeightRequest) (*core_proto.HeightResponse, error) {
+	return &core_proto.HeightResponse{
+		Height: s.cache.currentHeight,
+	}, nil
+}
+
 func (s *Server) GetNodeInfo(ctx context.Context, req *core_proto.GetNodeInfoRequest) (*core_proto.NodeInfoResponse, error) {
 	status, err := s.rpc.Status(ctx)
 	if err != nil {
@@ -301,6 +307,10 @@ func (s *Server) GetRegistrationAttestation(ctx context.Context, req *core_proto
 	ethReg := req.GetRegistration()
 	if ethReg == nil {
 		return nil, errors.New("empty registration attestation")
+	}
+
+	if ethReg.ReferenceHeight > s.cache.currentHeight {
+		return nil, fmt.Errorf("Cannot sign registration request with reference height %d (current height is %d)", ethReg.ReferenceHeight, s.cache.currentHeight)
 	}
 
 	if !s.isNodeRegisteredOnEthereum(

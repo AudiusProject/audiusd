@@ -46,23 +46,23 @@ func SignedTxProtoIntoSignedTxOapi(tx *core_proto.SignedTransaction) *models.Pro
 			Signer:     innerTx.ManageEntity.Signer,
 			Nonce:      fmt.Sprint(innerTx.ManageEntity.Nonce),
 		}
-	case *core_proto.SignedTransaction_ValidatorRegistration:
-		oapiTx.ValidatorRegistration = &models.ProtocolValidatorRegistration{
-			Attestations:    innerTx.ValidatorRegistration.Attestations,
-			EthRegistration: EthRegistrationProtoIntoEthRegistrationOapi(innerTx.ValidatorRegistration.EthRegistration),
-			CometAddress:    innerTx.ValidatorRegistration.CometAddress,
-			Power:           fmt.Sprint(innerTx.ValidatorRegistration.Power),
-			PubKey:          innerTx.ValidatorRegistration.PubKey,
+	case *core_proto.SignedTransaction_ValidatorRegistrationV2:
+		oapiTx.ValidatorRegistrationV2 = &models.ProtocolValidatorRegistration{
+			Attestations:    innerTx.ValidatorRegistrationV2.Attestations,
+			EthRegistration: EthRegistrationProtoIntoEthRegistrationOapi(innerTx.ValidatorRegistrationV2.EthRegistration),
+			CometAddress:    innerTx.ValidatorRegistrationV2.CometAddress,
+			Power:           fmt.Sprint(innerTx.ValidatorRegistrationV2.Power),
+			PubKey:          innerTx.ValidatorRegistrationV2.PubKey,
 		}
-	case *core_proto.SignedTransaction_ValidatorRegistrationLegacy:
-		oapiTx.ValidatorRegistrationLegacy = &models.ProtocolValidatorRegistrationLegacy{
-			CometAddress: innerTx.ValidatorRegistrationLegacy.CometAddress,
-			Endpoint:     innerTx.ValidatorRegistrationLegacy.Endpoint,
-			EthBlock:     innerTx.ValidatorRegistrationLegacy.EthBlock,
-			NodeType:     innerTx.ValidatorRegistrationLegacy.NodeType,
-			SpID:         innerTx.ValidatorRegistrationLegacy.SpId,
-			Power:        fmt.Sprint(innerTx.ValidatorRegistrationLegacy.Power),
-			PubKey:       innerTx.ValidatorRegistrationLegacy.PubKey,
+	case *core_proto.SignedTransaction_ValidatorRegistration:
+		oapiTx.ValidatorRegistration = &models.ProtocolValidatorRegistrationLegacy{
+			CometAddress: innerTx.ValidatorRegistration.CometAddress,
+			Endpoint:     innerTx.ValidatorRegistration.Endpoint,
+			EthBlock:     innerTx.ValidatorRegistration.EthBlock,
+			NodeType:     innerTx.ValidatorRegistration.NodeType,
+			SpID:         innerTx.ValidatorRegistration.SpId,
+			Power:        fmt.Sprint(innerTx.ValidatorRegistration.Power),
+			PubKey:       innerTx.ValidatorRegistration.PubKey,
 		}
 	case *core_proto.SignedTransaction_ValidatorDeregistration:
 		oapiTx.ValidatorDeregistration = &models.ProtocolValidatorDeregistration{
