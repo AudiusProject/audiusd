@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package storage.v1;
+
+option go_package = "github.com/AudiusProject/audiusd/pkg/gen/storage/v1;storagev1";
+
+service StorageService {
+  rpc Ping(PingRequest) returns (PingResponse);
+  rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+
+  rpc Upload(stream UploadRequest) returns (UploadResponse);
+  rpc GetUpload(GetUploadRequest) returns (GetUploadResponse);
+  rpc UpdateUpload(UpdateUploadRequest) returns (UpdateUploadResponse);
+  rpc GetUploads(GetUploadsRequest) returns (GetUploadsResponse);
+  rpc StreamTrack(StreamTrackRequest) returns (stream StreamTrackResponse);
+  rpc GetImage(GetImageRequest) returns (stream GetImageResponse);
+}
+
+message PingRequest {}
+message PingResponse {}
+
+message HealthCheckRequest {}
+message HealthCheckResponse {}
+
+message UploadRequest {}
+message UploadResponse {}
+
+message GetUploadRequest {}
+message GetUploadResponse {}
+
+message UpdateUploadRequest {}
+message UpdateUploadResponse {}
+
+message GetUploadsRequest {}
+message GetUploadsResponse {}
+
+message StreamTrackRequest {}
+message StreamTrackResponse {}
+
+message GetImageRequest {}
+message GetImageResponse {}

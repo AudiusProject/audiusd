@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package core.v1;
+
+option go_package = "github.com/AudiusProject/audiusd/pkg/gen/core/v1;corev1";
+
+service CoreService {
+  rpc Ping(PingRequest) returns (PingResponse);
+  rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+
+  rpc SendTransaction(SendTransactionRequest) returns (SendTransactionResponse);
+  rpc ForwardTransaction(ForwardTransactionRequest) returns (ForwardTransactionResponse);
+  rpc GetTransaction(GetTransactionRequest) returns (GetTransactionResponse);
+  rpc GetBlock(GetBlockRequest) returns (GetBlockResponse);
+}
+
+message PingRequest {}
+message PingResponse {}
+
+message HealthCheckRequest {}
+message HealthCheckResponse {}
+
+message SendTransactionRequest {}
+message SendTransactionResponse {}
+
+message ForwardTransactionRequest {}
+message ForwardTransactionResponse {}
+
+message GetTransactionRequest {}
+message GetTransactionResponse {}
+
+message GetBlockRequest {}
+message GetBlockResponse {}

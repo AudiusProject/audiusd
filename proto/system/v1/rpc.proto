@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+package system.v1;
+
+option go_package = "github.com/AudiusProject/audiusd/pkg/gen/system/v1;systemv1";
+
+service SystemService {
+  rpc Ping(PingRequest) returns (PingResponse);
+  rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+
+  rpc GetNodeInfo(GetNodeInfoRequest) returns (GetNodeInfoResponse);
+  rpc GetNodeStatus(GetNodeStatusRequest) returns (GetNodeStatusResponse);
+  rpc GetNodeMetrics(GetNodeMetricsRequest) returns (GetNodeMetricsResponse);
+  rpc GetNodeConfig(GetNodeConfigRequest) returns (GetNodeConfigResponse);
+  rpc GetNodePeers(GetNodePeersRequest) returns (GetNodePeersResponse);
+}
+
+message PingRequest {}
+message PingResponse {}
+
+message HealthCheckRequest {}
+message HealthCheckResponse {}
+
+message GetNodeInfoRequest {}
+message GetNodeInfoResponse {}
+
+message GetNodeStatusRequest {}
+message GetNodeStatusResponse {}
+
+message GetNodeMetricsRequest {}
+message GetNodeMetricsResponse {}
+
+message GetNodeConfigRequest {}
+message GetNodeConfigResponse {}
+
+message GetNodePeersRequest {}
+message GetNodePeersResponse {}
