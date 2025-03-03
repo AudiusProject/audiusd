@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/AudiusProject/audiusd/pkg/core/db"
 	"github.com/AudiusProject/audiusd/pkg/core/gen/core_proto"
 )
 
@@ -20,6 +21,16 @@ func (s *Server) finalizePlayTransaction(ctx context.Context, stx *core_proto.Si
 	tx := stx.GetPlays()
 	if tx == nil {
 		return nil, errors.New("invalid play tx")
+	}
+
+	for _, play := range tx.Plays {
+		if err := s.getDb().InsertPlayRecord(ctx, db.InsertPlayRecordParams{
+			TrackID: tx.,
+			UserID:  tx.UserId,
+		}); err != nil {
+			s.logger.Errorf("error inserting play record: %v", err)
+		}
+	
 	}
 
 	return tx, nil

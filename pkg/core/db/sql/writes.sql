@@ -63,3 +63,7 @@ where block_height = $3 and address = $4;
 -- name: InsertFailedStorageProof :exec
 insert into storage_proofs (block_height, address, status)
 values ($1, $2, 'fail');
+
+-- name: InsertPlayRecord :exec
+insert into core_plays (user_id, track_id, listener_address, cid, city, country, region, signer, signature, block, created_at)
+values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) on conflict do nothing;

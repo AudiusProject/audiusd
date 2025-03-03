@@ -87,6 +87,42 @@ func (q *Queries) InsertFailedStorageProof(ctx context.Context, arg InsertFailed
 	return err
 }
 
+const insertPlayRecord = `-- name: InsertPlayRecord :exec
+insert into core_plays (user_id, track_id, listener_address, cid, city, country, region, signer, signature, block, created_at)
+values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) on conflict do nothing
+`
+
+type InsertPlayRecordParams struct {
+	UserID          string
+	TrackID         string
+	ListenerAddress string
+	Cid             string
+	City            string
+	Country         string
+	Region          string
+	Signer          string
+	Signature       string
+	Block           int64
+	CreatedAt       pgtype.Timestamptz
+}
+
+func (q *Queries) InsertPlayRecord(ctx context.Context, arg InsertPlayRecordParams) error {
+	_, err := q.db.Exec(ctx, insertPlayRecord,
+		arg.UserID,
+		arg.TrackID,
+		arg.ListenerAddress,
+		arg.Cid,
+		arg.City,
+		arg.Country,
+		arg.Region,
+		arg.Signer,
+		arg.Signature,
+		arg.Block,
+		arg.CreatedAt,
+	)
+	return err
+}
+
 const insertRegisteredNode = `-- name: InsertRegisteredNode :exec
 insert into core_validators(pub_key, endpoint, eth_address, comet_address, comet_pub_key, eth_block, node_type, sp_id)
 values ($1, $2, $3, $4, $5, $6, $7, $8)
