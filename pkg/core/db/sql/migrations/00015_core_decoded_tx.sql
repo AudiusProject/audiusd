@@ -1,23 +1,40 @@
--- +goose Up
--- +goose StatementBegin
-CREATE TABLE IF NOT EXISTS core_decoded_tx (
-    id BIGSERIAL PRIMARY KEY,
-    block_height BIGINT NOT NULL,
-    tx_index INTEGER NOT NULL,
-    tx_hash TEXT NOT NULL,
-    tx_type TEXT NOT NULL,
-    tx_data JSONB NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL,
-    UNIQUE(block_height, tx_index),
-    UNIQUE(tx_hash)
+-- +migrate Up
+
+create table if not exists core_tx_decoded (
+    id bigserial primary key,
+    block_height bigint not null,
+    tx_index integer not null,
+    tx_hash text not null,
+    tx_type text not null,
+    tx_data jsonb not null,
+    created_at timestamp with time zone not null,
+    unique(block_height, tx_index),
+    unique(tx_hash)
 );
 
-CREATE INDEX IF NOT EXISTS core_decoded_tx_block_height_idx ON core_decoded_tx(block_height);
-CREATE INDEX IF NOT EXISTS core_decoded_tx_tx_hash_idx ON core_decoded_tx(tx_hash);
-CREATE INDEX IF NOT EXISTS core_decoded_tx_tx_type_idx ON core_decoded_tx(tx_type);
--- +goose StatementEnd
+create table if not exists core_tx_decoded_plays (
+    id bigserial primary key,
+    tx_hash text not null references core_tx_decoded(tx_hash),
+    user_id text not null,
+    track_id text not null,
+    played_at timestamp with time zone not null,
+    signature text not null,
+    city text,
+    region text,
+    country text,
+    created_at timestamp with time zone not null,
+    unique(tx_hash, user_id, track_id)
+);
 
--- +goose Down
--- +goose StatementBegin
-DROP TABLE IF EXISTS core_decoded_tx;
--- +goose StatementEnd 
+create index if not exists core_tx_decoded_block_height_idx on core_tx_decoded(block_height);
+create index if not exists core_tx_decoded_tx_hash_idx on core_tx_decoded(tx_hash);
+create index if not exists core_tx_decoded_tx_type_idx on core_tx_decoded(tx_type);
+
+create index if not exists core_tx_decoded_plays_tx_hash_idx on core_tx_decoded_plays(tx_hash);
+create index if not exists core_tx_decoded_plays_user_id_idx on core_tx_decoded_plays(user_id);
+create index if not exists core_tx_decoded_plays_track_id_idx on core_tx_decoded_plays(track_id);
+create index if not exists core_tx_decoded_plays_played_at_idx on core_tx_decoded_plays(played_at);
+
+-- +migrate Down
+drop table if exists core_tx_decoded_plays;
+drop table if exists core_tx_decoded;

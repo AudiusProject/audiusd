@@ -182,21 +182,48 @@ where block_height in (
 select * from core_blocks order by height desc limit 1;
 
 -- name: GetDecodedTx :one
-select * from core_decoded_tx
+select * from core_tx_decoded
 where tx_hash = $1 limit 1;
 
 -- name: GetLatestDecodedTxs :many
-select * from core_decoded_tx
+select * from core_tx_decoded
 order by block_height desc, tx_index desc
 limit $1;
 
 -- name: GetDecodedTxsByType :many
-select * from core_decoded_tx
+select * from core_tx_decoded
 where tx_type = $1
 order by block_height desc, tx_index desc
 limit $2;
 
 -- name: GetDecodedTxsByBlock :many
-select * from core_decoded_tx
+select * from core_tx_decoded
 where block_height = $1
 order by tx_index asc;
+
+-- name: GetDecodedPlays :many
+select tx_hash, user_id, track_id, played_at, signature, city, region, country, created_at
+from core_tx_decoded_plays
+order by played_at desc
+limit $1;
+
+-- name: GetDecodedPlaysByUser :many
+select tx_hash, user_id, track_id, played_at, signature, city, region, country, created_at
+from core_tx_decoded_plays
+where user_id = $1
+order by played_at desc
+limit $2;
+
+-- name: GetDecodedPlaysByTrack :many
+select tx_hash, user_id, track_id, played_at, signature, city, region, country, created_at
+from core_tx_decoded_plays
+where track_id = $1
+order by played_at desc
+limit $2;
+
+-- name: GetDecodedPlaysByTimeRange :many
+select tx_hash, user_id, track_id, played_at, signature, city, region, country, created_at
+from core_tx_decoded_plays
+where played_at between $1 and $2
+order by played_at desc
+limit $3;

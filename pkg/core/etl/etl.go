@@ -43,9 +43,9 @@ func (e *ETL) WriteTx(ctx context.Context, tx *DecodedTransaction) error {
 		return fmt.Errorf("failed to marshal transaction data: %w", err)
 	}
 
-	// Write to PostgreSQL
+	// Write to core_tx_decoded
 	query := `
-		INSERT INTO core_decoded_tx (
+		INSERT INTO core_tx_decoded (
 			block_height,
 			tx_index,
 			tx_hash,
@@ -67,6 +67,44 @@ func (e *ETL) WriteTx(ctx context.Context, tx *DecodedTransaction) error {
 
 	if err != nil {
 		return fmt.Errorf("failed to insert decoded transaction: %w", err)
+	}
+
+	// If this is a play transaction, also write to core_tx_decoded_plays
+	if plays := tx.TxData.GetPlays(); plays != nil {
+		// Insert each play into core_tx_decoded_plays
+		playsQuery := `
+			INSERT INTO core_tx_decoded_plays (
+				tx_hash,
+				user_id,
+				track_id,
+				played_at,
+				signature,
+				city,
+				region,
+				country,
+				created_at
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+			ON CONFLICT (tx_hash, user_id, track_id) DO NOTHING
+		`
+
+		for _, play := range plays.Plays {
+			_, err = e.pool.Exec(ctx, playsQuery,
+				tx.TxHash,
+				play.UserId,
+				play.TrackId,
+				play.Timestamp.AsTime(),
+				play.Signature,
+				play.City,
+				play.Region,
+				play.Country,
+				tx.CreatedAt,
+			)
+			if err != nil {
+				e.logger.Error("failed to insert play record", "error", err)
+				// Continue inserting other plays even if one fails
+				continue
+			}
+		}
 	}
 
 	return nil

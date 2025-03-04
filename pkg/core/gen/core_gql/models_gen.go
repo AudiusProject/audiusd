@@ -19,6 +19,18 @@ type Block struct {
 	Timestamp    string         `json:"timestamp"`
 }
 
+type DecodedPlay struct {
+	TxHash    string  `json:"txHash"`
+	UserID    string  `json:"userId"`
+	TrackID   string  `json:"trackId"`
+	PlayedAt  string  `json:"playedAt"`
+	Signature string  `json:"signature"`
+	City      *string `json:"city,omitempty"`
+	Region    *string `json:"region,omitempty"`
+	Country   *string `json:"country,omitempty"`
+	CreatedAt string  `json:"createdAt"`
+}
+
 type DecodedTransaction struct {
 	BlockHeight int    `json:"blockHeight"`
 	TxIndex     int    `json:"txIndex"`

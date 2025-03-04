@@ -96,6 +96,18 @@ type DecodedTransaction {
   createdAt: String!
 }
 
+type DecodedPlay {
+  txHash: String!
+  userId: String!
+  trackId: String!
+  playedAt: String!
+  signature: String!
+  city: String
+  region: String
+  country: String
+  createdAt: String!
+}
+
 type Query {
   # Block queries
   getBlock(height: Int): Block
@@ -111,6 +123,12 @@ type Query {
   getLatestDecodedTransactions(limit: Int = 10): [DecodedTransaction!]!
   getDecodedTransactionsByType(txType: String!, limit: Int = 10): [DecodedTransaction!]!
   getDecodedTransactionsByBlock(height: Int!): [DecodedTransaction!]!
+  
+  # Decoded Play queries
+  getDecodedPlays(limit: Int = 10): [DecodedPlay!]!
+  getDecodedPlaysByUser(userId: String!, limit: Int = 10): [DecodedPlay!]!
+  getDecodedPlaysByTrack(trackId: String!, limit: Int = 10): [DecodedPlay!]!
+  getDecodedPlaysByTimeRange(startTime: String!, endTime: String!, limit: Int = 10): [DecodedPlay!]!
   
   # Analytics queries
   getAnalytics: Analytics!

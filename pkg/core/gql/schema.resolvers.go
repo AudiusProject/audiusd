@@ -7,6 +7,7 @@ package gql
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/AudiusProject/audiusd/pkg/core/db"
 	"github.com/AudiusProject/audiusd/pkg/core/gen/core_gql"
@@ -243,6 +244,139 @@ func (r *queryGraphQLServer) GetDecodedTransactionsByBlock(ctx context.Context, 
 			TxType:      tx.TxType,
 			TxData:      string(tx.TxData),
 			CreatedAt:   tx.CreatedAt.Time.String(),
+		})
+	}
+	return result, nil
+}
+
+func (r *queryGraphQLServer) GetDecodedPlays(ctx context.Context, limit *int) ([]*core_gql.DecodedPlay, error) {
+	l := int32(10)
+	if limit != nil {
+		l = int32(*limit)
+	}
+
+	plays, err := r.db.GetDecodedPlays(ctx, l)
+	if err != nil {
+		return nil, err
+	}
+
+	result := []*core_gql.DecodedPlay{}
+	for _, play := range plays {
+		result = append(result, &core_gql.DecodedPlay{
+			TxHash:    play.TxHash,
+			UserID:    play.UserID,
+			TrackID:   play.TrackID,
+			PlayedAt:  play.PlayedAt.Time.String(),
+			Signature: play.Signature,
+			City:      &play.City.String,
+			Region:    &play.Region.String,
+			Country:   &play.Country.String,
+			CreatedAt: play.CreatedAt.Time.String(),
+		})
+	}
+	return result, nil
+}
+
+func (r *queryGraphQLServer) GetDecodedPlaysByUser(ctx context.Context, userID string, limit *int) ([]*core_gql.DecodedPlay, error) {
+	l := int32(10)
+	if limit != nil {
+		l = int32(*limit)
+	}
+
+	plays, err := r.db.GetDecodedPlaysByUser(ctx, db.GetDecodedPlaysByUserParams{
+		UserID: userID,
+		Limit:  l,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	result := []*core_gql.DecodedPlay{}
+	for _, play := range plays {
+		result = append(result, &core_gql.DecodedPlay{
+			TxHash:    play.TxHash,
+			UserID:    play.UserID,
+			TrackID:   play.TrackID,
+			PlayedAt:  play.PlayedAt.Time.String(),
+			Signature: play.Signature,
+			City:      &play.City.String,
+			Region:    &play.Region.String,
+			Country:   &play.Country.String,
+			CreatedAt: play.CreatedAt.Time.String(),
+		})
+	}
+	return result, nil
+}
+
+func (r *queryGraphQLServer) GetDecodedPlaysByTrack(ctx context.Context, trackID string, limit *int) ([]*core_gql.DecodedPlay, error) {
+	l := int32(10)
+	if limit != nil {
+		l = int32(*limit)
+	}
+
+	plays, err := r.db.GetDecodedPlaysByTrack(ctx, db.GetDecodedPlaysByTrackParams{
+		TrackID: trackID,
+		Limit:   l,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	result := []*core_gql.DecodedPlay{}
+	for _, play := range plays {
+		result = append(result, &core_gql.DecodedPlay{
+			TxHash:    play.TxHash,
+			UserID:    play.UserID,
+			TrackID:   play.TrackID,
+			PlayedAt:  play.PlayedAt.Time.String(),
+			Signature: play.Signature,
+			City:      &play.City.String,
+			Region:    &play.Region.String,
+			Country:   &play.Country.String,
+			CreatedAt: play.CreatedAt.Time.String(),
+		})
+	}
+	return result, nil
+}
+
+func (r *queryGraphQLServer) GetDecodedPlaysByTimeRange(ctx context.Context, startTime string, endTime string, limit *int) ([]*core_gql.DecodedPlay, error) {
+	l := int32(10)
+	if limit != nil {
+		l = int32(*limit)
+	}
+
+	// Parse the time strings into time.Time
+	startTimestamp, err := time.Parse(time.RFC3339, startTime)
+	if err != nil {
+		return nil, fmt.Errorf("invalid start time format: %v", err)
+	}
+
+	endTimestamp, err := time.Parse(time.RFC3339, endTime)
+	if err != nil {
+		return nil, fmt.Errorf("invalid end time format: %v", err)
+	}
+
+	plays, err := r.db.GetDecodedPlaysByTimeRange(ctx, db.GetDecodedPlaysByTimeRangeParams{
+		PlayedAt:   pgtype.Timestamptz{Time: startTimestamp, Valid: true},
+		PlayedAt_2: pgtype.Timestamptz{Time: endTimestamp, Valid: true},
+		Limit:      l,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	result := []*core_gql.DecodedPlay{}
+	for _, play := range plays {
+		result = append(result, &core_gql.DecodedPlay{
+			TxHash:    play.TxHash,
+			UserID:    play.UserID,
+			TrackID:   play.TrackID,
+			PlayedAt:  play.PlayedAt.Time.String(),
+			Signature: play.Signature,
+			City:      &play.City.String,
+			Region:    &play.Region.String,
+			Country:   &play.Country.String,
+			CreatedAt: play.CreatedAt.Time.String(),
 		})
 	}
 	return result, nil

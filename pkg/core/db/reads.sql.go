@@ -150,14 +150,229 @@ func (q *Queries) GetBlockTransactions(ctx context.Context, blockID int64) ([]Co
 	return items, nil
 }
 
+const getDecodedPlays = `-- name: GetDecodedPlays :many
+select tx_hash, user_id, track_id, played_at, signature, city, region, country, created_at
+from core_tx_decoded_plays
+order by played_at desc
+limit $1
+`
+
+type GetDecodedPlaysRow struct {
+	TxHash    string
+	UserID    string
+	TrackID   string
+	PlayedAt  pgtype.Timestamptz
+	Signature string
+	City      pgtype.Text
+	Region    pgtype.Text
+	Country   pgtype.Text
+	CreatedAt pgtype.Timestamptz
+}
+
+func (q *Queries) GetDecodedPlays(ctx context.Context, limit int32) ([]GetDecodedPlaysRow, error) {
+	rows, err := q.db.Query(ctx, getDecodedPlays, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetDecodedPlaysRow
+	for rows.Next() {
+		var i GetDecodedPlaysRow
+		if err := rows.Scan(
+			&i.TxHash,
+			&i.UserID,
+			&i.TrackID,
+			&i.PlayedAt,
+			&i.Signature,
+			&i.City,
+			&i.Region,
+			&i.Country,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getDecodedPlaysByTimeRange = `-- name: GetDecodedPlaysByTimeRange :many
+select tx_hash, user_id, track_id, played_at, signature, city, region, country, created_at
+from core_tx_decoded_plays
+where played_at between $1 and $2
+order by played_at desc
+limit $3
+`
+
+type GetDecodedPlaysByTimeRangeParams struct {
+	PlayedAt   pgtype.Timestamptz
+	PlayedAt_2 pgtype.Timestamptz
+	Limit      int32
+}
+
+type GetDecodedPlaysByTimeRangeRow struct {
+	TxHash    string
+	UserID    string
+	TrackID   string
+	PlayedAt  pgtype.Timestamptz
+	Signature string
+	City      pgtype.Text
+	Region    pgtype.Text
+	Country   pgtype.Text
+	CreatedAt pgtype.Timestamptz
+}
+
+func (q *Queries) GetDecodedPlaysByTimeRange(ctx context.Context, arg GetDecodedPlaysByTimeRangeParams) ([]GetDecodedPlaysByTimeRangeRow, error) {
+	rows, err := q.db.Query(ctx, getDecodedPlaysByTimeRange, arg.PlayedAt, arg.PlayedAt_2, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetDecodedPlaysByTimeRangeRow
+	for rows.Next() {
+		var i GetDecodedPlaysByTimeRangeRow
+		if err := rows.Scan(
+			&i.TxHash,
+			&i.UserID,
+			&i.TrackID,
+			&i.PlayedAt,
+			&i.Signature,
+			&i.City,
+			&i.Region,
+			&i.Country,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getDecodedPlaysByTrack = `-- name: GetDecodedPlaysByTrack :many
+select tx_hash, user_id, track_id, played_at, signature, city, region, country, created_at
+from core_tx_decoded_plays
+where track_id = $1
+order by played_at desc
+limit $2
+`
+
+type GetDecodedPlaysByTrackParams struct {
+	TrackID string
+	Limit   int32
+}
+
+type GetDecodedPlaysByTrackRow struct {
+	TxHash    string
+	UserID    string
+	TrackID   string
+	PlayedAt  pgtype.Timestamptz
+	Signature string
+	City      pgtype.Text
+	Region    pgtype.Text
+	Country   pgtype.Text
+	CreatedAt pgtype.Timestamptz
+}
+
+func (q *Queries) GetDecodedPlaysByTrack(ctx context.Context, arg GetDecodedPlaysByTrackParams) ([]GetDecodedPlaysByTrackRow, error) {
+	rows, err := q.db.Query(ctx, getDecodedPlaysByTrack, arg.TrackID, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetDecodedPlaysByTrackRow
+	for rows.Next() {
+		var i GetDecodedPlaysByTrackRow
+		if err := rows.Scan(
+			&i.TxHash,
+			&i.UserID,
+			&i.TrackID,
+			&i.PlayedAt,
+			&i.Signature,
+			&i.City,
+			&i.Region,
+			&i.Country,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getDecodedPlaysByUser = `-- name: GetDecodedPlaysByUser :many
+select tx_hash, user_id, track_id, played_at, signature, city, region, country, created_at
+from core_tx_decoded_plays
+where user_id = $1
+order by played_at desc
+limit $2
+`
+
+type GetDecodedPlaysByUserParams struct {
+	UserID string
+	Limit  int32
+}
+
+type GetDecodedPlaysByUserRow struct {
+	TxHash    string
+	UserID    string
+	TrackID   string
+	PlayedAt  pgtype.Timestamptz
+	Signature string
+	City      pgtype.Text
+	Region    pgtype.Text
+	Country   pgtype.Text
+	CreatedAt pgtype.Timestamptz
+}
+
+func (q *Queries) GetDecodedPlaysByUser(ctx context.Context, arg GetDecodedPlaysByUserParams) ([]GetDecodedPlaysByUserRow, error) {
+	rows, err := q.db.Query(ctx, getDecodedPlaysByUser, arg.UserID, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetDecodedPlaysByUserRow
+	for rows.Next() {
+		var i GetDecodedPlaysByUserRow
+		if err := rows.Scan(
+			&i.TxHash,
+			&i.UserID,
+			&i.TrackID,
+			&i.PlayedAt,
+			&i.Signature,
+			&i.City,
+			&i.Region,
+			&i.Country,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getDecodedTx = `-- name: GetDecodedTx :one
-select id, block_height, tx_index, tx_hash, tx_type, tx_data, created_at from core_decoded_tx
+select id, block_height, tx_index, tx_hash, tx_type, tx_data, created_at from core_tx_decoded
 where tx_hash = $1 limit 1
 `
 
-func (q *Queries) GetDecodedTx(ctx context.Context, txHash string) (CoreDecodedTx, error) {
+func (q *Queries) GetDecodedTx(ctx context.Context, txHash string) (CoreTxDecoded, error) {
 	row := q.db.QueryRow(ctx, getDecodedTx, txHash)
-	var i CoreDecodedTx
+	var i CoreTxDecoded
 	err := row.Scan(
 		&i.ID,
 		&i.BlockHeight,
@@ -171,20 +386,20 @@ func (q *Queries) GetDecodedTx(ctx context.Context, txHash string) (CoreDecodedT
 }
 
 const getDecodedTxsByBlock = `-- name: GetDecodedTxsByBlock :many
-select id, block_height, tx_index, tx_hash, tx_type, tx_data, created_at from core_decoded_tx
+select id, block_height, tx_index, tx_hash, tx_type, tx_data, created_at from core_tx_decoded
 where block_height = $1
 order by tx_index asc
 `
 
-func (q *Queries) GetDecodedTxsByBlock(ctx context.Context, blockHeight int64) ([]CoreDecodedTx, error) {
+func (q *Queries) GetDecodedTxsByBlock(ctx context.Context, blockHeight int64) ([]CoreTxDecoded, error) {
 	rows, err := q.db.Query(ctx, getDecodedTxsByBlock, blockHeight)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []CoreDecodedTx
+	var items []CoreTxDecoded
 	for rows.Next() {
-		var i CoreDecodedTx
+		var i CoreTxDecoded
 		if err := rows.Scan(
 			&i.ID,
 			&i.BlockHeight,
@@ -205,7 +420,7 @@ func (q *Queries) GetDecodedTxsByBlock(ctx context.Context, blockHeight int64) (
 }
 
 const getDecodedTxsByType = `-- name: GetDecodedTxsByType :many
-select id, block_height, tx_index, tx_hash, tx_type, tx_data, created_at from core_decoded_tx
+select id, block_height, tx_index, tx_hash, tx_type, tx_data, created_at from core_tx_decoded
 where tx_type = $1
 order by block_height desc, tx_index desc
 limit $2
@@ -216,15 +431,15 @@ type GetDecodedTxsByTypeParams struct {
 	Limit  int32
 }
 
-func (q *Queries) GetDecodedTxsByType(ctx context.Context, arg GetDecodedTxsByTypeParams) ([]CoreDecodedTx, error) {
+func (q *Queries) GetDecodedTxsByType(ctx context.Context, arg GetDecodedTxsByTypeParams) ([]CoreTxDecoded, error) {
 	rows, err := q.db.Query(ctx, getDecodedTxsByType, arg.TxType, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []CoreDecodedTx
+	var items []CoreTxDecoded
 	for rows.Next() {
-		var i CoreDecodedTx
+		var i CoreTxDecoded
 		if err := rows.Scan(
 			&i.ID,
 			&i.BlockHeight,
@@ -313,20 +528,20 @@ func (q *Queries) GetLatestBlock(ctx context.Context) (CoreBlock, error) {
 }
 
 const getLatestDecodedTxs = `-- name: GetLatestDecodedTxs :many
-select id, block_height, tx_index, tx_hash, tx_type, tx_data, created_at from core_decoded_tx
+select id, block_height, tx_index, tx_hash, tx_type, tx_data, created_at from core_tx_decoded
 order by block_height desc, tx_index desc
 limit $1
 `
 
-func (q *Queries) GetLatestDecodedTxs(ctx context.Context, limit int32) ([]CoreDecodedTx, error) {
+func (q *Queries) GetLatestDecodedTxs(ctx context.Context, limit int32) ([]CoreTxDecoded, error) {
 	rows, err := q.db.Query(ctx, getLatestDecodedTxs, limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []CoreDecodedTx
+	var items []CoreTxDecoded
 	for rows.Next() {
-		var i CoreDecodedTx
+		var i CoreTxDecoded
 		if err := rows.Scan(
 			&i.ID,
 			&i.BlockHeight,

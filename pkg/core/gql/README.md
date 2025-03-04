@@ -147,6 +147,78 @@ query {
 }
 ```
 
+### Get Decoded Plays
+```graphql
+query {
+  getDecodedPlays(limit: 10) {
+    txHash
+    userId
+    trackId
+    playedAt
+    signature
+    city
+    region
+    country
+    createdAt
+  }
+}
+```
+
+### Get Decoded Plays by User
+```graphql
+query {
+  getDecodedPlaysByUser(userId: "123", limit: 10) {
+    txHash
+    userId
+    trackId
+    playedAt
+    signature
+    city
+    region
+    country
+    createdAt
+  }
+}
+```
+
+### Get Decoded Plays by Track
+```graphql
+query {
+  getDecodedPlaysByTrack(trackId: "456", limit: 10) {
+    txHash
+    userId
+    trackId
+    playedAt
+    signature
+    city
+    region
+    country
+    createdAt
+  }
+}
+```
+
+### Get Decoded Plays by Time Range
+```graphql
+query {
+  getDecodedPlaysByTimeRange(
+    startTime: "2024-01-01T00:00:00Z"
+    endTime: "2024-01-02T00:00:00Z"
+    limit: 10
+  ) {
+    txHash
+    userId
+    trackId
+    playedAt
+    signature
+    city
+    region
+    country
+    createdAt
+  }
+}
+```
+
 ## Analytics
 
 ### Get Protocol Analytics
