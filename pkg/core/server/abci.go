@@ -228,7 +228,17 @@ func (s *Server) FinalizeBlock(ctx context.Context, req *abcitypes.FinalizeBlock
 			if err != nil {
 				s.logger.Errorf("error finalizing event: %v", err)
 				txs[i] = &abcitypes.ExecTxResult{Code: 2}
-			} else if vr := signedTx.GetValidatorRegistration(); vr != nil {
+			} else if vr := signedTx.GetValidatorRegistration(); vr != nil { // TODO: delete legacy registration after chain rollover
+				vrPubKey := ed25519.PubKey(vr.GetPubKey())
+				vrAddr := vrPubKey.Address().String()
+				if _, ok := validatorUpdatesMap[vrAddr]; !ok {
+					validatorUpdatesMap[vrAddr] = abcitypes.ValidatorUpdate{
+						Power:       vr.Power,
+						PubKeyBytes: vr.PubKey,
+						PubKeyType:  "ed25519",
+					}
+				}
+			} else if vr := signedTx.GetValidatorRegistrationV2(); vr != nil {
 				vrPubKey := ed25519.PubKey(vr.GetPubKey())
 				vrAddr := vrPubKey.Address().String()
 				if _, ok := validatorUpdatesMap[vrAddr]; !ok {
