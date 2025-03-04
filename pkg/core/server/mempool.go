@@ -182,6 +182,8 @@ func (s *Server) broadcastMempoolTransaction(key string, tx *MempoolTransaction)
 			params.SetDeadline(&deadline)
 			now := strfmt.DateTime(time.Now())
 			params.SetSubmittedAt(&now)
+			forwardedFrom := s.config.ProposerAddress
+			params.SetForwardedFrom(&forwardedFrom)
 			_, err := peer.ProtocolForwardTransaction(params)
 			if err != nil {
 				logger.Errorf("could not broadcast tx %s: %v", key, err)
