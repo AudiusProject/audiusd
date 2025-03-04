@@ -19,6 +19,10 @@ func NewCache() *Cache {
 	return &Cache{}
 }
 
+func (c *Cache) CurrentHeight() int64 {
+	return atomic.LoadInt64(&c.currentHeight)
+}
+
 // maybe put a separate errgroup in here for things that
 // continuously hydrate the cache
 func (s *Server) startCache() error {

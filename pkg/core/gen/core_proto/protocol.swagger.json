@@ -154,6 +154,26 @@
             "in": "query",
             "required": false,
             "type": "string"
+          },
+          {
+            "name": "deadline",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "submittedAt",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date-time"
+          },
+          {
+            "name": "forwardedFrom",
+            "in": "query",
+            "required": false,
+            "type": "string"
           }
         ],
         "tags": [

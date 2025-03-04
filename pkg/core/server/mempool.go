@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/AudiusProject/audiusd/pkg/core/common"
 	"github.com/AudiusProject/audiusd/pkg/core/config"
@@ -15,6 +16,7 @@ import (
 	"github.com/AudiusProject/audiusd/pkg/core/gen/core_openapi/protocol"
 	"github.com/AudiusProject/audiusd/pkg/core/gen/core_proto"
 	"github.com/AudiusProject/audiusd/pkg/core/sdk"
+	"github.com/go-openapi/strfmt"
 	"github.com/labstack/echo/v4"
 	"google.golang.org/protobuf/encoding/protojson"
 )
@@ -176,6 +178,10 @@ func (s *Server) broadcastMempoolTransaction(key string, tx *MempoolTransaction)
 		go func(logger *common.Logger, peer *sdk.Sdk) {
 			params := protocol.NewProtocolForwardTransactionParams()
 			params.SetTransaction(common.SignedTxProtoIntoSignedTxOapi(tx.Tx))
+			deadline := fmt.Sprint(tx.Deadline)
+			params.SetDeadline(&deadline)
+			now := strfmt.DateTime(time.Now())
+			params.SetSubmittedAt(&now)
 			_, err := peer.ProtocolForwardTransaction(params)
 			if err != nil {
 				logger.Errorf("could not broadcast tx %s: %v", key, err)
