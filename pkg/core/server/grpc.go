@@ -9,7 +9,6 @@ import (
 	"net"
 	"reflect"
 	"strings"
-	"sync/atomic"
 	"time"
 
 	"github.com/AudiusProject/audiusd/pkg/core/common"
@@ -160,7 +159,7 @@ func (s *Server) GetTransaction(ctx context.Context, req *core_proto.GetTransact
 }
 
 func (s *Server) GetBlock(ctx context.Context, req *core_proto.GetBlockRequest) (*core_proto.BlockResponse, error) {
-	currentHeight := atomic.LoadInt64(&s.cache.currentHeight)
+	currentHeight := s.cache.currentHeight.Load()
 	if req.Height > currentHeight {
 		return &core_proto.BlockResponse{
 			Chainid:       s.config.GenesisFile.ChainID,
@@ -216,7 +215,7 @@ func (s *Server) GetBlock(ctx context.Context, req *core_proto.GetBlockRequest) 
 
 func (s *Server) GetHeight(ctx context.Context, req *core_proto.GetHeightRequest) (*core_proto.HeightResponse, error) {
 	return &core_proto.HeightResponse{
-		Height: s.cache.currentHeight,
+		Height: s.cache.currentHeight.Load(),
 	}, nil
 }
 
@@ -264,7 +263,7 @@ func (s *Server) startGRPC() error {
 
 // Utilities
 func (s *Server) getBlockRpcFallback(ctx context.Context, height int64) (*core_proto.BlockResponse, error) {
-	currentHeight := s.cache.currentHeight
+	currentHeight := s.cache.currentHeight.Load()
 	block, err := s.rpc.Block(ctx, &height)
 	if err != nil {
 		blockInFutureMsg := "must be less than or equal to the current blockchain height"
@@ -309,8 +308,8 @@ func (s *Server) GetRegistrationAttestation(ctx context.Context, req *core_proto
 		return nil, errors.New("empty registration attestation")
 	}
 
-	if ethReg.ReferenceHeight > s.cache.currentHeight {
-		return nil, fmt.Errorf("Cannot sign registration request with reference height %d (current height is %d)", ethReg.ReferenceHeight, s.cache.currentHeight)
+	if ethReg.ReferenceHeight > s.cache.currentHeight.Load() {
+		return nil, fmt.Errorf("Cannot sign registration request with reference height %d (current height is %d)", ethReg.ReferenceHeight, s.cache.currentHeight.Load())
 	}
 
 	if !s.isNodeRegisteredOnEthereum(

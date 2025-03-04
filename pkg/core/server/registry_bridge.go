@@ -144,6 +144,10 @@ func (s *Server) registerSelfOnComet(ctx context.Context, delegateOwnerWallet ge
 		return nil
 	}
 
+	if s.cache.catchingUp.Load() {
+		return errors.New("Aborting comet registration because node is still syncing.")
+	}
+
 	genValidators := s.config.GenesisFile.Validators
 	isGenValidator := false
 	for _, validator := range genValidators {
