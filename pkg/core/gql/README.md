@@ -219,6 +219,30 @@ query {
 }
 ```
 
+### Get Decoded Plays by Location
+```graphql
+query {
+  getDecodedPlaysByLocation(
+    location: {
+      city: "San Francisco"      # Optional
+      region: "California"       # Optional
+      country: "United States"   # Optional
+    }
+    limit: 10
+  ) {
+    txHash
+    userId
+    trackId
+    playedAt
+    signature
+    city
+    region
+    country
+    createdAt
+  }
+}
+```
+
 ## Analytics
 
 ### Get Protocol Analytics

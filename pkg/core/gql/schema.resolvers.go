@@ -382,6 +382,53 @@ func (r *queryGraphQLServer) GetDecodedPlaysByTimeRange(ctx context.Context, sta
 	return result, nil
 }
 
+func (r *queryGraphQLServer) GetDecodedPlaysByLocation(ctx context.Context, location core_gql.LocationFilter, limit *int) ([]*core_gql.DecodedPlay, error) {
+	l := int32(10)
+	if limit != nil {
+		l = int32(*limit)
+	}
+
+	// Convert optional string pointers to strings, empty string if nil
+	city := ""
+	if location.City != nil {
+		city = *location.City
+	}
+	region := ""
+	if location.Region != nil {
+		region = *location.Region
+	}
+	country := ""
+	if location.Country != nil {
+		country = *location.Country
+	}
+
+	plays, err := r.db.GetDecodedPlaysByLocation(ctx, db.GetDecodedPlaysByLocationParams{
+		Column1: city,
+		Column2: region,
+		Column3: country,
+		Limit:   l,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	result := []*core_gql.DecodedPlay{}
+	for _, play := range plays {
+		result = append(result, &core_gql.DecodedPlay{
+			TxHash:    play.TxHash,
+			UserID:    play.UserID,
+			TrackID:   play.TrackID,
+			PlayedAt:  play.PlayedAt.Time.String(),
+			Signature: play.Signature,
+			City:      &play.City.String,
+			Region:    &play.Region.String,
+			Country:   &play.Country.String,
+			CreatedAt: play.CreatedAt.Time.String(),
+		})
+	}
+	return result, nil
+}
+
 func (r *queryGraphQLServer) GetAnalytics(ctx context.Context) (*core_gql.Analytics, error) {
 	totalBlocks, err := r.db.TotalBlocks(ctx)
 	if err != nil {

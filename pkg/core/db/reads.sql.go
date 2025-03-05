@@ -199,6 +199,71 @@ func (q *Queries) GetDecodedPlays(ctx context.Context, limit int32) ([]GetDecode
 	return items, nil
 }
 
+const getDecodedPlaysByLocation = `-- name: GetDecodedPlaysByLocation :many
+select tx_hash, user_id, track_id, played_at, signature, city, region, country, created_at
+from core_tx_decoded_plays
+where 
+    (nullif($1, '')::text is null or lower(city) = lower($1)) and
+    (nullif($2, '')::text is null or lower(region) = lower($2)) and
+    (nullif($3, '')::text is null or lower(country) = lower($3))
+order by played_at desc
+limit $4
+`
+
+type GetDecodedPlaysByLocationParams struct {
+	Column1 interface{}
+	Column2 interface{}
+	Column3 interface{}
+	Limit   int32
+}
+
+type GetDecodedPlaysByLocationRow struct {
+	TxHash    string
+	UserID    string
+	TrackID   string
+	PlayedAt  pgtype.Timestamptz
+	Signature string
+	City      pgtype.Text
+	Region    pgtype.Text
+	Country   pgtype.Text
+	CreatedAt pgtype.Timestamptz
+}
+
+func (q *Queries) GetDecodedPlaysByLocation(ctx context.Context, arg GetDecodedPlaysByLocationParams) ([]GetDecodedPlaysByLocationRow, error) {
+	rows, err := q.db.Query(ctx, getDecodedPlaysByLocation,
+		arg.Column1,
+		arg.Column2,
+		arg.Column3,
+		arg.Limit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetDecodedPlaysByLocationRow
+	for rows.Next() {
+		var i GetDecodedPlaysByLocationRow
+		if err := rows.Scan(
+			&i.TxHash,
+			&i.UserID,
+			&i.TrackID,
+			&i.PlayedAt,
+			&i.Signature,
+			&i.City,
+			&i.Region,
+			&i.Country,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getDecodedPlaysByTimeRange = `-- name: GetDecodedPlaysByTimeRange :many
 select tx_hash, user_id, track_id, played_at, signature, city, region, country, created_at
 from core_tx_decoded_plays

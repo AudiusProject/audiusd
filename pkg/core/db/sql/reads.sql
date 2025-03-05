@@ -227,3 +227,13 @@ from core_tx_decoded_plays
 where played_at between $1 and $2
 order by played_at desc
 limit $3;
+
+-- name: GetDecodedPlaysByLocation :many
+select tx_hash, user_id, track_id, played_at, signature, city, region, country, created_at
+from core_tx_decoded_plays
+where 
+    (nullif($1, '')::text is null or lower(city) = lower($1)) and
+    (nullif($2, '')::text is null or lower(region) = lower($2)) and
+    (nullif($3, '')::text is null or lower(country) = lower($3))
+order by played_at desc
+limit $4;

@@ -40,6 +40,12 @@ type DecodedTransaction struct {
 	CreatedAt   string `json:"createdAt"`
 }
 
+type LocationFilter struct {
+	City    *string `json:"city,omitempty"`
+	Region  *string `json:"region,omitempty"`
+	Country *string `json:"country,omitempty"`
+}
+
 type Node struct {
 	Address      string  `json:"address"`
 	Endpoint     string  `json:"endpoint"`

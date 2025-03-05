@@ -108,6 +108,12 @@ type DecodedPlay {
   createdAt: String!
 }
 
+input LocationFilter {
+  city: String
+  region: String
+  country: String
+}
+
 type Query {
   # Block queries
   getBlock(height: Int): Block
@@ -129,6 +135,7 @@ type Query {
   getDecodedPlaysByUser(userId: String!, limit: Int = 10): [DecodedPlay!]!
   getDecodedPlaysByTrack(trackId: String!, limit: Int = 10): [DecodedPlay!]!
   getDecodedPlaysByTimeRange(startTime: String!, endTime: String!, limit: Int = 10): [DecodedPlay!]!
+  getDecodedPlaysByLocation(location: LocationFilter!, limit: Int = 10): [DecodedPlay!]!
   
   # Analytics queries
   getAnalytics: Analytics!
