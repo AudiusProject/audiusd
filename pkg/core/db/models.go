@@ -69,6 +69,21 @@ type CoreBlock struct {
 	CreatedAt pgtype.Timestamp
 }
 
+type CorePlay struct {
+	Rowid           int32
+	UserID          string
+	TrackID         string
+	ListenerAddress string
+	Cid             string
+	City            string
+	Country         string
+	Region          string
+	Signer          string
+	Signature       string
+	Block           int64
+	CreatedAt       pgtype.Timestamptz
+}
+
 type CoreTransaction struct {
 	Rowid       int64
 	BlockID     int64
