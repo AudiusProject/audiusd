@@ -237,3 +237,24 @@ where
     (nullif($3, '')::text is null or lower(country) = lower($3))
 order by played_at desc
 limit $4;
+
+-- name: GetAvailableCities :many
+select city, region, country, count(*) as play_count
+from core_tx_decoded_plays
+where city is not null
+group by city, region, country
+order by count(*) desc;
+
+-- name: GetAvailableRegions :many
+select region, country, count(*) as play_count
+from core_tx_decoded_plays
+where region is not null
+group by region, country
+order by count(*) desc;
+
+-- name: GetAvailableCountries :many
+select country, count(*) as play_count
+from core_tx_decoded_plays
+where country is not null
+group by country
+order by count(*) desc;

@@ -243,6 +243,39 @@ query {
 }
 ```
 
+### Get Available Cities
+```graphql
+query {
+  getAvailableCities {
+    city
+    region
+    country
+    playCount
+  }
+}
+```
+
+### Get Available Regions
+```graphql
+query {
+  getAvailableRegions {
+    region
+    country
+    playCount
+  }
+}
+```
+
+### Get Available Countries
+```graphql
+query {
+  getAvailableCountries {
+    country
+    playCount
+  }
+}
+```
+
 ## Analytics
 
 ### Get Protocol Analytics

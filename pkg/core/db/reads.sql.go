@@ -101,6 +101,113 @@ func (q *Queries) GetAppStateAtHeight(ctx context.Context, blockHeight int64) (G
 	return i, err
 }
 
+const getAvailableCities = `-- name: GetAvailableCities :many
+select city, region, country, count(*) as play_count
+from core_tx_decoded_plays
+where city is not null
+group by city, region, country
+order by count(*) desc
+`
+
+type GetAvailableCitiesRow struct {
+	City      pgtype.Text
+	Region    pgtype.Text
+	Country   pgtype.Text
+	PlayCount int64
+}
+
+func (q *Queries) GetAvailableCities(ctx context.Context) ([]GetAvailableCitiesRow, error) {
+	rows, err := q.db.Query(ctx, getAvailableCities)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAvailableCitiesRow
+	for rows.Next() {
+		var i GetAvailableCitiesRow
+		if err := rows.Scan(
+			&i.City,
+			&i.Region,
+			&i.Country,
+			&i.PlayCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getAvailableCountries = `-- name: GetAvailableCountries :many
+select country, count(*) as play_count
+from core_tx_decoded_plays
+where country is not null
+group by country
+order by count(*) desc
+`
+
+type GetAvailableCountriesRow struct {
+	Country   pgtype.Text
+	PlayCount int64
+}
+
+func (q *Queries) GetAvailableCountries(ctx context.Context) ([]GetAvailableCountriesRow, error) {
+	rows, err := q.db.Query(ctx, getAvailableCountries)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAvailableCountriesRow
+	for rows.Next() {
+		var i GetAvailableCountriesRow
+		if err := rows.Scan(&i.Country, &i.PlayCount); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getAvailableRegions = `-- name: GetAvailableRegions :many
+select region, country, count(*) as play_count
+from core_tx_decoded_plays
+where region is not null
+group by region, country
+order by count(*) desc
+`
+
+type GetAvailableRegionsRow struct {
+	Region    pgtype.Text
+	Country   pgtype.Text
+	PlayCount int64
+}
+
+func (q *Queries) GetAvailableRegions(ctx context.Context) ([]GetAvailableRegionsRow, error) {
+	rows, err := q.db.Query(ctx, getAvailableRegions)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAvailableRegionsRow
+	for rows.Next() {
+		var i GetAvailableRegionsRow
+		if err := rows.Scan(&i.Region, &i.Country, &i.PlayCount); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getBlock = `-- name: GetBlock :one
 select rowid, height, chain_id, hash, proposer, created_at from core_blocks where height = $1
 `

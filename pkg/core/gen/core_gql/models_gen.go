@@ -40,10 +40,28 @@ type DecodedTransaction struct {
 	CreatedAt   string `json:"createdAt"`
 }
 
+type LocationCity struct {
+	City      string `json:"city"`
+	Region    string `json:"region"`
+	Country   string `json:"country"`
+	PlayCount int    `json:"playCount"`
+}
+
+type LocationCountry struct {
+	Country   string `json:"country"`
+	PlayCount int    `json:"playCount"`
+}
+
 type LocationFilter struct {
 	City    *string `json:"city,omitempty"`
 	Region  *string `json:"region,omitempty"`
 	Country *string `json:"country,omitempty"`
+}
+
+type LocationRegion struct {
+	Region    string `json:"region"`
+	Country   string `json:"country"`
+	PlayCount int    `json:"playCount"`
 }
 
 type Node struct {

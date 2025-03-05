@@ -114,11 +114,34 @@ input LocationFilter {
   country: String
 }
 
+type LocationCity {
+  city: String!
+  region: String!
+  country: String!
+  playCount: Int!
+}
+
+type LocationRegion {
+  region: String!
+  country: String!
+  playCount: Int!
+}
+
+type LocationCountry {
+  country: String!
+  playCount: Int!
+}
+
 type Query {
   # Block queries
   getBlock(height: Int): Block
   getLatestBlock: Block
   getLatestBlocks(limit: Int = 10): [Block!]!
+  
+  # Location queries
+  getAvailableCities: [LocationCity!]!
+  getAvailableRegions: [LocationRegion!]!
+  getAvailableCountries: [LocationCountry!]!
   
   # Transaction queries
   getTransaction(hash: String!): Transaction

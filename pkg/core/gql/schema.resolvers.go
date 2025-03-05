@@ -108,6 +108,57 @@ func (r *queryGraphQLServer) GetLatestBlocks(ctx context.Context, limit *int) ([
 	return result, nil
 }
 
+func (r *queryGraphQLServer) GetAvailableCities(ctx context.Context) ([]*core_gql.LocationCity, error) {
+	cities, err := r.db.GetAvailableCities(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	result := []*core_gql.LocationCity{}
+	for _, city := range cities {
+		result = append(result, &core_gql.LocationCity{
+			City:      city.City.String,
+			Region:    city.Region.String,
+			Country:   city.Country.String,
+			PlayCount: int(city.PlayCount),
+		})
+	}
+	return result, nil
+}
+
+func (r *queryGraphQLServer) GetAvailableRegions(ctx context.Context) ([]*core_gql.LocationRegion, error) {
+	regions, err := r.db.GetAvailableRegions(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	result := []*core_gql.LocationRegion{}
+	for _, region := range regions {
+		result = append(result, &core_gql.LocationRegion{
+			Region:    region.Region.String,
+			Country:   region.Country.String,
+			PlayCount: int(region.PlayCount),
+		})
+	}
+	return result, nil
+}
+
+func (r *queryGraphQLServer) GetAvailableCountries(ctx context.Context) ([]*core_gql.LocationCountry, error) {
+	countries, err := r.db.GetAvailableCountries(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	result := []*core_gql.LocationCountry{}
+	for _, country := range countries {
+		result = append(result, &core_gql.LocationCountry{
+			Country:   country.Country.String,
+			PlayCount: int(country.PlayCount),
+		})
+	}
+	return result, nil
+}
+
 func (r *queryGraphQLServer) GetTransaction(ctx context.Context, hash string) (*core_gql.Transaction, error) {
 	tx, err := r.db.GetTx(ctx, hash)
 	if err != nil {
