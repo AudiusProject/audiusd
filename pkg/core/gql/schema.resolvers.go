@@ -108,8 +108,29 @@ func (r *queryGraphQLServer) GetLatestBlocks(ctx context.Context, limit *int) ([
 	return result, nil
 }
 
-func (r *queryGraphQLServer) GetAvailableCities(ctx context.Context) ([]*core_gql.LocationCity, error) {
-	cities, err := r.db.GetAvailableCities(ctx)
+func (r *queryGraphQLServer) GetAvailableCities(ctx context.Context, filter *core_gql.LocationCityFilter, limit *int) ([]*core_gql.LocationCity, error) {
+	l := int32(10)
+	if limit != nil {
+		l = int32(*limit)
+	}
+
+	// Handle optional filters
+	country := ""
+	region := ""
+	if filter != nil {
+		if filter.Country != nil {
+			country = *filter.Country
+		}
+		if filter.Region != nil {
+			region = *filter.Region
+		}
+	}
+
+	cities, err := r.db.GetAvailableCities(ctx, db.GetAvailableCitiesParams{
+		Column1: country,
+		Column2: region,
+		Limit:   l,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -126,8 +147,22 @@ func (r *queryGraphQLServer) GetAvailableCities(ctx context.Context) ([]*core_gq
 	return result, nil
 }
 
-func (r *queryGraphQLServer) GetAvailableRegions(ctx context.Context) ([]*core_gql.LocationRegion, error) {
-	regions, err := r.db.GetAvailableRegions(ctx)
+func (r *queryGraphQLServer) GetAvailableRegions(ctx context.Context, filter *core_gql.LocationRegionFilter, limit *int) ([]*core_gql.LocationRegion, error) {
+	l := int32(10)
+	if limit != nil {
+		l = int32(*limit)
+	}
+
+	// Handle optional filter
+	country := ""
+	if filter != nil && filter.Country != nil {
+		country = *filter.Country
+	}
+
+	regions, err := r.db.GetAvailableRegions(ctx, db.GetAvailableRegionsParams{
+		Column1: country,
+		Limit:   l,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -143,8 +178,13 @@ func (r *queryGraphQLServer) GetAvailableRegions(ctx context.Context) ([]*core_g
 	return result, nil
 }
 
-func (r *queryGraphQLServer) GetAvailableCountries(ctx context.Context) ([]*core_gql.LocationCountry, error) {
-	countries, err := r.db.GetAvailableCountries(ctx)
+func (r *queryGraphQLServer) GetAvailableCountries(ctx context.Context, limit *int) ([]*core_gql.LocationCountry, error) {
+	l := int32(10)
+	if limit != nil {
+		l = int32(*limit)
+	}
+
+	countries, err := r.db.GetAvailableCountries(ctx, l)
 	if err != nil {
 		return nil, err
 	}

@@ -105,9 +105,18 @@ const getAvailableCities = `-- name: GetAvailableCities :many
 select city, region, country, count(*) as play_count
 from core_tx_decoded_plays
 where city is not null
+  and (nullif($1, '')::text is null or lower(country) = lower($1))
+  and (nullif($2, '')::text is null or lower(region) = lower($2))
 group by city, region, country
 order by count(*) desc
+limit $3
 `
+
+type GetAvailableCitiesParams struct {
+	Column1 interface{}
+	Column2 interface{}
+	Limit   int32
+}
 
 type GetAvailableCitiesRow struct {
 	City      pgtype.Text
@@ -116,8 +125,8 @@ type GetAvailableCitiesRow struct {
 	PlayCount int64
 }
 
-func (q *Queries) GetAvailableCities(ctx context.Context) ([]GetAvailableCitiesRow, error) {
-	rows, err := q.db.Query(ctx, getAvailableCities)
+func (q *Queries) GetAvailableCities(ctx context.Context, arg GetAvailableCitiesParams) ([]GetAvailableCitiesRow, error) {
+	rows, err := q.db.Query(ctx, getAvailableCities, arg.Column1, arg.Column2, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
@@ -147,6 +156,7 @@ from core_tx_decoded_plays
 where country is not null
 group by country
 order by count(*) desc
+limit $1
 `
 
 type GetAvailableCountriesRow struct {
@@ -154,8 +164,8 @@ type GetAvailableCountriesRow struct {
 	PlayCount int64
 }
 
-func (q *Queries) GetAvailableCountries(ctx context.Context) ([]GetAvailableCountriesRow, error) {
-	rows, err := q.db.Query(ctx, getAvailableCountries)
+func (q *Queries) GetAvailableCountries(ctx context.Context, limit int32) ([]GetAvailableCountriesRow, error) {
+	rows, err := q.db.Query(ctx, getAvailableCountries, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -178,9 +188,16 @@ const getAvailableRegions = `-- name: GetAvailableRegions :many
 select region, country, count(*) as play_count
 from core_tx_decoded_plays
 where region is not null
+  and (nullif($1, '')::text is null or lower(country) = lower($1))
 group by region, country
 order by count(*) desc
+limit $2
 `
+
+type GetAvailableRegionsParams struct {
+	Column1 interface{}
+	Limit   int32
+}
 
 type GetAvailableRegionsRow struct {
 	Region    pgtype.Text
@@ -188,8 +205,8 @@ type GetAvailableRegionsRow struct {
 	PlayCount int64
 }
 
-func (q *Queries) GetAvailableRegions(ctx context.Context) ([]GetAvailableRegionsRow, error) {
-	rows, err := q.db.Query(ctx, getAvailableRegions)
+func (q *Queries) GetAvailableRegions(ctx context.Context, arg GetAvailableRegionsParams) ([]GetAvailableRegionsRow, error) {
+	rows, err := q.db.Query(ctx, getAvailableRegions, arg.Column1, arg.Limit)
 	if err != nil {
 		return nil, err
 	}

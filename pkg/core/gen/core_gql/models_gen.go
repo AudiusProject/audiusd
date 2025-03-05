@@ -47,6 +47,11 @@ type LocationCity struct {
 	PlayCount int    `json:"playCount"`
 }
 
+type LocationCityFilter struct {
+	Country *string `json:"country,omitempty"`
+	Region  *string `json:"region,omitempty"`
+}
+
 type LocationCountry struct {
 	Country   string `json:"country"`
 	PlayCount int    `json:"playCount"`
@@ -62,6 +67,10 @@ type LocationRegion struct {
 	Region    string `json:"region"`
 	Country   string `json:"country"`
 	PlayCount int    `json:"playCount"`
+}
+
+type LocationRegionFilter struct {
+	Country *string `json:"country,omitempty"`
 }
 
 type Node struct {

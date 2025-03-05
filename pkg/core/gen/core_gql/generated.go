@@ -122,9 +122,9 @@ type ComplexityRoot struct {
 		GetAllNodes                   func(childComplexity int) int
 		GetAllValidatorUptimes        func(childComplexity int, rollupID *int) int
 		GetAnalytics                  func(childComplexity int) int
-		GetAvailableCities            func(childComplexity int) int
-		GetAvailableCountries         func(childComplexity int) int
-		GetAvailableRegions           func(childComplexity int) int
+		GetAvailableCities            func(childComplexity int, filter *LocationCityFilter, limit *int) int
+		GetAvailableCountries         func(childComplexity int, limit *int) int
+		GetAvailableRegions           func(childComplexity int, filter *LocationRegionFilter, limit *int) int
 		GetBlock                      func(childComplexity int, height *int) int
 		GetDecodedPlays               func(childComplexity int, limit *int) int
 		GetDecodedPlaysByLocation     func(childComplexity int, location LocationFilter, limit *int) int
@@ -208,9 +208,9 @@ type QueryResolver interface {
 	GetBlock(ctx context.Context, height *int) (*Block, error)
 	GetLatestBlock(ctx context.Context) (*Block, error)
 	GetLatestBlocks(ctx context.Context, limit *int) ([]*Block, error)
-	GetAvailableCities(ctx context.Context) ([]*LocationCity, error)
-	GetAvailableRegions(ctx context.Context) ([]*LocationRegion, error)
-	GetAvailableCountries(ctx context.Context) ([]*LocationCountry, error)
+	GetAvailableCities(ctx context.Context, filter *LocationCityFilter, limit *int) ([]*LocationCity, error)
+	GetAvailableRegions(ctx context.Context, filter *LocationRegionFilter, limit *int) ([]*LocationRegion, error)
+	GetAvailableCountries(ctx context.Context, limit *int) ([]*LocationCountry, error)
 	GetTransaction(ctx context.Context, hash string) (*Transaction, error)
 	GetLatestTransactions(ctx context.Context, limit *int) ([]*Transaction, error)
 	GetDecodedTransaction(ctx context.Context, hash string) (*DecodedTransaction, error)
@@ -614,21 +614,36 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		return e.complexity.Query.GetAvailableCities(childComplexity), true
+		args, err := ec.field_Query_getAvailableCities_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GetAvailableCities(childComplexity, args["filter"].(*LocationCityFilter), args["limit"].(*int)), true
 
 	case "Query.getAvailableCountries":
 		if e.complexity.Query.GetAvailableCountries == nil {
 			break
 		}
 
-		return e.complexity.Query.GetAvailableCountries(childComplexity), true
+		args, err := ec.field_Query_getAvailableCountries_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GetAvailableCountries(childComplexity, args["limit"].(*int)), true
 
 	case "Query.getAvailableRegions":
 		if e.complexity.Query.GetAvailableRegions == nil {
 			break
 		}
 
-		return e.complexity.Query.GetAvailableRegions(childComplexity), true
+		args, err := ec.field_Query_getAvailableRegions_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GetAvailableRegions(childComplexity, args["filter"].(*LocationRegionFilter), args["limit"].(*int)), true
 
 	case "Query.getBlock":
 		if e.complexity.Query.GetBlock == nil {
@@ -1144,7 +1159,9 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	opCtx := graphql.GetOperationContext(ctx)
 	ec := executionContext{opCtx, e, 0, 0, make(chan graphql.DeferredResult)}
 	inputUnmarshalMap := graphql.BuildUnmarshalerMap(
+		ec.unmarshalInputLocationCityFilter,
 		ec.unmarshalInputLocationFilter,
+		ec.unmarshalInputLocationRegionFilter,
 	)
 	first := true
 
@@ -1343,6 +1360,15 @@ input LocationFilter {
   country: String
 }
 
+input LocationCityFilter {
+  country: String
+  region: String
+}
+
+input LocationRegionFilter {
+  country: String
+}
+
 type LocationCity {
   city: String!
   region: String!
@@ -1368,9 +1394,9 @@ type Query {
   getLatestBlocks(limit: Int = 10): [Block!]!
   
   # Location queries
-  getAvailableCities: [LocationCity!]!
-  getAvailableRegions: [LocationRegion!]!
-  getAvailableCountries: [LocationCountry!]!
+  getAvailableCities(filter: LocationCityFilter, limit: Int = 10): [LocationCity!]!
+  getAvailableRegions(filter: LocationRegionFilter, limit: Int = 10): [LocationRegion!]!
+  getAvailableCountries(limit: Int = 10): [LocationCountry!]!
   
   # Transaction queries
   getTransaction(hash: String!): Transaction
@@ -1465,6 +1491,136 @@ func (ec *executionContext) field_Query_getAllValidatorUptimes_argsRollupID(
 
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("rollupId"))
 	if tmp, ok := rawArgs["rollupId"]; ok {
+		return ec.unmarshalOInt2ᚖint(ctx, tmp)
+	}
+
+	var zeroVal *int
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query_getAvailableCities_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Query_getAvailableCities_argsFilter(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["filter"] = arg0
+	arg1, err := ec.field_Query_getAvailableCities_argsLimit(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg1
+	return args, nil
+}
+func (ec *executionContext) field_Query_getAvailableCities_argsFilter(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (*LocationCityFilter, error) {
+	if _, ok := rawArgs["filter"]; !ok {
+		var zeroVal *LocationCityFilter
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("filter"))
+	if tmp, ok := rawArgs["filter"]; ok {
+		return ec.unmarshalOLocationCityFilter2ᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐLocationCityFilter(ctx, tmp)
+	}
+
+	var zeroVal *LocationCityFilter
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query_getAvailableCities_argsLimit(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (*int, error) {
+	if _, ok := rawArgs["limit"]; !ok {
+		var zeroVal *int
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("limit"))
+	if tmp, ok := rawArgs["limit"]; ok {
+		return ec.unmarshalOInt2ᚖint(ctx, tmp)
+	}
+
+	var zeroVal *int
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query_getAvailableCountries_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Query_getAvailableCountries_argsLimit(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Query_getAvailableCountries_argsLimit(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (*int, error) {
+	if _, ok := rawArgs["limit"]; !ok {
+		var zeroVal *int
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("limit"))
+	if tmp, ok := rawArgs["limit"]; ok {
+		return ec.unmarshalOInt2ᚖint(ctx, tmp)
+	}
+
+	var zeroVal *int
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query_getAvailableRegions_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Query_getAvailableRegions_argsFilter(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["filter"] = arg0
+	arg1, err := ec.field_Query_getAvailableRegions_argsLimit(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg1
+	return args, nil
+}
+func (ec *executionContext) field_Query_getAvailableRegions_argsFilter(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (*LocationRegionFilter, error) {
+	if _, ok := rawArgs["filter"]; !ok {
+		var zeroVal *LocationRegionFilter
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("filter"))
+	if tmp, ok := rawArgs["filter"]; ok {
+		return ec.unmarshalOLocationRegionFilter2ᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐLocationRegionFilter(ctx, tmp)
+	}
+
+	var zeroVal *LocationRegionFilter
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query_getAvailableRegions_argsLimit(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (*int, error) {
+	if _, ok := rawArgs["limit"]; !ok {
+		var zeroVal *int
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("limit"))
+	if tmp, ok := rawArgs["limit"]; ok {
 		return ec.unmarshalOInt2ᚖint(ctx, tmp)
 	}
 
@@ -4667,7 +4823,7 @@ func (ec *executionContext) _Query_getAvailableCities(ctx context.Context, field
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().GetAvailableCities(rctx)
+		return ec.resolvers.Query().GetAvailableCities(rctx, fc.Args["filter"].(*LocationCityFilter), fc.Args["limit"].(*int))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4684,7 +4840,7 @@ func (ec *executionContext) _Query_getAvailableCities(ctx context.Context, field
 	return ec.marshalNLocationCity2ᚕᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐLocationCityᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Query_getAvailableCities(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query_getAvailableCities(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -4704,6 +4860,17 @@ func (ec *executionContext) fieldContext_Query_getAvailableCities(_ context.Cont
 			return nil, fmt.Errorf("no field named %q was found under type LocationCity", field.Name)
 		},
 	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_getAvailableCities_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
 	return fc, nil
 }
 
@@ -4721,7 +4888,7 @@ func (ec *executionContext) _Query_getAvailableRegions(ctx context.Context, fiel
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().GetAvailableRegions(rctx)
+		return ec.resolvers.Query().GetAvailableRegions(rctx, fc.Args["filter"].(*LocationRegionFilter), fc.Args["limit"].(*int))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4738,7 +4905,7 @@ func (ec *executionContext) _Query_getAvailableRegions(ctx context.Context, fiel
 	return ec.marshalNLocationRegion2ᚕᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐLocationRegionᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Query_getAvailableRegions(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query_getAvailableRegions(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -4755,6 +4922,17 @@ func (ec *executionContext) fieldContext_Query_getAvailableRegions(_ context.Con
 			}
 			return nil, fmt.Errorf("no field named %q was found under type LocationRegion", field.Name)
 		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_getAvailableRegions_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
 	}
 	return fc, nil
 }
@@ -4773,7 +4951,7 @@ func (ec *executionContext) _Query_getAvailableCountries(ctx context.Context, fi
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().GetAvailableCountries(rctx)
+		return ec.resolvers.Query().GetAvailableCountries(rctx, fc.Args["limit"].(*int))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4790,7 +4968,7 @@ func (ec *executionContext) _Query_getAvailableCountries(ctx context.Context, fi
 	return ec.marshalNLocationCountry2ᚕᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐLocationCountryᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Query_getAvailableCountries(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query_getAvailableCountries(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -4805,6 +4983,17 @@ func (ec *executionContext) fieldContext_Query_getAvailableCountries(_ context.C
 			}
 			return nil, fmt.Errorf("no field named %q was found under type LocationCountry", field.Name)
 		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_getAvailableCountries_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
 	}
 	return fc, nil
 }
@@ -9973,6 +10162,40 @@ func (ec *executionContext) fieldContext___Type_isOneOf(_ context.Context, field
 
 // region    **************************** input.gotpl *****************************
 
+func (ec *executionContext) unmarshalInputLocationCityFilter(ctx context.Context, obj any) (LocationCityFilter, error) {
+	var it LocationCityFilter
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"country", "region"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "country":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("country"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Country = data
+		case "region":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("region"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Region = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputLocationFilter(ctx context.Context, obj any) (LocationFilter, error) {
 	var it LocationFilter
 	asMap := map[string]any{}
@@ -10001,6 +10224,33 @@ func (ec *executionContext) unmarshalInputLocationFilter(ctx context.Context, ob
 				return it, err
 			}
 			it.Region = data
+		case "country":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("country"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Country = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputLocationRegionFilter(ctx context.Context, obj any) (LocationRegionFilter, error) {
+	var it LocationRegionFilter
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"country"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
 		case "country":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("country"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
@@ -12984,6 +13234,22 @@ func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.Sele
 	}
 	res := graphql.MarshalInt(*v)
 	return res
+}
+
+func (ec *executionContext) unmarshalOLocationCityFilter2ᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐLocationCityFilter(ctx context.Context, v any) (*LocationCityFilter, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputLocationCityFilter(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalOLocationRegionFilter2ᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐLocationRegionFilter(ctx context.Context, v any) (*LocationRegionFilter, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputLocationRegionFilter(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalONode2ᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐNode(ctx context.Context, sel ast.SelectionSet, v *Node) graphql.Marshaler {

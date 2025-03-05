@@ -242,19 +242,25 @@ limit $4;
 select city, region, country, count(*) as play_count
 from core_tx_decoded_plays
 where city is not null
+  and (nullif($1, '')::text is null or lower(country) = lower($1))
+  and (nullif($2, '')::text is null or lower(region) = lower($2))
 group by city, region, country
-order by count(*) desc;
+order by count(*) desc
+limit $3;
 
 -- name: GetAvailableRegions :many
 select region, country, count(*) as play_count
 from core_tx_decoded_plays
 where region is not null
+  and (nullif($1, '')::text is null or lower(country) = lower($1))
 group by region, country
-order by count(*) desc;
+order by count(*) desc
+limit $2;
 
 -- name: GetAvailableCountries :many
 select country, count(*) as play_count
 from core_tx_decoded_plays
 where country is not null
 group by country
-order by count(*) desc;
+order by count(*) desc
+limit $1;

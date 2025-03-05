@@ -114,6 +114,15 @@ input LocationFilter {
   country: String
 }
 
+input LocationCityFilter {
+  country: String
+  region: String
+}
+
+input LocationRegionFilter {
+  country: String
+}
+
 type LocationCity {
   city: String!
   region: String!
@@ -139,9 +148,9 @@ type Query {
   getLatestBlocks(limit: Int = 10): [Block!]!
   
   # Location queries
-  getAvailableCities: [LocationCity!]!
-  getAvailableRegions: [LocationRegion!]!
-  getAvailableCountries: [LocationCountry!]!
+  getAvailableCities(filter: LocationCityFilter, limit: Int = 10): [LocationCity!]!
+  getAvailableRegions(filter: LocationRegionFilter, limit: Int = 10): [LocationRegion!]!
+  getAvailableCountries(limit: Int = 10): [LocationCountry!]!
   
   # Transaction queries
   getTransaction(hash: String!): Transaction

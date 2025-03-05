@@ -246,7 +246,22 @@ query {
 ### Get Available Cities
 ```graphql
 query {
+  # Get all cities (limited to 10 by default)
   getAvailableCities {
+    city
+    region
+    country
+    playCount
+  }
+
+  # Get cities with filters
+  getAvailableCitiesWithFilters: getAvailableCities(
+    filter: {
+      country: "United States"  # Optional: Filter cities by country
+      region: "California"      # Optional: Filter cities by region
+    },
+    limit: 20                   # Optional: Customize number of results
+  ) {
     city
     region
     country
@@ -258,7 +273,20 @@ query {
 ### Get Available Regions
 ```graphql
 query {
+  # Get all regions (limited to 10 by default)
   getAvailableRegions {
+    region
+    country
+    playCount
+  }
+
+  # Get regions with filters
+  getAvailableRegionsWithFilters: getAvailableRegions(
+    filter: {
+      country: "United States"  # Optional: Filter regions by country
+    },
+    limit: 20                   # Optional: Customize number of results
+  ) {
     region
     country
     playCount
@@ -269,7 +297,16 @@ query {
 ### Get Available Countries
 ```graphql
 query {
+  # Get all countries (limited to 10 by default)
   getAvailableCountries {
+    country
+    playCount
+  }
+
+  # Get countries with limit
+  getAvailableCountriesWithLimit: getAvailableCountries(
+    limit: 20                   # Optional: Customize number of results
+  ) {
     country
     playCount
   }
