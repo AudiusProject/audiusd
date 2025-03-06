@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/AudiusProject/audiusd/pkg/pos"
+	"github.com/labstack/echo/v4"
 )
 
 var testNetwork []*MediorumServer
@@ -47,7 +48,7 @@ func setupTestNetwork(replicationFactor, serverCount int) []*MediorumServer {
 			},
 		}
 		posChannel := make(chan pos.PoSRequest)
-		server, err := New(config, posChannel)
+		server, err := New(config, echo.New(), posChannel)
 		if err != nil {
 			panic(err)
 		}

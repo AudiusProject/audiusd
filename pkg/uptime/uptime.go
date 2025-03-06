@@ -43,12 +43,13 @@ type Config struct {
 
 type Uptime struct {
 	quit   chan os.Signal
+	e      *echo.Echo
 	logger *slog.Logger
 	Config Config
 	DB     *bbolt.DB
 }
 
-func Run(ctx context.Context, logger *common.Logger) error {
+func Run(ctx context.Context, logger *common.Logger, e *echo.Echo) error {
 	env := ""      // prod || stage
 	nodeType := "" // content || discovery
 	if os.Getenv("audius_discprov_url") != "" {
@@ -67,9 +68,9 @@ func Run(ctx context.Context, logger *common.Logger) error {
 
 	switch env {
 	case "prod":
-		startStagingOrProd(true, nodeType, env)
+		startStagingOrProd(e, true, nodeType, env)
 	case "stage":
-		startStagingOrProd(false, nodeType, env)
+		startStagingOrProd(e, false, nodeType, env)
 	case "single":
 		slog.Info("no need to monitor peers when running a single node. sleeping forever...")
 		// block forever so container doesn't restart constantly
@@ -85,7 +86,7 @@ func Run(ctx context.Context, logger *common.Logger) error {
 	return nil
 }
 
-func New(config Config) (*Uptime, error) {
+func New(config Config, e *echo.Echo) (*Uptime, error) {
 	// validate host config
 	if config.Self.Host == "" {
 		log.Fatal("host is required")
@@ -115,6 +116,7 @@ func New(config Config) (*Uptime, error) {
 
 	u := &Uptime{
 		quit:   make(chan os.Signal, 1),
+		e:      e,
 		logger: logger,
 		Config: config,
 		DB:     db,
@@ -126,7 +128,7 @@ func New(config Config) (*Uptime, error) {
 func (u *Uptime) Start() {
 	go u.startHealthPoller()
 
-	e := echo.New()
+	e := u.e
 	e.HideBanner = true
 	e.Debug = true
 
@@ -140,8 +142,6 @@ func (u *Uptime) Start() {
 			"healthy": "true",
 		})
 	})
-
-	e.Logger.Fatal(e.Start(":" + u.Config.ListenPort))
 
 	signal.Notify(u.quit, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 	<-u.quit
@@ -322,7 +322,7 @@ func apiPath(parts ...string) string {
 	return u.String()
 }
 
-func startStagingOrProd(isProd bool, nodeType, env string) {
+func startStagingOrProd(e *echo.Echo, isProd bool, nodeType, env string) {
 	// must have either a CN or DN endpoint configured, along with other env vars
 	myEndpoint := ""
 
@@ -369,7 +369,7 @@ func startStagingOrProd(isProd bool, nodeType, env string) {
 		NodeType:   nodeType,
 	}
 
-	ph, err := New(config)
+	ph, err := New(config, e)
 	if err != nil {
 		logger.Error("failed to init Uptime server", "err", err)
 	}

@@ -16,7 +16,6 @@ import (
 	"math/big"
 	"net"
 	"net/http"
-	"net/http/httputil"
 	"net/url"
 	"os"
 	"os/signal"
@@ -48,11 +47,6 @@ const (
 
 var startTime time.Time
 
-type proxyConfig struct {
-	path   string
-	target string
-}
-
 type serverConfig struct {
 	httpPort   string
 	httpsPort  string
@@ -69,6 +63,7 @@ func main() {
 	hostUrl := setupHostUrl()
 	setupDelegateKeyPair(logger)
 	posChannel := make(chan pos.PoSRequest)
+	e := createEchoProxy(hostUrl)
 
 	services := []struct {
 		name    string
@@ -77,22 +72,22 @@ func main() {
 	}{
 		{
 			"audiusd-echo-server",
-			func() error { return startEchoProxy(hostUrl, logger) },
+			func() error { return startEchoProxy(e, hostUrl, logger) },
 			true,
 		},
 		{
 			"core",
-			func() error { return core.Run(ctx, logger, posChannel) },
+			func() error { return core.Run(ctx, logger, e, posChannel) },
 			true,
 		},
 		{
 			"mediorum",
-			func() error { return mediorum.Run(ctx, logger, posChannel) },
+			func() error { return mediorum.Run(ctx, logger, e, posChannel) },
 			isStorageEnabled(),
 		},
 		{
 			"uptime",
-			func() error { return uptime.Run(ctx, logger) },
+			func() error { return uptime.Run(ctx, logger, e) },
 			isUpTimeEnabled(hostUrl),
 		},
 	}
@@ -140,10 +135,7 @@ func runWithRecover(name string, ctx context.Context, logger *common.Logger, f f
 					time.Sleep(backoff)
 
 					// Exponential backoff
-					backoff = time.Duration(float64(backoff) * 2)
-					if backoff > maxBackoff {
-						backoff = maxBackoff
-					}
+					backoff = min(time.Duration(float64(backoff)*2), maxBackoff)
 
 					// Restart the goroutine
 					go run()
@@ -253,7 +245,15 @@ func getEchoServerConfig(hostUrl *url.URL) serverConfig {
 	}
 }
 
-func startEchoProxy(hostUrl *url.URL, logger *common.Logger) error {
+func startEchoProxy(e *echo.Echo, hostUrl *url.URL, logger *common.Logger) error {
+	config := getEchoServerConfig(hostUrl)
+	if config.tlsEnabled {
+		return startWithTLS(e, config.httpPort, config.httpsPort, hostUrl, logger)
+	}
+	return e.Start(":" + config.httpPort)
+}
+
+func createEchoProxy(hostUrl *url.URL) *echo.Echo {
 	e := echo.New()
 	e.HideBanner = true
 	e.Use(middleware.Logger(), middleware.Recover())
@@ -270,15 +270,6 @@ func startEchoProxy(hostUrl *url.URL, logger *common.Logger) error {
 		e.GET("/health_check", func(c echo.Context) error {
 			return c.JSON(http.StatusOK, getHealthCheckResponse(hostUrl))
 		})
-	}
-
-	e.GET("/console", func(c echo.Context) error {
-		return c.Redirect(http.StatusMovedPermanently, "/console/overview")
-	})
-
-	proxies := []proxyConfig{
-		{"/console/*", "http://localhost:26659"},
-		{"/core/*", "http://localhost:26659"},
 	}
 
 	// dashboard compatibility - country flags + version info
@@ -331,29 +322,7 @@ func startEchoProxy(hostUrl *url.URL, logger *common.Logger) error {
 	corsGroup.GET("/location", locationHandler)
 	// end dashboard compatibility
 
-	if isUpTimeEnabled(hostUrl) {
-		proxies = append(proxies, proxyConfig{"/d_api/*", "http://localhost:1996"})
-	}
-
-	if isStorageEnabled() {
-		proxies = append(proxies, proxyConfig{"/*", "http://localhost:1991"})
-	}
-
-	for _, proxy := range proxies {
-		target, err := url.Parse(proxy.target)
-		if err != nil {
-			logger.Error("Failed to parse URL:", err)
-			continue
-		}
-		e.Any(proxy.path, echo.WrapHandler(httputil.NewSingleHostReverseProxy(target)))
-	}
-
-	config := getEchoServerConfig(hostUrl)
-
-	if config.tlsEnabled {
-		return startWithTLS(e, config.httpPort, config.httpsPort, hostUrl, logger)
-	}
-	return e.Start(":" + config.httpPort)
+	return e
 }
 
 func startWithTLS(e *echo.Echo, httpPort, httpsPort string, hostUrl *url.URL, logger *common.Logger) error {

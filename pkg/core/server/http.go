@@ -102,10 +102,7 @@ func (s *Server) startEchoServer() error {
 	close(s.awaitHttpServerReady)
 	s.logger.Info("core http server ready")
 
-	if err := s.httpServer.Start(s.config.CoreServerAddr); err != nil {
-		s.logger.Errorf("echo failed to start: %v", err)
-		return err
-	}
+	// echo server started by audiusd
 	return nil
 }
 

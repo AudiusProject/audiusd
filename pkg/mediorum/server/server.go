@@ -144,7 +144,7 @@ var (
 
 const PercentSeededThreshold = 50
 
-func New(config MediorumConfig, posChannel chan pos.PoSRequest) (*MediorumServer, error) {
+func New(config MediorumConfig, e *echo.Echo, posChannel chan pos.PoSRequest) (*MediorumServer, error) {
 	if env := os.Getenv("MEDIORUM_ENV"); env != "" {
 		config.Env = env
 	}
@@ -283,7 +283,7 @@ func New(config MediorumConfig, posChannel chan pos.PoSRequest) (*MediorumServer
 	}
 
 	// echoServer server
-	echoServer := echo.New()
+	echoServer := e
 	echoServer.HideBanner = true
 	echoServer.Debug = true
 
@@ -470,18 +470,11 @@ func setTimingHeader(c echo.Context) {
 }
 
 func (ss *MediorumServer) MustStart() {
+	// echo started by audiusd
 
 	// start pprof server
 	go func() {
 		log.Println(http.ListenAndServe(":6060", nil))
-	}()
-
-	// start server
-	go func() {
-		err := ss.echo.Start(":" + ss.Config.ListenPort)
-		if err != nil && err != http.ErrServerClosed {
-			panic(err)
-		}
 	}()
 
 	go ss.startTranscoder()

@@ -59,7 +59,7 @@ type Server struct {
 	awaitEthNodesReady   chan struct{}
 }
 
-func NewServer(config *config.Config, cconfig *cconfig.Config, logger *common.Logger, pool *pgxpool.Pool, eth *ethclient.Client, posChannel chan pos.PoSRequest) (*Server, error) {
+func NewServer(config *config.Config, cconfig *cconfig.Config, logger *common.Logger, e *echo.Echo, pool *pgxpool.Pool, eth *ethclient.Client, posChannel chan pos.PoSRequest) (*Server, error) {
 	// create mempool
 	mempl := NewMempool(logger, config, db.New(pool), cconfig.Mempool.Size)
 
@@ -72,7 +72,7 @@ func NewServer(config *config.Config, cconfig *cconfig.Config, logger *common.Lo
 		return nil, fmt.Errorf("contracts init error: %v", err)
 	}
 
-	httpServer := echo.New()
+	httpServer := e
 	grpcServer := grpc.NewServer()
 
 	ethNodes := []*contracts.Node{}

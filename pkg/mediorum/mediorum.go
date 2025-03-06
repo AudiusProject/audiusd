@@ -18,6 +18,7 @@ import (
 	"github.com/AudiusProject/audiusd/pkg/mediorum/server"
 	"github.com/AudiusProject/audiusd/pkg/pos"
 	"github.com/AudiusProject/audiusd/pkg/registrar"
+	"github.com/labstack/echo/v4"
 	"golang.org/x/exp/slices"
 	"golang.org/x/exp/slog"
 	"golang.org/x/sync/errgroup"
@@ -41,15 +42,15 @@ func init() {
 	slog.SetDefault(logger)
 }
 
-func Run(ctx context.Context, logger *common.Logger, posChannel chan pos.PoSRequest) error {
+func Run(ctx context.Context, logger *common.Logger, e *echo.Echo, posChannel chan pos.PoSRequest) error {
 	mediorumEnv := os.Getenv("MEDIORUM_ENV")
 	slog.Info("starting", "MEDIORUM_ENV", mediorumEnv)
 
-	startMediorum(mediorumEnv, posChannel)
+	startMediorum(mediorumEnv, e, posChannel)
 	return nil
 }
 
-func startMediorum(mediorumEnv string, posChannel chan pos.PoSRequest) {
+func startMediorum(mediorumEnv string, e *echo.Echo, posChannel chan pos.PoSRequest) {
 	logger := slog.With("creatorNodeEndpoint", os.Getenv("creatorNodeEndpoint"))
 
 	isProd := mediorumEnv == "prod"
@@ -183,7 +184,7 @@ func startMediorum(mediorumEnv string, posChannel chan pos.PoSRequest) {
 		DiscoveryListensEndpoints: discoveryListensEndpoints(),
 	}
 
-	ss, err := server.New(config, posChannel)
+	ss, err := server.New(config, e, posChannel)
 	if err != nil {
 		logger.Error("failed to create server", "err", err)
 		log.Fatal(err)
