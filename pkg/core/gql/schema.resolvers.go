@@ -537,6 +537,33 @@ func (r *queryGraphQLServer) GetAllValidatorUptimes(ctx context.Context, rollupI
 	return result, nil
 }
 
+func (r *subscriptionGraphQLServer) PlaysByTrack(ctx context.Context, id string) (<-chan *core_gql.PlayEvent, error) {
+	playsChannel := make(chan *core_gql.PlayEvent)
+
+	// TODO: validate id is a real track lol
+	go func() {
+		defer close(playsChannel)
+
+		ps := r.playsPubsub.Subscribe(id)
+
+		for play := range ps {
+			playsChannel <- &core_gql.PlayEvent{
+				UserID:    play.UserId,
+				City:      play.City,
+				Country:   play.Country,
+				Region:    play.Region,
+				Timestamp: play.Timestamp.String(),
+			}
+		}
+	}()
+	return playsChannel, nil
+}
+
 func (r *GraphQLServer) Query() core_gql.QueryResolver { return &queryGraphQLServer{r} }
 
+func (r *GraphQLServer) Subscription() core_gql.SubscriptionResolver {
+	return &subscriptionGraphQLServer{r}
+}
+
 type queryGraphQLServer struct{ *GraphQLServer }
+type subscriptionGraphQLServer struct{ *GraphQLServer }

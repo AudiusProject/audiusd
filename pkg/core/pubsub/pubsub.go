@@ -1,15 +1,16 @@
-// A generic pubsub system built with go channels. Used to communicate different pieces of data across the app.
-// Latest block, stream txs, etc.
-package server
+package pubsub
 
 import (
 	"context"
 	"sync"
+
+	"github.com/AudiusProject/audiusd/pkg/core/gen/core_proto"
 )
 
 // subscribes by tx hash, pubsub completes once tx
 // is committed
 type TransactionHashPubsub = Pubsub[struct{}]
+type PlaysPubsub = Pubsub[*core_proto.TrackPlay]
 
 type Pubsub[Message any] struct {
 	subscribers map[string]map[chan Message]struct{} // Map of topic to channels

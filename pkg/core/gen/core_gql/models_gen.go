@@ -37,6 +37,14 @@ type NodeUptime struct {
 	ReportHistory []*SLAReport `json:"reportHistory"`
 }
 
+type PlayEvent struct {
+	UserID    string `json:"userId"`
+	City      string `json:"city"`
+	Country   string `json:"country"`
+	Region    string `json:"region"`
+	Timestamp string `json:"timestamp"`
+}
+
 type Query struct {
 }
 
@@ -77,6 +85,9 @@ type StorageProof struct {
 	Status         string  `json:"status"`
 	ProofSignature *string `json:"proofSignature,omitempty"`
 	Proof          *string `json:"proof,omitempty"`
+}
+
+type Subscription struct {
 }
 
 type Transaction struct {

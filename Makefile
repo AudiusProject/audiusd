@@ -135,8 +135,7 @@ $(PROTO_ARTIFACTS): $(PROTO_SRCS)
 	cd pkg/core/gen/core_proto && swagger generate client -f protocol.swagger.json -t ../ --client-package=core_openapi
 
 .PHONY: regen-gql
-regen-gql: $(GQL_ARTIFACTS)
-$(GQL_ARTIFACTS): $(GQL_SRCS)
+regen-gql:
 	@echo Regenerating gql code
 	cd pkg/core/gql && gqlgen generate
 
