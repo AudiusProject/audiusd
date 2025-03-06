@@ -2,11 +2,8 @@ package server
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"sync/atomic"
-
-	"github.com/cometbft/cometbft/types"
 )
 
 // a simple in memory cache of frequently queried things
@@ -30,36 +27,5 @@ func (s *Server) startCache() error {
 	}
 
 	atomic.StoreInt64(&s.cache.currentHeight, status.SyncInfo.LatestBlockHeight)
-
-	node := s.node
-	eb := node.EventBus()
-
-	if eb == nil {
-		return errors.New("event bus not ready")
-	}
-
-	subscriberID := "block-cache-subscriber"
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	query := types.EventQueryNewBlock
-	subscription, err := eb.Subscribe(ctx, subscriberID, query)
-	if err != nil {
-		return fmt.Errorf("failed to subscribe to NewBlock events: %v", err)
-	}
-
-	for {
-		select {
-		case <-ctx.Done():
-			s.logger.Info("Stopping block event subscription")
-			return nil
-		case msg := <-subscription.Out():
-			blockEvent := msg.Data().(types.EventDataNewBlock)
-			blockHeight := blockEvent.Block.Height
-			atomic.StoreInt64(&s.cache.currentHeight, blockHeight)
-		case err := <-subscription.Canceled():
-			s.logger.Errorf("Subscription cancelled: %v", err)
-			return nil
-		}
-	}
+	return nil
 }

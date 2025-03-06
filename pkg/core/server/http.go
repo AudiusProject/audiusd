@@ -37,7 +37,7 @@ func (s *Server) startEchoServer() error {
 		s.logger.Errorf("could not register protocol handler server: %v", err)
 	}
 
-	gqlResolver := gql.NewGraphQLServer(s.config, s.logger, s.db)
+	gqlResolver := gql.NewGraphQLServer(s.config, s.logger, s.db, s.playsPubsub)
 	srv := handler.New(core_gql.NewExecutableSchema(core_gql.Config{Resolvers: gqlResolver}))
 	srv.Use(extension.Introspection{})
 	queryHandler := func(c echo.Context) error {

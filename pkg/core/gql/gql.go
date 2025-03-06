@@ -5,6 +5,7 @@ import (
 	"github.com/AudiusProject/audiusd/pkg/core/config"
 	"github.com/AudiusProject/audiusd/pkg/core/db"
 	"github.com/AudiusProject/audiusd/pkg/core/gen/core_gql"
+	"github.com/AudiusProject/audiusd/pkg/core/pubsub"
 )
 
 // This file will not be regenerated automatically.
@@ -14,15 +15,17 @@ import (
 var _ core_gql.ResolverRoot = &GraphQLServer{}
 
 type GraphQLServer struct {
-	config *config.Config
-	logger *common.Logger
-	db     *db.Queries
+	config      *config.Config
+	logger      *common.Logger
+	db          *db.Queries
+	playsPubsub *pubsub.PlaysPubsub
 }
 
-func NewGraphQLServer(config *config.Config, logger *common.Logger, db *db.Queries) *GraphQLServer {
+func NewGraphQLServer(config *config.Config, logger *common.Logger, db *db.Queries, playsPubsub *pubsub.PlaysPubsub) *GraphQLServer {
 	return &GraphQLServer{
-		config: config,
-		logger: logger,
-		db:     db,
+		config:      config,
+		logger:      logger,
+		db:          db,
+		playsPubsub: playsPubsub,
 	}
 }

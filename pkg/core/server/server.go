@@ -10,6 +10,7 @@ import (
 	"github.com/AudiusProject/audiusd/pkg/core/contracts"
 	"github.com/AudiusProject/audiusd/pkg/core/db"
 	"github.com/AudiusProject/audiusd/pkg/core/gen/core_proto"
+	"github.com/AudiusProject/audiusd/pkg/core/pubsub"
 	"github.com/AudiusProject/audiusd/pkg/core/sdk"
 	"github.com/AudiusProject/audiusd/pkg/pos"
 	cconfig "github.com/cometbft/cometbft/config"
@@ -42,7 +43,8 @@ type Server struct {
 	peers   map[string]*sdk.Sdk
 	peersMU sync.RWMutex
 
-	txPubsub *TransactionHashPubsub
+	txPubsub    *pubsub.TransactionHashPubsub
+	playsPubsub *pubsub.PlaysPubsub
 
 	cache     *Cache
 	abciState *ABCIState
@@ -64,7 +66,8 @@ func NewServer(config *config.Config, cconfig *cconfig.Config, logger *common.Lo
 	mempl := NewMempool(logger, config, db.New(pool), cconfig.Mempool.Size)
 
 	// create pubsubs
-	txPubsub := NewPubsub[struct{}]()
+	txPubsub := pubsub.NewPubsub[struct{}]()
+	playsPubsub := pubsub.NewPubsub[*core_proto.TrackPlay]()
 
 	// create contracts
 	c, err := contracts.NewAudiusContracts(eth, config.EthRegistryAddress)
@@ -87,13 +90,14 @@ func NewServer(config *config.Config, cconfig *cconfig.Config, logger *common.Lo
 		contracts:          c,
 		mediorumPoSChannel: posChannel,
 
-		db:        db.New(pool),
-		eth:       eth,
-		mempl:     mempl,
-		peers:     make(map[string]*sdk.Sdk),
-		txPubsub:  txPubsub,
-		cache:     NewCache(),
-		abciState: NewABCIState(config.RetainHeight),
+		db:          db.New(pool),
+		eth:         eth,
+		mempl:       mempl,
+		peers:       make(map[string]*sdk.Sdk),
+		txPubsub:    txPubsub,
+		playsPubsub: playsPubsub,
+		cache:       NewCache(),
+		abciState:   NewABCIState(config.RetainHeight),
 
 		httpServer: httpServer,
 		grpcServer: grpcServer,
@@ -122,6 +126,7 @@ func (s *Server) Start(ctx context.Context) error {
 	g.Go(s.startEthNodeManager)
 	g.Go(s.startCache)
 	g.Go(s.startDataCompanion)
+	g.Go(s.startSubscriber)
 
 	s.logger.Info("services started")
 
