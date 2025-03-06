@@ -4,13 +4,13 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
 
 	"github.com/AudiusProject/audiusd/pkg/core/common"
 	"github.com/AudiusProject/audiusd/pkg/core/db"
-	"github.com/AudiusProject/audiusd/pkg/core/etl"
 	"github.com/AudiusProject/audiusd/pkg/core/gen/core_proto"
 	abcitypes "github.com/cometbft/cometbft/abci/types"
 	cfg "github.com/cometbft/cometbft/config"
@@ -260,16 +260,42 @@ func (s *Server) FinalizeBlock(ctx context.Context, req *abcitypes.FinalizeBlock
 				s.logger.Errorf("failed to store transaction: %v", err)
 			}
 
-			// Write decoded transaction using ETL
-			if err := s.etl.WriteTx(ctx, &etl.DecodedTransaction{
+			if err := s.getDb().InsertDecodedTx(ctx, db.InsertDecodedTxParams{
 				BlockHeight: req.Height,
 				TxIndex:     int32(i),
 				TxHash:      txhash,
-				TxType:      etl.GetProtoTypeName(signedTx),
-				TxData:      signedTx,
-				CreatedAt:   req.Time,
+				TxType:      GetProtoTypeName(signedTx),
+				TxData: func() []byte {
+					jsonBytes, err := json.Marshal(signedTx)
+					if err != nil {
+						s.logger.Errorf("failed to marshal tx to json: %v", err)
+						return []byte("{}")
+					}
+					return jsonBytes
+				}(),
+				CreatedAt: pgtype.Timestamptz{Time: req.Time, Valid: true},
 			}); err != nil {
 				s.logger.Errorf("failed to write decoded transaction: %v", err)
+			}
+
+			// Add decoded plays handling
+			if plays := signedTx.GetPlays(); plays != nil {
+				for _, play := range plays.Plays {
+					if err := s.getDb().InsertDecodedPlay(ctx, db.InsertDecodedPlayParams{
+						TxHash:    txhash,
+						UserID:    play.UserId,
+						TrackID:   play.TrackId,
+						PlayedAt:  pgtype.Timestamptz{Time: play.Timestamp.AsTime(), Valid: true},
+						Signature: play.Signature,
+						City:      pgtype.Text{String: play.City, Valid: play.City != ""},
+						Region:    pgtype.Text{String: play.Region, Valid: play.Region != ""},
+						Country:   pgtype.Text{String: play.Country, Valid: play.Country != ""},
+						CreatedAt: pgtype.Timestamptz{Time: req.Time, Valid: true},
+					}); err != nil {
+						s.logger.Errorf("failed to insert play record: %v", err)
+						continue
+					}
+				}
 			}
 
 			if err := s.persistTxStat(ctx, finalizedTx, txhash, req.Height, req.Time); err != nil {

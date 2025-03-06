@@ -9,7 +9,6 @@ import (
 	"github.com/AudiusProject/audiusd/pkg/core/config"
 	"github.com/AudiusProject/audiusd/pkg/core/contracts"
 	"github.com/AudiusProject/audiusd/pkg/core/db"
-	"github.com/AudiusProject/audiusd/pkg/core/etl"
 	"github.com/AudiusProject/audiusd/pkg/core/gen/core_proto"
 	"github.com/AudiusProject/audiusd/pkg/core/sdk"
 	"github.com/AudiusProject/audiusd/pkg/pos"
@@ -39,7 +38,6 @@ type Server struct {
 	node  *nm.Node
 	rpc   *local.Local
 	mempl *Mempool
-	etl   *etl.ETL
 
 	peers   map[string]*sdk.Sdk
 	peersMU sync.RWMutex
@@ -80,9 +78,6 @@ func NewServer(config *config.Config, cconfig *cconfig.Config, logger *common.Lo
 	ethNodes := []*contracts.Node{}
 	duplicateEthNodes := []*contracts.Node{}
 
-	// create ETL
-	etl := etl.NewETL(pool, logger)
-
 	s := &Server{
 		config:         config,
 		cometbftConfig: cconfig,
@@ -95,7 +90,6 @@ func NewServer(config *config.Config, cconfig *cconfig.Config, logger *common.Lo
 		db:        db.New(pool),
 		eth:       eth,
 		mempl:     mempl,
-		etl:       etl,
 		peers:     make(map[string]*sdk.Sdk),
 		txPubsub:  txPubsub,
 		cache:     NewCache(),
