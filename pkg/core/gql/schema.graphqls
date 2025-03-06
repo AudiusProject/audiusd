@@ -116,3 +116,15 @@ type Query {
   getNodeUptime(address: String!, rollupId: Int): NodeUptime
   getAllValidatorUptimes(rollupId: Int): [NodeUptime!]!
 }
+
+type PlayEvent {
+  userId: String!
+  city: String!
+  country: String!
+  region: String!
+  timestamp: String!
+}
+
+type Subscription {
+  playsByTrack(id: String!): PlayEvent!
+}
