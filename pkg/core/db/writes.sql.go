@@ -123,6 +123,7 @@ insert into core_tx_decoded (
     tx_data,
     created_at
 ) values ($1, $2, $3, $4, $5, $6)
+on conflict (tx_hash) do nothing
 `
 
 type InsertDecodedTxParams struct {
