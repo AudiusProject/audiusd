@@ -238,7 +238,8 @@ func (s *Server) FinalizeBlock(ctx context.Context, req *abcitypes.FinalizeBlock
 						PubKeyType:  "ed25519",
 					}
 				}
-			} else if vr := signedTx.GetValidatorRegistrationV2(); vr != nil {
+			} else if att := signedTx.GetAttestation(); att != nil && att.GetValidatorRegistration() != nil {
+				vr := att.GetValidatorRegistration()
 				vrPubKey := ed25519.PubKey(vr.GetPubKey())
 				vrAddr := vrPubKey.Address().String()
 				if _, ok := validatorUpdatesMap[vrAddr]; !ok {
@@ -464,9 +465,9 @@ func (s *Server) validateBlockTx(ctx context.Context, blockTime time.Time, block
 
 	switch signedTx.Transaction.(type) {
 	case *core_proto.SignedTransaction_Plays:
-	case *core_proto.SignedTransaction_ValidatorRegistrationV2:
-		if err := s.isValidRegisterNodeTx(ctx, signedTx, blockHeight); err != nil {
-			s.logger.Error("Invalid block: invalid register node tx", "error", err)
+	case *core_proto.SignedTransaction_Attestation:
+		if err := s.isValidAttestation(ctx, signedTx, blockHeight); err != nil {
+			s.logger.Error("Invalid block: invalid attestation tx", "error", err)
 			return false, nil
 		}
 	case *core_proto.SignedTransaction_ValidatorRegistration:
@@ -508,8 +509,8 @@ func (s *Server) finalizeTransaction(ctx context.Context, req *abcitypes.Finaliz
 		return s.finalizePlayTransaction(ctx, msg)
 	case *core_proto.SignedTransaction_ManageEntity:
 		return s.finalizeManageEntity(ctx, msg)
-	case *core_proto.SignedTransaction_ValidatorRegistrationV2:
-		return s.finalizeRegisterNode(ctx, msg, req.Height)
+	case *core_proto.SignedTransaction_Attestation:
+		return s.finalizeAttestation(ctx, msg, req.Height)
 	case *core_proto.SignedTransaction_ValidatorRegistration:
 		return s.finalizeLegacyRegisterNode(ctx, msg, blockHeight)
 	case *core_proto.SignedTransaction_ValidatorDeregistration:

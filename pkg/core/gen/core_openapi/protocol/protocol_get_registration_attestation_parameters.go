@@ -64,7 +64,7 @@ ProtocolGetRegistrationAttestationParams contains all the parameters to send to 
 type ProtocolGetRegistrationAttestationParams struct {
 
 	// Registration.
-	Registration *models.ProtocolEthRegistration
+	Registration *models.ProtocolValidatorRegistration
 
 	timeout    time.Duration
 	Context    context.Context
@@ -120,13 +120,13 @@ func (o *ProtocolGetRegistrationAttestationParams) SetHTTPClient(client *http.Cl
 }
 
 // WithRegistration adds the registration to the protocol get registration attestation params
-func (o *ProtocolGetRegistrationAttestationParams) WithRegistration(registration *models.ProtocolEthRegistration) *ProtocolGetRegistrationAttestationParams {
+func (o *ProtocolGetRegistrationAttestationParams) WithRegistration(registration *models.ProtocolValidatorRegistration) *ProtocolGetRegistrationAttestationParams {
 	o.SetRegistration(registration)
 	return o
 }
 
 // SetRegistration adds the registration to the protocol get registration attestation params
-func (o *ProtocolGetRegistrationAttestationParams) SetRegistration(registration *models.ProtocolEthRegistration) {
+func (o *ProtocolGetRegistrationAttestationParams) SetRegistration(registration *models.ProtocolValidatorRegistration) {
 	o.Registration = registration
 }
 

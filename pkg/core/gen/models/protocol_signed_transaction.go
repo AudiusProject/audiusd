@@ -18,6 +18,9 @@ import (
 // swagger:model protocolSignedTransaction
 type ProtocolSignedTransaction struct {
 
+	// attestation
+	Attestation *ProtocolAttestation `json:"attestation,omitempty"`
+
 	// manage entity
 	ManageEntity *ProtocolManageEntityLegacy `json:"manageEntity,omitempty"`
 
@@ -44,14 +47,15 @@ type ProtocolSignedTransaction struct {
 
 	// validator registration
 	ValidatorRegistration *ProtocolValidatorRegistrationLegacy `json:"validatorRegistration,omitempty"`
-
-	// validator registration v2
-	ValidatorRegistrationV2 *ProtocolValidatorRegistration `json:"validatorRegistrationV2,omitempty"`
 }
 
 // Validate validates this protocol signed transaction
 func (m *ProtocolSignedTransaction) Validate(formats strfmt.Registry) error {
 	var res []error
+
+	if err := m.validateAttestation(formats); err != nil {
+		res = append(res, err)
+	}
 
 	if err := m.validateManageEntity(formats); err != nil {
 		res = append(res, err)
@@ -81,13 +85,28 @@ func (m *ProtocolSignedTransaction) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
-	if err := m.validateValidatorRegistrationV2(formats); err != nil {
-		res = append(res, err)
-	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *ProtocolSignedTransaction) validateAttestation(formats strfmt.Registry) error {
+	if swag.IsZero(m.Attestation) { // not required
+		return nil
+	}
+
+	if m.Attestation != nil {
+		if err := m.Attestation.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("attestation")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("attestation")
+			}
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -224,28 +243,13 @@ func (m *ProtocolSignedTransaction) validateValidatorRegistration(formats strfmt
 	return nil
 }
 
-func (m *ProtocolSignedTransaction) validateValidatorRegistrationV2(formats strfmt.Registry) error {
-	if swag.IsZero(m.ValidatorRegistrationV2) { // not required
-		return nil
-	}
-
-	if m.ValidatorRegistrationV2 != nil {
-		if err := m.ValidatorRegistrationV2.Validate(formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
-				return ve.ValidateName("validatorRegistrationV2")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
-				return ce.ValidateName("validatorRegistrationV2")
-			}
-			return err
-		}
-	}
-
-	return nil
-}
-
 // ContextValidate validate this protocol signed transaction based on the context it is used
 func (m *ProtocolSignedTransaction) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	var res []error
+
+	if err := m.contextValidateAttestation(ctx, formats); err != nil {
+		res = append(res, err)
+	}
 
 	if err := m.contextValidateManageEntity(ctx, formats); err != nil {
 		res = append(res, err)
@@ -275,13 +279,30 @@ func (m *ProtocolSignedTransaction) ContextValidate(ctx context.Context, formats
 		res = append(res, err)
 	}
 
-	if err := m.contextValidateValidatorRegistrationV2(ctx, formats); err != nil {
-		res = append(res, err)
-	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *ProtocolSignedTransaction) contextValidateAttestation(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.Attestation != nil {
+
+		if swag.IsZero(m.Attestation) { // not required
+			return nil
+		}
+
+		if err := m.Attestation.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("attestation")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("attestation")
+			}
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -424,27 +445,6 @@ func (m *ProtocolSignedTransaction) contextValidateValidatorRegistration(ctx con
 				return ve.ValidateName("validatorRegistration")
 			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("validatorRegistration")
-			}
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (m *ProtocolSignedTransaction) contextValidateValidatorRegistrationV2(ctx context.Context, formats strfmt.Registry) error {
-
-	if m.ValidatorRegistrationV2 != nil {
-
-		if swag.IsZero(m.ValidatorRegistrationV2) { // not required
-			return nil
-		}
-
-		if err := m.ValidatorRegistrationV2.ContextValidate(ctx, formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
-				return ve.ValidateName("validatorRegistrationV2")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
-				return ce.ValidateName("validatorRegistrationV2")
 			}
 			return err
 		}

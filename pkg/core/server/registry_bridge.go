@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"strconv"
 	"time"
 
 	"github.com/AudiusProject/audiusd/pkg/core/common"
@@ -177,34 +176,20 @@ func (s *Server) registerSelfOnComet(ctx context.Context, delegateOwnerWallet ge
 	binary.BigEndian.PutUint64(keyBytes, ethBlock.Uint64())
 	rendezvous := common.GetAttestorRendezvous(addrs, keyBytes, s.config.AttRegistrationRSize)
 
-	// Get latest comet block height from peers (this node is likely syncing)
-	var cometBlockHeight int64
-	for addr, _ := range rendezvous {
-		if peer, ok := peers[addr]; ok && addr != delegateOwnerWallet.Hex() {
-			resp, err := peer.ProtocolGetHeight(protocol.NewProtocolGetHeightParams())
-			if err != nil {
-				s.logger.Error("failed to get latest block height from %s: %v", peer.OAPIEndpoint, err)
-				continue
-			}
-			heightResp, err := strconv.ParseInt(resp.Payload.Height, 10, 64)
-			if err != nil {
-				s.logger.Error("failed to parse latest block height from %s: %v", peer.OAPIEndpoint, err)
-				continue
-			}
-			cometBlockHeight = max(heightResp, cometBlockHeight)
-		}
-	}
-
 	attestations := make([]string, 0, s.config.AttRegistrationRSize)
-	ethReg := &core_proto.EthRegistration{
+	reg := &core_proto.ValidatorRegistration{
+		CometAddress:   s.config.ProposerAddress,
+		PubKey:         s.config.CometKey.PubKey().Bytes(),
+		Power:          int64(s.config.ValidatorVotingPower),
 		DelegateWallet: delegateOwnerWallet.Hex(),
 		Endpoint:       s.config.NodeEndpoint,
 		NodeType:       common.HexToUtf8(serviceType),
 		EthBlock:       ethBlock.Int64(),
 		SpId:           spID,
+		Deadline:       s.cache.currentHeight.Load() + 120,
 	}
 	params := protocol.NewProtocolGetRegistrationAttestationParams()
-	params.SetRegistration(common.EthRegistrationProtoIntoEthRegistrationOapi(ethReg))
+	params.SetRegistration(common.ValidatorRegistrationIntoOapi(reg))
 	for addr, _ := range rendezvous {
 		if peer, ok := peers[addr]; ok {
 			resp, err := peer.ProtocolGetRegistrationAttestation(params)
@@ -216,15 +201,12 @@ func (s *Server) registerSelfOnComet(ctx context.Context, delegateOwnerWallet ge
 		}
 	}
 
-	registrationTx := &core_proto.ValidatorRegistration{
-		Attestations:    attestations,
-		EthRegistration: ethReg,
-		CometAddress:    s.config.ProposerAddress,
-		PubKey:          s.config.CometKey.PubKey().Bytes(),
-		Power:           int64(s.config.ValidatorVotingPower),
+	registrationAtt := &core_proto.Attestation{
+		Signatures: attestations,
+		Body:       &core_proto.Attestation_ValidatorRegistration{reg},
 	}
 
-	txBytes, err := proto.Marshal(registrationTx)
+	txBytes, err := proto.Marshal(registrationAtt)
 	if err != nil {
 		return fmt.Errorf("failure to marshal register tx: %v", err)
 	}
@@ -237,8 +219,8 @@ func (s *Server) registerSelfOnComet(ctx context.Context, delegateOwnerWallet ge
 	tx := &core_proto.SignedTransaction{
 		Signature: sig,
 		RequestId: uuid.NewString(),
-		Transaction: &core_proto.SignedTransaction_ValidatorRegistrationV2{
-			ValidatorRegistrationV2: registrationTx,
+		Transaction: &core_proto.SignedTransaction_Attestation{
+			Attestation: registrationAtt,
 		},
 	}
 

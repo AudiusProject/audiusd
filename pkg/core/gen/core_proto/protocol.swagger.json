@@ -39,7 +39,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/protocolEthRegistration"
+              "$ref": "#/definitions/protocolValidatorRegistration"
             }
           }
         ],
@@ -74,28 +74,6 @@
             "format": "int64"
           }
         ],
-        "tags": [
-          "Protocol"
-        ]
-      }
-    },
-    "/core/grpc/height": {
-      "get": {
-        "operationId": "Protocol_GetHeight",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/protocolHeightResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
         "tags": [
           "Protocol"
         ]
@@ -256,6 +234,20 @@
       },
       "additionalProperties": {}
     },
+    "protocolAttestation": {
+      "type": "object",
+      "properties": {
+        "signatures": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "validatorRegistration": {
+          "$ref": "#/definitions/protocolValidatorRegistration"
+        }
+      }
+    },
     "protocolBlockResponse": {
       "type": "object",
       "properties": {
@@ -297,42 +289,8 @@
         }
       }
     },
-    "protocolEthRegistration": {
-      "type": "object",
-      "properties": {
-        "delegateWallet": {
-          "type": "string"
-        },
-        "endpoint": {
-          "type": "string"
-        },
-        "nodeType": {
-          "type": "string"
-        },
-        "spId": {
-          "type": "string"
-        },
-        "ethBlock": {
-          "type": "string",
-          "format": "int64"
-        },
-        "referenceHeight": {
-          "type": "string",
-          "format": "int64"
-        }
-      }
-    },
     "protocolForwardTransactionResponse": {
       "type": "object"
-    },
-    "protocolHeightResponse": {
-      "type": "object",
-      "properties": {
-        "height": {
-          "type": "string",
-          "format": "int64"
-        }
-      }
     },
     "protocolManageEntityLegacy": {
       "type": "object",
@@ -401,7 +359,7 @@
           "type": "string"
         },
         "registration": {
-          "$ref": "#/definitions/protocolEthRegistration"
+          "$ref": "#/definitions/protocolValidatorRegistration"
         }
       }
     },
@@ -435,8 +393,8 @@
         "storageProofVerification": {
           "$ref": "#/definitions/protocolStorageProofVerification"
         },
-        "validatorRegistrationV2": {
-          "$ref": "#/definitions/protocolValidatorRegistration"
+        "attestation": {
+          "$ref": "#/definitions/protocolAttestation"
         }
       }
     },
@@ -586,14 +544,21 @@
     "protocolValidatorRegistration": {
       "type": "object",
       "properties": {
-        "attestations": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
+        "delegateWallet": {
+          "type": "string"
         },
-        "ethRegistration": {
-          "$ref": "#/definitions/protocolEthRegistration"
+        "endpoint": {
+          "type": "string"
+        },
+        "nodeType": {
+          "type": "string"
+        },
+        "spId": {
+          "type": "string"
+        },
+        "ethBlock": {
+          "type": "string",
+          "format": "int64"
         },
         "cometAddress": {
           "type": "string"
@@ -603,6 +568,10 @@
           "format": "byte"
         },
         "power": {
+          "type": "string",
+          "format": "int64"
+        },
+        "deadline": {
           "type": "string",
           "format": "int64"
         }

@@ -46,13 +46,13 @@ func SignedTxProtoIntoSignedTxOapi(tx *core_proto.SignedTransaction) *models.Pro
 			Signer:     innerTx.ManageEntity.Signer,
 			Nonce:      fmt.Sprint(innerTx.ManageEntity.Nonce),
 		}
-	case *core_proto.SignedTransaction_ValidatorRegistrationV2:
-		oapiTx.ValidatorRegistrationV2 = &models.ProtocolValidatorRegistration{
-			Attestations:    innerTx.ValidatorRegistrationV2.Attestations,
-			EthRegistration: EthRegistrationProtoIntoEthRegistrationOapi(innerTx.ValidatorRegistrationV2.EthRegistration),
-			CometAddress:    innerTx.ValidatorRegistrationV2.CometAddress,
-			Power:           fmt.Sprint(innerTx.ValidatorRegistrationV2.Power),
-			PubKey:          innerTx.ValidatorRegistrationV2.PubKey,
+	case *core_proto.SignedTransaction_Attestation:
+		oapiTx.Attestation = &models.ProtocolAttestation{
+			Signatures: innerTx.Attestation.Signatures,
+		}
+		switch innerTx.Attestation.Body.(type) {
+		case *core_proto.Attestation_ValidatorRegistration:
+			oapiTx.Attestation.ValidatorRegistration = ValidatorRegistrationIntoOapi(innerTx.Attestation.GetValidatorRegistration())
 		}
 	case *core_proto.SignedTransaction_ValidatorRegistration:
 		oapiTx.ValidatorRegistration = &models.ProtocolValidatorRegistrationLegacy{
@@ -87,12 +87,16 @@ func SignedTxProtoIntoSignedTxOapi(tx *core_proto.SignedTransaction) *models.Pro
 	return oapiTx
 }
 
-func EthRegistrationProtoIntoEthRegistrationOapi(ethReg *core_proto.EthRegistration) *models.ProtocolEthRegistration {
-	return &models.ProtocolEthRegistration{
-		DelegateWallet: ethReg.DelegateWallet,
-		Endpoint:       ethReg.Endpoint,
-		NodeType:       ethReg.NodeType,
-		EthBlock:       fmt.Sprint(ethReg.EthBlock),
-		SpID:           ethReg.SpId,
+func ValidatorRegistrationIntoOapi(vr *core_proto.ValidatorRegistration) *models.ProtocolValidatorRegistration {
+	return &models.ProtocolValidatorRegistration{
+		DelegateWallet: vr.DelegateWallet,
+		Endpoint:       vr.Endpoint,
+		NodeType:       vr.NodeType,
+		EthBlock:       fmt.Sprint(vr.EthBlock),
+		SpID:           vr.SpId,
+		CometAddress:   vr.CometAddress,
+		Power:          fmt.Sprint(vr.Power),
+		PubKey:         vr.PubKey,
+		Deadline:       fmt.Sprint(vr.Deadline),
 	}
 }

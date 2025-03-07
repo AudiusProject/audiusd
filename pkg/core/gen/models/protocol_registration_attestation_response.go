@@ -19,7 +19,7 @@ import (
 type ProtocolRegistrationAttestationResponse struct {
 
 	// registration
-	Registration *ProtocolEthRegistration `json:"registration,omitempty"`
+	Registration *ProtocolValidatorRegistration `json:"registration,omitempty"`
 
 	// signature
 	Signature string `json:"signature,omitempty"`

@@ -26,9 +26,6 @@ service Protocol {
   rpc GetBlock(GetBlockRequest) returns (BlockResponse) {
     option (google.api.http) = {get: "/core/grpc/block/{height}"};
   }
-  rpc GetHeight(GetHeightRequest) returns (HeightResponse) {
-    option (google.api.http) = {get: "/core/grpc/height"};
-  }
   rpc GetNodeInfo(GetNodeInfoRequest) returns (NodeInfoResponse) {
     option (google.api.http) = {get: "/core/grpc/node_info"};
   }
@@ -54,7 +51,7 @@ message SignedTransaction {
     ValidatorDeregistration validator_deregistration = 1004;
     StorageProof storage_proof = 1005;
     StorageProofVerification storage_proof_verification = 1006;
-    ValidatorRegistration validator_registration_v2 = 1007;
+    Attestation attestation = 1007;
   }
 }
 
@@ -121,20 +118,15 @@ message ValidatorRegistrationLegacy {
 }
 
 message ValidatorRegistration {
-  repeated string attestations = 1;
-  EthRegistration eth_registration = 2;
-  string comet_address = 3;
-  bytes pub_key = 4;
-  int64 power = 5;
-}
-
-message EthRegistration {
   string delegate_wallet = 1;
   string endpoint = 2;
   string node_type = 3;
   string sp_id = 4;
   int64 eth_block = 5;
-  int64 reference_height = 6;
+  string comet_address = 6;
+  bytes pub_key = 7;
+  int64 power = 8;
+  int64 deadline = 9;
 }
 
 message ValidatorDeregistration {
@@ -195,16 +187,17 @@ message ManageEntityLegacy {
 }
 
 message RegistrationAttestationRequest {
-  EthRegistration registration = 1;
+  ValidatorRegistration registration = 1;
 }
 
 message RegistrationAttestationResponse {
   string signature = 1;
-  EthRegistration registration = 2;
+  ValidatorRegistration registration = 2;
 }
 
-message GetHeightRequest {}
-
-message HeightResponse {
-    int64 height = 1;
+message Attestation {
+  repeated string signatures = 1;
+  oneof body {
+      ValidatorRegistration validator_registration = 2;
+  }
 }

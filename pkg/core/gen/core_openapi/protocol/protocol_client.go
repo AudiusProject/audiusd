@@ -58,8 +58,6 @@ type ClientService interface {
 
 	ProtocolGetBlock(params *ProtocolGetBlockParams, opts ...ClientOption) (*ProtocolGetBlockOK, error)
 
-	ProtocolGetHeight(params *ProtocolGetHeightParams, opts ...ClientOption) (*ProtocolGetHeightOK, error)
-
 	ProtocolGetNodeInfo(params *ProtocolGetNodeInfoParams, opts ...ClientOption) (*ProtocolGetNodeInfoOK, error)
 
 	ProtocolGetRegistrationAttestation(params *ProtocolGetRegistrationAttestationParams, opts ...ClientOption) (*ProtocolGetRegistrationAttestationOK, error)
@@ -144,43 +142,6 @@ func (a *Client) ProtocolGetBlock(params *ProtocolGetBlockParams, opts ...Client
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*ProtocolGetBlockDefault)
-	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
-}
-
-/*
-ProtocolGetHeight protocol get height API
-*/
-func (a *Client) ProtocolGetHeight(params *ProtocolGetHeightParams, opts ...ClientOption) (*ProtocolGetHeightOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewProtocolGetHeightParams()
-	}
-	op := &runtime.ClientOperation{
-		ID:                 "Protocol_GetHeight",
-		Method:             "GET",
-		PathPattern:        "/core/grpc/height",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &ProtocolGetHeightReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	}
-	for _, opt := range opts {
-		opt(op)
-	}
-
-	result, err := a.transport.Submit(op)
-	if err != nil {
-		return nil, err
-	}
-	success, ok := result.(*ProtocolGetHeightOK)
-	if ok {
-		return success, nil
-	}
-	// unexpected success response
-	unexpectedSuccess := result.(*ProtocolGetHeightDefault)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 

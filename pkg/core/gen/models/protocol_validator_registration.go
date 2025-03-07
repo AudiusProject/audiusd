@@ -8,7 +8,6 @@ package models
 import (
 	"context"
 
-	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
@@ -18,14 +17,23 @@ import (
 // swagger:model protocolValidatorRegistration
 type ProtocolValidatorRegistration struct {
 
-	// attestations
-	Attestations []string `json:"attestations"`
-
 	// comet address
 	CometAddress string `json:"cometAddress,omitempty"`
 
-	// eth registration
-	EthRegistration *ProtocolEthRegistration `json:"ethRegistration,omitempty"`
+	// deadline
+	Deadline string `json:"deadline,omitempty"`
+
+	// delegate wallet
+	DelegateWallet string `json:"delegateWallet,omitempty"`
+
+	// endpoint
+	Endpoint string `json:"endpoint,omitempty"`
+
+	// eth block
+	EthBlock string `json:"ethBlock,omitempty"`
+
+	// node type
+	NodeType string `json:"nodeType,omitempty"`
 
 	// power
 	Power string `json:"power,omitempty"`
@@ -33,73 +41,18 @@ type ProtocolValidatorRegistration struct {
 	// pub key
 	// Format: byte
 	PubKey strfmt.Base64 `json:"pubKey,omitempty"`
+
+	// sp Id
+	SpID string `json:"spId,omitempty"`
 }
 
 // Validate validates this protocol validator registration
 func (m *ProtocolValidatorRegistration) Validate(formats strfmt.Registry) error {
-	var res []error
-
-	if err := m.validateEthRegistration(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if len(res) > 0 {
-		return errors.CompositeValidationError(res...)
-	}
 	return nil
 }
 
-func (m *ProtocolValidatorRegistration) validateEthRegistration(formats strfmt.Registry) error {
-	if swag.IsZero(m.EthRegistration) { // not required
-		return nil
-	}
-
-	if m.EthRegistration != nil {
-		if err := m.EthRegistration.Validate(formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
-				return ve.ValidateName("ethRegistration")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
-				return ce.ValidateName("ethRegistration")
-			}
-			return err
-		}
-	}
-
-	return nil
-}
-
-// ContextValidate validate this protocol validator registration based on the context it is used
+// ContextValidate validates this protocol validator registration based on context it is used
 func (m *ProtocolValidatorRegistration) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
-	var res []error
-
-	if err := m.contextValidateEthRegistration(ctx, formats); err != nil {
-		res = append(res, err)
-	}
-
-	if len(res) > 0 {
-		return errors.CompositeValidationError(res...)
-	}
-	return nil
-}
-
-func (m *ProtocolValidatorRegistration) contextValidateEthRegistration(ctx context.Context, formats strfmt.Registry) error {
-
-	if m.EthRegistration != nil {
-
-		if swag.IsZero(m.EthRegistration) { // not required
-			return nil
-		}
-
-		if err := m.EthRegistration.ContextValidate(ctx, formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
-				return ve.ValidateName("ethRegistration")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
-				return ce.ValidateName("ethRegistration")
-			}
-			return err
-		}
-	}
-
 	return nil
 }
 

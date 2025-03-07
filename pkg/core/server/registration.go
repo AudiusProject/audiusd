@@ -20,40 +20,29 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-const maxRegistrationAge = 24 * 60 * 60 // Registration requests are only valid for approx 24 hours
+const maxRegistrationAttestationValidity = 24 * 60 * 60 // Registration requests are only valid for approx 24 hours
 
-func (s *Server) isValidRegisterNodeTx(ctx context.Context, tx *core_proto.SignedTransaction, blockHeight int64) error {
+func (s *Server) isValidRegisterNodeAttestation(ctx context.Context, tx *core_proto.SignedTransaction, signers []string, blockHeight int64) error {
+	vr := tx.GetAttestation().GetValidatorRegistration()
+	if vr == nil {
+		return fmt.Errorf("unknown tx fell into isValidRegisterNodeAttestation: %v", tx)
+	}
+
+	// validate address from tx signature
 	sig := tx.GetSignature()
 	if sig == "" {
 		return fmt.Errorf("no signature provided for registration tx: %v", tx)
 	}
-
-	vr := tx.GetValidatorRegistrationV2()
-	if vr == nil {
-		return fmt.Errorf("unknown tx fell into isValidRegisterNodeTx: %v", tx)
-	}
-	er := vr.GetEthRegistration()
-	if er == nil {
-		return fmt.Errorf("Empty eth registration fell into isValidRegisterNodeTx: %v", tx)
-	}
-
-	// convert to bytes for signature recovery
-	vrBytes, err := proto.Marshal(vr)
+	attBytes, err := proto.Marshal(tx.GetAttestation())
 	if err != nil {
 		return fmt.Errorf("could not marshal registration tx: %v", err)
 	}
-	erBytes, err := proto.Marshal(er)
-	if err != nil {
-		return fmt.Errorf("could not marshal ethereum registration: %v", err)
-	}
-
-	// validate address
-	_, address, err := common.EthRecover(tx.GetSignature(), vrBytes)
+	_, address, err := common.EthRecover(tx.GetSignature(), attBytes)
 	if err != nil {
 		return fmt.Errorf("could not recover msg sig: %v", err)
 	}
-	if address != er.GetDelegateWallet() {
-		return fmt.Errorf("Signature address '%s' does not match ethereum registration '%s'", address, er.GetDelegateWallet())
+	if address != vr.GetDelegateWallet() {
+		return fmt.Errorf("signature address '%s' does not match ethereum registration '%s'", address, vr.GetDelegateWallet())
 	}
 
 	// validate voting power
@@ -63,7 +52,7 @@ func (s *Server) isValidRegisterNodeTx(ctx context.Context, tx *core_proto.Signe
 
 	// validate pub key
 	if len(vr.GetPubKey()) == 0 {
-		return fmt.Errorf("public Key missing from %s registration tx", er.GetEndpoint())
+		return fmt.Errorf("public Key missing from %s registration tx", vr.GetEndpoint())
 	}
 	vrPubKey := ed25519.PubKey(vr.GetPubKey())
 	if vrPubKey.Address().String() != vr.GetCometAddress() {
@@ -72,85 +61,62 @@ func (s *Server) isValidRegisterNodeTx(ctx context.Context, tx *core_proto.Signe
 
 	// ensure comet address is not already taken
 	if _, err := s.db.GetRegisteredNodeByCometAddress(context.Background(), vr.GetCometAddress()); !errors.Is(err, pgx.ErrNoRows) {
-		return fmt.Errorf("address '%s' is already registered on comet, node %s attempted to acquire it", vr.GetCometAddress(), er.GetEndpoint())
+		return fmt.Errorf("address '%s' is already registered on comet, node %s attempted to acquire it", vr.GetCometAddress(), vr.GetEndpoint())
 	}
 
 	// validate age of request
-	if er.ReferenceHeight > blockHeight || er.ReferenceHeight < blockHeight-maxRegistrationAge {
-		return fmt.Errorf("Registration request for '%s' with reference height %d is too old (current height is %d)", er.GetEndpoint(), er.ReferenceHeight, blockHeight)
+	if vr.Deadline < blockHeight || vr.Deadline > blockHeight+maxRegistrationAttestationValidity {
+		return fmt.Errorf("Registration request for '%s' with deadline %d is too new/old (current height is %d)", vr.GetEndpoint(), vr.Deadline, blockHeight)
 	}
 
-	// validate attestations
-	addrs, err := s.db.GetAllEthAddressesOfRegisteredNodes(ctx)
-	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
-		return fmt.Errorf("Failed to get core validators while validating registration: %v", err)
-	}
-	atts := vr.GetAttestations()
-	if atts == nil {
-		atts = make([]string, 0) // empty attestations are expected at genesis
-	}
-	requiredAttestations := min(len(addrs), s.config.AttRegistrationMin)
+	// validate signers
 	keyBytes := make([]byte, 8)
-	binary.BigEndian.PutUint64(keyBytes, uint64(er.GetEthBlock()))
-	rendezvous := common.GetAttestorRendezvous(addrs, keyBytes, s.config.AttRegistrationRSize)
-	for _, att := range atts {
-		_, address, err := common.EthRecover(att, erBytes)
-		if err != nil {
-			return fmt.Errorf("Invalid attestation provided to RegisterNode tx: %v", err)
-		}
-		if rendezvous[address] {
-			requiredAttestations--
-			delete(rendezvous, address)
-		}
-	}
-	if requiredAttestations > 0 {
-		return fmt.Errorf("Not enough attestations provided to register validator at '%s'. Had: %d, needed: %d more", er.GetEndpoint(), len(atts), requiredAttestations)
+	binary.BigEndian.PutUint64(keyBytes, uint64(vr.GetEthBlock()))
+	enough, err := s.attestationHasEnoughSigners(ctx, signers, keyBytes, s.config.AttRegistrationRSize, s.config.AttRegistrationMin)
+	if err != nil {
+		return fmt.Errorf("Error checking attestors against validators: %v", err)
+	} else if !enough {
+		return fmt.Errorf("Not enough attestations provided to register validator at '%s'", vr.GetEndpoint())
 	}
 
 	return nil
 }
 
-func (s *Server) finalizeRegisterNode(ctx context.Context, tx *core_proto.SignedTransaction, blockHeight int64) (*core_proto.ValidatorRegistration, error) {
-	if err := s.isValidRegisterNodeTx(ctx, tx, blockHeight); err != nil {
-		return nil, fmt.Errorf("invalid register node tx: %v", err)
-	}
-
+func (s *Server) finalizeRegisterNodeAttestation(ctx context.Context, tx *core_proto.SignedTransaction, blockHeight int64) error {
 	qtx := s.getDb()
-	vr := tx.GetValidatorRegistrationV2()
-	er := vr.GetEthRegistration()
+	vr := tx.GetAttestation().GetValidatorRegistration()
 
-	sig := tx.GetSignature()
-	txBytes, err := proto.Marshal(vr)
+	txBytes, err := proto.Marshal(tx)
 	if err != nil {
-		return nil, fmt.Errorf("could not unmarshal tx bytes: %v", err)
+		return fmt.Errorf("could not unmarshal tx bytes: %v", err)
 	}
-	pubKey, _, err := common.EthRecover(sig, txBytes)
+	pubKey, _, err := common.EthRecover(tx.GetSignature(), txBytes)
 	if err != nil {
-		return nil, fmt.Errorf("could not recover signer: %v", err)
+		return fmt.Errorf("could not recover signer: %v", err)
 	}
 
 	serializedPubKey, err := common.SerializePublicKey(pubKey)
 	if err != nil {
-		return nil, fmt.Errorf("could not serialize pubkey: %v", err)
+		return fmt.Errorf("could not serialize pubkey: %v", err)
 	}
 
 	// Do not reinsert duplicate registrations
-	if _, err = qtx.GetRegisteredNodeByEthAddress(ctx, er.GetDelegateWallet()); errors.Is(err, pgx.ErrNoRows) {
+	if _, err = qtx.GetRegisteredNodeByEthAddress(ctx, vr.GetDelegateWallet()); errors.Is(err, pgx.ErrNoRows) {
 		err = qtx.InsertRegisteredNode(ctx, db.InsertRegisteredNodeParams{
 			PubKey:       serializedPubKey,
-			EthAddress:   er.GetDelegateWallet(),
-			Endpoint:     er.GetEndpoint(),
+			EthAddress:   vr.GetDelegateWallet(),
+			Endpoint:     vr.GetEndpoint(),
 			CometAddress: vr.GetCometAddress(),
 			CometPubKey:  base64.StdEncoding.EncodeToString(vr.GetPubKey()),
-			EthBlock:     strconv.FormatInt(er.GetEthBlock(), 10),
-			NodeType:     er.GetNodeType(),
-			SpID:         er.GetSpId(),
+			EthBlock:     strconv.FormatInt(vr.GetEthBlock(), 10),
+			NodeType:     vr.GetNodeType(),
+			SpID:         vr.GetSpId(),
 		})
 		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
-			return nil, fmt.Errorf("error inserting registered node: %v", err)
+			return fmt.Errorf("error inserting registered node: %v", err)
 		}
 	}
-	return vr, nil
+	return nil
 }
 
 func (s *Server) isValidDeregisterNodeTx(tx *core_proto.SignedTransaction, misbehavior []abcitypes.Misbehavior) error {

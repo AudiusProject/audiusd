@@ -213,12 +213,6 @@ func (s *Server) GetBlock(ctx context.Context, req *core_proto.GetBlockRequest) 
 	return res, nil
 }
 
-func (s *Server) GetHeight(ctx context.Context, req *core_proto.GetHeightRequest) (*core_proto.HeightResponse, error) {
-	return &core_proto.HeightResponse{
-		Height: s.cache.currentHeight.Load(),
-	}, nil
-}
-
 func (s *Server) GetNodeInfo(ctx context.Context, req *core_proto.GetNodeInfoRequest) (*core_proto.NodeInfoResponse, error) {
 	status, err := s.rpc.Status(ctx)
 	if err != nil {
@@ -303,38 +297,38 @@ func (s *Server) getBlockRpcFallback(ctx context.Context, height int64) (*core_p
 }
 
 func (s *Server) GetRegistrationAttestation(ctx context.Context, req *core_proto.RegistrationAttestationRequest) (*core_proto.RegistrationAttestationResponse, error) {
-	ethReg := req.GetRegistration()
-	if ethReg == nil {
+	reg := req.GetRegistration()
+	if reg == nil {
 		return nil, errors.New("empty registration attestation")
 	}
 
-	if ethReg.ReferenceHeight > s.cache.currentHeight.Load() {
-		return nil, fmt.Errorf("Cannot sign registration request with reference height %d (current height is %d)", ethReg.ReferenceHeight, s.cache.currentHeight.Load())
+	if reg.Deadline < s.cache.currentHeight.Load() || reg.Deadline > s.cache.currentHeight.Load()+maxRegistrationAttestationValidity {
+		return nil, fmt.Errorf("Cannot sign registration request with deadline %d (current height is %d)", reg.Deadline, s.cache.currentHeight.Load())
 	}
 
 	if !s.isNodeRegisteredOnEthereum(
-		ethcommon.HexToAddress(ethReg.DelegateWallet),
-		ethReg.Endpoint,
-		big.NewInt(ethReg.EthBlock),
+		ethcommon.HexToAddress(reg.DelegateWallet),
+		reg.Endpoint,
+		big.NewInt(reg.EthBlock),
 	) {
 		s.logger.Error(
 			"Could not attest to node eth registration",
 			"delegate",
-			ethReg.DelegateWallet,
+			reg.DelegateWallet,
 			"endpoint",
-			ethReg.Endpoint,
+			reg.Endpoint,
 			"eth block",
-			ethReg.EthBlock,
+			reg.EthBlock,
 		)
 		return nil, errors.New("node is not registered on ethereum")
 	}
 
-	ethRegBytes, err := proto.Marshal(ethReg)
+	regBytes, err := proto.Marshal(reg)
 	if err != nil {
 		s.logger.Error("could not marshal ethereum registration", "error", err)
 		return nil, err
 	}
-	sig, err := common.EthSign(s.config.EthereumKey, ethRegBytes)
+	sig, err := common.EthSign(s.config.EthereumKey, regBytes)
 	if err != nil {
 		s.logger.Error("could not sign ethereum registration", "error", err)
 		return nil, err
@@ -342,6 +336,6 @@ func (s *Server) GetRegistrationAttestation(ctx context.Context, req *core_proto
 
 	return &core_proto.RegistrationAttestationResponse{
 		Signature:    sig,
-		Registration: ethReg,
+		Registration: reg,
 	}, nil
 }
