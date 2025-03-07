@@ -30,11 +30,24 @@ create index if not exists core_tx_decoded_block_height_idx on core_tx_decoded(b
 create index if not exists core_tx_decoded_tx_hash_idx on core_tx_decoded(tx_hash);
 create index if not exists core_tx_decoded_tx_type_idx on core_tx_decoded(tx_type);
 
-create index if not exists core_tx_decoded_plays_tx_hash_idx on core_tx_decoded_plays(tx_hash);
+create index if not exists core_tx_decoded_plays_city_idx on core_tx_decoded_plays(city);
+create index if not exists core_tx_decoded_plays_region_idx on core_tx_decoded_plays(region);
+create index if not exists core_tx_decoded_plays_country_idx on core_tx_decoded_plays(country);
+create index if not exists core_tx_decoded_plays_played_at_idx on core_tx_decoded_plays(played_at);
 create index if not exists core_tx_decoded_plays_user_id_idx on core_tx_decoded_plays(user_id);
 create index if not exists core_tx_decoded_plays_track_id_idx on core_tx_decoded_plays(track_id);
-create index if not exists core_tx_decoded_plays_played_at_idx on core_tx_decoded_plays(played_at);
 
 -- +migrate Down
+drop index if exists core_tx_decoded_plays_track_id_idx;
+drop index if exists core_tx_decoded_plays_user_id_idx;
+drop index if exists core_tx_decoded_plays_played_at_idx;
+drop index if exists core_tx_decoded_plays_country_idx;
+drop index if exists core_tx_decoded_plays_region_idx;
+drop index if exists core_tx_decoded_plays_city_idx;
+
+drop index if exists core_tx_decoded_tx_type_idx;
+drop index if exists core_tx_decoded_tx_hash_idx;
+drop index if exists core_tx_decoded_block_height_idx;
+
 drop table if exists core_tx_decoded_plays;
 drop table if exists core_tx_decoded;
