@@ -260,11 +260,31 @@ func (s *Server) FinalizeBlock(ctx context.Context, req *abcitypes.FinalizeBlock
 				s.logger.Errorf("failed to store transaction: %v", err)
 			}
 
+			var txType string
+			switch signedTx.GetTransaction().(type) {
+			case *core_proto.SignedTransaction_Plays:
+				txType = "Plays"
+			case *core_proto.SignedTransaction_ValidatorRegistration:
+				txType = "ValidatorRegistration"
+			case *core_proto.SignedTransaction_ValidatorDeregistration:
+				txType = "ValidatorDeregistration"
+			case *core_proto.SignedTransaction_SlaRollup:
+				txType = "SlaRollup"
+			case *core_proto.SignedTransaction_StorageProof:
+				txType = "StorageProof"
+			case *core_proto.SignedTransaction_StorageProofVerification:
+				txType = "StorageProofVerification"
+			case *core_proto.SignedTransaction_ManageEntity:
+				txType = "ManageEntity"
+			default:
+				txType = "Unknown"
+			}
+
 			if err := s.getDb().InsertDecodedTx(ctx, db.InsertDecodedTxParams{
 				BlockHeight: req.Height,
 				TxIndex:     int32(i),
 				TxHash:      txhash,
-				TxType:      GetProtoTypeName(signedTx),
+				TxType:      txType,
 				TxData: func() []byte {
 					jsonBytes, err := json.Marshal(signedTx)
 					if err != nil {
@@ -278,7 +298,6 @@ func (s *Server) FinalizeBlock(ctx context.Context, req *abcitypes.FinalizeBlock
 				s.logger.Errorf("failed to write decoded transaction: %v", err)
 			}
 
-			// Add decoded plays handling
 			if plays := signedTx.GetPlays(); plays != nil {
 				for _, play := range plays.Plays {
 					if err := s.getDb().InsertDecodedPlay(ctx, db.InsertDecodedPlayParams{
