@@ -16,7 +16,7 @@
     "application/json"
   ],
   "paths": {
-    "/core/grpc/attest": {
+    "/core/grpc/attest/registration": {
       "post": {
         "operationId": "Protocol_GetRegistrationAttestation",
         "responses": {

@@ -455,7 +455,7 @@ func RegisterProtocolHandlerServer(ctx context.Context, mux *runtime.ServeMux, s
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		var err error
 		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/protocol.Protocol/GetRegistrationAttestation", runtime.WithHTTPPathPattern("/core/grpc/attest"))
+		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/protocol.Protocol/GetRegistrationAttestation", runtime.WithHTTPPathPattern("/core/grpc/attest/registration"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -651,7 +651,7 @@ func RegisterProtocolHandlerClient(ctx context.Context, mux *runtime.ServeMux, c
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		var err error
 		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/protocol.Protocol/GetRegistrationAttestation", runtime.WithHTTPPathPattern("/core/grpc/attest"))
+		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/protocol.Protocol/GetRegistrationAttestation", runtime.WithHTTPPathPattern("/core/grpc/attest/registration"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -683,7 +683,7 @@ var (
 
 	pattern_Protocol_Ping_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"core", "grpc", "ping"}, ""))
 
-	pattern_Protocol_GetRegistrationAttestation_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"core", "grpc", "attest"}, ""))
+	pattern_Protocol_GetRegistrationAttestation_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3}, []string{"core", "grpc", "attest", "registration"}, ""))
 )
 
 var (

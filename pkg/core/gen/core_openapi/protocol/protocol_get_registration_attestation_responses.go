@@ -88,12 +88,12 @@ func (o *ProtocolGetRegistrationAttestationOK) Code() int {
 
 func (o *ProtocolGetRegistrationAttestationOK) Error() string {
 	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /core/grpc/attest][%d] protocolGetRegistrationAttestationOK %s", 200, payload)
+	return fmt.Sprintf("[POST /core/grpc/attest/registration][%d] protocolGetRegistrationAttestationOK %s", 200, payload)
 }
 
 func (o *ProtocolGetRegistrationAttestationOK) String() string {
 	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /core/grpc/attest][%d] protocolGetRegistrationAttestationOK %s", 200, payload)
+	return fmt.Sprintf("[POST /core/grpc/attest/registration][%d] protocolGetRegistrationAttestationOK %s", 200, payload)
 }
 
 func (o *ProtocolGetRegistrationAttestationOK) GetPayload() *models.ProtocolRegistrationAttestationResponse {
@@ -162,12 +162,12 @@ func (o *ProtocolGetRegistrationAttestationDefault) Code() int {
 
 func (o *ProtocolGetRegistrationAttestationDefault) Error() string {
 	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /core/grpc/attest][%d] Protocol_GetRegistrationAttestation default %s", o._statusCode, payload)
+	return fmt.Sprintf("[POST /core/grpc/attest/registration][%d] Protocol_GetRegistrationAttestation default %s", o._statusCode, payload)
 }
 
 func (o *ProtocolGetRegistrationAttestationDefault) String() string {
 	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /core/grpc/attest][%d] Protocol_GetRegistrationAttestation default %s", o._statusCode, payload)
+	return fmt.Sprintf("[POST /core/grpc/attest/registration][%d] Protocol_GetRegistrationAttestation default %s", o._statusCode, payload)
 }
 
 func (o *ProtocolGetRegistrationAttestationDefault) GetPayload() *models.RPCStatus {

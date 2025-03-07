@@ -193,7 +193,7 @@ func (a *Client) ProtocolGetRegistrationAttestation(params *ProtocolGetRegistrat
 	op := &runtime.ClientOperation{
 		ID:                 "Protocol_GetRegistrationAttestation",
 		Method:             "POST",
-		PathPattern:        "/core/grpc/attest",
+		PathPattern:        "/core/grpc/attest/registration",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},

@@ -34,7 +34,7 @@ service Protocol {
   }
   rpc GetRegistrationAttestation(RegistrationAttestationRequest) returns (RegistrationAttestationResponse) {
     option (google.api.http) = {
-      post: "/core/grpc/attest"
+      post: "/core/grpc/attest/registration"
       body: "registration"
     };
   }
