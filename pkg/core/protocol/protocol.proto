@@ -198,6 +198,6 @@ message RegistrationAttestationResponse {
 message Attestation {
   repeated string signatures = 1;
   oneof body {
-      ValidatorRegistration validator_registration = 2;
+      ValidatorRegistration validator_registration = 1000;
   }
 }
