@@ -28,9 +28,12 @@ import (
 	"github.com/AudiusProject/audiusd/pkg/core"
 	"github.com/AudiusProject/audiusd/pkg/core/common"
 	"github.com/AudiusProject/audiusd/pkg/core/console"
+	cserver "github.com/AudiusProject/audiusd/pkg/core/server"
 	"github.com/AudiusProject/audiusd/pkg/mediorum"
 	"github.com/AudiusProject/audiusd/pkg/mediorum/server"
+	mserver "github.com/AudiusProject/audiusd/pkg/mediorum/server"
 	"github.com/AudiusProject/audiusd/pkg/pos"
+	"github.com/AudiusProject/audiusd/pkg/service"
 	"github.com/AudiusProject/audiusd/pkg/uptime"
 
 	"github.com/ethereum/go-ethereum/crypto"
@@ -43,6 +46,12 @@ const (
 	initialBackoff = 10 * time.Second
 	maxBackoff     = 10 * time.Minute
 	maxRetries     = 10
+)
+
+var (
+	_ service.Service = (*mserver.MediorumServer)(nil)
+	_ service.Service = (*cserver.Server)(nil)
+	_ service.Service = (*uptime.Uptime)(nil)
 )
 
 var startTime time.Time
@@ -64,6 +73,10 @@ func main() {
 	setupDelegateKeyPair(logger)
 	posChannel := make(chan pos.PoSRequest)
 	e := createEchoProxy(hostUrl)
+
+	// TODO: create core, mediorum, and uptime instances
+	// this will register the routes
+	// TODO: run after the struct create
 
 	services := []struct {
 		name    string
