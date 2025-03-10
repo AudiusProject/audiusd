@@ -30,6 +30,8 @@ func (s *Server) isValidAttestation(ctx context.Context, tx *core_proto.SignedTr
 	switch t := att.Body.(type) {
 	case *core_proto.Attestation_ValidatorRegistration:
 		return s.isValidRegisterNodeAttestation(ctx, tx, signerAddrs, blockHeight)
+	case *core_proto.Attestation_ValidatorDeregistration:
+		return s.isValidDeregisterNodeAttestation(ctx, tx, signerAddrs, blockHeight)
 	default:
 		return fmt.Errorf("unhandled attestation: %v %T", tx, t)
 	}

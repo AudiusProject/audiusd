@@ -325,17 +325,67 @@ func (s *Server) GetRegistrationAttestation(ctx context.Context, req *core_proto
 
 	regBytes, err := proto.Marshal(reg)
 	if err != nil {
-		s.logger.Error("could not marshal ethereum registration", "error", err)
+		s.logger.Error("could not marshal registration", "error", err)
 		return nil, err
 	}
 	sig, err := common.EthSign(s.config.EthereumKey, regBytes)
 	if err != nil {
-		s.logger.Error("could not sign ethereum registration", "error", err)
+		s.logger.Error("could not sign registration", "error", err)
 		return nil, err
 	}
 
 	return &core_proto.RegistrationAttestationResponse{
 		Signature:    sig,
 		Registration: reg,
+	}, nil
+}
+
+func (s *Server) GetDeregistrationAttestation(ctx context.Context, req *core_proto.DeregistrationAttestationRequest) (*core_proto.DeregistrationAttestationResponse, error) {
+	dereg := req.GetDeregistration()
+	if dereg == nil {
+		return nil, errors.New("empty deregistration attestation")
+	}
+
+	node, err := s.db.GetRegisteredNodeByCometAddress(ctx, dereg.CometAddress)
+	if err != nil {
+		return nil, fmt.Errorf("Could not attest deregistration for '%s': %v", dereg.CometAddress, err)
+	}
+
+	ethBlock := new(big.Int)
+	ethBlock, ok := ethBlock.SetString(node.EthBlock, 10)
+	if !ok {
+		return nil, fmt.Errorf("Could not format eth block '%s' for node '%s'", node.EthBlock, node.Endpoint)
+	}
+
+	if s.isNodeRegisteredOnEthereum(
+		ethcommon.HexToAddress(node.EthAddress),
+		node.Endpoint,
+		ethBlock,
+	) {
+		s.logger.Error("Could not attest to node eth deregistration: node is still registered",
+			"cometAddress",
+			dereg.CometAddress,
+			"ethAddress",
+			node.EthAddress,
+			"endpoint",
+			node.Endpoint,
+		)
+		return nil, errors.New("node is still registered on ethereum")
+	}
+
+	deregBytes, err := proto.Marshal(dereg)
+	if err != nil {
+		s.logger.Error("could not marshal deregistration", "error", err)
+		return nil, err
+	}
+	sig, err := common.EthSign(s.config.EthereumKey, deregBytes)
+	if err != nil {
+		s.logger.Error("could not sign deregistration", "error", err)
+		return nil, err
+	}
+
+	return &core_proto.DeregistrationAttestationResponse{
+		Signature:      sig,
+		Deregistration: dereg,
 	}, nil
 }

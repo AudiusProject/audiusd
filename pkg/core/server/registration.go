@@ -20,7 +20,8 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-const maxRegistrationAttestationValidity = 24 * 60 * 60 // Registration requests are only valid for approx 24 hours
+const maxRegistrationAttestationValidity = 24 * 60 * 60   // Registration attestations are only valid for approx 24 hours
+const maxDeregistrationAttestationValidity = 24 * 60 * 60 // Deregistration attestations are only valid for approx 24 hours
 
 func (s *Server) isValidRegisterNodeAttestation(ctx context.Context, tx *core_proto.SignedTransaction, signers []string, blockHeight int64) error {
 	vr := tx.GetAttestation().GetValidatorRegistration()
@@ -119,7 +120,57 @@ func (s *Server) finalizeRegisterNodeAttestation(ctx context.Context, tx *core_p
 	return nil
 }
 
-func (s *Server) isValidDeregisterNodeTx(tx *core_proto.SignedTransaction, misbehavior []abcitypes.Misbehavior) error {
+func (s *Server) isValidDeregisterNodeAttestation(ctx context.Context, tx *core_proto.SignedTransaction, signers []string, blockHeight int64) error {
+	att := tx.GetAttestation()
+	if att == nil {
+		return fmt.Errorf("unknown attestation fell into isValidDeregisterNodeAttestation: %v", tx)
+	}
+	dereg := att.GetValidatorDeregistration()
+	if dereg == nil {
+		return fmt.Errorf("unknown attestation fell into isValidDeregisterNodeAttestation: %v", tx)
+	}
+
+	addr := dereg.GetCometAddress()
+
+	if len(dereg.GetPubKey()) == 0 {
+		return fmt.Errorf("public Key missing from deregistration attestation: %v", tx)
+	}
+	vdPubKey := ed25519.PubKey(dereg.GetPubKey())
+	if vdPubKey.Address().String() != addr {
+		return fmt.Errorf("address does not match public key: %s %s", vdPubKey.Address(), addr)
+	}
+
+	// validate age of request
+	if dereg.Deadline < blockHeight || dereg.Deadline > blockHeight+maxDeregistrationAttestationValidity {
+		return fmt.Errorf("Registration request for '%s' with deadline %d is too new/old (current height is %d)", addr, dereg.Deadline, blockHeight)
+	}
+
+	// validate signers
+	enough, err := s.attestationHasEnoughSigners(ctx, signers, vdPubKey.Bytes(), s.config.AttDeregistrationRSize, s.config.AttDeregistrationMin)
+	if err != nil {
+		return fmt.Errorf("Error checking attestors against validators: %v", err)
+	} else if !enough {
+		return fmt.Errorf("Not enough attestations provided to deregister validator '%s'", addr)
+	}
+
+	return nil
+}
+
+func (s *Server) finalizeDeregisterValidatorAttestation(ctx context.Context, tx *core_proto.SignedTransaction, misbehavior []abcitypes.Misbehavior) error {
+	dereg := tx.GetAttestation().GetValidatorDeregistration()
+	if dereg == nil {
+		return fmt.Errorf("unknown attestation fell into isValidDeregisterNodeAttestation: %v", tx)
+	}
+	qtx := s.getDb()
+	err := qtx.DeleteRegisteredNode(ctx, dereg.GetCometAddress())
+	if err != nil {
+		return fmt.Errorf("error deleting registered node: %v", err)
+	}
+
+	return nil
+}
+
+func (s *Server) isValidDeregisterMisbehavingNodeTx(tx *core_proto.SignedTransaction, misbehavior []abcitypes.Misbehavior) error {
 	sig := tx.GetSignature()
 	if sig == "" {
 		return fmt.Errorf("no signature provided for deregistration tx: %v", tx)
@@ -127,7 +178,7 @@ func (s *Server) isValidDeregisterNodeTx(tx *core_proto.SignedTransaction, misbe
 
 	vd := tx.GetValidatorDeregistration()
 	if vd == nil {
-		return fmt.Errorf("unknown tx fell into isValidDeregisterNodeTx: %v", tx)
+		return fmt.Errorf("unknown tx fell into isValidDeregisterMisbehavingNodeTx: %v", tx)
 	}
 
 	addr := vd.GetCometAddress()
@@ -155,8 +206,8 @@ func (s *Server) isValidDeregisterNodeTx(tx *core_proto.SignedTransaction, misbe
 	return fmt.Errorf("no misbehavior found matching deregistration tx: %v", tx)
 }
 
-func (s *Server) finalizeDeregisterNode(ctx context.Context, tx *core_proto.SignedTransaction, misbehavior []abcitypes.Misbehavior) (*core_proto.ValidatorDeregistration, error) {
-	if err := s.isValidDeregisterNodeTx(tx, misbehavior); err != nil {
+func (s *Server) finalizeDeregisterMisbehavingNode(ctx context.Context, tx *core_proto.SignedTransaction, misbehavior []abcitypes.Misbehavior) (*core_proto.ValidatorMisbehaviorDeregistration, error) {
+	if err := s.isValidDeregisterMisbehavingNodeTx(tx, misbehavior); err != nil {
 		return nil, fmt.Errorf("invalid deregister node tx: %v", err)
 	}
 
@@ -179,7 +230,7 @@ func (s *Server) createDeregisterTransaction(address types.Address) ([]byte, err
 	if err != nil {
 		return []byte{}, fmt.Errorf("could not decode public key '%s' as base64 encoded string: %v", node.CometPubKey, err)
 	}
-	deregistrationTx := &core_proto.ValidatorDeregistration{
+	deregistrationTx := &core_proto.ValidatorMisbehaviorDeregistration{
 		PubKey:       pubkeyEnc,
 		CometAddress: address.String(),
 	}

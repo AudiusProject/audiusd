@@ -16,6 +16,38 @@
     "application/json"
   ],
   "paths": {
+    "/core/grpc/attest/deregistration": {
+      "post": {
+        "operationId": "Protocol_GetDeregistrationAttestation",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/protocolDeregistrationAttestationResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "deregistration",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/protocolValidatorDeregistration"
+            }
+          }
+        ],
+        "tags": [
+          "Protocol"
+        ]
+      }
+    },
     "/core/grpc/attest/registration": {
       "post": {
         "operationId": "Protocol_GetRegistrationAttestation",
@@ -245,6 +277,9 @@
         },
         "validatorRegistration": {
           "$ref": "#/definitions/protocolValidatorRegistration"
+        },
+        "validatorDeregistration": {
+          "$ref": "#/definitions/protocolValidatorDeregistration"
         }
       }
     },
@@ -286,6 +321,17 @@
             "type": "object",
             "$ref": "#/definitions/protocolTransactionResponse"
           }
+        }
+      }
+    },
+    "protocolDeregistrationAttestationResponse": {
+      "type": "object",
+      "properties": {
+        "signature": {
+          "type": "string"
+        },
+        "deregistration": {
+          "$ref": "#/definitions/protocolValidatorDeregistration"
         }
       }
     },
@@ -385,7 +431,7 @@
           "$ref": "#/definitions/protocolManageEntityLegacy"
         },
         "validatorDeregistration": {
-          "$ref": "#/definitions/protocolValidatorDeregistration"
+          "$ref": "#/definitions/protocolValidatorMisbehaviorDeregistration"
         },
         "storageProof": {
           "$ref": "#/definitions/protocolStorageProof"
@@ -530,6 +576,22 @@
       }
     },
     "protocolValidatorDeregistration": {
+      "type": "object",
+      "properties": {
+        "cometAddress": {
+          "type": "string"
+        },
+        "pubKey": {
+          "type": "string",
+          "format": "byte"
+        },
+        "deadline": {
+          "type": "string",
+          "format": "int64"
+        }
+      }
+    },
+    "protocolValidatorMisbehaviorDeregistration": {
       "type": "object",
       "properties": {
         "cometAddress": {

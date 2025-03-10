@@ -38,6 +38,12 @@ service Protocol {
       body: "registration"
     };
   }
+  rpc GetDeregistrationAttestation(DeregistrationAttestationRequest) returns (DeregistrationAttestationResponse) {
+    option (google.api.http) = {
+      post: "/core/grpc/attest/deregistration"
+      body: "deregistration"
+    };
+  }
 }
 
 message SignedTransaction {
@@ -48,7 +54,7 @@ message SignedTransaction {
     ValidatorRegistrationLegacy validator_registration = 1001;
     SlaRollup sla_rollup = 1002;
     ManageEntityLegacy manage_entity = 1003;
-    ValidatorDeregistration validator_deregistration = 1004;
+    ValidatorMisbehaviorDeregistration validator_deregistration = 1004;
     StorageProof storage_proof = 1005;
     StorageProofVerification storage_proof_verification = 1006;
     Attestation attestation = 1007;
@@ -129,9 +135,15 @@ message ValidatorRegistration {
   int64 deadline = 9;
 }
 
+message ValidatorMisbehaviorDeregistration {
+  string comet_address = 1;
+  bytes pub_key = 2;
+}
+
 message ValidatorDeregistration {
   string comet_address = 1;
   bytes pub_key = 2;
+  int64 deadline = 3;
 }
 
 message TrackPlay {
@@ -195,9 +207,19 @@ message RegistrationAttestationResponse {
   ValidatorRegistration registration = 2;
 }
 
+message DeregistrationAttestationRequest {
+  ValidatorDeregistration deregistration = 1;
+}
+
+message DeregistrationAttestationResponse {
+  string signature = 1;
+  ValidatorDeregistration deregistration = 2;
+}
+
 message Attestation {
   repeated string signatures = 1;
   oneof body {
       ValidatorRegistration validator_registration = 1000;
+      ValidatorDeregistration validator_deregistration = 1001;
   }
 }

@@ -53,6 +53,8 @@ func SignedTxProtoIntoSignedTxOapi(tx *core_proto.SignedTransaction) *models.Pro
 		switch innerTx.Attestation.Body.(type) {
 		case *core_proto.Attestation_ValidatorRegistration:
 			oapiTx.Attestation.ValidatorRegistration = ValidatorRegistrationIntoOapi(innerTx.Attestation.GetValidatorRegistration())
+		case *core_proto.Attestation_ValidatorDeregistration:
+			oapiTx.Attestation.ValidatorDeregistration = ValidatorDeregistrationIntoOapi(innerTx.Attestation.GetValidatorDeregistration())
 		}
 	case *core_proto.SignedTransaction_ValidatorRegistration:
 		oapiTx.ValidatorRegistration = &models.ProtocolValidatorRegistrationLegacy{
@@ -65,7 +67,7 @@ func SignedTxProtoIntoSignedTxOapi(tx *core_proto.SignedTransaction) *models.Pro
 			PubKey:       innerTx.ValidatorRegistration.PubKey,
 		}
 	case *core_proto.SignedTransaction_ValidatorDeregistration:
-		oapiTx.ValidatorDeregistration = &models.ProtocolValidatorDeregistration{
+		oapiTx.ValidatorDeregistration = &models.ProtocolValidatorMisbehaviorDeregistration{
 			CometAddress: innerTx.ValidatorDeregistration.CometAddress,
 			PubKey:       innerTx.ValidatorDeregistration.PubKey,
 		}
@@ -98,5 +100,13 @@ func ValidatorRegistrationIntoOapi(vr *core_proto.ValidatorRegistration) *models
 		Power:          fmt.Sprint(vr.Power),
 		PubKey:         vr.PubKey,
 		Deadline:       fmt.Sprint(vr.Deadline),
+	}
+}
+
+func ValidatorDeregistrationIntoOapi(vr *core_proto.ValidatorDeregistration) *models.ProtocolValidatorDeregistration {
+	return &models.ProtocolValidatorDeregistration{
+		CometAddress: vr.CometAddress,
+		PubKey:       vr.PubKey,
+		Deadline:     fmt.Sprint(vr.Deadline),
 	}
 }

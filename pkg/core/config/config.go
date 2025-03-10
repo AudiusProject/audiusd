@@ -120,6 +120,8 @@ type Config struct {
 	/* Attestation Thresholds */
 	AttRegistrationMin       int   // minimum number of attestations needed to register a new node
 	AttRegistrationRSize     int   // rendezvous size for registration attestations (should be >= to AttRegistrationMin)
+	AttDeregistrationMin     int   // minimum number of attestations needed to deregister a node
+	AttDeregistrationRSize   int   // rendezvous size for deregistration attestations (should be >= to AttDeregistrationMin)
 	LegacyRegistrationCutoff int64 // Blocks after this height cannot register using the legacy tx (remove after next chain rollover)
 
 	/* Feature Flags */
@@ -153,6 +155,8 @@ func ReadConfig(logger *common.Logger) (*Config, error) {
 
 	cfg.AttRegistrationMin = 5
 	cfg.AttRegistrationRSize = 10
+	cfg.AttDeregistrationMin = 5
+	cfg.AttDeregistrationRSize = 10
 
 	// check if discovery specific key is set
 	isDiscovery := os.Getenv("audius_delegate_private_key") != ""

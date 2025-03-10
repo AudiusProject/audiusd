@@ -14,6 +14,7 @@ import (
 	"github.com/AudiusProject/audiusd/pkg/core/gen/core_openapi/protocol"
 	"github.com/AudiusProject/audiusd/pkg/core/gen/core_proto"
 	"github.com/AudiusProject/audiusd/pkg/logger"
+	"github.com/cometbft/cometbft/crypto/ed25519"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	geth "github.com/ethereum/go-ethereum/common"
@@ -380,4 +381,77 @@ func (s *Server) isDuplicateDelegateOwnerWallet(delegateOwnerWallet string) erro
 	}
 
 	return nil
+}
+
+func (s *Server) deregisterMissingNode(ctx context.Context, ethAddress string) {
+	node, err := s.db.GetRegisteredNodeByEthAddress(ctx, ethAddress)
+	if err != nil {
+		s.logger.Error("could not deregister missing node", "address", ethAddress, "error", err)
+		return
+	}
+
+	addrs, err := s.db.GetAllEthAddressesOfRegisteredNodes(ctx)
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		s.logger.Error("could not deregister node: failed to get currently registered nodes", "address", ethAddress, "error", err)
+		return
+	}
+	pubKey := ed25519.PubKey(node.CometPubKey)
+	rendezvous := common.GetAttestorRendezvous(addrs, pubKey.Bytes(), s.config.AttDeregistrationRSize)
+	attestations := make([]string, 0, s.config.AttRegistrationRSize)
+	dereg := &core_proto.ValidatorDeregistration{
+		CometAddress: s.config.ProposerAddress,
+		PubKey:       s.config.CometKey.PubKey().Bytes(),
+		Deadline:     s.cache.currentHeight.Load() + 120,
+	}
+
+	peers := s.GetPeers()
+	params := protocol.NewProtocolGetDeregistrationAttestationParams()
+	params.SetDeregistration(common.ValidatorDeregistrationIntoOapi(dereg))
+	for addr, _ := range rendezvous {
+		if peer, ok := peers[addr]; ok {
+			resp, err := peer.ProtocolGetDeregistrationAttestation(params)
+			if err != nil {
+				s.logger.Error("failed to get deregistration attestation from %s: %v", peer.OAPIEndpoint, err)
+				continue
+			}
+			attestations = append(attestations, resp.Payload.Signature)
+		}
+	}
+
+	deregistrationAtt := &core_proto.Attestation{
+		Signatures: attestations,
+		Body:       &core_proto.Attestation_ValidatorDeregistration{dereg},
+	}
+
+	txBytes, err := proto.Marshal(deregistrationAtt)
+	if err != nil {
+		s.logger.Error("failure to marshal deregister tx", "error", err)
+		return
+	}
+
+	sig, err := common.EthSign(s.config.EthereumKey, txBytes)
+	if err != nil {
+		s.logger.Error("could not sign deregister tx", "error", err)
+		return
+	}
+
+	tx := &core_proto.SignedTransaction{
+		Signature: sig,
+		RequestId: uuid.NewString(),
+		Transaction: &core_proto.SignedTransaction_Attestation{
+			Attestation: deregistrationAtt,
+		},
+	}
+
+	txreq := &core_proto.SendTransactionRequest{
+		Transaction: tx,
+	}
+
+	txhash, err := s.SendTransaction(context.Background(), txreq)
+	if err != nil {
+		s.logger.Error("send deregister tx failed", "error", err)
+		return
+	}
+
+	s.logger.Infof("deregistered node %s in tx %s", s.config.NodeEndpoint, txhash)
 }

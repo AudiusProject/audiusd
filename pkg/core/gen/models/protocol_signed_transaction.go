@@ -43,7 +43,7 @@ type ProtocolSignedTransaction struct {
 	StorageProofVerification *ProtocolStorageProofVerification `json:"storageProofVerification,omitempty"`
 
 	// validator deregistration
-	ValidatorDeregistration *ProtocolValidatorDeregistration `json:"validatorDeregistration,omitempty"`
+	ValidatorDeregistration *ProtocolValidatorMisbehaviorDeregistration `json:"validatorDeregistration,omitempty"`
 
 	// validator registration
 	ValidatorRegistration *ProtocolValidatorRegistrationLegacy `json:"validatorRegistration,omitempty"`

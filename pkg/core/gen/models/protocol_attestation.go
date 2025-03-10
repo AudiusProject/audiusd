@@ -21,6 +21,9 @@ type ProtocolAttestation struct {
 	// signatures
 	Signatures []string `json:"signatures"`
 
+	// validator deregistration
+	ValidatorDeregistration *ProtocolValidatorDeregistration `json:"validatorDeregistration,omitempty"`
+
 	// validator registration
 	ValidatorRegistration *ProtocolValidatorRegistration `json:"validatorRegistration,omitempty"`
 }
@@ -29,6 +32,10 @@ type ProtocolAttestation struct {
 func (m *ProtocolAttestation) Validate(formats strfmt.Registry) error {
 	var res []error
 
+	if err := m.validateValidatorDeregistration(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateValidatorRegistration(formats); err != nil {
 		res = append(res, err)
 	}
@@ -36,6 +43,25 @@ func (m *ProtocolAttestation) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *ProtocolAttestation) validateValidatorDeregistration(formats strfmt.Registry) error {
+	if swag.IsZero(m.ValidatorDeregistration) { // not required
+		return nil
+	}
+
+	if m.ValidatorDeregistration != nil {
+		if err := m.ValidatorDeregistration.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("validatorDeregistration")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("validatorDeregistration")
+			}
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -62,6 +88,10 @@ func (m *ProtocolAttestation) validateValidatorRegistration(formats strfmt.Regis
 func (m *ProtocolAttestation) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	var res []error
 
+	if err := m.contextValidateValidatorDeregistration(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.contextValidateValidatorRegistration(ctx, formats); err != nil {
 		res = append(res, err)
 	}
@@ -69,6 +99,27 @@ func (m *ProtocolAttestation) ContextValidate(ctx context.Context, formats strfm
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *ProtocolAttestation) contextValidateValidatorDeregistration(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.ValidatorDeregistration != nil {
+
+		if swag.IsZero(m.ValidatorDeregistration) { // not required
+			return nil
+		}
+
+		if err := m.ValidatorDeregistration.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("validatorDeregistration")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("validatorDeregistration")
+			}
+			return err
+		}
+	}
+
 	return nil
 }
 
