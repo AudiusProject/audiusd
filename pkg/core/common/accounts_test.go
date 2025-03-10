@@ -18,11 +18,10 @@ func TestSignAndRecover(t *testing.T) {
 	require.Nil(t, err)
 
 	registerEvent := &core_proto.ValidatorRegistration{
-		CometAddress: "12345",
-		Attestations: []string{"abc", "123"},
-		EthRegistration: &core_proto.EthRegistration{
-			DelegateWallet: "0xabcdef",
-		},
+		CometAddress:   "12345",
+		DelegateWallet: "0xabcdef",
+		EthBlock:       20202,
+		Power:          10,
 	}
 
 	eventBytes, err := proto.Marshal(registerEvent)
