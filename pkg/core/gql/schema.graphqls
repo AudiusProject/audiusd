@@ -141,6 +141,29 @@ type LocationCountry {
   playCount: Int!
 }
 
+
+type P2PStatus {
+  cometPeers: [Node!]!
+  corePeers: [Node!]!
+}
+
+type ValidatorsStatus {
+  ethereum: [Node!]!
+  validators: [Node!]!
+}
+
+type NodeStatus {
+ syncing: Boolean!
+ stuck: Boolean!
+ validator: Boolean!
+ duplicates: [Node!]! 
+ p2p: P2PStatus!
+ validators: ValidatorsStatus!
+ self: Node!
+ latestBlock: Block!
+ cached: Int!
+}
+
 type Query {
   # Block queries
   getBlock(height: Int): Block
@@ -177,6 +200,7 @@ type Query {
   getAllNodes: [Node!]!
   getNode(address: String!): Node
   getNodesByType(type: String!): [Node!]!
+  getNodeStatus: NodeStatus!
   
   # Storage proof queries
   getStorageProofs(startBlock: Int!, endBlock: Int!, address: String): [StorageProof!]!

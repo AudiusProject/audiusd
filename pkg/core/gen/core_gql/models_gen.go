@@ -83,12 +83,29 @@ type Node struct {
 	SpID         *string `json:"spId,omitempty"`
 }
 
+type NodeStatus struct {
+	Syncing     bool              `json:"syncing"`
+	Stuck       bool              `json:"stuck"`
+	Validator   bool              `json:"validator"`
+	Duplicates  []*Node           `json:"duplicates"`
+	P2p         *P2PStatus        `json:"p2p"`
+	Validators  *ValidatorsStatus `json:"validators"`
+	Self        *Node             `json:"self"`
+	LatestBlock *Block            `json:"latestBlock"`
+	Cached      int               `json:"cached"`
+}
+
 type NodeUptime struct {
 	Address       string       `json:"address"`
 	Endpoint      *string      `json:"endpoint,omitempty"`
 	IsValidator   bool         `json:"isValidator"`
 	ActiveReport  *SLAReport   `json:"activeReport"`
 	ReportHistory []*SLAReport `json:"reportHistory"`
+}
+
+type P2PStatus struct {
+	CometPeers []*Node `json:"cometPeers"`
+	CorePeers  []*Node `json:"corePeers"`
 }
 
 type Query struct {
@@ -146,4 +163,9 @@ type TransactionStat struct {
 	Hour    string `json:"hour"`
 	TxCount int    `json:"txCount"`
 	TxType  string `json:"txType"`
+}
+
+type ValidatorsStatus struct {
+	Ethereum   []*Node `json:"ethereum"`
+	Validators []*Node `json:"validators"`
 }

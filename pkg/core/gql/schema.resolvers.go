@@ -6,6 +6,7 @@ package gql
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -637,6 +638,36 @@ func (r *queryGraphQLServer) GetNodesByType(ctx context.Context, typeArg string)
 		}
 	}
 	return result, nil
+}
+
+func (r *queryGraphQLServer) GetNodeStatus(ctx context.Context) (*core_gql.NodeStatus, error) {
+	resp := &core_gql.NodeStatus{}
+
+	if r.rpc == nil {
+		return resp, errors.New("node not ready yet, call back later")
+	}
+
+	status, err := r.rpc.Status(ctx)
+	if err != nil {
+		return resp, fmt.Errorf("node status not available: %v", err)
+	}
+
+	netInfo, err := r.rpc.NetInfo(ctx)
+	if err != nil {
+		return resp, fmt.Errorf("node net info not available: %v", err)
+	}
+
+	latestBlock, err := r.db.GetLatestBlock(ctx)
+	if err != nil {
+		return resp, fmt.Errorf("latest block not available: %v", err)
+	}
+
+	validators, err := r.db.GetAllRegisteredNodes(ctx)
+	if err != nil {
+		return resp, fmt.Errorf("validators not available: %v", err)
+	}
+
+	return resp, nil
 }
 
 func (r *queryGraphQLServer) GetStorageProofs(ctx context.Context, startBlock int, endBlock int, address *string) ([]*core_gql.StorageProof, error) {

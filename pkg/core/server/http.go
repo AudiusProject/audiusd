@@ -45,6 +45,11 @@ func (s *Server) startEchoServer() error {
 		return nil
 	}
 
+	go func(s *Server, g *gql.GraphQLServer) {
+		<-s.awaitRpcReady
+		gqlResolver.SetRpc(s.rpc)
+	}(s, gqlResolver)
+
 	// Add WebSocket support for subscriptions
 	srv.AddTransport(transport.Websocket{
 		Upgrader: websocket.Upgrader{

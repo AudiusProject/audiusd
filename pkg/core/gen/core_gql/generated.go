@@ -110,12 +110,29 @@ type ComplexityRoot struct {
 		SpID         func(childComplexity int) int
 	}
 
+	NodeStatus struct {
+		Cached      func(childComplexity int) int
+		Duplicates  func(childComplexity int) int
+		LatestBlock func(childComplexity int) int
+		P2p         func(childComplexity int) int
+		Self        func(childComplexity int) int
+		Stuck       func(childComplexity int) int
+		Syncing     func(childComplexity int) int
+		Validator   func(childComplexity int) int
+		Validators  func(childComplexity int) int
+	}
+
 	NodeUptime struct {
 		ActiveReport  func(childComplexity int) int
 		Address       func(childComplexity int) int
 		Endpoint      func(childComplexity int) int
 		IsValidator   func(childComplexity int) int
 		ReportHistory func(childComplexity int) int
+	}
+
+	P2PStatus struct {
+		CometPeers func(childComplexity int) int
+		CorePeers  func(childComplexity int) int
 	}
 
 	Query struct {
@@ -140,6 +157,7 @@ type ComplexityRoot struct {
 		GetLatestSLARollup            func(childComplexity int) int
 		GetLatestTransactions         func(childComplexity int, limit *int) int
 		GetNode                       func(childComplexity int, address string) int
+		GetNodeStatus                 func(childComplexity int) int
 		GetNodeUptime                 func(childComplexity int, address string, rollupID *int) int
 		GetNodesByType                func(childComplexity int, typeArg string) int
 		GetSLARollup                  func(childComplexity int, id int) int
@@ -202,6 +220,11 @@ type ComplexityRoot struct {
 		TxCount func(childComplexity int) int
 		TxType  func(childComplexity int) int
 	}
+
+	ValidatorsStatus struct {
+		Ethereum   func(childComplexity int) int
+		Validators func(childComplexity int) int
+	}
 }
 
 type QueryResolver interface {
@@ -227,6 +250,7 @@ type QueryResolver interface {
 	GetAllNodes(ctx context.Context) ([]*Node, error)
 	GetNode(ctx context.Context, address string) (*Node, error)
 	GetNodesByType(ctx context.Context, typeArg string) ([]*Node, error)
+	GetNodeStatus(ctx context.Context) (*NodeStatus, error)
 	GetStorageProofs(ctx context.Context, startBlock int, endBlock int, address *string) ([]*StorageProof, error)
 	GetStorageProofsByBlock(ctx context.Context, height int) ([]*StorageProof, error)
 	GetLatestSLARollup(ctx context.Context) (*SLARollup, error)
@@ -548,6 +572,69 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Node.SpID(childComplexity), true
 
+	case "NodeStatus.cached":
+		if e.complexity.NodeStatus.Cached == nil {
+			break
+		}
+
+		return e.complexity.NodeStatus.Cached(childComplexity), true
+
+	case "NodeStatus.duplicates":
+		if e.complexity.NodeStatus.Duplicates == nil {
+			break
+		}
+
+		return e.complexity.NodeStatus.Duplicates(childComplexity), true
+
+	case "NodeStatus.latestBlock":
+		if e.complexity.NodeStatus.LatestBlock == nil {
+			break
+		}
+
+		return e.complexity.NodeStatus.LatestBlock(childComplexity), true
+
+	case "NodeStatus.p2p":
+		if e.complexity.NodeStatus.P2p == nil {
+			break
+		}
+
+		return e.complexity.NodeStatus.P2p(childComplexity), true
+
+	case "NodeStatus.self":
+		if e.complexity.NodeStatus.Self == nil {
+			break
+		}
+
+		return e.complexity.NodeStatus.Self(childComplexity), true
+
+	case "NodeStatus.stuck":
+		if e.complexity.NodeStatus.Stuck == nil {
+			break
+		}
+
+		return e.complexity.NodeStatus.Stuck(childComplexity), true
+
+	case "NodeStatus.syncing":
+		if e.complexity.NodeStatus.Syncing == nil {
+			break
+		}
+
+		return e.complexity.NodeStatus.Syncing(childComplexity), true
+
+	case "NodeStatus.validator":
+		if e.complexity.NodeStatus.Validator == nil {
+			break
+		}
+
+		return e.complexity.NodeStatus.Validator(childComplexity), true
+
+	case "NodeStatus.validators":
+		if e.complexity.NodeStatus.Validators == nil {
+			break
+		}
+
+		return e.complexity.NodeStatus.Validators(childComplexity), true
+
 	case "NodeUptime.activeReport":
 		if e.complexity.NodeUptime.ActiveReport == nil {
 			break
@@ -582,6 +669,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.NodeUptime.ReportHistory(childComplexity), true
+
+	case "P2PStatus.cometPeers":
+		if e.complexity.P2PStatus.CometPeers == nil {
+			break
+		}
+
+		return e.complexity.P2PStatus.CometPeers(childComplexity), true
+
+	case "P2PStatus.corePeers":
+		if e.complexity.P2PStatus.CorePeers == nil {
+			break
+		}
+
+		return e.complexity.P2PStatus.CorePeers(childComplexity), true
 
 	case "Query.getAllNodes":
 		if e.complexity.Query.GetAllNodes == nil {
@@ -814,6 +915,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.GetNode(childComplexity, args["address"].(string)), true
+
+	case "Query.getNodeStatus":
+		if e.complexity.Query.GetNodeStatus == nil {
+			break
+		}
+
+		return e.complexity.Query.GetNodeStatus(childComplexity), true
 
 	case "Query.getNodeUptime":
 		if e.complexity.Query.GetNodeUptime == nil {
@@ -1151,6 +1259,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.TransactionStat.TxType(childComplexity), true
 
+	case "ValidatorsStatus.ethereum":
+		if e.complexity.ValidatorsStatus.Ethereum == nil {
+			break
+		}
+
+		return e.complexity.ValidatorsStatus.Ethereum(childComplexity), true
+
+	case "ValidatorsStatus.validators":
+		if e.complexity.ValidatorsStatus.Validators == nil {
+			break
+		}
+
+		return e.complexity.ValidatorsStatus.Validators(childComplexity), true
+
 	}
 	return 0, false
 }
@@ -1387,6 +1509,29 @@ type LocationCountry {
   playCount: Int!
 }
 
+
+type P2PStatus {
+  cometPeers: [Node!]!
+  corePeers: [Node!]!
+}
+
+type ValidatorsStatus {
+  ethereum: [Node!]!
+  validators: [Node!]!
+}
+
+type NodeStatus {
+ syncing: Boolean!
+ stuck: Boolean!
+ validator: Boolean!
+ duplicates: [Node!]! 
+ p2p: P2PStatus!
+ validators: ValidatorsStatus!
+ self: Node!
+ latestBlock: Block!
+ cached: Int!
+}
+
 type Query {
   # Block queries
   getBlock(height: Int): Block
@@ -1423,6 +1568,7 @@ type Query {
   getAllNodes: [Node!]!
   getNode(address: String!): Node
   getNodesByType(type: String!): [Node!]!
+  getNodeStatus: NodeStatus!
   
   # Storage proof queries
   getStorageProofs(startBlock: Int!, endBlock: Int!, address: String): [StorageProof!]!
@@ -4362,6 +4508,460 @@ func (ec *executionContext) fieldContext_Node_spId(_ context.Context, field grap
 	return fc, nil
 }
 
+func (ec *executionContext) _NodeStatus_syncing(ctx context.Context, field graphql.CollectedField, obj *NodeStatus) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_NodeStatus_syncing(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Syncing, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_NodeStatus_syncing(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "NodeStatus",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _NodeStatus_stuck(ctx context.Context, field graphql.CollectedField, obj *NodeStatus) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_NodeStatus_stuck(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Stuck, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_NodeStatus_stuck(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "NodeStatus",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _NodeStatus_validator(ctx context.Context, field graphql.CollectedField, obj *NodeStatus) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_NodeStatus_validator(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Validator, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_NodeStatus_validator(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "NodeStatus",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _NodeStatus_duplicates(ctx context.Context, field graphql.CollectedField, obj *NodeStatus) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_NodeStatus_duplicates(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Duplicates, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*Node)
+	fc.Result = res
+	return ec.marshalNNode2ᚕᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐNodeᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_NodeStatus_duplicates(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "NodeStatus",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "address":
+				return ec.fieldContext_Node_address(ctx, field)
+			case "endpoint":
+				return ec.fieldContext_Node_endpoint(ctx, field)
+			case "ethAddress":
+				return ec.fieldContext_Node_ethAddress(ctx, field)
+			case "cometAddress":
+				return ec.fieldContext_Node_cometAddress(ctx, field)
+			case "cometPubKey":
+				return ec.fieldContext_Node_cometPubKey(ctx, field)
+			case "nodeType":
+				return ec.fieldContext_Node_nodeType(ctx, field)
+			case "spId":
+				return ec.fieldContext_Node_spId(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Node", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _NodeStatus_p2p(ctx context.Context, field graphql.CollectedField, obj *NodeStatus) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_NodeStatus_p2p(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.P2p, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*P2PStatus)
+	fc.Result = res
+	return ec.marshalNP2PStatus2ᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐP2PStatus(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_NodeStatus_p2p(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "NodeStatus",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "cometPeers":
+				return ec.fieldContext_P2PStatus_cometPeers(ctx, field)
+			case "corePeers":
+				return ec.fieldContext_P2PStatus_corePeers(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type P2PStatus", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _NodeStatus_validators(ctx context.Context, field graphql.CollectedField, obj *NodeStatus) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_NodeStatus_validators(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Validators, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*ValidatorsStatus)
+	fc.Result = res
+	return ec.marshalNValidatorsStatus2ᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐValidatorsStatus(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_NodeStatus_validators(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "NodeStatus",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "ethereum":
+				return ec.fieldContext_ValidatorsStatus_ethereum(ctx, field)
+			case "validators":
+				return ec.fieldContext_ValidatorsStatus_validators(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ValidatorsStatus", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _NodeStatus_self(ctx context.Context, field graphql.CollectedField, obj *NodeStatus) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_NodeStatus_self(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Self, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*Node)
+	fc.Result = res
+	return ec.marshalNNode2ᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐNode(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_NodeStatus_self(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "NodeStatus",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "address":
+				return ec.fieldContext_Node_address(ctx, field)
+			case "endpoint":
+				return ec.fieldContext_Node_endpoint(ctx, field)
+			case "ethAddress":
+				return ec.fieldContext_Node_ethAddress(ctx, field)
+			case "cometAddress":
+				return ec.fieldContext_Node_cometAddress(ctx, field)
+			case "cometPubKey":
+				return ec.fieldContext_Node_cometPubKey(ctx, field)
+			case "nodeType":
+				return ec.fieldContext_Node_nodeType(ctx, field)
+			case "spId":
+				return ec.fieldContext_Node_spId(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Node", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _NodeStatus_latestBlock(ctx context.Context, field graphql.CollectedField, obj *NodeStatus) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_NodeStatus_latestBlock(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.LatestBlock, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*Block)
+	fc.Result = res
+	return ec.marshalNBlock2ᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐBlock(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_NodeStatus_latestBlock(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "NodeStatus",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "height":
+				return ec.fieldContext_Block_height(ctx, field)
+			case "chainId":
+				return ec.fieldContext_Block_chainId(ctx, field)
+			case "hash":
+				return ec.fieldContext_Block_hash(ctx, field)
+			case "proposer":
+				return ec.fieldContext_Block_proposer(ctx, field)
+			case "transactions":
+				return ec.fieldContext_Block_transactions(ctx, field)
+			case "timestamp":
+				return ec.fieldContext_Block_timestamp(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Block", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _NodeStatus_cached(ctx context.Context, field graphql.CollectedField, obj *NodeStatus) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_NodeStatus_cached(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Cached, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_NodeStatus_cached(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "NodeStatus",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _NodeUptime_address(ctx context.Context, field graphql.CollectedField, obj *NodeUptime) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_NodeUptime_address(ctx, field)
 	if err != nil {
@@ -4614,6 +5214,126 @@ func (ec *executionContext) fieldContext_NodeUptime_reportHistory(_ context.Cont
 				return ec.fieldContext_SLAReport_timestamp(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type SLAReport", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _P2PStatus_cometPeers(ctx context.Context, field graphql.CollectedField, obj *P2PStatus) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_P2PStatus_cometPeers(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.CometPeers, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*Node)
+	fc.Result = res
+	return ec.marshalNNode2ᚕᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐNodeᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_P2PStatus_cometPeers(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "P2PStatus",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "address":
+				return ec.fieldContext_Node_address(ctx, field)
+			case "endpoint":
+				return ec.fieldContext_Node_endpoint(ctx, field)
+			case "ethAddress":
+				return ec.fieldContext_Node_ethAddress(ctx, field)
+			case "cometAddress":
+				return ec.fieldContext_Node_cometAddress(ctx, field)
+			case "cometPubKey":
+				return ec.fieldContext_Node_cometPubKey(ctx, field)
+			case "nodeType":
+				return ec.fieldContext_Node_nodeType(ctx, field)
+			case "spId":
+				return ec.fieldContext_Node_spId(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Node", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _P2PStatus_corePeers(ctx context.Context, field graphql.CollectedField, obj *P2PStatus) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_P2PStatus_corePeers(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.CorePeers, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*Node)
+	fc.Result = res
+	return ec.marshalNNode2ᚕᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐNodeᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_P2PStatus_corePeers(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "P2PStatus",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "address":
+				return ec.fieldContext_Node_address(ctx, field)
+			case "endpoint":
+				return ec.fieldContext_Node_endpoint(ctx, field)
+			case "ethAddress":
+				return ec.fieldContext_Node_ethAddress(ctx, field)
+			case "cometAddress":
+				return ec.fieldContext_Node_cometAddress(ctx, field)
+			case "cometPubKey":
+				return ec.fieldContext_Node_cometPubKey(ctx, field)
+			case "nodeType":
+				return ec.fieldContext_Node_nodeType(ctx, field)
+			case "spId":
+				return ec.fieldContext_Node_spId(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Node", field.Name)
 		},
 	}
 	return fc, nil
@@ -6095,6 +6815,70 @@ func (ec *executionContext) fieldContext_Query_getNodesByType(ctx context.Contex
 	if fc.Args, err = ec.field_Query_getNodesByType_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_getNodeStatus(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_getNodeStatus(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().GetNodeStatus(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*NodeStatus)
+	fc.Result = res
+	return ec.marshalNNodeStatus2ᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐNodeStatus(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_getNodeStatus(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "syncing":
+				return ec.fieldContext_NodeStatus_syncing(ctx, field)
+			case "stuck":
+				return ec.fieldContext_NodeStatus_stuck(ctx, field)
+			case "validator":
+				return ec.fieldContext_NodeStatus_validator(ctx, field)
+			case "duplicates":
+				return ec.fieldContext_NodeStatus_duplicates(ctx, field)
+			case "p2p":
+				return ec.fieldContext_NodeStatus_p2p(ctx, field)
+			case "validators":
+				return ec.fieldContext_NodeStatus_validators(ctx, field)
+			case "self":
+				return ec.fieldContext_NodeStatus_self(ctx, field)
+			case "latestBlock":
+				return ec.fieldContext_NodeStatus_latestBlock(ctx, field)
+			case "cached":
+				return ec.fieldContext_NodeStatus_cached(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type NodeStatus", field.Name)
+		},
 	}
 	return fc, nil
 }
@@ -8206,6 +8990,126 @@ func (ec *executionContext) fieldContext_TransactionStat_txType(_ context.Contex
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ValidatorsStatus_ethereum(ctx context.Context, field graphql.CollectedField, obj *ValidatorsStatus) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ValidatorsStatus_ethereum(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Ethereum, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*Node)
+	fc.Result = res
+	return ec.marshalNNode2ᚕᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐNodeᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ValidatorsStatus_ethereum(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ValidatorsStatus",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "address":
+				return ec.fieldContext_Node_address(ctx, field)
+			case "endpoint":
+				return ec.fieldContext_Node_endpoint(ctx, field)
+			case "ethAddress":
+				return ec.fieldContext_Node_ethAddress(ctx, field)
+			case "cometAddress":
+				return ec.fieldContext_Node_cometAddress(ctx, field)
+			case "cometPubKey":
+				return ec.fieldContext_Node_cometPubKey(ctx, field)
+			case "nodeType":
+				return ec.fieldContext_Node_nodeType(ctx, field)
+			case "spId":
+				return ec.fieldContext_Node_spId(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Node", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ValidatorsStatus_validators(ctx context.Context, field graphql.CollectedField, obj *ValidatorsStatus) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ValidatorsStatus_validators(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Validators, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*Node)
+	fc.Result = res
+	return ec.marshalNNode2ᚕᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐNodeᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ValidatorsStatus_validators(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ValidatorsStatus",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "address":
+				return ec.fieldContext_Node_address(ctx, field)
+			case "endpoint":
+				return ec.fieldContext_Node_endpoint(ctx, field)
+			case "ethAddress":
+				return ec.fieldContext_Node_ethAddress(ctx, field)
+			case "cometAddress":
+				return ec.fieldContext_Node_cometAddress(ctx, field)
+			case "cometPubKey":
+				return ec.fieldContext_Node_cometPubKey(ctx, field)
+			case "nodeType":
+				return ec.fieldContext_Node_nodeType(ctx, field)
+			case "spId":
+				return ec.fieldContext_Node_spId(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Node", field.Name)
 		},
 	}
 	return fc, nil
@@ -10739,6 +11643,85 @@ func (ec *executionContext) _Node(ctx context.Context, sel ast.SelectionSet, obj
 	return out
 }
 
+var nodeStatusImplementors = []string{"NodeStatus"}
+
+func (ec *executionContext) _NodeStatus(ctx context.Context, sel ast.SelectionSet, obj *NodeStatus) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, nodeStatusImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("NodeStatus")
+		case "syncing":
+			out.Values[i] = ec._NodeStatus_syncing(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "stuck":
+			out.Values[i] = ec._NodeStatus_stuck(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "validator":
+			out.Values[i] = ec._NodeStatus_validator(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "duplicates":
+			out.Values[i] = ec._NodeStatus_duplicates(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "p2p":
+			out.Values[i] = ec._NodeStatus_p2p(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "validators":
+			out.Values[i] = ec._NodeStatus_validators(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "self":
+			out.Values[i] = ec._NodeStatus_self(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "latestBlock":
+			out.Values[i] = ec._NodeStatus_latestBlock(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "cached":
+			out.Values[i] = ec._NodeStatus_cached(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var nodeUptimeImplementors = []string{"NodeUptime"}
 
 func (ec *executionContext) _NodeUptime(ctx context.Context, sel ast.SelectionSet, obj *NodeUptime) graphql.Marshaler {
@@ -10769,6 +11752,50 @@ func (ec *executionContext) _NodeUptime(ctx context.Context, sel ast.SelectionSe
 			}
 		case "reportHistory":
 			out.Values[i] = ec._NodeUptime_reportHistory(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var p2PStatusImplementors = []string{"P2PStatus"}
+
+func (ec *executionContext) _P2PStatus(ctx context.Context, sel ast.SelectionSet, obj *P2PStatus) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, p2PStatusImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("P2PStatus")
+		case "cometPeers":
+			out.Values[i] = ec._P2PStatus_cometPeers(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "corePeers":
+			out.Values[i] = ec._P2PStatus_corePeers(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -11271,6 +12298,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_getNodesByType(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "getNodeStatus":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getNodeStatus(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -11786,6 +12835,50 @@ func (ec *executionContext) _TransactionStat(ctx context.Context, sel ast.Select
 			}
 		case "txType":
 			out.Values[i] = ec._TransactionStat_txType(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var validatorsStatusImplementors = []string{"ValidatorsStatus"}
+
+func (ec *executionContext) _ValidatorsStatus(ctx context.Context, sel ast.SelectionSet, obj *ValidatorsStatus) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, validatorsStatusImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ValidatorsStatus")
+		case "ethereum":
+			out.Values[i] = ec._ValidatorsStatus_ethereum(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "validators":
+			out.Values[i] = ec._ValidatorsStatus_validators(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -12574,6 +13667,20 @@ func (ec *executionContext) marshalNNode2ᚖgithubᚗcomᚋAudiusProjectᚋaudiu
 	return ec._Node(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNNodeStatus2githubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐNodeStatus(ctx context.Context, sel ast.SelectionSet, v NodeStatus) graphql.Marshaler {
+	return ec._NodeStatus(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNNodeStatus2ᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐNodeStatus(ctx context.Context, sel ast.SelectionSet, v *NodeStatus) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._NodeStatus(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNNodeUptime2ᚕᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐNodeUptimeᚄ(ctx context.Context, sel ast.SelectionSet, v []*NodeUptime) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
@@ -12626,6 +13733,16 @@ func (ec *executionContext) marshalNNodeUptime2ᚖgithubᚗcomᚋAudiusProject�
 		return graphql.Null
 	}
 	return ec._NodeUptime(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNP2PStatus2ᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐP2PStatus(ctx context.Context, sel ast.SelectionSet, v *P2PStatus) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._P2PStatus(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNSLANodeReport2ᚕᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐSLANodeReportᚄ(ctx context.Context, sel ast.SelectionSet, v []*SLANodeReport) graphql.Marshaler {
@@ -12925,6 +14042,16 @@ func (ec *executionContext) marshalNTransactionStat2ᚖgithubᚗcomᚋAudiusProj
 		return graphql.Null
 	}
 	return ec._TransactionStat(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNValidatorsStatus2ᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐValidatorsStatus(ctx context.Context, sel ast.SelectionSet, v *ValidatorsStatus) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._ValidatorsStatus(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalN__Directive2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirective(ctx context.Context, sel ast.SelectionSet, v introspection.Directive) graphql.Marshaler {
