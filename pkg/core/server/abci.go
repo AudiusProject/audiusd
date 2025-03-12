@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -14,14 +13,12 @@ import (
 	"github.com/AudiusProject/audiusd/pkg/core/gen/core_proto"
 	abcitypes "github.com/cometbft/cometbft/abci/types"
 	cfg "github.com/cometbft/cometbft/config"
-	"github.com/cometbft/cometbft/crypto/ed25519"
 	cmtflags "github.com/cometbft/cometbft/libs/cli/flags"
 	nm "github.com/cometbft/cometbft/node"
 	"github.com/cometbft/cometbft/p2p"
 	"github.com/cometbft/cometbft/privval"
 	"github.com/cometbft/cometbft/proxy"
 	"github.com/cometbft/cometbft/rpc/client/local"
-	cometbfttypes "github.com/cometbft/cometbft/types"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"google.golang.org/protobuf/proto"
@@ -201,13 +198,15 @@ func (s *Server) ProcessProposal(ctx context.Context, proposal *abcitypes.Proces
 
 func (s *Server) FinalizeBlock(ctx context.Context, req *abcitypes.FinalizeBlockRequest) (*abcitypes.FinalizeBlockResponse, error) {
 	logger := s.logger
-	state := s.abciState
 	var txs = make([]*abcitypes.ExecTxResult, len(req.Txs))
-	var validatorUpdatesMap = map[string]abcitypes.ValidatorUpdate{}
 
-	// open in progres pg transaction
-	s.startInProgressTx(ctx)
+	// Start a new block transaction
+	if err := s.startInProgressTx(ctx); err != nil {
+		logger.Errorf("failed to start block transaction: %v", err)
+		// Continue without transaction - better than halting the chain
+	}
 
+	// Store block info - if this fails, log but continue
 	if err := s.getDb().StoreBlock(ctx, db.StoreBlockParams{
 		Height:    req.Height,
 		Hash:      hex.EncodeToString(req.Hash),
@@ -215,170 +214,48 @@ func (s *Server) FinalizeBlock(ctx context.Context, req *abcitypes.FinalizeBlock
 		ChainID:   s.config.GenesisFile.ChainID,
 		CreatedAt: s.db.ToPgxTimestamp(req.Time),
 	}); err != nil {
-		s.logger.Errorf("could not store block: %v", err)
+		s.handleTxError(ctx, err, "", "could not store block")
 	}
 
 	for i, tx := range req.Txs {
+		// Set default success response
+		txs[i] = &abcitypes.ExecTxResult{Code: abcitypes.CodeTypeOK}
+
 		signedTx, err := s.isValidSignedTransaction(tx)
-		if err == nil {
-			// set tx to ok and set to not okay later if error occurs
-			txs[i] = &abcitypes.ExecTxResult{Code: abcitypes.CodeTypeOK}
+		if err != nil {
+			txs[i].Code = 1
+			continue
+		}
 
-			txhash := s.toTxHash(signedTx)
-			finalizedTx, err := s.finalizeTransaction(ctx, req, signedTx, txhash, req.Height)
-			if err != nil {
-				s.logger.Errorf("error finalizing event: %v", err)
-				txs[i] = &abcitypes.ExecTxResult{Code: 2}
-			} else if vr := signedTx.GetValidatorRegistration(); vr != nil {
-				vrPubKey := ed25519.PubKey(vr.GetPubKey())
-				vrAddr := vrPubKey.Address().String()
-				if _, ok := validatorUpdatesMap[vrAddr]; !ok {
-					validatorUpdatesMap[vrAddr] = abcitypes.ValidatorUpdate{
-						Power:       vr.Power,
-						PubKeyBytes: vr.PubKey,
-						PubKeyType:  "ed25519",
-					}
-				}
-			} else if vd := signedTx.GetValidatorDeregistration(); vd != nil {
-				vdPubKey := ed25519.PubKey(vd.GetPubKey())
-				vdAddr := vdPubKey.Address().String()
-				// intentionally override any existing updates
-				validatorUpdatesMap[vdAddr] = abcitypes.ValidatorUpdate{
-					Power:       int64(0),
-					PubKeyBytes: vd.PubKey,
-					PubKeyType:  "ed25519",
-				}
-			}
+		txhash := s.toTxHash(signedTx)
+		finalizedTx, err := s.finalizeTransaction(ctx, req, signedTx, txhash, req.Height)
+		if err != nil {
+			s.handleTxError(ctx, err, txhash, "failed to finalize transaction")
+			txs[i].Code = 1
+			continue
+		}
 
-			if err := s.getDb().StoreTransaction(ctx, db.StoreTransactionParams{
-				BlockID:     req.Height,
-				Index:       int32(i),
-				TxHash:      txhash,
-				Transaction: tx,
-				CreatedAt:   s.db.ToPgxTimestamp(req.Time),
-			}); err != nil {
-				s.logger.Errorf("failed to store transaction: %v", err)
-			}
-
-			var txType string
-			switch signedTx.GetTransaction().(type) {
-			case *core_proto.SignedTransaction_Plays:
-				txType = "Plays"
-			case *core_proto.SignedTransaction_ValidatorRegistration:
-				txType = "ValidatorRegistration"
-			case *core_proto.SignedTransaction_ValidatorDeregistration:
-				txType = "ValidatorDeregistration"
-			case *core_proto.SignedTransaction_SlaRollup:
-				txType = "SlaRollup"
-			case *core_proto.SignedTransaction_StorageProof:
-				txType = "StorageProof"
-			case *core_proto.SignedTransaction_StorageProofVerification:
-				txType = "StorageProofVerification"
-			case *core_proto.SignedTransaction_ManageEntity:
-				txType = "ManageEntity"
-			default:
-				txType = "Unknown"
-			}
-
-			if err := s.getDb().InsertDecodedTx(ctx, db.InsertDecodedTxParams{
-				BlockHeight: req.Height,
-				TxIndex:     int32(i),
-				TxHash:      txhash,
-				TxType:      txType,
-				TxData: func() []byte {
-					jsonBytes, err := json.Marshal(signedTx)
-					if err != nil {
-						s.logger.Errorf("failed to marshal tx to json: %v", err)
-						return []byte("{}")
-					}
-					return jsonBytes
-				}(),
-				CreatedAt: pgtype.Timestamptz{Time: req.Time, Valid: true},
-			}); err != nil {
-				s.logger.Errorf("failed to write decoded transaction: %v", err)
-			}
-
-			if plays := signedTx.GetPlays(); plays != nil {
-				for _, play := range plays.Plays {
-					if err := s.getDb().InsertDecodedPlay(ctx, db.InsertDecodedPlayParams{
-						TxHash:    txhash,
-						UserID:    play.UserId,
-						TrackID:   play.TrackId,
-						PlayedAt:  pgtype.Timestamptz{Time: play.Timestamp.AsTime(), Valid: true},
-						Signature: play.Signature,
-						City:      pgtype.Text{String: play.City, Valid: play.City != ""},
-						Region:    pgtype.Text{String: play.Region, Valid: play.Region != ""},
-						Country:   pgtype.Text{String: play.Country, Valid: play.Country != ""},
-						CreatedAt: pgtype.Timestamptz{Time: req.Time, Valid: true},
-					}); err != nil {
-						s.logger.Errorf("failed to insert play record: %v", err)
-						continue
-					}
-				}
-			}
-
-			if err := s.persistTxStat(ctx, finalizedTx, txhash, req.Height, req.Time); err != nil {
-				// don't halt consensus on this
-				s.logger.Errorf("failed to persist tx stat: %v", err)
-			}
-
-			// set finalized txs in finalize step to remove from mempool during commit step
-			// always append to finalized even in error conditions to be removed from mempool
-			state.finalizedTxs = append(state.finalizedTxs, txhash)
-		} else {
-			logger.Errorf("Error: invalid transaction index %v", i)
-			txs[i] = &abcitypes.ExecTxResult{Code: 1}
+		// Store transaction - if this fails, log but continue
+		if err := s.persistTxStat(ctx, finalizedTx, txhash, req.Height, req.Time); err != nil {
+			s.handleTxError(ctx, err, txhash, "failed to persist transaction stats")
 		}
 	}
 
-	// Handle proof of storage
-	if s.config.EnablePoS {
-		s.syncPoS(ctx, req.Hash, req.Height)
+	// Try to commit the transaction block
+	if err := s.commitInProgressTx(ctx); err != nil {
+		logger.Errorf("failed to commit block transaction: %v", err)
+		// Don't return error - better to continue than halt
 	}
 
-	nextAppHash := s.serializeAppState([]byte{}, req.GetTxs())
+	// Calculate new app hash regardless of DB errors
+	prevState, _ := s.db.GetLatestAppState(ctx)
+	prevHash := prevState.AppHash
+	newAppHash := s.serializeAppState(prevHash, req.Txs)
 
-	if err := s.getDb().UpsertAppState(ctx, db.UpsertAppStateParams{
-		BlockHeight: req.Height,
-		AppHash:     nextAppHash,
-	}); err != nil {
-		s.logger.Errorf("error upserting app state %v", err)
-	}
-
-	// increment number of proposed blocks for sla auditor
-	addr := cometbfttypes.Address(req.ProposerAddress).String()
-	if err := s.getDb().UpsertSlaRollupReport(ctx, addr); err != nil {
-		s.logger.Error(
-			"Error attempting to increment blocks proposed by node",
-			"address",
-			addr,
-			"error",
-			err,
-		)
-	}
-
-	// routine every hundredth block to remove expired txs
-	// run in separate goroutine to not affect consensus time
-	hundredthBlock := req.Height%100 == 0
-	if hundredthBlock {
-		go s.mempl.RemoveExpiredTransactions(req.Height)
-	}
-
-	validatorUpdates := make(abcitypes.ValidatorUpdates, 0, len(validatorUpdatesMap))
-	for _, vu := range validatorUpdatesMap {
-		validatorUpdates = append(validatorUpdates, vu)
-	}
-
-	resp := &abcitypes.FinalizeBlockResponse{
+	return &abcitypes.FinalizeBlockResponse{
 		TxResults: txs,
-		AppHash:   nextAppHash,
-	}
-
-	if validatorUpdates.Len() > 0 {
-		resp.ValidatorUpdates = validatorUpdates
-	}
-
-	return resp, nil
+		AppHash:   newAppHash,
+	}, nil
 }
 
 func (s *Server) Commit(ctx context.Context, commit *abcitypes.CommitRequest) (*abcitypes.CommitResponse, error) {
@@ -604,4 +481,39 @@ func (s *Server) toTxHash(msg proto.Message) string {
 		return ""
 	}
 	return hash
+}
+
+func (s *Server) handleTxError(ctx context.Context, err error, txHash string, msg string) {
+	if err == nil {
+		return
+	}
+
+	// Log the error
+	s.logger.Errorf("%s: %v", msg, err)
+
+	// If it's a transaction that's already been rolled back, don't try to roll back again
+	if errors.Is(err, pgx.ErrTxClosed) {
+		return
+	}
+
+	// Start a new transaction if we don't have one
+	if s.abciState.onGoingBlock == nil {
+		if err := s.startInProgressTx(ctx); err != nil {
+			s.logger.Errorf("failed to start new transaction after error: %v", err)
+			return
+		}
+	}
+
+	// Record the failed transaction
+	if err := s.getDb().InsertTxStat(ctx, db.InsertTxStatParams{
+		TxType:      "failed_tx",
+		TxHash:      txHash,
+		BlockHeight: -1, // Indicates failed transaction
+		CreatedAt: pgtype.Timestamp{
+			Time:  time.Now(),
+			Valid: true,
+		},
+	}); err != nil {
+		s.logger.Errorf("failed to record failed transaction: %v", err)
+	}
 }
