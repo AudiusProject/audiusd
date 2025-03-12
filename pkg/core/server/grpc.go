@@ -44,13 +44,17 @@ func (s *Server) SendTransaction(ctx context.Context, req *core_proto.SendTransa
 		return nil, fmt.Errorf("could not get tx hash of signed tx: %v", err)
 	}
 
-	// TODO: use data companion to keep this value up to date via channel
-	status, err := s.rpc.Status(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("chain not healthy: %v", err)
+	// transaction already processed, return it
+	tx, err := s.db.GetTx(ctx, txhash)
+	if err == nil {
+		return &core_proto.TransactionResponse{
+			Txhash:      txhash,
+			Transaction: req.GetTransaction(),
+			BlockHeight: tx.BlockID,
+		}, nil
 	}
 
-	deadline := status.SyncInfo.LatestBlockHeight + 10
+	deadline := s.cache.CurrentHeight() + 10
 	mempoolTx := &MempoolTransaction{
 		Tx:       req.GetTransaction(),
 		Deadline: deadline,
@@ -106,13 +110,25 @@ func (s *Server) ForwardTransaction(ctx context.Context, req *core_proto.Forward
 
 	s.logger.Infof("received forwarded tx: %v", req.Transaction)
 
-	// TODO: intake block deadline from request
-	status, err := s.rpc.Status(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("chain not healthy: %v", err)
+	currentBlock := s.cache.CurrentHeight()
+	now := time.Now().Unix()
+
+	incomingDeadlineTooFarAhead := req.GetDeadline() > currentBlock+10
+	incomingDeadlineTooFarBehind := req.GetDeadline() < currentBlock-120
+	isRecentTx := now-req.GetSubmittedAt().Seconds < 120
+
+	deadline := currentBlock + 10
+	if !incomingDeadlineTooFarAhead {
+		// exclude deadlines that are more than 20ish blocks in the future
+		deadline = req.GetDeadline()
 	}
 
-	deadline := status.SyncInfo.LatestBlockHeight + 10
+	// assume forwarded transaction came from syncing node
+	if incomingDeadlineTooFarBehind && isRecentTx {
+		// exclude deadlines that are more than 120 blocks behind the current block
+		deadline = currentBlock + 10
+	}
+
 	mempoolTx := &MempoolTransaction{
 		Tx:       req.GetTransaction(),
 		Deadline: deadline,

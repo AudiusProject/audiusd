@@ -63,8 +63,21 @@ ProtocolForwardTransactionParams contains all the parameters to send to the API 
 */
 type ProtocolForwardTransactionParams struct {
 
+	// Deadline.
+	//
+	// Format: int64
+	Deadline *string
+
+	// ForwardedFrom.
+	ForwardedFrom *string
+
 	// Signature.
 	Signature *string
+
+	// SubmittedAt.
+	//
+	// Format: date-time
+	SubmittedAt *strfmt.DateTime
 
 	// Transaction.
 	Transaction *models.ProtocolSignedTransaction
@@ -122,6 +135,28 @@ func (o *ProtocolForwardTransactionParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
+// WithDeadline adds the deadline to the protocol forward transaction params
+func (o *ProtocolForwardTransactionParams) WithDeadline(deadline *string) *ProtocolForwardTransactionParams {
+	o.SetDeadline(deadline)
+	return o
+}
+
+// SetDeadline adds the deadline to the protocol forward transaction params
+func (o *ProtocolForwardTransactionParams) SetDeadline(deadline *string) {
+	o.Deadline = deadline
+}
+
+// WithForwardedFrom adds the forwardedFrom to the protocol forward transaction params
+func (o *ProtocolForwardTransactionParams) WithForwardedFrom(forwardedFrom *string) *ProtocolForwardTransactionParams {
+	o.SetForwardedFrom(forwardedFrom)
+	return o
+}
+
+// SetForwardedFrom adds the forwardedFrom to the protocol forward transaction params
+func (o *ProtocolForwardTransactionParams) SetForwardedFrom(forwardedFrom *string) {
+	o.ForwardedFrom = forwardedFrom
+}
+
 // WithSignature adds the signature to the protocol forward transaction params
 func (o *ProtocolForwardTransactionParams) WithSignature(signature *string) *ProtocolForwardTransactionParams {
 	o.SetSignature(signature)
@@ -131,6 +166,17 @@ func (o *ProtocolForwardTransactionParams) WithSignature(signature *string) *Pro
 // SetSignature adds the signature to the protocol forward transaction params
 func (o *ProtocolForwardTransactionParams) SetSignature(signature *string) {
 	o.Signature = signature
+}
+
+// WithSubmittedAt adds the submittedAt to the protocol forward transaction params
+func (o *ProtocolForwardTransactionParams) WithSubmittedAt(submittedAt *strfmt.DateTime) *ProtocolForwardTransactionParams {
+	o.SetSubmittedAt(submittedAt)
+	return o
+}
+
+// SetSubmittedAt adds the submittedAt to the protocol forward transaction params
+func (o *ProtocolForwardTransactionParams) SetSubmittedAt(submittedAt *strfmt.DateTime) {
+	o.SubmittedAt = submittedAt
 }
 
 // WithTransaction adds the transaction to the protocol forward transaction params
@@ -152,6 +198,40 @@ func (o *ProtocolForwardTransactionParams) WriteToRequest(r runtime.ClientReques
 	}
 	var res []error
 
+	if o.Deadline != nil {
+
+		// query param deadline
+		var qrDeadline string
+
+		if o.Deadline != nil {
+			qrDeadline = *o.Deadline
+		}
+		qDeadline := qrDeadline
+		if qDeadline != "" {
+
+			if err := r.SetQueryParam("deadline", qDeadline); err != nil {
+				return err
+			}
+		}
+	}
+
+	if o.ForwardedFrom != nil {
+
+		// query param forwardedFrom
+		var qrForwardedFrom string
+
+		if o.ForwardedFrom != nil {
+			qrForwardedFrom = *o.ForwardedFrom
+		}
+		qForwardedFrom := qrForwardedFrom
+		if qForwardedFrom != "" {
+
+			if err := r.SetQueryParam("forwardedFrom", qForwardedFrom); err != nil {
+				return err
+			}
+		}
+	}
+
 	if o.Signature != nil {
 
 		// query param signature
@@ -164,6 +244,23 @@ func (o *ProtocolForwardTransactionParams) WriteToRequest(r runtime.ClientReques
 		if qSignature != "" {
 
 			if err := r.SetQueryParam("signature", qSignature); err != nil {
+				return err
+			}
+		}
+	}
+
+	if o.SubmittedAt != nil {
+
+		// query param submittedAt
+		var qrSubmittedAt strfmt.DateTime
+
+		if o.SubmittedAt != nil {
+			qrSubmittedAt = *o.SubmittedAt
+		}
+		qSubmittedAt := qrSubmittedAt.String()
+		if qSubmittedAt != "" {
+
+			if err := r.SetQueryParam("submittedAt", qSubmittedAt); err != nil {
 				return err
 			}
 		}
