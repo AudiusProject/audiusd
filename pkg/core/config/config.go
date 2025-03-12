@@ -204,7 +204,7 @@ func ReadConfig(logger *common.Logger) (*Config, error) {
 		cfg.SlaRollupInterval = mainnetRollupInterval
 		cfg.ValidatorVotingPower = mainnetValidatorVotingPower
 		cfg.EnablePoS = true
-		cfg.LegacyRegistrationCutoff = 1820000 // delete after chain rollover
+		cfg.LegacyRegistrationCutoff = 3000000 // delete after chain rollover
 
 	case "stage", "staging", "testnet":
 		cfg.PersistentPeers = GetEnvWithDefault("persistentPeers", moduloPersistentPeers(ethAddress, StagePersistentPeers, 3))
@@ -215,7 +215,7 @@ func ReadConfig(logger *common.Logger) (*Config, error) {
 		cfg.SlaRollupInterval = testnetRollupInterval
 		cfg.ValidatorVotingPower = testnetValidatorVotingPower
 		cfg.EnablePoS = true
-		cfg.LegacyRegistrationCutoff = 3900000 // delete after chain rollover
+		cfg.LegacyRegistrationCutoff = 5000000 // delete after chain rollover
 
 	case "dev", "development", "devnet", "local", "sandbox":
 		cfg.PersistentPeers = GetEnvWithDefault("persistentPeers", DevPersistentPeers)
