@@ -164,6 +164,29 @@ query {
 }
 ```
 
+### Get Decoded Plays by TxHashes
+```graphql
+query {
+  # First get decoded transactions for a block
+  blockTxs: getDecodedTransactionsByBlock(height: 123) {
+    txHash
+    txType
+  }
+  
+  # Then get decoded plays for those transactions
+  plays: getDecodedPlaysByTxHashes(
+    txHashes: ["0x123...", "0x456..."]  # Transaction hashes from block
+  ) {
+    txHash
+    userId
+    trackId
+    playedAt
+    city
+    country
+  }
+}
+```
+
 ### Get Decoded Plays by User
 ```graphql
 query {

@@ -499,6 +499,54 @@ func (q *Queries) GetDecodedPlaysByTrack(ctx context.Context, arg GetDecodedPlay
 	return items, nil
 }
 
+const getDecodedPlaysByTxHashes = `-- name: GetDecodedPlaysByTxHashes :many
+select tx_hash, user_id, track_id, played_at, signature, city, region, country, created_at
+from core_tx_decoded_plays
+where tx_hash = any($1::text[])
+`
+
+type GetDecodedPlaysByTxHashesRow struct {
+	TxHash    string
+	UserID    string
+	TrackID   string
+	PlayedAt  pgtype.Timestamptz
+	Signature string
+	City      pgtype.Text
+	Region    pgtype.Text
+	Country   pgtype.Text
+	CreatedAt pgtype.Timestamptz
+}
+
+func (q *Queries) GetDecodedPlaysByTxHashes(ctx context.Context, dollar_1 []string) ([]GetDecodedPlaysByTxHashesRow, error) {
+	rows, err := q.db.Query(ctx, getDecodedPlaysByTxHashes, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetDecodedPlaysByTxHashesRow
+	for rows.Next() {
+		var i GetDecodedPlaysByTxHashesRow
+		if err := rows.Scan(
+			&i.TxHash,
+			&i.UserID,
+			&i.TrackID,
+			&i.PlayedAt,
+			&i.Signature,
+			&i.City,
+			&i.Region,
+			&i.Country,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getDecodedPlaysByUser = `-- name: GetDecodedPlaysByUser :many
 select tx_hash, user_id, track_id, played_at, signature, city, region, country, created_at
 from core_tx_decoded_plays

@@ -130,6 +130,7 @@ type ComplexityRoot struct {
 		GetDecodedPlaysByLocation     func(childComplexity int, location LocationFilter, limit *int) int
 		GetDecodedPlaysByTimeRange    func(childComplexity int, startTime string, endTime string, limit *int) int
 		GetDecodedPlaysByTrack        func(childComplexity int, trackID string, limit *int) int
+		GetDecodedPlaysByTxHashes     func(childComplexity int, txHashes []string) int
 		GetDecodedPlaysByUser         func(childComplexity int, userID string, limit *int) int
 		GetDecodedTransaction         func(childComplexity int, hash string) int
 		GetDecodedTransactionsByBlock func(childComplexity int, height int) int
@@ -222,6 +223,7 @@ type QueryResolver interface {
 	GetDecodedPlaysByTrack(ctx context.Context, trackID string, limit *int) ([]*DecodedPlay, error)
 	GetDecodedPlaysByTimeRange(ctx context.Context, startTime string, endTime string, limit *int) ([]*DecodedPlay, error)
 	GetDecodedPlaysByLocation(ctx context.Context, location LocationFilter, limit *int) ([]*DecodedPlay, error)
+	GetDecodedPlaysByTxHashes(ctx context.Context, txHashes []string) ([]*DecodedPlay, error)
 	GetAnalytics(ctx context.Context) (*Analytics, error)
 	GetTransactionStats(ctx context.Context, hours *int) ([]*TransactionStat, error)
 	GetAllNodes(ctx context.Context) ([]*Node, error)
@@ -704,6 +706,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.GetDecodedPlaysByTrack(childComplexity, args["trackId"].(string), args["limit"].(*int)), true
+
+	case "Query.getDecodedPlaysByTxHashes":
+		if e.complexity.Query.GetDecodedPlaysByTxHashes == nil {
+			break
+		}
+
+		args, err := ec.field_Query_getDecodedPlaysByTxHashes_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GetDecodedPlaysByTxHashes(childComplexity, args["txHashes"].([]string)), true
 
 	case "Query.getDecodedPlaysByUser":
 		if e.complexity.Query.GetDecodedPlaysByUser == nil {
@@ -1414,6 +1428,7 @@ type Query {
   getDecodedPlaysByTrack(trackId: String!, limit: Int = 10): [DecodedPlay!]!
   getDecodedPlaysByTimeRange(startTime: String!, endTime: String!, limit: Int = 10): [DecodedPlay!]!
   getDecodedPlaysByLocation(location: LocationFilter!, limit: Int = 10): [DecodedPlay!]!
+  getDecodedPlaysByTxHashes(txHashes: [String!]!): [DecodedPlay!]!
   
   # Analytics queries
   getAnalytics: Analytics!
@@ -1829,6 +1844,34 @@ func (ec *executionContext) field_Query_getDecodedPlaysByTrack_argsLimit(
 	}
 
 	var zeroVal *int
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query_getDecodedPlaysByTxHashes_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Query_getDecodedPlaysByTxHashes_argsTxHashes(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["txHashes"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Query_getDecodedPlaysByTxHashes_argsTxHashes(
+	ctx context.Context,
+	rawArgs map[string]any,
+) ([]string, error) {
+	if _, ok := rawArgs["txHashes"]; !ok {
+		var zeroVal []string
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("txHashes"))
+	if tmp, ok := rawArgs["txHashes"]; ok {
+		return ec.unmarshalNString2ᚕstringᚄ(ctx, tmp)
+	}
+
+	var zeroVal []string
 	return zeroVal, nil
 }
 
@@ -5775,6 +5818,81 @@ func (ec *executionContext) fieldContext_Query_getDecodedPlaysByLocation(ctx con
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Query_getDecodedPlaysByLocation_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_getDecodedPlaysByTxHashes(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_getDecodedPlaysByTxHashes(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().GetDecodedPlaysByTxHashes(rctx, fc.Args["txHashes"].([]string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*DecodedPlay)
+	fc.Result = res
+	return ec.marshalNDecodedPlay2ᚕᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐDecodedPlayᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_getDecodedPlaysByTxHashes(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "txHash":
+				return ec.fieldContext_DecodedPlay_txHash(ctx, field)
+			case "userId":
+				return ec.fieldContext_DecodedPlay_userId(ctx, field)
+			case "trackId":
+				return ec.fieldContext_DecodedPlay_trackId(ctx, field)
+			case "playedAt":
+				return ec.fieldContext_DecodedPlay_playedAt(ctx, field)
+			case "signature":
+				return ec.fieldContext_DecodedPlay_signature(ctx, field)
+			case "city":
+				return ec.fieldContext_DecodedPlay_city(ctx, field)
+			case "region":
+				return ec.fieldContext_DecodedPlay_region(ctx, field)
+			case "country":
+				return ec.fieldContext_DecodedPlay_country(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_DecodedPlay_createdAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type DecodedPlay", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_getDecodedPlaysByTxHashes_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -11176,6 +11294,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "getDecodedPlaysByTxHashes":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getDecodedPlaysByTxHashes(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "getAnalytics":
 			field := field
 
@@ -12817,6 +12957,38 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalNString2ᚕstringᚄ(ctx context.Context, v any) ([]string, error) {
+	var vSlice []any
+	if v != nil {
+		vSlice = graphql.CoerceList(v)
+	}
+	var err error
+	res := make([]string, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNString2string(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalNString2ᚕstringᚄ(ctx context.Context, sel ast.SelectionSet, v []string) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNString2string(ctx, sel, v[i])
+	}
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
 }
 
 func (ec *executionContext) marshalNTransaction2ᚕᚖgithubᚗcomᚋAudiusProjectᚋaudiusdᚋpkgᚋcoreᚋgenᚋcore_gqlᚐTransactionᚄ(ctx context.Context, sel ast.SelectionSet, v []*Transaction) graphql.Marshaler {

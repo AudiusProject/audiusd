@@ -168,6 +168,7 @@ type Query {
   getDecodedPlaysByTrack(trackId: String!, limit: Int = 10): [DecodedPlay!]!
   getDecodedPlaysByTimeRange(startTime: String!, endTime: String!, limit: Int = 10): [DecodedPlay!]!
   getDecodedPlaysByLocation(location: LocationFilter!, limit: Int = 10): [DecodedPlay!]!
+  getDecodedPlaysByTxHashes(txHashes: [String!]!): [DecodedPlay!]!
   
   # Analytics queries
   getAnalytics: Analytics!

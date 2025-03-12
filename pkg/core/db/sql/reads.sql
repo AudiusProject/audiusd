@@ -264,3 +264,8 @@ where country is not null
 group by country
 order by count(*) desc
 limit $1;
+
+-- name: GetDecodedPlaysByTxHashes :many
+select tx_hash, user_id, track_id, played_at, signature, city, region, country, created_at
+from core_tx_decoded_plays
+where tx_hash = any($1::text[]);

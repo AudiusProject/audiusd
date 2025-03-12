@@ -520,6 +520,29 @@ func (r *queryGraphQLServer) GetDecodedPlaysByLocation(ctx context.Context, loca
 	return result, nil
 }
 
+func (r *queryGraphQLServer) GetDecodedPlaysByTxHashes(ctx context.Context, txHashes []string) ([]*core_gql.DecodedPlay, error) {
+	plays, err := r.db.GetDecodedPlaysByTxHashes(ctx, txHashes)
+	if err != nil {
+		return nil, err
+	}
+
+	result := []*core_gql.DecodedPlay{}
+	for _, play := range plays {
+		result = append(result, &core_gql.DecodedPlay{
+			TxHash:    play.TxHash,
+			UserID:    play.UserID,
+			TrackID:   play.TrackID,
+			PlayedAt:  play.PlayedAt.Time.String(),
+			Signature: play.Signature,
+			City:      &play.City.String,
+			Region:    &play.Region.String,
+			Country:   &play.Country.String,
+			CreatedAt: play.CreatedAt.Time.String(),
+		})
+	}
+	return result, nil
+}
+
 func (r *queryGraphQLServer) GetAnalytics(ctx context.Context) (*core_gql.Analytics, error) {
 	totalBlocks, err := r.db.TotalBlocks(ctx)
 	if err != nil {
