@@ -7,6 +7,7 @@ import (
 	"net/http/pprof"
 	"time"
 
+	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/handler/extension"
 	"github.com/99designs/gqlgen/graphql/handler/transport"
@@ -14,6 +15,7 @@ import (
 	"github.com/AudiusProject/audiusd/pkg/core/gen/core_gql"
 	"github.com/AudiusProject/audiusd/pkg/core/gen/core_proto"
 	"github.com/AudiusProject/audiusd/pkg/core/gql"
+	"github.com/AudiusProject/audiusd/pkg/core/gql/cache"
 	"github.com/gorilla/websocket"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/labstack/echo/v4"
@@ -38,8 +40,29 @@ func (s *Server) startEchoServer() error {
 	}
 
 	gqlResolver := gql.NewGraphQLServer(s.config, s.logger, s.db)
-	srv := handler.New(core_gql.NewExecutableSchema(core_gql.Config{Resolvers: gqlResolver}))
+	schema := core_gql.NewExecutableSchema(core_gql.Config{Resolvers: gqlResolver})
+
+	// Create cache middleware with 5 minute TTL
+	cacheMw := cache.NewCacheMiddleware(5 * time.Minute)
+
+	srv := handler.New(schema)
 	srv.Use(extension.Introspection{})
+
+	srv.AroundFields(func(ctx context.Context, next graphql.Resolver) (res interface{}, err error) {
+		fc := graphql.GetFieldContext(ctx)
+
+		cachedQueries := map[string]bool{
+			"getAvailableCities":    true,
+			"getAvailableRegions":   true,
+			"getAvailableCountries": true,
+		}
+
+		if cachedQueries[fc.Field.Name] {
+			return cacheMw.CacheQuery(ctx, next)
+		}
+		return next(ctx)
+	})
+
 	queryHandler := func(c echo.Context) error {
 		srv.ServeHTTP(c.Response(), c.Request())
 		return nil
