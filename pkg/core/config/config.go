@@ -125,7 +125,8 @@ type Config struct {
 	LegacyRegistrationCutoff int64 // Blocks after this height cannot register using the legacy tx (remove after next chain rollover)
 
 	/* Feature Flags */
-	EnablePoS bool
+	EnablePoS     bool
+	EnableGraphQL bool
 }
 
 func ReadConfig(logger *common.Logger) (*Config, error) {
@@ -236,6 +237,8 @@ func ReadConfig(logger *common.Logger) (*Config, error) {
 		cfg.EnablePoS = true
 		cfg.LegacyRegistrationCutoff = 0
 	}
+
+	cfg.EnableGraphQL = GetEnvWithDefault("AUDIUSD_ENABLE_GRAPHQL", "false") == "true"
 
 	// Disable ssl for local postgres db connection
 	if !strings.HasSuffix(cfg.PSQLConn, "?sslmode=disable") && isLocalDbUrlRegex.MatchString(cfg.PSQLConn) {
