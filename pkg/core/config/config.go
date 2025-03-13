@@ -117,6 +117,11 @@ type Config struct {
 	CometModule   bool
 	PprofModule   bool
 
+	/* Attestation Thresholds */
+	AttRegistrationMin       int   // minimum number of attestations needed to register a new node
+	AttRegistrationRSize     int   // rendezvous size for registration attestations (should be >= to AttRegistrationMin)
+	LegacyRegistrationCutoff int64 // Blocks after this height cannot register using the legacy tx (remove after next chain rollover)
+
 	/* Feature Flags */
 	EnablePoS bool
 }
@@ -145,6 +150,9 @@ func ReadConfig(logger *common.Logger) (*Config, error) {
 	// (default) approximately one week of blocks
 	cfg.RetainHeight = int64(getEnvIntWithDefault("retainHeight", 604800))
 	cfg.Archive = GetEnvWithDefault("archive", "false") == "true"
+
+	cfg.AttRegistrationMin = 5
+	cfg.AttRegistrationRSize = 10
 
 	// check if discovery specific key is set
 	isDiscovery := os.Getenv("audius_delegate_private_key") != ""
@@ -196,6 +204,7 @@ func ReadConfig(logger *common.Logger) (*Config, error) {
 		cfg.SlaRollupInterval = mainnetRollupInterval
 		cfg.ValidatorVotingPower = mainnetValidatorVotingPower
 		cfg.EnablePoS = true
+		cfg.LegacyRegistrationCutoff = 3000000 // delete after chain rollover
 
 	case "stage", "staging", "testnet":
 		cfg.PersistentPeers = GetEnvWithDefault("persistentPeers", moduloPersistentPeers(ethAddress, StagePersistentPeers, 3))
@@ -206,6 +215,7 @@ func ReadConfig(logger *common.Logger) (*Config, error) {
 		cfg.SlaRollupInterval = testnetRollupInterval
 		cfg.ValidatorVotingPower = testnetValidatorVotingPower
 		cfg.EnablePoS = true
+		cfg.LegacyRegistrationCutoff = 5000000 // delete after chain rollover
 
 	case "dev", "development", "devnet", "local", "sandbox":
 		cfg.PersistentPeers = GetEnvWithDefault("persistentPeers", DevPersistentPeers)
@@ -220,6 +230,7 @@ func ReadConfig(logger *common.Logger) (*Config, error) {
 		cfg.SlaRollupInterval = devnetRollupInterval
 		cfg.ValidatorVotingPower = devnetValidatorVotingPower
 		cfg.EnablePoS = true
+		cfg.LegacyRegistrationCutoff = 0
 	}
 
 	// Disable ssl for local postgres db connection

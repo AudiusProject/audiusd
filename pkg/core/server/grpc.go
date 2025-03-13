@@ -5,14 +5,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/big"
 	"net"
 	"reflect"
 	"strings"
-	"sync/atomic"
 	"time"
 
 	"github.com/AudiusProject/audiusd/pkg/core/common"
 	"github.com/AudiusProject/audiusd/pkg/core/gen/core_proto"
+	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/iancoleman/strcase"
 	"github.com/jackc/pgx/v5"
 	"google.golang.org/protobuf/proto"
@@ -158,7 +159,7 @@ func (s *Server) GetTransaction(ctx context.Context, req *core_proto.GetTransact
 }
 
 func (s *Server) GetBlock(ctx context.Context, req *core_proto.GetBlockRequest) (*core_proto.BlockResponse, error) {
-	currentHeight := atomic.LoadInt64(&s.cache.currentHeight)
+	currentHeight := s.cache.currentHeight.Load()
 	if req.Height > currentHeight {
 		return &core_proto.BlockResponse{
 			Chainid:       s.config.GenesisFile.ChainID,
@@ -254,7 +255,7 @@ func (s *Server) startGRPC() error {
 
 // Utilities
 func (s *Server) getBlockRpcFallback(ctx context.Context, height int64) (*core_proto.BlockResponse, error) {
-	currentHeight := s.cache.currentHeight
+	currentHeight := s.cache.currentHeight.Load()
 	block, err := s.rpc.Block(ctx, &height)
 	if err != nil {
 		blockInFutureMsg := "must be less than or equal to the current blockchain height"
@@ -291,4 +292,48 @@ func (s *Server) getBlockRpcFallback(ctx context.Context, height int64) (*core_p
 	}
 
 	return res, nil
+}
+
+func (s *Server) GetRegistrationAttestation(ctx context.Context, req *core_proto.RegistrationAttestationRequest) (*core_proto.RegistrationAttestationResponse, error) {
+	reg := req.GetRegistration()
+	if reg == nil {
+		return nil, errors.New("empty registration attestation")
+	}
+
+	if reg.Deadline < s.cache.currentHeight.Load() || reg.Deadline > s.cache.currentHeight.Load()+maxRegistrationAttestationValidity {
+		return nil, fmt.Errorf("Cannot sign registration request with deadline %d (current height is %d)", reg.Deadline, s.cache.currentHeight.Load())
+	}
+
+	if !s.isNodeRegisteredOnEthereum(
+		ethcommon.HexToAddress(reg.DelegateWallet),
+		reg.Endpoint,
+		big.NewInt(reg.EthBlock),
+	) {
+		s.logger.Error(
+			"Could not attest to node eth registration",
+			"delegate",
+			reg.DelegateWallet,
+			"endpoint",
+			reg.Endpoint,
+			"eth block",
+			reg.EthBlock,
+		)
+		return nil, errors.New("node is not registered on ethereum")
+	}
+
+	regBytes, err := proto.Marshal(reg)
+	if err != nil {
+		s.logger.Error("could not marshal ethereum registration", "error", err)
+		return nil, err
+	}
+	sig, err := common.EthSign(s.config.EthereumKey, regBytes)
+	if err != nil {
+		s.logger.Error("could not sign ethereum registration", "error", err)
+		return nil, err
+	}
+
+	return &core_proto.RegistrationAttestationResponse{
+		Signature:    sig,
+		Registration: reg,
+	}, nil
 }

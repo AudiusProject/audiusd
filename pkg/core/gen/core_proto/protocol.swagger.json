@@ -16,6 +16,38 @@
     "application/json"
   ],
   "paths": {
+    "/core/grpc/attest/registration": {
+      "post": {
+        "operationId": "Protocol_GetRegistrationAttestation",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/protocolRegistrationAttestationResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "registration",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/protocolValidatorRegistration"
+            }
+          }
+        ],
+        "tags": [
+          "Protocol"
+        ]
+      }
+    },
     "/core/grpc/block/{height}": {
       "get": {
         "operationId": "Protocol_GetBlock",
@@ -202,6 +234,20 @@
       },
       "additionalProperties": {}
     },
+    "protocolAttestation": {
+      "type": "object",
+      "properties": {
+        "signatures": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "validatorRegistration": {
+          "$ref": "#/definitions/protocolValidatorRegistration"
+        }
+      }
+    },
     "protocolBlockResponse": {
       "type": "object",
       "properties": {
@@ -306,6 +352,17 @@
         }
       }
     },
+    "protocolRegistrationAttestationResponse": {
+      "type": "object",
+      "properties": {
+        "signature": {
+          "type": "string"
+        },
+        "registration": {
+          "$ref": "#/definitions/protocolValidatorRegistration"
+        }
+      }
+    },
     "protocolSignedTransaction": {
       "type": "object",
       "properties": {
@@ -319,7 +376,7 @@
           "$ref": "#/definitions/protocolTrackPlays"
         },
         "validatorRegistration": {
-          "$ref": "#/definitions/protocolValidatorRegistration"
+          "$ref": "#/definitions/protocolValidatorRegistrationLegacy"
         },
         "slaRollup": {
           "$ref": "#/definitions/protocolSlaRollup"
@@ -335,6 +392,9 @@
         },
         "storageProofVerification": {
           "$ref": "#/definitions/protocolStorageProofVerification"
+        },
+        "attestation": {
+          "$ref": "#/definitions/protocolAttestation"
         }
       }
     },
@@ -482,6 +542,42 @@
       }
     },
     "protocolValidatorRegistration": {
+      "type": "object",
+      "properties": {
+        "delegateWallet": {
+          "type": "string"
+        },
+        "endpoint": {
+          "type": "string"
+        },
+        "nodeType": {
+          "type": "string"
+        },
+        "spId": {
+          "type": "string"
+        },
+        "ethBlock": {
+          "type": "string",
+          "format": "int64"
+        },
+        "cometAddress": {
+          "type": "string"
+        },
+        "pubKey": {
+          "type": "string",
+          "format": "byte"
+        },
+        "power": {
+          "type": "string",
+          "format": "int64"
+        },
+        "deadline": {
+          "type": "string",
+          "format": "int64"
+        }
+      }
+    },
+    "protocolValidatorRegistrationLegacy": {
       "type": "object",
       "properties": {
         "endpoint": {

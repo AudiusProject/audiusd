@@ -46,8 +46,16 @@ func SignedTxProtoIntoSignedTxOapi(tx *core_proto.SignedTransaction) *models.Pro
 			Signer:     innerTx.ManageEntity.Signer,
 			Nonce:      fmt.Sprint(innerTx.ManageEntity.Nonce),
 		}
+	case *core_proto.SignedTransaction_Attestation:
+		oapiTx.Attestation = &models.ProtocolAttestation{
+			Signatures: innerTx.Attestation.Signatures,
+		}
+		switch innerTx.Attestation.Body.(type) {
+		case *core_proto.Attestation_ValidatorRegistration:
+			oapiTx.Attestation.ValidatorRegistration = ValidatorRegistrationIntoOapi(innerTx.Attestation.GetValidatorRegistration())
+		}
 	case *core_proto.SignedTransaction_ValidatorRegistration:
-		oapiTx.ValidatorRegistration = &models.ProtocolValidatorRegistration{
+		oapiTx.ValidatorRegistration = &models.ProtocolValidatorRegistrationLegacy{
 			CometAddress: innerTx.ValidatorRegistration.CometAddress,
 			Endpoint:     innerTx.ValidatorRegistration.Endpoint,
 			EthBlock:     innerTx.ValidatorRegistration.EthBlock,
@@ -77,4 +85,18 @@ func SignedTxProtoIntoSignedTxOapi(tx *core_proto.SignedTransaction) *models.Pro
 	}
 
 	return oapiTx
+}
+
+func ValidatorRegistrationIntoOapi(vr *core_proto.ValidatorRegistration) *models.ProtocolValidatorRegistration {
+	return &models.ProtocolValidatorRegistration{
+		DelegateWallet: vr.DelegateWallet,
+		Endpoint:       vr.Endpoint,
+		NodeType:       vr.NodeType,
+		EthBlock:       fmt.Sprint(vr.EthBlock),
+		SpID:           vr.SpId,
+		CometAddress:   vr.CometAddress,
+		Power:          fmt.Sprint(vr.Power),
+		PubKey:         vr.PubKey,
+		Deadline:       fmt.Sprint(vr.Deadline),
+	}
 }
