@@ -5,25 +5,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/AudiusProject/audiusd/pkg/core/common"
 	"github.com/AudiusProject/audiusd/pkg/core/db"
+	"github.com/AudiusProject/audiusd/pkg/core/gen/core_proto"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"google.golang.org/protobuf/proto"
 )
-
-type PlayData struct {
-	UserID    string    `json:"userId"`
-	TrackID   string    `json:"trackId"`
-	PlayedAt  time.Time `json:"timestamp"`
-	Signature string    `json:"signature"`
-	Location  struct {
-		City    string `json:"city"`
-		Region  string `json:"region"`
-		Country string `json:"country"`
-	} `json:"location"`
-}
 
 func Run(ctx context.Context, logger *common.Logger) error {
 	logger.Info("Starting ETL service...")
@@ -120,48 +109,68 @@ func Run(ctx context.Context, logger *common.Logger) error {
 }
 
 func processTransaction(ctx context.Context, logger *common.Logger, queries *db.Queries, tx db.CoreTransaction) error {
-	// Decode the transaction data
-	var txData struct {
-		Type string          `json:"type"`
-		Data json.RawMessage `json:"data"`
-	}
-
-	if err := json.Unmarshal(tx.Transaction, &txData); err != nil {
+	// Parse the protobuf message
+	var signedTx core_proto.SignedTransaction
+	if err := proto.Unmarshal(tx.Transaction, &signedTx); err != nil {
 		return fmt.Errorf("error unmarshaling transaction: %v", err)
 	}
 
+	// Determine transaction type
+	var txType string
+	switch signedTx.GetTransaction().(type) {
+	case *core_proto.SignedTransaction_Plays:
+		txType = "Plays"
+	case *core_proto.SignedTransaction_ValidatorRegistration:
+		txType = "ValidatorRegistration"
+	case *core_proto.SignedTransaction_ValidatorDeregistration:
+		txType = "ValidatorDeregistration"
+	case *core_proto.SignedTransaction_SlaRollup:
+		txType = "SlaRollup"
+	case *core_proto.SignedTransaction_StorageProof:
+		txType = "StorageProof"
+	case *core_proto.SignedTransaction_StorageProofVerification:
+		txType = "StorageProofVerification"
+	case *core_proto.SignedTransaction_ManageEntity:
+		txType = "ManageEntity"
+	default:
+		txType = "Unknown"
+	}
+
 	// Insert into core_tx_decoded
+	jsonBytes, err := json.Marshal(signedTx)
+	if err != nil {
+		logger.Errorf("failed to marshal tx to json: %v", err)
+		jsonBytes = []byte("{}")
+	}
+
 	if err := queries.InsertDecodedTx(ctx, db.InsertDecodedTxParams{
 		BlockHeight: tx.BlockID,
 		TxIndex:     tx.Index,
 		TxHash:      tx.TxHash,
-		TxType:      txData.Type,
-		TxData:      tx.Transaction,
+		TxType:      txType,
+		TxData:      jsonBytes,
 		CreatedAt:   pgtype.Timestamptz{Time: tx.CreatedAt.Time, Valid: true},
 	}); err != nil {
 		return fmt.Errorf("error inserting decoded tx: %v", err)
 	}
 
-	// If this is a play transaction, process it further
-	if txData.Type == "play" {
-		var playData PlayData
-		if err := json.Unmarshal(txData.Data, &playData); err != nil {
-			return fmt.Errorf("error unmarshaling play data: %v", err)
-		}
-
-		// Insert into core_tx_decoded_plays
-		if err := queries.InsertDecodedPlay(ctx, db.InsertDecodedPlayParams{
-			TxHash:    tx.TxHash,
-			UserID:    playData.UserID,
-			TrackID:   playData.TrackID,
-			PlayedAt:  pgtype.Timestamptz{Time: playData.PlayedAt, Valid: true},
-			Signature: playData.Signature,
-			City:      pgtype.Text{String: playData.Location.City, Valid: playData.Location.City != ""},
-			Region:    pgtype.Text{String: playData.Location.Region, Valid: playData.Location.Region != ""},
-			Country:   pgtype.Text{String: playData.Location.Country, Valid: playData.Location.Country != ""},
-			CreatedAt: pgtype.Timestamptz{Time: tx.CreatedAt.Time, Valid: true},
-		}); err != nil {
-			return fmt.Errorf("error inserting decoded play: %v", err)
+	// If this is a play transaction, process the plays
+	if plays := signedTx.GetPlays(); plays != nil {
+		for _, play := range plays.Plays {
+			if err := queries.InsertDecodedPlay(ctx, db.InsertDecodedPlayParams{
+				TxHash:    tx.TxHash,
+				UserID:    play.UserId,
+				TrackID:   play.TrackId,
+				PlayedAt:  pgtype.Timestamptz{Time: play.Timestamp.AsTime(), Valid: true},
+				Signature: play.Signature,
+				City:      pgtype.Text{String: play.City, Valid: play.City != ""},
+				Region:    pgtype.Text{String: play.Region, Valid: play.Region != ""},
+				Country:   pgtype.Text{String: play.Country, Valid: play.Country != ""},
+				CreatedAt: pgtype.Timestamptz{Time: tx.CreatedAt.Time, Valid: true},
+			}); err != nil {
+				logger.Errorf("failed to insert play record: %v", err)
+				continue
+			}
 		}
 	}
 
