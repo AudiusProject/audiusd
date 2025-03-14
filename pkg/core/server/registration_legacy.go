@@ -13,23 +13,8 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-// checks if the register node tx is valid
-// calls ethereum mainnet and validates signature to confirm node should be a validator
-func (s *Server) isValidLegacyRegisterNodeTx(_ *core_proto.SignedTransaction, blockHeight int64) error {
-	// We only care if this attempted legacy registration is post-cutoff
-	if blockHeight > s.config.LegacyRegistrationCutoff {
-		return fmt.Errorf("Legacy registration is after cutoff.")
-	}
-
-	return nil
-}
-
 // persists the register node request should it pass validation
 func (s *Server) finalizeLegacyRegisterNode(ctx context.Context, tx *core_proto.SignedTransaction, blockHeight int64) (*core_proto.ValidatorRegistrationLegacy, error) {
-	if err := s.isValidLegacyRegisterNodeTx(tx, blockHeight); err != nil {
-		return nil, fmt.Errorf("invalid register node tx: %v", err)
-	}
-
 	qtx := s.getDb()
 
 	vr := tx.GetValidatorRegistration()

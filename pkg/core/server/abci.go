@@ -477,11 +477,6 @@ func (s *Server) validateBlockTx(ctx context.Context, blockTime time.Time, block
 			s.logger.Error("Invalid block: invalid attestation tx", "error", err)
 			return false, nil
 		}
-	case *core_proto.SignedTransaction_ValidatorRegistration:
-		if err := s.isValidLegacyRegisterNodeTx(signedTx, blockHeight); err != nil {
-			s.logger.Error("Invalid block: invalid register node tx", "error", err)
-			return false, nil
-		}
 	case *core_proto.SignedTransaction_ValidatorDeregistration:
 		if err := s.isValidDeregisterMisbehavingNodeTx(signedTx, misbehavior); err != nil {
 			s.logger.Error("Invalid block: invalid deregister node tx", "error", err)

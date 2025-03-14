@@ -120,11 +120,10 @@ type Config struct {
 	GraphQLModule bool
 
 	/* Attestation Thresholds */
-	AttRegistrationMin       int   // minimum number of attestations needed to register a new node
-	AttRegistrationRSize     int   // rendezvous size for registration attestations (should be >= to AttRegistrationMin)
-	AttDeregistrationMin     int   // minimum number of attestations needed to deregister a node
-	AttDeregistrationRSize   int   // rendezvous size for deregistration attestations (should be >= to AttDeregistrationMin)
-	LegacyRegistrationCutoff int64 // Blocks after this height cannot register using the legacy tx (remove after next chain rollover)
+	AttRegistrationMin     int // minimum number of attestations needed to register a new node
+	AttRegistrationRSize   int // rendezvous size for registration attestations (should be >= to AttRegistrationMin)
+	AttDeregistrationMin   int // minimum number of attestations needed to deregister a node
+	AttDeregistrationRSize int // rendezvous size for deregistration attestations (should be >= to AttDeregistrationMin)
 }
 
 func ReadConfig(logger *common.Logger) (*Config, error) {
@@ -206,7 +205,6 @@ func ReadConfig(logger *common.Logger) (*Config, error) {
 
 		cfg.SlaRollupInterval = mainnetRollupInterval
 		cfg.ValidatorVotingPower = mainnetValidatorVotingPower
-		cfg.LegacyRegistrationCutoff = 3000000 // delete after chain rollover
 
 	case "stage", "staging", "testnet":
 		cfg.PersistentPeers = GetEnvWithDefault("persistentPeers", moduloPersistentPeers(ethAddress, StagePersistentPeers, 3))
@@ -216,7 +214,6 @@ func ReadConfig(logger *common.Logger) (*Config, error) {
 		}
 		cfg.SlaRollupInterval = testnetRollupInterval
 		cfg.ValidatorVotingPower = testnetValidatorVotingPower
-		cfg.LegacyRegistrationCutoff = 5000000 // delete after chain rollover
 
 	case "dev", "development", "devnet", "local", "sandbox":
 		cfg.PersistentPeers = GetEnvWithDefault("persistentPeers", DevPersistentPeers)
@@ -230,7 +227,6 @@ func ReadConfig(logger *common.Logger) (*Config, error) {
 		}
 		cfg.SlaRollupInterval = devnetRollupInterval
 		cfg.ValidatorVotingPower = devnetValidatorVotingPower
-		cfg.LegacyRegistrationCutoff = 0
 	}
 
 	// Disable ssl for local postgres db connection
