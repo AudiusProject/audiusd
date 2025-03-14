@@ -69,7 +69,7 @@ func (s *Server) startEchoServer() error {
 	/** /core routes **/
 	g.Any("/grpc/*", echo.WrapHandler(gwMux))
 
-	if s.config.EnableGraphQL {
+	if s.config.GraphQLModule {
 		g.Any("/gql", queryHandler)
 		g.GET("/graphiql", graphiqlHandler)
 	}

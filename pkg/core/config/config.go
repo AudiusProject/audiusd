@@ -27,10 +27,11 @@ const (
 	ModuleDebug   = "debug"
 	ModulePprof   = "pprof"
 	ModuleComet   = "comet"
+	ModuleGraphQL = "graphql"
 )
 
 // once completely released, remove debug and comet
-var defaultModules = []string{ModuleConsole, ModuleDebug, ModulePprof, ModuleComet}
+var defaultModules = []string{ModuleConsole, ModuleDebug, ModulePprof, ModuleComet, ModuleGraphQL}
 
 type RollupInterval struct {
 	BlockInterval int
@@ -116,6 +117,8 @@ type Config struct {
 	DebugModule   bool
 	CometModule   bool
 	PprofModule   bool
+	GraphQLModule bool
+	EnablePoS     bool
 
 	/* Attestation Thresholds */
 	AttRegistrationMin       int   // minimum number of attestations needed to register a new node
@@ -123,10 +126,6 @@ type Config struct {
 	AttDeregistrationMin     int   // minimum number of attestations needed to deregister a node
 	AttDeregistrationRSize   int   // rendezvous size for deregistration attestations (should be >= to AttDeregistrationMin)
 	LegacyRegistrationCutoff int64 // Blocks after this height cannot register using the legacy tx (remove after next chain rollover)
-
-	/* Feature Flags */
-	EnablePoS     bool
-	EnableGraphQL bool
 }
 
 func ReadConfig(logger *common.Logger) (*Config, error) {
@@ -238,8 +237,6 @@ func ReadConfig(logger *common.Logger) (*Config, error) {
 		cfg.LegacyRegistrationCutoff = 0
 	}
 
-	cfg.EnableGraphQL = GetEnvWithDefault("AUDIUSD_ENABLE_GRAPHQL", "false") == "true"
-
 	// Disable ssl for local postgres db connection
 	if !strings.HasSuffix(cfg.PSQLConn, "?sslmode=disable") && isLocalDbUrlRegex.MatchString(cfg.PSQLConn) {
 		cfg.PSQLConn += "?sslmode=disable"
@@ -263,6 +260,8 @@ func enableModules(config *Config) {
 			config.PprofModule = true
 		case ModuleConsole:
 			config.ConsoleModule = true
+		case ModuleGraphQL:
+			config.GraphQLModule = GetEnvWithDefault("AUDIUSD_ENABLE_GRAPHQL", "false") == "true"
 		}
 	}
 }
