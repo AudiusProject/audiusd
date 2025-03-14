@@ -118,7 +118,6 @@ type Config struct {
 	CometModule   bool
 	PprofModule   bool
 	GraphQLModule bool
-	EnablePoS     bool
 
 	/* Attestation Thresholds */
 	AttRegistrationMin       int   // minimum number of attestations needed to register a new node
@@ -207,7 +206,6 @@ func ReadConfig(logger *common.Logger) (*Config, error) {
 
 		cfg.SlaRollupInterval = mainnetRollupInterval
 		cfg.ValidatorVotingPower = mainnetValidatorVotingPower
-		cfg.EnablePoS = true
 		cfg.LegacyRegistrationCutoff = 3000000 // delete after chain rollover
 
 	case "stage", "staging", "testnet":
@@ -218,7 +216,6 @@ func ReadConfig(logger *common.Logger) (*Config, error) {
 		}
 		cfg.SlaRollupInterval = testnetRollupInterval
 		cfg.ValidatorVotingPower = testnetValidatorVotingPower
-		cfg.EnablePoS = true
 		cfg.LegacyRegistrationCutoff = 5000000 // delete after chain rollover
 
 	case "dev", "development", "devnet", "local", "sandbox":
@@ -233,7 +230,6 @@ func ReadConfig(logger *common.Logger) (*Config, error) {
 		}
 		cfg.SlaRollupInterval = devnetRollupInterval
 		cfg.ValidatorVotingPower = devnetValidatorVotingPower
-		cfg.EnablePoS = true
 		cfg.LegacyRegistrationCutoff = 0
 	}
 
