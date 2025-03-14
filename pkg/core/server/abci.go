@@ -229,7 +229,7 @@ func (s *Server) FinalizeBlock(ctx context.Context, req *abcitypes.FinalizeBlock
 			if err != nil {
 				s.logger.Errorf("error finalizing event: %v", err)
 				txs[i] = &abcitypes.ExecTxResult{Code: 2}
-			} else if vr := signedTx.GetValidatorRegistration(); vr != nil { // TODO: delete legacy registration after chain rollover
+			} else if vr := signedTx.GetValidatorRegistration(); vr != nil {
 				vrPubKey := ed25519.PubKey(vr.GetPubKey())
 				vrAddr := vrPubKey.Address().String()
 				if _, ok := validatorUpdatesMap[vrAddr]; !ok {
@@ -238,27 +238,6 @@ func (s *Server) FinalizeBlock(ctx context.Context, req *abcitypes.FinalizeBlock
 						PubKeyBytes: vr.PubKey,
 						PubKeyType:  "ed25519",
 					}
-				}
-			} else if att := signedTx.GetAttestation(); att != nil && att.GetValidatorRegistration() != nil {
-				vr := att.GetValidatorRegistration()
-				vrPubKey := ed25519.PubKey(vr.GetPubKey())
-				vrAddr := vrPubKey.Address().String()
-				if _, ok := validatorUpdatesMap[vrAddr]; !ok {
-					validatorUpdatesMap[vrAddr] = abcitypes.ValidatorUpdate{
-						Power:       vr.Power,
-						PubKeyBytes: vr.PubKey,
-						PubKeyType:  "ed25519",
-					}
-				}
-			} else if att := signedTx.GetAttestation(); att != nil && att.GetValidatorDeregistration() != nil {
-				vr := att.GetValidatorDeregistration()
-				vrPubKey := ed25519.PubKey(vr.GetPubKey())
-				vrAddr := vrPubKey.Address().String()
-				// intentionally override any existing updates
-				validatorUpdatesMap[vrAddr] = abcitypes.ValidatorUpdate{
-					Power:       int64(0),
-					PubKeyBytes: vr.PubKey,
-					PubKeyType:  "ed25519",
 				}
 			} else if vd := signedTx.GetValidatorDeregistration(); vd != nil {
 				vdPubKey := ed25519.PubKey(vd.GetPubKey())
@@ -533,18 +512,13 @@ func (s *Server) validateBlockTx(ctx context.Context, blockTime time.Time, block
 
 	switch signedTx.Transaction.(type) {
 	case *core_proto.SignedTransaction_Plays:
-	case *core_proto.SignedTransaction_Attestation:
-		if err := s.isValidAttestation(ctx, signedTx, blockHeight); err != nil {
-			s.logger.Error("Invalid block: invalid attestation tx", "error", err)
-			return false, nil
-		}
 	case *core_proto.SignedTransaction_ValidatorRegistration:
-		if err := s.isValidLegacyRegisterNodeTx(signedTx, blockHeight); err != nil {
+		if err := s.isValidRegisterNodeTx(signedTx); err != nil {
 			s.logger.Error("Invalid block: invalid register node tx", "error", err)
 			return false, nil
 		}
 	case *core_proto.SignedTransaction_ValidatorDeregistration:
-		if err := s.isValidDeregisterMisbehavingNodeTx(signedTx, misbehavior); err != nil {
+		if err := s.isValidDeregisterNodeTx(signedTx, misbehavior); err != nil {
 			s.logger.Error("Invalid block: invalid deregister node tx", "error", err)
 			return false, nil
 		}
@@ -577,12 +551,10 @@ func (s *Server) finalizeTransaction(ctx context.Context, req *abcitypes.Finaliz
 		return s.finalizePlayTransaction(ctx, msg)
 	case *core_proto.SignedTransaction_ManageEntity:
 		return s.finalizeManageEntity(ctx, msg)
-	case *core_proto.SignedTransaction_Attestation:
-		return s.finalizeAttestation(ctx, msg, req.Height)
 	case *core_proto.SignedTransaction_ValidatorRegistration:
-		return s.finalizeLegacyRegisterNode(ctx, msg, blockHeight)
+		return s.finalizeRegisterNode(ctx, msg, req.Time)
 	case *core_proto.SignedTransaction_ValidatorDeregistration:
-		return s.finalizeDeregisterMisbehavingNode(ctx, msg, misbehavior)
+		return s.finalizeDeregisterNode(ctx, msg, misbehavior)
 	case *core_proto.SignedTransaction_SlaRollup:
 		return s.finalizeSlaRollup(ctx, msg, txHash)
 	case *core_proto.SignedTransaction_StorageProof:
