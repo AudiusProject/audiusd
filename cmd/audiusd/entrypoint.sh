@@ -69,6 +69,10 @@ setup_postgres() {
                 s|#logging_collector = on|logging_collector = off|" \
                 "$POSTGRES_DATA_DIR/postgresql.conf"
 
+        # Allow psql connections from other docker containers
+        echo "host all all audiusd trust" >> "$POSTGRES_DATA_DIR/pg_hba.conf"
+        sed -i "s|#listen_addresses = 'localhost'|listen_addresses = '*'|" "$POSTGRES_DATA_DIR/postgresql.conf"
+
         # Only set up database and user on fresh initialization
         echo "Setting up PostgreSQL user and database..."
         # Start PostgreSQL temporarily to create user and database
