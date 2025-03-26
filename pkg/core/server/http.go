@@ -82,6 +82,9 @@ func (s *Server) startEchoServer() error {
 	g.GET("/nodes/content/verbose", s.getRegisteredNodes)
 	g.GET("/nodes/eth", s.getEthNodesHandler)
 
+	// kind of weird pattern
+	s.createEthRPC()
+
 	if s.config.CometModule {
 		g.Any("/debug/comet*", s.proxyCometRequest)
 	}
