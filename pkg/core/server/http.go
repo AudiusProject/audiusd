@@ -11,6 +11,7 @@ import (
 	"github.com/99designs/gqlgen/graphql/handler/extension"
 	"github.com/99designs/gqlgen/graphql/handler/transport"
 	"github.com/99designs/gqlgen/graphql/playground"
+	"github.com/AudiusProject/audiusd/pkg/core/console/views/sandbox"
 	"github.com/AudiusProject/audiusd/pkg/core/gen/core_gql"
 	"github.com/AudiusProject/audiusd/pkg/core/gen/core_proto"
 	"github.com/AudiusProject/audiusd/pkg/core/gql"
@@ -84,6 +85,13 @@ func (s *Server) startEchoServer() error {
 
 	// kind of weird pattern
 	s.createEthRPC()
+	g.GET("/sdk", func(c echo.Context) error {
+		data, err := sandbox.SandboxHTML.ReadFile("sandbox.html")
+		if err != nil {
+			return c.String(http.StatusInternalServerError, "failed to read sandbox.html")
+		}
+		return c.HTMLBlob(http.StatusOK, data)
+	})
 
 	if s.config.CometModule {
 		g.Any("/debug/comet*", s.proxyCometRequest)
