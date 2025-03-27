@@ -31,8 +31,12 @@
       overflow: hidden;
     }
 
-    #run {
-      align-self: flex-start;
+    #buttons {
+      display: flex;
+      gap: 10px;
+    }
+
+    button {
       padding: 8px 16px;
       font-size: 16px;
       font-weight: 500;
@@ -44,7 +48,7 @@
       transition: background-color 0.2s ease;
     }
 
-    #run:hover {
+    button:hover {
       background-color: #005fa3;
     }
 
@@ -69,11 +73,8 @@
     }
   </style>
 
-  <!-- Audius SDK + Web3 -->
   <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@audius/sdk@latest/dist/sdk.min.js"></script>
-
-  <!-- viem -->
   <script type="module">
     import * as viem from 'https://esm.sh/viem@2';
     window.viem = viem;
@@ -83,11 +84,13 @@
 <body>
   <div id="container">
     <div id="editor"></div>
-    <button id="run">Run (⌘/Ctrl + S)</button>
+    <div id="buttons">
+      <button id="run">Run (⌘/Ctrl + S)</button>
+      <button id="clear">Clear (⌘/Ctrl + K)</button>
+    </div>
     <div id="output"></div>
   </div>
 
-  <!-- Monaco CSP-safe setup -->
   <script>
     window.MonacoEnvironment = {
       getWorkerUrl: function (_moduleId, label) {
@@ -104,6 +107,7 @@
     let editor;
 
     const defaultCode = `
+// go to https://docs.audius.org/sdk for all the sdk options
 export {};
 
 const { createWalletClient, custom } = window.viem;
@@ -112,11 +116,6 @@ const metamask = window.ethereum?.providers?.find(p => p.isMetaMask) || window.e
 if (!metamask) {
   alert('MetaMask not found');
   throw new Error('MetaMask required');
-}
-
-window.Web3 = window.Web3 || Web3;
-if (typeof window.Web3 === 'undefined') {
-  throw new Error('Web3 not found – ensure Web3 is loaded before using Audius SDK');
 }
 
 const [address] = await metamask.request({ method: 'eth_requestAccounts' });
@@ -131,29 +130,19 @@ const audiusChain = {
   }
 };
 
-
 const walletClient = createWalletClient({
   account: address,
   chain: audiusChain,
   transport: custom(metamask),
 });
 
-window.walletClient = walletClient;
-window.walletAddress = address;
-
-console.log("set wallet stuff")
 const sdk = window.audiusSdk({
   appName: 'MonacoApp',
   environment: 'staging',
   services: { audiusWalletClient: walletClient }
 });
 
-window.sdk = sdk
-
 console.log('✅ Audius SDK ready:', sdk);
-
-const track = await sdk.tracks.getTrack({ trackId: 'D7KyD' })
-console.logJSON(track, 'Track fetched!')
 
 const res = await sdk.users.updateProfile({
   userId: 'mEx6RYQ',
@@ -164,6 +153,7 @@ const res = await sdk.users.updateProfile({
 });
 
 console.log('🎉 Profile updated:', res);
+
 `;
 
     function initializeMonaco() {
@@ -194,6 +184,7 @@ console.log('🎉 Profile updated:', res);
 
         const output = document.getElementById('output');
         const runButton = document.getElementById('run');
+        const clearButton = document.getElementById('clear');
 
         async function runCode() {
           output.innerHTML = '';
@@ -249,10 +240,18 @@ console.log('🎉 Profile updated:', res);
         }
 
         runButton.addEventListener('click', runCode);
+        clearButton.addEventListener('click', () => {
+          output.innerHTML = '';
+        });
+
         window.addEventListener('keydown', (e) => {
           if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
             e.preventDefault();
             runCode();
+          }
+          if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+            e.preventDefault();
+            output.innerHTML = '';
           }
         });
       });
