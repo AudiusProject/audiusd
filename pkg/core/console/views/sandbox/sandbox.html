@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8" />
-  <title>Monaco + Audius + Viem</title>
+  <title>Monaco + Audius + Viem (CSP Safe)</title>
   <style>
     * {
       box-sizing: border-box;
@@ -73,7 +73,7 @@
   <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@audius/sdk@latest/dist/sdk.min.js"></script>
 
-  <!-- Load viem and attach to window -->
+  <!-- viem -->
   <script type="module">
     import * as viem from 'https://esm.sh/viem@2';
     window.viem = viem;
@@ -87,60 +87,83 @@
     <div id="output"></div>
   </div>
 
+  <!-- Monaco CSP-safe setup -->
+  <script>
+    window.MonacoEnvironment = {
+      getWorkerUrl: function (_moduleId, label) {
+        return `data:text/javascript;charset=utf-8,${encodeURIComponent(`
+          self.MonacoEnvironment = { baseUrl: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/' };
+          importScripts('https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs/base/worker/workerMain.js');
+        `)}`;
+      }
+    };
+  </script>
+
   <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs/loader.js"></script>
   <script>
     let editor;
 
-    const defaultCode = `export {};
+    const defaultCode = `
+export {};
 
-(async () => {
-  const { createWalletClient, custom } = window.viem;
+const { createWalletClient, custom } = window.viem;
 
-  const metamask = window.ethereum?.providers?.find(p => p.isMetaMask) || window.ethereum;
-  if (!metamask) {
-    alert('MetaMask not found');
-    throw new Error('MetaMask required');
+const metamask = window.ethereum?.providers?.find(p => p.isMetaMask) || window.ethereum;
+if (!metamask) {
+  alert('MetaMask not found');
+  throw new Error('MetaMask required');
+}
+
+window.Web3 = window.Web3 || Web3;
+if (typeof window.Web3 === 'undefined') {
+  throw new Error('Web3 not found – ensure Web3 is loaded before using Audius SDK');
+}
+
+const [address] = await metamask.request({ method: 'eth_requestAccounts' });
+console.log('🦊 Connected address:', address);
+
+const audiusChain = {
+  id: 1056801,
+  name: 'Audius',
+  nativeCurrency: { name: '-', symbol: '-', decimals: 18 },
+  rpcUrls: {
+    default: { http: ['http://node1.audiusd.devnet/core/erpc'] }
   }
+};
 
-  const [address] = await metamask.request({ method: 'eth_requestAccounts' });
-  console.log('🦊 Connected address:', address);
 
-  const audiusChain = {
-    id: 1056801,
-    name: 'Audius',
-    nativeCurrency: { name: '-', symbol: '-', decimals: 18 },
-    rpcUrls: {
-      default: { http: ['https://node1.audiusd.devnet/core/erpc'] }
-    }
-  };
+const walletClient = createWalletClient({
+  account: address,
+  chain: audiusChain,
+  transport: custom(metamask),
+});
 
-  const walletClient = createWalletClient({
-    account: address,
-    chain: audiusChain,
-    transport: custom(metamask),
-  });
+window.walletClient = walletClient;
+window.walletAddress = address;
 
-  window.walletClient = walletClient;
-  window.walletAddress = address;
+console.log("set wallet stuff")
+const sdk = window.audiusSdk({
+  appName: 'MonacoApp',
+  environment: 'staging',
+  services: { audiusWalletClient: walletClient }
+});
 
-  const sdk = window.audiusSdk({
-    appName: 'MonacoApp',
-    environment: 'staging',
-    services: { audiusWalletClient: walletClient }
-  });
+window.sdk = sdk
 
-  console.log('✅ Audius SDK ready:', sdk);
+console.log('✅ Audius SDK ready:', sdk);
 
-  const res = await sdk.users.updateProfile({
-    userId: 'mEx6RYQ',
-    metadata: {
-      bio: 'from the Monaco Editor 😎',
-    },
-    onProgress: (p) => console.log('⏳ Progress:', p),
-  });
+const track = await sdk.tracks.getTrack({ trackId: 'D7KyD' })
+console.logJSON(track, 'Track fetched!')
 
-  console.log('🎉 Profile updated:', res);
-})();
+const res = await sdk.users.updateProfile({
+  userId: 'mEx6RYQ',
+  metadata: {
+    bio: 'from the Monaco Editor 😎',
+  },
+  onProgress: (p) => console.log('⏳ Progress:', p),
+});
+
+console.log('🎉 Profile updated:', res);
 `;
 
     function initializeMonaco() {
@@ -235,7 +258,6 @@
       });
     }
 
-    // kick off the Monaco load
     initializeMonaco();
   </script>
 </body>
