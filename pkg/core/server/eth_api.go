@@ -11,6 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/jackc/pgx/v5"
 	"github.com/labstack/echo/v4"
 )
 
@@ -19,6 +20,10 @@ type EthAPI struct {
 	vars   *SandboxVars
 }
 type NetAPI struct {
+	server *Server
+	vars   *SandboxVars
+}
+type Web3API struct {
 	server *Server
 	vars   *SandboxVars
 }
@@ -37,7 +42,7 @@ func (s *Server) createEthRPC() error {
 	}
 
 	// Register the "web3" namespace
-	if err := ethRpc.RegisterName("web3", &Web3API{}); err != nil {
+	if err := ethRpc.RegisterName("web3", &Web3API{server: s, vars: sandboxVars(s.config)}); err != nil {
 		return fmt.Errorf("failed to register web3 rpc: %v", err)
 	}
 
@@ -65,12 +70,9 @@ func (api *NetAPI) Version(ctx context.Context) (string, error) {
 	return fmt.Sprint(api.vars.ethChainID), nil
 }
 
-// Web3API provides stubs for the "web3" namespace
-type Web3API struct{}
-
 // Stub: web3_clientVersion
 func (api *Web3API) ClientVersion(ctx context.Context) (string, error) {
-	return "MyCustomNode/v1.0.0", nil // Return a custom client version string
+	return "AudiusdERPC/v1.0.0", nil
 }
 
 // eth_chainId
@@ -98,17 +100,41 @@ func (api *EthAPI) GetBlockByNumber(ctx context.Context, blockNumber string, ful
 		height = n.Uint64()
 	}
 
+	dbBlock, err := api.server.db.GetBlock(ctx, int64(height))
+	if err != nil {
+		return nil, fmt.Errorf("block not found: %v", err)
+	}
+
+	parentBlockHeight := 1
+	if height-1 > 0 {
+		parentBlockHeight = int(height - 1)
+	}
+	parentBlock, err := api.server.db.GetBlock(ctx, int64(parentBlockHeight))
+	if !errors.Is(err, pgx.ErrNoRows) && err != nil {
+		return nil, fmt.Errorf("could not get parent block: %v", err)
+	}
+
+	blockTxs, err := api.server.db.GetBlockTransactions(ctx, dbBlock.Height)
+	if !errors.Is(err, pgx.ErrNoRows) && err != nil {
+		return nil, fmt.Errorf("could not get txs for block: %v", err)
+	}
+
+	txs := []string{}
+	for _, tx := range blockTxs {
+		txs = append(txs, tx.TxHash)
+	}
+
 	block := map[string]any{
 		"number":           hexutil.EncodeUint64(height),
-		"hash":             "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
-		"parentHash":       "0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdef",
+		"hash":             dbBlock.Hash,
+		"parentHash":       parentBlock.Hash,
 		"nonce":            "0x0000000000000000",
-		"sha3Uncles":       "0x1dcc4de8dec75d7aab85b567b6ccfdf55ed6e8195b14701d08cb5b2f89be1e11",
+		"sha3Uncles":       "",
 		"logsBloom":        "0x" + string(make([]byte, 256)),
 		"transactionsRoot": "0x" + string(make([]byte, 32)),
 		"stateRoot":        "0x" + string(make([]byte, 32)),
 		"receiptsRoot":     "0x" + string(make([]byte, 32)),
-		"miner":            "0x0000000000000000000000000000000000000000",
+		"miner":            dbBlock.Proposer,
 		"difficulty":       hexutil.EncodeBig(big.NewInt(1)),
 		"totalDifficulty":  hexutil.EncodeBig(big.NewInt(1)),
 		"extraData":        "0x",
@@ -116,7 +142,7 @@ func (api *EthAPI) GetBlockByNumber(ctx context.Context, blockNumber string, ful
 		"gasLimit":         hexutil.Uint64(10000000),
 		"gasUsed":          hexutil.Uint64(0),
 		"timestamp":        hexutil.Uint64(1711830000),
-		"transactions":     []any{}, // empty list unless fullTx == true
+		"transactions":     txs,
 		"uncles":           []string{},
 	}
 
