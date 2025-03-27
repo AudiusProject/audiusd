@@ -2,10 +2,13 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/big"
 	"net/http"
 
+	"github.com/AudiusProject/audiusd/pkg/core/config"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/labstack/echo/v4"
@@ -13,18 +16,23 @@ import (
 
 type EthAPI struct {
 	server *Server
+	vars   *SandboxVars
+}
+type NetAPI struct {
+	server *Server
+	vars   *SandboxVars
 }
 
 func (s *Server) createEthRPC() error {
 	ethRpc := rpc.NewServer()
 
 	// Register the "eth" namespace
-	if err := ethRpc.RegisterName("eth", &EthAPI{server: s}); err != nil {
+	if err := ethRpc.RegisterName("eth", &EthAPI{server: s, vars: sandboxVars(s.config)}); err != nil {
 		return fmt.Errorf("failed to register eth rpc: %v", err)
 	}
 
 	// Register the "net" namespace
-	if err := ethRpc.RegisterName("net", &NetAPI{server: s}); err != nil {
+	if err := ethRpc.RegisterName("net", &NetAPI{server: s, vars: sandboxVars(s.config)}); err != nil {
 		return fmt.Errorf("failed to register net rpc: %v", err)
 	}
 
@@ -52,13 +60,9 @@ func (s *Server) createEthRPC() error {
 	return nil
 }
 
-type NetAPI struct {
-	server *Server
-}
-
 // net_version
 func (api *NetAPI) Version(ctx context.Context) (string, error) {
-	return "1056801", nil
+	return fmt.Sprint(api.vars.ethChainID), nil
 }
 
 // Web3API provides stubs for the "web3" namespace
@@ -71,7 +75,7 @@ func (api *Web3API) ClientVersion(ctx context.Context) (string, error) {
 
 // eth_chainId
 func (api *EthAPI) ChainId(ctx context.Context) (*hexutil.Big, error) {
-	return (*hexutil.Big)(big.NewInt(1056801)), nil
+	return (*hexutil.Big)(big.NewInt(int64(api.vars.ethChainID))), nil
 }
 
 // eth_blockNumber
@@ -94,8 +98,7 @@ func (api *EthAPI) GetBlockByNumber(ctx context.Context, blockNumber string, ful
 		height = n.Uint64()
 	}
 
-	// TODO: Replace this with real block fetching logic from your chain
-	block := map[string]interface{}{
+	block := map[string]any{
 		"number":           hexutil.EncodeUint64(height),
 		"hash":             "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
 		"parentHash":       "0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdef",
@@ -122,6 +125,43 @@ func (api *EthAPI) GetBlockByNumber(ctx context.Context, blockNumber string, ful
 
 // eth_getBalance
 func (api *EthAPI) GetBalance(ctx context.Context, address string, block string) (*hexutil.Big, error) {
-	// Return dummy balance for now
-	return (*hexutil.Big)(big.NewInt(1000000000000000000)), nil // 1 ETH
+	audioTokenContract, err := api.server.contracts.GetAudioTokenContract()
+	if err != nil {
+		return nil, fmt.Errorf("could not connect to ethereum: %v", err)
+	}
+
+	if !common.IsHexAddress(address) {
+		return nil, errors.New("not valid address")
+	}
+
+	balance, err := audioTokenContract.BalanceOf(nil, common.HexToAddress(address))
+	if err != nil {
+		return nil, fmt.Errorf("could not get balance: %v", err)
+	}
+
+	return (*hexutil.Big)(balance), nil
+}
+
+type SandboxVars struct {
+	sdkEnvironment string
+	ethChainID     uint64
+	ethRpcURL      string
+}
+
+func sandboxVars(config *config.Config) *SandboxVars {
+	var sandboxVars SandboxVars
+	switch config.Environment {
+	case "prod":
+		sandboxVars.sdkEnvironment = "production"
+		sandboxVars.ethChainID = 1056801
+	case "stage":
+		sandboxVars.sdkEnvironment = "staging"
+		sandboxVars.ethChainID = 1056801
+	default:
+		sandboxVars.sdkEnvironment = "development"
+		sandboxVars.ethChainID = 10000
+	}
+
+	sandboxVars.ethRpcURL = fmt.Sprintf("%s/core/erpc", config.NodeEndpoint)
+	return &sandboxVars
 }
