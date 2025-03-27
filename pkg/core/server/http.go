@@ -87,7 +87,6 @@ func (s *Server) startEchoServer() error {
 	s.createEthRPC()
 
 	g.GET("/sdk", echo.WrapHandler(http.HandlerFunc(sandbox.ServeSandbox)))
-	g.GET("/sdk/defaultCode.js", echo.WrapHandler(http.HandlerFunc(sandbox.ServeSandbox)))
 
 	if s.config.CometModule {
 		g.Any("/debug/comet*", s.proxyCometRequest)

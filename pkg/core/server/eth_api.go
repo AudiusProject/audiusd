@@ -6,9 +6,7 @@ import (
 	"math/big"
 	"net/http"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/labstack/echo/v4"
 )
@@ -40,6 +38,7 @@ func (s *Server) createEthRPC() error {
 	e.POST("/core/erpc", echo.WrapHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		w.Header().Set("Content-Type", "application/json")
 
 		ethRpc.ServeHTTP(w, r)
 	})))
@@ -60,17 +59,7 @@ type NetAPI struct {
 
 // Stub: net_version
 func (api *NetAPI) Version(ctx context.Context) (string, error) {
-	return "1", nil // Return the network ID (e.g., "1" for mainnet)
-}
-
-// Stub: net_listening
-func (api *NetAPI) Listening(ctx context.Context) (bool, error) {
-	return true, nil // Indicate that the node is listening
-}
-
-// Stub: net_peerCount
-func (api *NetAPI) PeerCount(ctx context.Context) (hexutil.Uint, error) {
-	return hexutil.Uint(0), nil // Return the number of connected peers
+	return "1056801", nil
 }
 
 // Web3API provides stubs for the "web3" namespace
@@ -79,12 +68,6 @@ type Web3API struct{}
 // Stub: web3_clientVersion
 func (api *Web3API) ClientVersion(ctx context.Context) (string, error) {
 	return "MyCustomNode/v1.0.0", nil // Return a custom client version string
-}
-
-// Stub: web3_sha3
-func (api *Web3API) Sha3(ctx context.Context, input hexutil.Bytes) (hexutil.Bytes, error) {
-	hash := common.BytesToHash(crypto.Keccak256(input))
-	return hash[:], nil // Return the Keccak-256 hash of the input
 }
 
 func (api *EthAPI) ChainId(ctx context.Context) (*hexutil.Big, error) {
@@ -97,33 +80,48 @@ func (api *EthAPI) BlockNumber(ctx context.Context) (*hexutil.Uint64, error) {
 	return (*hexutil.Uint64)(&blockHeight), nil
 }
 
+func (api *EthAPI) GetBlockByNumber(ctx context.Context, blockNumber string, fullTx bool) (map[string]interface{}, error) {
+	var height uint64
+
+	switch blockNumber {
+	case "latest":
+		height = uint64(api.server.cache.currentHeight.Load())
+	default:
+		n := new(big.Int)
+		if err := n.UnmarshalText([]byte(blockNumber)); err != nil {
+			return nil, fmt.Errorf("invalid block number: %s", blockNumber)
+		}
+		height = n.Uint64()
+	}
+
+	// TODO: Replace this with real block fetching logic from your chain
+	block := map[string]interface{}{
+		"number":           hexutil.EncodeUint64(height),
+		"hash":             "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+		"parentHash":       "0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdef",
+		"nonce":            "0x0000000000000000",
+		"sha3Uncles":       "0x1dcc4de8dec75d7aab85b567b6ccfdf55ed6e8195b14701d08cb5b2f89be1e11",
+		"logsBloom":        "0x" + string(make([]byte, 256)),
+		"transactionsRoot": "0x" + string(make([]byte, 32)),
+		"stateRoot":        "0x" + string(make([]byte, 32)),
+		"receiptsRoot":     "0x" + string(make([]byte, 32)),
+		"miner":            "0x0000000000000000000000000000000000000000",
+		"difficulty":       hexutil.EncodeBig(big.NewInt(1)),
+		"totalDifficulty":  hexutil.EncodeBig(big.NewInt(1)),
+		"extraData":        "0x",
+		"size":             hexutil.Uint64(1000),
+		"gasLimit":         hexutil.Uint64(10000000),
+		"gasUsed":          hexutil.Uint64(0),
+		"timestamp":        hexutil.Uint64(1711830000),
+		"transactions":     []any{}, // empty list unless fullTx == true
+		"uncles":           []string{},
+	}
+
+	return block, nil
+}
+
 // Stub: eth_getBalance
 func (api *EthAPI) GetBalance(ctx context.Context, address string, block string) (*hexutil.Big, error) {
 	// Return dummy balance for now
 	return (*hexutil.Big)(big.NewInt(1000000000000000000)), nil // 1 ETH
-}
-
-// Stub: eth_sendRawTransaction
-func (api *EthAPI) SendRawTransaction(ctx context.Context, rawTx hexutil.Bytes) (string, error) {
-	// Decode, verify, and submit transaction to your backend here
-	return "0xdeadbeef", nil
-}
-
-func (api *EthAPI) GetTransactionCount(ctx context.Context, address string, blockParam string) (*hexutil.Uint64, error) {
-	// Validate Ethereum address
-	if !common.IsHexAddress(address) {
-		return nil, fmt.Errorf("invalid address: %s", address)
-	}
-
-	// Replace this with your logic — lookup nonce from your chain/backend
-	// You might call a gRPC method or query your DB for the account's sequence/nonce
-	var nonce uint64 = 0
-
-	// Example: if you're storing nonce in your server cache/db
-	// nonce, err := api.server.cache.GetAccountNonce(addr)
-	// if err != nil {
-	//     return nil, err
-	// }
-
-	return (*hexutil.Uint64)(&nonce), nil
 }

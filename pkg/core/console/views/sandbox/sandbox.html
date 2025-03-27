@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8" />
-  <title>Monaco + Audius</title>
+  <title>Monaco + Audius + Viem</title>
   <style>
     * {
       box-sizing: border-box;
@@ -69,9 +69,15 @@
     }
   </style>
 
-  <!-- ✅ Audius SDK and Web3 -->
+  <!-- Audius SDK + Web3 -->
   <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@audius/sdk@latest/dist/sdk.min.js"></script>
+
+  <!-- Load viem and attach to window -->
+  <script type="module">
+    import * as viem from 'https://esm.sh/viem@2';
+    window.viem = viem;
+  </script>
 </head>
 
 <body>
@@ -83,107 +89,154 @@
 
   <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs/loader.js"></script>
   <script>
-    require.config({ paths: { 'vs': 'https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs' } });
-    require(['vs/editor/editor.main'], function () {
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      monaco.editor.setTheme(prefersDark ? 'vs-dark' : 'vs');
+    let editor;
 
-      // TypeScript config
-      monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
-        target: monaco.languages.typescript.ScriptTarget.ES2020,
-        module: monaco.languages.typescript.ModuleKind.ESNext,
-        moduleResolution: monaco.languages.typescript.ModuleResolutionKind.NodeJs,
-        allowNonTsExtensions: true,
-        allowJs: true,
-        esModuleInterop: true,
-        noEmit: true,
-      });
+    const defaultCode = `export {};
 
-      // Declare audiusSdk on window for TypeScript
-      monaco.languages.typescript.typescriptDefaults.addExtraLib(`
-declare interface Window {
-  audiusSdk: typeof import("@audius/sdk");
-}
-`, 'ts:window.d.ts');
+(async () => {
+  const { createWalletClient, custom } = window.viem;
 
-      const defaultCode = `export {};
+  const metamask = window.ethereum?.providers?.find(p => p.isMetaMask) || window.ethereum;
+  if (!metamask) {
+    alert('MetaMask not found');
+    throw new Error('MetaMask required');
+  }
 
-const sdk = window.audiusSdk({
-  appName: "monacotest"
-});
+  const [address] = await metamask.request({ method: 'eth_requestAccounts' });
+  console.log('🦊 Connected address:', address);
 
-const track = await sdk.tracks.getTrack({ trackId: 'D7KyD' });
-console.logJSON('Track fetched', track);
+  const audiusChain = {
+    id: 1056801,
+    name: 'Audius',
+    nativeCurrency: { name: '-', symbol: '-', decimals: 18 },
+    rpcUrls: {
+      default: { http: ['https://node1.audiusd.devnet/core/erpc'] }
+    }
+  };
+
+  const walletClient = createWalletClient({
+    account: address,
+    chain: audiusChain,
+    transport: custom(metamask),
+  });
+
+  window.walletClient = walletClient;
+  window.walletAddress = address;
+
+  const sdk = window.audiusSdk({
+    appName: 'MonacoApp',
+    environment: 'staging',
+    services: { audiusWalletClient: walletClient }
+  });
+
+  console.log('✅ Audius SDK ready:', sdk);
+
+  const res = await sdk.users.updateProfile({
+    userId: 'mEx6RYQ',
+    metadata: {
+      bio: 'from the Monaco Editor 😎',
+    },
+    onProgress: (p) => console.log('⏳ Progress:', p),
+  });
+
+  console.log('🎉 Profile updated:', res);
+})();
 `;
 
-      const editor = monaco.editor.create(document.getElementById('editor'), {
-        value: defaultCode,
-        language: 'typescript',
-        theme: prefersDark ? 'vs-dark' : 'vs',
-        automaticLayout: true,
-        fontFamily: '"Fira Code", Consolas, monospace',
-        fontSize: 14,
-        padding: { top: 12, bottom: 12 }
-      });
+    function initializeMonaco() {
+      require.config({ paths: { 'vs': 'https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs' } });
+      require(['vs/editor/editor.main'], function () {
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        monaco.editor.setTheme(prefersDark ? 'vs-dark' : 'vs');
 
-      const output = document.getElementById('output');
-      const runButton = document.getElementById('run');
-
-      function captureConsole() {
-        const logs = [];
-
-        // Add custom console.logJSON method
-        console.logJSON = function (label, obj) {
-          const json = JSON.stringify(obj, null, 2);
-          logs.push(`<span style="color:deepskyblue;">${label}:</span><pre>${json}</pre>`);
-          console.logOriginal(label + ':', obj);
-        };
-
-        const wrap = (fn, label) => (...args) => {
-          logs.push(`<span style="color:${label === 'error' ? 'red' : 'limegreen'}">${label}: ${args.join(' ')}</span>`);
-          console[`${label}Original`](...args);
-        };
-
-        ['log', 'error', 'warn', 'info'].forEach(method => {
-          console[`${method}Original`] = console[method];
-          console[method] = wrap(console[method], method);
+        monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
+          target: monaco.languages.typescript.ScriptTarget.ES2020,
+          module: monaco.languages.typescript.ModuleKind.ESNext,
+          moduleResolution: monaco.languages.typescript.ModuleResolutionKind.NodeJs,
+          allowJs: true,
+          allowNonTsExtensions: true,
+          esModuleInterop: true,
+          noEmit: true,
         });
 
-        return () => {
-          ['log', 'error', 'warn', 'info'].forEach(method => {
+        editor = monaco.editor.create(document.getElementById('editor'), {
+          value: defaultCode,
+          language: 'typescript',
+          theme: prefersDark ? 'vs-dark' : 'vs',
+          automaticLayout: true,
+          fontFamily: '"Fira Code", Consolas, monospace',
+          fontSize: 14,
+          padding: { top: 12, bottom: 12 }
+        });
+
+        const output = document.getElementById('output');
+        const runButton = document.getElementById('run');
+
+        async function runCode() {
+          output.innerHTML = '';
+          const logs = [];
+
+          const writeToOutput = (label, args, color = 'limegreen') => {
+            const formatted = args.map(arg => {
+              try {
+                return typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg);
+              } catch {
+                return '[Unserializable]';
+              }
+            }).join(' ');
+            logs.push(`<span style="color:${color};">${label}: ${formatted}</span>`);
+            output.innerHTML = logs.join('<br>');
+          };
+
+          ['log', 'info', 'warn', 'error'].forEach(method => {
+            console[`${method}Original`] = console[method];
+            console[method] = (...args) => {
+              const color =
+                method === 'error' ? 'red' :
+                  method === 'warn' ? 'orange' :
+                    'limegreen';
+              writeToOutput(method, args, color);
+              console[`${method}Original`](...args);
+            };
+          });
+
+          console.logJSON = function (label, obj) {
+            try {
+              const json = JSON.stringify(obj, null, 2);
+              logs.push(`<span style="color:deepskyblue;">${label}:</span><pre>${json}</pre>`);
+              output.innerHTML = logs.join('<br>');
+            } catch (e) {
+              console.error('Failed to stringify object', e);
+            }
+          };
+
+          try {
+            const code = editor.getValue();
+            const blob = new Blob([code], { type: 'application/javascript' });
+            const url = URL.createObjectURL(blob);
+            await import(url);
+            URL.revokeObjectURL(url);
+          } catch (e) {
+            console.error('Execution error:', e);
+          }
+
+          ['log', 'info', 'warn', 'error'].forEach(method => {
             console[method] = console[`${method}Original`];
           });
-          return logs;
-        };
-      }
-
-      async function runCode() {
-        output.innerHTML = '';
-        const restoreConsole = captureConsole();
-
-        try {
-          const code = editor.getValue();
-          const blob = new Blob([code], { type: 'application/javascript' });
-          const url = URL.createObjectURL(blob);
-          await import(url);
-          URL.revokeObjectURL(url);
-        } catch (e) {
-          console.error(e);
         }
 
-        const logs = restoreConsole();
-        output.innerHTML = logs.join('<br>');
-      }
-
-      runButton.addEventListener('click', runCode);
-
-      window.addEventListener('keydown', (e) => {
-        if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
-          e.preventDefault();
-          runCode();
-        }
+        runButton.addEventListener('click', runCode);
+        window.addEventListener('keydown', (e) => {
+          if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
+            e.preventDefault();
+            runCode();
+          }
+        });
       });
-    });
+    }
+
+    // kick off the Monaco load
+    initializeMonaco();
   </script>
 </body>
 

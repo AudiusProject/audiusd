@@ -1,5 +1,6 @@
 // Connect to MetaMask and fetch a track from Audius
 const { createWalletClient, custom } = window.viem;
+console.log("🦊 Checking for MetaMask...");
 
 // Use only MetaMask (ignore Phantom)
 const providers = window.ethereum?.providers || [window.ethereum];
@@ -9,6 +10,8 @@ if (!metamask) {
   alert('MetaMask not found. Disable Phantom or other wallets for now.');
   throw new Error('MetaMask required');
 }
+
+console.log("🦊 MetaMask found");
 
 const audiusChain = {
   id: 1056801,
@@ -44,8 +47,7 @@ const sdk = window.audiusSdk({
 console.log("✅ Audius SDK initialized");
 
 if (!sdk) {
-  console.log("❌ Audius SDK not initialized.");
-  return;
+  throw new Error("❌ Audius SDK not initialized.");
 }
 
 const res = await sdk.users.updateProfile({
