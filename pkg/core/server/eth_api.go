@@ -52,12 +52,11 @@ func (s *Server) createEthRPC() error {
 	return nil
 }
 
-// NetAPI provides stubs for the "net" namespace
 type NetAPI struct {
 	server *Server
 }
 
-// Stub: net_version
+// net_version
 func (api *NetAPI) Version(ctx context.Context) (string, error) {
 	return "1056801", nil
 }
@@ -70,17 +69,18 @@ func (api *Web3API) ClientVersion(ctx context.Context) (string, error) {
 	return "MyCustomNode/v1.0.0", nil // Return a custom client version string
 }
 
+// eth_chainId
 func (api *EthAPI) ChainId(ctx context.Context) (*hexutil.Big, error) {
 	return (*hexutil.Big)(big.NewInt(1056801)), nil
 }
 
-// Stub: eth_blockNumber
+// eth_blockNumber
 func (api *EthAPI) BlockNumber(ctx context.Context) (*hexutil.Uint64, error) {
 	blockHeight := uint64(api.server.cache.currentHeight.Load())
 	return (*hexutil.Uint64)(&blockHeight), nil
 }
 
-func (api *EthAPI) GetBlockByNumber(ctx context.Context, blockNumber string, fullTx bool) (map[string]interface{}, error) {
+func (api *EthAPI) GetBlockByNumber(ctx context.Context, blockNumber string, fullTx bool) (map[string]any, error) {
 	var height uint64
 
 	switch blockNumber {
@@ -120,7 +120,7 @@ func (api *EthAPI) GetBlockByNumber(ctx context.Context, blockNumber string, ful
 	return block, nil
 }
 
-// Stub: eth_getBalance
+// eth_getBalance
 func (api *EthAPI) GetBalance(ctx context.Context, address string, block string) (*hexutil.Big, error) {
 	// Return dummy balance for now
 	return (*hexutil.Big)(big.NewInt(1000000000000000000)), nil // 1 ETH
