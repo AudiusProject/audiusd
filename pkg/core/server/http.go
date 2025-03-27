@@ -85,13 +85,9 @@ func (s *Server) startEchoServer() error {
 
 	// kind of weird pattern
 	s.createEthRPC()
-	g.GET("/sdk", func(c echo.Context) error {
-		data, err := sandbox.SandboxHTML.ReadFile("sandbox.html")
-		if err != nil {
-			return c.String(http.StatusInternalServerError, "failed to read sandbox.html")
-		}
-		return c.HTMLBlob(http.StatusOK, data)
-	})
+
+	g.GET("/sdk", echo.WrapHandler(http.HandlerFunc(sandbox.ServeSandbox)))
+	g.GET("/sdk/defaultCode.js", echo.WrapHandler(http.HandlerFunc(sandbox.ServeSandbox)))
 
 	if s.config.CometModule {
 		g.Any("/debug/comet*", s.proxyCometRequest)

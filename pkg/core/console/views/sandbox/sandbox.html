@@ -3,61 +3,71 @@
 
 <head>
   <meta charset="UTF-8" />
-  <title>Viem + Audius + Monaco Playground</title>
-
-  <!-- Monaco Loader -->
-  <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.34.1/min/vs/loader.js"></script>
-
-  <!-- Audius SDK -->
-  <script src="https://cdn.jsdelivr.net/npm/@audius/sdk@latest/dist/sdk.min.js"></script>
-
+  <title>Monaco TypeScript Runner</title>
   <style>
+    * {
+      box-sizing: border-box;
+    }
+
     html,
     body {
       margin: 0;
       padding: 0;
       height: 100%;
+      font-family: system-ui, sans-serif;
+      background-color: var(--bg);
+      color: var(--fg);
     }
 
     #container {
       display: flex;
-      height: 100vh;
-      width: 100vw;
+      flex-direction: column;
+      height: 100%;
+      padding: 12px;
+      gap: 10px;
     }
 
     #editor {
       flex: 1;
+      border-radius: 8px;
+      overflow: hidden;
     }
 
-    #console {
-      width: 30%;
-      background: #1e1e1e;
-      color: #dcdcdc;
-      display: flex;
-      flex-direction: column;
-      padding: 1rem;
-      font-family: monospace;
-    }
-
-    button {
-      padding: 0.5rem;
-      margin-bottom: 0.5rem;
-      width: 100%;
-      cursor: pointer;
-      background: #007acc;
+    #run {
+      align-self: flex-start;
+      padding: 8px 16px;
+      font-size: 16px;
+      font-weight: 500;
       border: none;
+      border-radius: 6px;
+      background-color: #007acc;
       color: white;
-      font-size: 1rem;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+
+    #run:hover {
+      background-color: #005fa3;
     }
 
     #output {
-      flex: 1;
-      overflow: auto;
-      margin: 0;
-      padding: 0.5rem;
-      background: #1e1e1e;
-      font-family: monospace;
+      height: 30vh;
+      padding: 12px;
+      border-radius: 6px;
+      overflow-y: auto;
+      background-color: #1e1e1e;
+      color: #dcdcdc;
+      font-family: "Fira Code", Consolas, monospace;
+      font-size: 14px;
       white-space: pre-wrap;
+      line-height: 1.5;
+    }
+
+    @media (prefers-color-scheme: light) {
+      #output {
+        background-color: #f3f3f3;
+        color: #111;
+      }
     }
   </style>
 </head>
@@ -65,110 +75,79 @@
 <body>
   <div id="container">
     <div id="editor"></div>
-    <div id="console">
-      <button id="runBtn">▶ Run</button>
-      <pre id="output"></pre>
-    </div>
+    <button id="run">Run (⌘/Ctrl + S)</button>
+    <div id="output"></div>
   </div>
 
-  <!-- Load Viem and expose to window -->
-  <script type="module">
-    import * as viem from 'https://esm.sh/viem';
-    import { mainnet } from 'https://esm.sh/viem/chains';
-    window.viem = { ...viem, mainnet };
-    console.log("✅ Viem loaded");
-  </script>
-
+  <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs/loader.js"></script>
   <script>
-    const log = (...args) => {
+    require.config({ paths: { 'vs': 'https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs' } });
+    require(['vs/editor/editor.main'], function () {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      monaco.editor.setTheme(prefersDark ? 'vs-dark' : 'vs');
+
+      const editor = monaco.editor.create(document.getElementById('editor'), {
+        value: `function greet(name: string) {\n  console.log("Hello, " + name);\n}\n\ngreet("TypeScript");`,
+        language: 'typescript',
+        theme: prefersDark ? 'vs-dark' : 'vs',
+        automaticLayout: true,
+        fontFamily: '"Fira Code", Consolas, monospace',
+        fontSize: 14,
+        padding: { top: 12, bottom: 12 }
+      });
+
       const output = document.getElementById('output');
-      output.textContent += args.join(' ') + '\n';
-      console.log(...args);
-    };
+      const runButton = document.getElementById('run');
 
-    window.onload = () => {
-      window.require.config({
-        paths: {
-          vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.34.1/min/vs'
-        }
-      });
-
-      window.require(['vs/editor/editor.main'], () => {
-        const defaultCode = `// Connect to MetaMask and fetch a track from Audius
-const { createWalletClient, custom, mainnet } = window.viem;
-
-// Use only MetaMask (ignore Phantom)
-const providers = window.ethereum?.providers || [window.ethereum];
-const metamask = providers.find(p => p?.isMetaMask);
-
-if (!metamask) {
-  alert('MetaMask not found. Disable Phantom or other wallets for now.');
-  throw new Error('MetaMask required');
-}
-
-// TEMP client to get address
-const tempClient = createWalletClient({
-  chain: mainnet,
-  transport: custom(metamask),
-});
-
-const addresses = await tempClient.requestAddresses();
-console.log("Wallet address:", addresses[0]);
-
-// FINAL client with account attached
-const audiusWalletClient = createWalletClient({
-  account: addresses[0],
-  chain: mainnet,
-  transport: custom(metamask),
-});
-
-window.walletClient = audiusWalletClient;
-window.walletAddress = addresses[0];
-
-const sdk = window.audiusSdk({
-  appName: 'MonacoApp',
-  environment: 'staging',
-  services: { audiusWalletClient }
-});
-
-console.log("✅ Audius SDK initialized");
-
-if (!sdk) {
-  console.log("❌ Audius SDK not initialized.");
-  return;
-}
-
-const track = await sdk.tracks.getTrack({ trackId: 'D7KyD' });
-console.log("🎵 Track fetched from Audius:", track.data.title);
-`;
-
-        window.editor = monaco.editor.create(document.getElementById('editor'), {
-          value: defaultCode,
-          language: 'javascript',
-          theme: 'vs-dark',
-        });
-      });
-
-      document.getElementById('runBtn').onclick = () => {
-        const code = window.editor.getValue();
-        const originalLog = console.log;
-        const captured = [];
-
-        console.log = (...args) => {
-          captured.push(args.map(String).join(' '));
-          originalLog(...args);
+      function captureConsole() {
+        const logs = [];
+        const wrap = (fn, label) => (...args) => {
+          logs.push(`<span style="color:${label === 'error' ? 'red' : 'limegreen'}">${label}: ${args.join(' ')}</span>`);
+          console[`${label}Original`](...args);
         };
+        ['log', 'error', 'warn', 'info'].forEach(method => {
+          console[`${method}Original`] = console[method];
+          console[method] = wrap(console[method], method);
+        });
+        return () => {
+          ['log', 'error', 'warn', 'info'].forEach(method => {
+            console[method] = console[`${method}Original`];
+          });
+          return logs;
+        };
+      }
+
+      async function runCode() {
+        output.innerHTML = '';
+        const restoreConsole = captureConsole();
 
         try {
-          eval(`(async () => { ${code} })()`);
+          const model = editor.getModel();
+          const client = await monaco.languages.typescript.getTypeScriptWorker().then(worker => worker(model.uri));
+          const result = await client.getEmitOutput(model.uri.toString());
+          const js = result.outputFiles.find(f => f.name.endsWith('.js'))?.text;
+          if (js) {
+            new Function(js)();
+          } else {
+            console.error("No JS output");
+          }
         } catch (e) {
-          captured.push('Error: ' + e.message);
-        } finally {
-          document.getElementById('output').textContent = captured.join('\n');
-          console.log = originalLog;
+          console.error(e);
         }
-      };
-    };
+
+        const logs = restoreConsole();
+        output.innerHTML = logs.join('<br>');
+      }
+
+      runButton.addEventListener('click', runCode);
+
+      window.addEventListener('keydown', (e) => {
+        if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
+          e.preventDefault();
+          runCode();
+        }
+      });
+    });
   </script>
 </body>
 
