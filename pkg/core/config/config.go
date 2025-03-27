@@ -314,9 +314,13 @@ type SandboxVars struct {
 	EthRpcURL      string
 }
 
-func (c *Config) NewSandboxVars() *SandboxVars {
+func (c *Config) NewSandboxVars(env ...string) *SandboxVars {
+	environment := c.Environment
+	if len(env) > 0 {
+		environment = env[0]
+	}
 	var sandboxVars SandboxVars
-	switch c.Environment {
+	switch environment {
 	case "prod":
 		sandboxVars.SdkEnvironment = "production"
 		sandboxVars.EthChainID = 31524

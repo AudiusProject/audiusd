@@ -18,7 +18,14 @@ type PageData struct {
 }
 
 func ServeSandbox(cfg *config.Config, w http.ResponseWriter, r *http.Request) {
-	sandboxVars := cfg.NewSandboxVars()
+	env := r.URL.Query().Get("env")
+
+	var sandboxVars *config.SandboxVars
+	if env != "" {
+		sandboxVars = cfg.NewSandboxVars(env)
+	} else {
+		sandboxVars = cfg.NewSandboxVars()
+	}
 
 	tmpl := template.Must(template.ParseFS(EditorAssets, "editor.html"))
 
