@@ -85,8 +85,9 @@ func (s *Server) startEchoServer() error {
 
 	// kind of weird pattern
 	s.createEthRPC()
-
-	g.GET("/sdk", echo.WrapHandler(http.HandlerFunc(sandbox.ServeSandbox)))
+	g.GET("/sdk", echo.WrapHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		sandbox.ServeSandbox(s.config, w, r)
+	})))
 
 	if s.config.CometModule {
 		g.Any("/debug/comet*", s.proxyCometRequest)

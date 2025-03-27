@@ -307,3 +307,27 @@ func DefaultRegistryAddress() string {
 func (c *Config) RunDownMigrations() bool {
 	return c.RunDownMigration
 }
+
+type SandboxVars struct {
+	SdkEnvironment string
+	EthChainID     uint64
+	EthRpcURL      string
+}
+
+func (c *Config) NewSandboxVars() *SandboxVars {
+	var sandboxVars SandboxVars
+	switch c.Environment {
+	case "prod":
+		sandboxVars.SdkEnvironment = "production"
+		sandboxVars.EthChainID = 31524
+	case "stage":
+		sandboxVars.SdkEnvironment = "staging"
+		sandboxVars.EthChainID = 1056801
+	default:
+		sandboxVars.SdkEnvironment = "development"
+		sandboxVars.EthChainID = 1337
+	}
+
+	sandboxVars.EthRpcURL = fmt.Sprintf("%s/core/erpc", c.NodeEndpoint)
+	return &sandboxVars
+}

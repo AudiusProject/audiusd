@@ -2,20 +2,35 @@ package sandbox
 
 import (
 	"embed"
+	"html/template"
 	"net/http"
+
+	"github.com/AudiusProject/audiusd/pkg/core/config"
 )
 
-//go:embed sandbox.html
-var SandboxAssets embed.FS
+//go:embed editor.html
+var EditorAssets embed.FS
 
-// ServeSandbox serves the embedded sandbox files
-func ServeSandbox(w http.ResponseWriter, r *http.Request) {
-	// Serve the HTML file
-	data, err := SandboxAssets.ReadFile("sandbox.html")
-	if err != nil {
-		http.Error(w, "failed to read sandbox.html", http.StatusInternalServerError)
-		return
+type PageData struct {
+	Environment string
+	RPCUrl      string
+	ChainID     uint
+}
+
+func ServeSandbox(cfg *config.Config, w http.ResponseWriter, r *http.Request) {
+	sandboxVars := cfg.NewSandboxVars()
+
+	tmpl := template.Must(template.ParseFS(EditorAssets, "editor.html"))
+
+	data := PageData{
+		Environment: sandboxVars.SdkEnvironment,
+		RPCUrl:      sandboxVars.EthRpcURL,
+		ChainID:     uint(sandboxVars.EthChainID),
 	}
-	w.Header().Set("Content-Type", "text/html")
-	w.Write(data)
+
+	// Execute directly (no named template)
+	err := tmpl.Execute(w, data)
+	if err != nil {
+		http.Error(w, "Template error: "+err.Error(), http.StatusInternalServerError)
+	}
 }

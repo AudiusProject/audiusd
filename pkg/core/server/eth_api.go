@@ -17,32 +17,32 @@ import (
 
 type EthAPI struct {
 	server *Server
-	vars   *SandboxVars
+	vars   *config.SandboxVars
 }
 type NetAPI struct {
 	server *Server
-	vars   *SandboxVars
+	vars   *config.SandboxVars
 }
 type Web3API struct {
 	server *Server
-	vars   *SandboxVars
+	vars   *config.SandboxVars
 }
 
 func (s *Server) createEthRPC() error {
 	ethRpc := rpc.NewServer()
 
 	// Register the "eth" namespace
-	if err := ethRpc.RegisterName("eth", &EthAPI{server: s, vars: sandboxVars(s.config)}); err != nil {
+	if err := ethRpc.RegisterName("eth", &EthAPI{server: s, vars: s.config.NewSandboxVars()}); err != nil {
 		return fmt.Errorf("failed to register eth rpc: %v", err)
 	}
 
 	// Register the "net" namespace
-	if err := ethRpc.RegisterName("net", &NetAPI{server: s, vars: sandboxVars(s.config)}); err != nil {
+	if err := ethRpc.RegisterName("net", &NetAPI{server: s, vars: s.config.NewSandboxVars()}); err != nil {
 		return fmt.Errorf("failed to register net rpc: %v", err)
 	}
 
 	// Register the "web3" namespace
-	if err := ethRpc.RegisterName("web3", &Web3API{server: s, vars: sandboxVars(s.config)}); err != nil {
+	if err := ethRpc.RegisterName("web3", &Web3API{server: s, vars: s.config.NewSandboxVars()}); err != nil {
 		return fmt.Errorf("failed to register web3 rpc: %v", err)
 	}
 
@@ -67,7 +67,7 @@ func (s *Server) createEthRPC() error {
 
 // net_version
 func (api *NetAPI) Version(ctx context.Context) (string, error) {
-	return fmt.Sprint(api.vars.ethChainID), nil
+	return fmt.Sprint(api.vars.EthChainID), nil
 }
 
 // Stub: web3_clientVersion
@@ -77,7 +77,7 @@ func (api *Web3API) ClientVersion(ctx context.Context) (string, error) {
 
 // eth_chainId
 func (api *EthAPI) ChainId(ctx context.Context) (*hexutil.Big, error) {
-	return (*hexutil.Big)(big.NewInt(int64(api.vars.ethChainID))), nil
+	return (*hexutil.Big)(big.NewInt(int64(api.vars.EthChainID))), nil
 }
 
 // eth_blockNumber
@@ -166,28 +166,4 @@ func (api *EthAPI) GetBalance(ctx context.Context, address string, block string)
 	}
 
 	return (*hexutil.Big)(balance), nil
-}
-
-type SandboxVars struct {
-	sdkEnvironment string
-	ethChainID     uint64
-	ethRpcURL      string
-}
-
-func sandboxVars(config *config.Config) *SandboxVars {
-	var sandboxVars SandboxVars
-	switch config.Environment {
-	case "prod":
-		sandboxVars.sdkEnvironment = "production"
-		sandboxVars.ethChainID = 1056801
-	case "stage":
-		sandboxVars.sdkEnvironment = "staging"
-		sandboxVars.ethChainID = 1056801
-	default:
-		sandboxVars.sdkEnvironment = "development"
-		sandboxVars.ethChainID = 10000
-	}
-
-	sandboxVars.ethRpcURL = fmt.Sprintf("%s/core/erpc", config.NodeEndpoint)
-	return &sandboxVars
 }

@@ -79,6 +79,15 @@
     import * as viem from 'https://esm.sh/viem@2';
     window.viem = viem;
   </script>
+
+  <!-- Inject environment variables -->
+  <script>
+    window.AppEnv = {
+      environment: "{{ .Environment }}",
+      rpcUrl: "{{ .RPCUrl }}",
+      chainId: "{{ .ChainID }}"
+    };
+  </script>
 </head>
 
 <body>
@@ -107,7 +116,10 @@
     let editor;
 
     const defaultCode = `
-// go to https://docs.audius.org/sdk for all the sdk options
+// Uses environment: ${window.AppEnv.environment}
+// RPC URL: ${window.AppEnv.rpcUrl}
+// Chain ID: ${window.AppEnv.chainId}
+
 export {};
 
 const { createWalletClient, custom } = window.viem;
@@ -122,11 +134,11 @@ const [address] = await metamask.request({ method: 'eth_requestAccounts' });
 console.log('🦊 Connected address:', address);
 
 const audiusChain = {
-  id: 1056801,
-  name: 'Audius',
+  id: ${window.AppEnv.chainId},
+  name: 'Audius ${window.AppEnv.environment}',
   nativeCurrency: { name: '-', symbol: '-', decimals: 18 },
   rpcUrls: {
-    default: { http: ['http://node1.audiusd.devnet/core/erpc'] }
+    default: { http: ['${window.AppEnv.rpcUrl}'] }
   }
 };
 
@@ -135,10 +147,12 @@ const walletClient = createWalletClient({
   chain: audiusChain,
   transport: custom(metamask),
 });
+await walletClient.addChain({ chain: audiusChain })
+await walletClient.switchChain({ id: audiusChain.id }) 
 
 const sdk = window.audiusSdk({
   appName: 'MonacoApp',
-  environment: 'staging',
+  environment: window.AppEnv.environment,
   services: { audiusWalletClient: walletClient }
 });
 
