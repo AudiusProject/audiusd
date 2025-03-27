@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8" />
-  <title>Monaco TypeScript Runner</title>
+  <title>Monaco + Audius</title>
   <style>
     * {
       box-sizing: border-box;
@@ -15,8 +15,6 @@
       padding: 0;
       height: 100%;
       font-family: system-ui, sans-serif;
-      background-color: var(--bg);
-      color: var(--fg);
     }
 
     #container {
@@ -70,6 +68,10 @@
       }
     }
   </style>
+
+  <!-- ✅ Audius SDK and Web3 -->
+  <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@audius/sdk@latest/dist/sdk.min.js"></script>
 </head>
 
 <body>
@@ -86,8 +88,36 @@
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
       monaco.editor.setTheme(prefersDark ? 'vs-dark' : 'vs');
 
+      // TypeScript config
+      monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
+        target: monaco.languages.typescript.ScriptTarget.ES2020,
+        module: monaco.languages.typescript.ModuleKind.ESNext,
+        moduleResolution: monaco.languages.typescript.ModuleResolutionKind.NodeJs,
+        allowNonTsExtensions: true,
+        allowJs: true,
+        esModuleInterop: true,
+        noEmit: true,
+      });
+
+      // Declare audiusSdk on window for TypeScript
+      monaco.languages.typescript.typescriptDefaults.addExtraLib(`
+declare interface Window {
+  audiusSdk: typeof import("@audius/sdk");
+}
+`, 'ts:window.d.ts');
+
+      const defaultCode = `export {};
+
+const sdk = window.audiusSdk({
+  appName: "monacotest"
+});
+
+const track = await sdk.tracks.getTrack({ trackId: 'D7KyD' });
+console.logJSON('Track fetched', track);
+`;
+
       const editor = monaco.editor.create(document.getElementById('editor'), {
-        value: `function greet(name: string) {\n  console.log("Hello, " + name);\n}\n\ngreet("TypeScript");`,
+        value: defaultCode,
         language: 'typescript',
         theme: prefersDark ? 'vs-dark' : 'vs',
         automaticLayout: true,
@@ -101,14 +131,24 @@
 
       function captureConsole() {
         const logs = [];
+
+        // Add custom console.logJSON method
+        console.logJSON = function (label, obj) {
+          const json = JSON.stringify(obj, null, 2);
+          logs.push(`<span style="color:deepskyblue;">${label}:</span><pre>${json}</pre>`);
+          console.logOriginal(label + ':', obj);
+        };
+
         const wrap = (fn, label) => (...args) => {
           logs.push(`<span style="color:${label === 'error' ? 'red' : 'limegreen'}">${label}: ${args.join(' ')}</span>`);
           console[`${label}Original`](...args);
         };
+
         ['log', 'error', 'warn', 'info'].forEach(method => {
           console[`${method}Original`] = console[method];
           console[method] = wrap(console[method], method);
         });
+
         return () => {
           ['log', 'error', 'warn', 'info'].forEach(method => {
             console[method] = console[`${method}Original`];
@@ -122,15 +162,11 @@
         const restoreConsole = captureConsole();
 
         try {
-          const model = editor.getModel();
-          const client = await monaco.languages.typescript.getTypeScriptWorker().then(worker => worker(model.uri));
-          const result = await client.getEmitOutput(model.uri.toString());
-          const js = result.outputFiles.find(f => f.name.endsWith('.js'))?.text;
-          if (js) {
-            new Function(js)();
-          } else {
-            console.error("No JS output");
-          }
+          const code = editor.getValue();
+          const blob = new Blob([code], { type: 'application/javascript' });
+          const url = URL.createObjectURL(blob);
+          await import(url);
+          URL.revokeObjectURL(url);
         } catch (e) {
           console.error(e);
         }
