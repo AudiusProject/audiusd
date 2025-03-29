@@ -197,6 +197,33 @@ func processTransaction(ctx context.Context, logger *common.Logger, queries *db.
 		}); err != nil {
 			logger.Errorf("failed to insert manage entity: %v", err)
 		}
+
+	case *core_proto.SignedTransaction_Attestation:
+		switch t := t.Attestation.GetBody().(type) {
+		case *core_proto.Attestation_ValidatorRegistration:
+			if err := queries.InsertDecodedValidatorRegistration(ctx, db.InsertDecodedValidatorRegistrationParams{
+				TxHash:       tx.TxHash,
+				Endpoint:     t.ValidatorRegistration.Endpoint,
+				CometAddress: t.ValidatorRegistration.CometAddress,
+				EthBlock:     fmt.Sprintf("%d", t.ValidatorRegistration.EthBlock),
+				NodeType:     t.ValidatorRegistration.NodeType,
+				SpID:         t.ValidatorRegistration.SpId,
+				PubKey:       t.ValidatorRegistration.PubKey,
+				Power:        t.ValidatorRegistration.Power,
+				CreatedAt:    pgtype.Timestamptz{Time: tx.CreatedAt.Time, Valid: true},
+			}); err != nil {
+				logger.Errorf("failed to insert validator registration: %v", err)
+			}
+		case *core_proto.Attestation_ValidatorDeregistration:
+			if err := queries.InsertDecodedValidatorDeregistration(ctx, db.InsertDecodedValidatorDeregistrationParams{
+				TxHash:       tx.TxHash,
+				CometAddress: t.ValidatorDeregistration.CometAddress,
+				PubKey:       t.ValidatorDeregistration.PubKey,
+				CreatedAt:    pgtype.Timestamptz{Time: tx.CreatedAt.Time, Valid: true},
+			}); err != nil {
+				logger.Errorf("failed to insert validator deregistration: %v", err)
+			}
+		}
 	}
 
 	return nil
