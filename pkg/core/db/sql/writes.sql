@@ -65,7 +65,7 @@ insert into storage_proofs (block_height, address, status)
 values ($1, $2, 'fail');
 
 -- name: InsertEtlDuplicate :exec
-insert into core_etl_duplicates (tx_hash, table_name, duplicate_type)
+insert into core_etl_tx_duplicates (tx_hash, table_name, duplicate_type)
 values ($1, $2, $3)
 on conflict (tx_hash, table_name) do nothing;
 
@@ -86,7 +86,7 @@ with duplicate_check as (
     ) on conflict (tx_hash, user_id, track_id) do nothing
     returning tx_hash
 )
-insert into core_etl_duplicates (tx_hash, table_name, duplicate_type)
+insert into core_etl_tx_duplicates (tx_hash, table_name, duplicate_type)
 select $1, 'core_etl_tx_plays', 'tx_user_track'
 where not exists (select 1 from duplicate_check)
 on conflict (tx_hash, table_name) do nothing;
@@ -108,7 +108,7 @@ with duplicate_check as (
     ) on conflict (tx_hash) do nothing
     returning tx_hash
 )
-insert into core_etl_duplicates (tx_hash, table_name, duplicate_type)
+insert into core_etl_tx_duplicates (tx_hash, table_name, duplicate_type)
 select $1, 'core_etl_tx_validator_registration', 'tx'
 where not exists (select 1 from duplicate_check)
 on conflict (tx_hash, table_name) do nothing;
@@ -125,7 +125,7 @@ with duplicate_check as (
     ) on conflict (tx_hash) do nothing
     returning tx_hash
 )
-insert into core_etl_duplicates (tx_hash, table_name, duplicate_type)
+insert into core_etl_tx_duplicates (tx_hash, table_name, duplicate_type)
 select $1, 'core_etl_tx_validator_deregistration', 'tx'
 where not exists (select 1 from duplicate_check)
 on conflict (tx_hash, table_name) do nothing;
@@ -143,7 +143,7 @@ with duplicate_check as (
     ) on conflict (tx_hash) do nothing
     returning tx_hash
 )
-insert into core_etl_duplicates (tx_hash, table_name, duplicate_type)
+insert into core_etl_tx_duplicates (tx_hash, table_name, duplicate_type)
 select $1, 'core_etl_tx_sla_rollup', 'tx'
 where not exists (select 1 from duplicate_check)
 on conflict (tx_hash, table_name) do nothing;
@@ -163,7 +163,7 @@ with duplicate_check as (
     ) on conflict (tx_hash) do nothing
     returning tx_hash
 )
-insert into core_etl_duplicates (tx_hash, table_name, duplicate_type)
+insert into core_etl_tx_duplicates (tx_hash, table_name, duplicate_type)
 select $1, 'core_etl_tx_storage_proof', 'tx'
 where not exists (select 1 from duplicate_check)
 on conflict (tx_hash, table_name) do nothing;
@@ -180,7 +180,7 @@ with duplicate_check as (
     ) on conflict (tx_hash) do nothing
     returning tx_hash
 )
-insert into core_etl_duplicates (tx_hash, table_name, duplicate_type)
+insert into core_etl_tx_duplicates (tx_hash, table_name, duplicate_type)
 select $1, 'core_etl_tx_storage_proof_verification', 'tx'
 where not exists (select 1 from duplicate_check)
 on conflict (tx_hash, table_name) do nothing;
@@ -203,7 +203,7 @@ with duplicate_check as (
     ) on conflict (tx_hash) do nothing
     returning tx_hash
 )
-insert into core_etl_duplicates (tx_hash, table_name, duplicate_type)
+insert into core_etl_tx_duplicates (tx_hash, table_name, duplicate_type)
 select $1, 'core_etl_tx_manage_entity', 'tx'
 where not exists (select 1 from duplicate_check)
 on conflict (tx_hash, table_name) do nothing;
