@@ -70,10 +70,12 @@ setup_postgres() {
                 "$POSTGRES_DATA_DIR/postgresql.conf"
 
         # Allow psql connections from other docker containers
-        echo "host all all audiusd trust" >> "$POSTGRES_DATA_DIR/pg_hba.conf"
+        echo "host all postgres 127.0.0.1/32 trust" >> "$POSTGRES_DATA_DIR/pg_hba.conf"
+        echo "host all postgres 172.21.0.0/16 trust" >> "$POSTGRES_DATA_DIR/pg_hba.conf"
+        echo "host all postgres 172.18.0.0/16 trust" >> "$POSTGRES_DATA_DIR/pg_hba.conf"
         sed -i "s|#listen_addresses = 'localhost'|listen_addresses = '*'|" "$POSTGRES_DATA_DIR/postgresql.conf"
 
-        # Only set up database and user on fresh initialization
+        # Only set up database and user on fresh initilization
         echo "Setting up PostgreSQL user and database..."
         # Start PostgreSQL temporarily to create user and database
         su - postgres -c "$PG_BIN/pg_ctl -D $POSTGRES_DATA_DIR start"
