@@ -83,6 +83,15 @@ create table if not exists core_etl_tx_manage_entity (
     unique(tx_hash)
 );
 
+create table if not exists core_etl_duplicates (
+    id bigserial primary key,
+    tx_hash text not null,
+    table_name text not null,
+    duplicate_type text not null,
+    created_at timestamp with time zone not null default now(),
+    unique(tx_hash, table_name)
+);
+
 -- Indexes for core_etl_tx_plays
 create index if not exists core_etl_tx_plays_city_idx on core_etl_tx_plays(city);
 create index if not exists core_etl_tx_plays_region_idx on core_etl_tx_plays(region);
@@ -149,6 +158,7 @@ drop index if exists core_etl_tx_plays_region_idx;
 drop index if exists core_etl_tx_plays_city_idx;
 
 -- Drop tables
+drop table if exists core_etl_duplicates;
 drop table if exists core_etl_tx_manage_entity;
 drop table if exists core_etl_tx_storage_proof_verification;
 drop table if exists core_etl_tx_storage_proof;

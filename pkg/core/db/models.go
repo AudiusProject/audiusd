@@ -69,6 +69,14 @@ type CoreBlock struct {
 	CreatedAt pgtype.Timestamp
 }
 
+type CoreEtlDuplicate struct {
+	ID            int64
+	TxHash        string
+	TableName     string
+	DuplicateType string
+	CreatedAt     pgtype.Timestamptz
+}
+
 type CoreEtlTxManageEntity struct {
 	ID         int64
 	TxHash     string
