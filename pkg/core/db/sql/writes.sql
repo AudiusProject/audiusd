@@ -64,6 +64,11 @@ where block_height = $3 and address = $4;
 insert into storage_proofs (block_height, address, status)
 values ($1, $2, 'fail');
 
+-- name: InsertEtlTx :exec
+insert into core_etl_tx (tx_hash, tx_type, created_at)
+values ($1, $2, $3)
+on conflict (tx_hash) do nothing;
+
 -- name: InsertEtlDuplicate :exec
 insert into core_etl_tx_duplicates (tx_hash, table_name, duplicate_type)
 values ($1, $2, $3)

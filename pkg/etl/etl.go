@@ -104,6 +104,35 @@ func processTransaction(ctx context.Context, logger *common.Logger, queries *db.
 		return fmt.Errorf("error unmarshaling transaction: %v", err)
 	}
 
+	// Insert into core_etl_tx first
+	var txType string
+	switch signedTx.GetTransaction().(type) {
+	case *core_proto.SignedTransaction_Plays:
+		txType = "plays"
+	case *core_proto.SignedTransaction_ValidatorRegistration:
+		txType = "validator_registration"
+	case *core_proto.SignedTransaction_ValidatorDeregistration:
+		txType = "validator_deregistration"
+	case *core_proto.SignedTransaction_SlaRollup:
+		txType = "sla_rollup"
+	case *core_proto.SignedTransaction_StorageProof:
+		txType = "storage_proof"
+	case *core_proto.SignedTransaction_StorageProofVerification:
+		txType = "storage_proof_verification"
+	case *core_proto.SignedTransaction_ManageEntity:
+		txType = "manage_entity"
+	case *core_proto.SignedTransaction_Attestation:
+		txType = "attestation"
+	}
+
+	if err := queries.InsertEtlTx(ctx, db.InsertEtlTxParams{
+		TxHash:    tx.TxHash,
+		TxType:    txType,
+		CreatedAt: pgtype.Timestamptz{Time: tx.CreatedAt.Time, Valid: true},
+	}); err != nil {
+		logger.Errorf("failed to insert ETL tx record: %v", err)
+	}
+
 	switch t := signedTx.GetTransaction().(type) {
 	case *core_proto.SignedTransaction_Plays:
 		for _, play := range t.Plays.Plays {

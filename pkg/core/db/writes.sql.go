@@ -394,6 +394,23 @@ func (q *Queries) InsertEtlDuplicate(ctx context.Context, arg InsertEtlDuplicate
 	return err
 }
 
+const insertEtlTx = `-- name: InsertEtlTx :exec
+insert into core_etl_tx (tx_hash, tx_type, created_at)
+values ($1, $2, $3)
+on conflict (tx_hash) do nothing
+`
+
+type InsertEtlTxParams struct {
+	TxHash    string
+	TxType    string
+	CreatedAt pgtype.Timestamptz
+}
+
+func (q *Queries) InsertEtlTx(ctx context.Context, arg InsertEtlTxParams) error {
+	_, err := q.db.Exec(ctx, insertEtlTx, arg.TxHash, arg.TxType, arg.CreatedAt)
+	return err
+}
+
 const insertFailedStorageProof = `-- name: InsertFailedStorageProof :exec
 insert into storage_proofs (block_height, address, status)
 values ($1, $2, 'fail')

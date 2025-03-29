@@ -1,5 +1,21 @@
 -- +migrate Up
 
+create table if not exists core_etl_tx (
+    id bigserial primary key,
+    block_height bigint not null,
+    tx_index integer not null,
+    tx_hash text not null,
+    tx_type text not null,
+    tx_data jsonb not null,
+    created_at timestamp with time zone not null,
+    unique(block_height, tx_index),
+    unique(tx_hash)
+);
+
+create index if not exists core_etl_tx_tx_type_idx on core_etl_tx(tx_type);
+create index if not exists core_etl_tx_created_at_idx on core_etl_tx(created_at);
+create index if not exists core_etl_tx_block_height_idx on core_etl_tx(block_height);
+
 create table if not exists core_etl_tx_plays (
     id bigserial primary key,
     tx_hash text not null,
@@ -125,6 +141,11 @@ create index if not exists core_etl_tx_manage_entity_entity_type_idx on core_etl
 create index if not exists core_etl_tx_manage_entity_user_id_idx on core_etl_tx_manage_entity(user_id);
 
 -- +migrate Down
+-- Drop indexes for core_etl_tx
+drop index if exists core_etl_tx_block_height_idx;
+drop index if exists core_etl_tx_created_at_idx;
+drop index if exists core_etl_tx_tx_type_idx;
+
 -- Drop indexes for core_etl_tx_manage_entity
 drop index if exists core_etl_tx_manage_entity_user_id_idx;
 drop index if exists core_etl_tx_manage_entity_entity_type_idx;
@@ -158,6 +179,7 @@ drop index if exists core_etl_tx_plays_region_idx;
 drop index if exists core_etl_tx_plays_city_idx;
 
 -- Drop tables
+drop table if exists core_etl_tx;
 drop table if exists core_etl_tx_duplicates;
 drop table if exists core_etl_tx_manage_entity;
 drop table if exists core_etl_tx_storage_proof_verification;

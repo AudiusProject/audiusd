@@ -69,6 +69,16 @@ type CoreBlock struct {
 	CreatedAt pgtype.Timestamp
 }
 
+type CoreEtlTx struct {
+	ID          int64
+	BlockHeight int64
+	TxIndex     int32
+	TxHash      string
+	TxType      string
+	TxData      []byte
+	CreatedAt   pgtype.Timestamptz
+}
+
 type CoreEtlTxDuplicate struct {
 	ID            int64
 	TxHash        string
@@ -160,29 +170,6 @@ type CoreTransaction struct {
 	TxHash      string
 	Transaction []byte
 	CreatedAt   pgtype.Timestamp
-}
-
-type CoreTxDecoded struct {
-	ID          int64
-	BlockHeight int64
-	TxIndex     int32
-	TxHash      string
-	TxType      string
-	TxData      []byte
-	CreatedAt   pgtype.Timestamptz
-}
-
-type CoreTxDecodedPlay struct {
-	ID        int64
-	TxHash    string
-	UserID    string
-	TrackID   string
-	PlayedAt  pgtype.Timestamptz
-	Signature string
-	City      pgtype.Text
-	Region    pgtype.Text
-	Country   pgtype.Text
-	CreatedAt pgtype.Timestamptz
 }
 
 type CoreTxStat struct {
