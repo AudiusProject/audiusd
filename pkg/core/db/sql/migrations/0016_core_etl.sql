@@ -43,8 +43,8 @@ create table if not exists core_etl_tx_validator_registration (
 create table if not exists core_etl_tx_validator_deregistration (
     id bigserial primary key,
     tx_hash text not null references core_etl_tx(tx_hash),
-    address text not null,
-    reason text not null,
+    comet_address text not null,
+    pub_key bytea not null,
     created_at timestamp with time zone not null,
     unique(tx_hash)
 );
@@ -54,7 +54,7 @@ create table if not exists core_etl_tx_sla_rollup (
     tx_hash text not null references core_etl_tx(tx_hash),
     block_start bigint not null,
     block_end bigint not null,
-    time timestamp with time zone not null,
+    timestamp timestamp with time zone not null,
     created_at timestamp with time zone not null,
     unique(tx_hash)
 );
@@ -62,13 +62,11 @@ create table if not exists core_etl_tx_sla_rollup (
 create table if not exists core_etl_tx_storage_proof (
     id bigserial primary key,
     tx_hash text not null references core_etl_tx(tx_hash),
-    block_height bigint not null,
+    height bigint not null,
     address text not null,
     cid text,
-    proof_signature text,
-    proof text,
+    proof_signature bytea,
     prover_addresses text[] not null,
-    status text not null,
     created_at timestamp with time zone not null,
     unique(tx_hash)
 );
@@ -76,9 +74,8 @@ create table if not exists core_etl_tx_storage_proof (
 create table if not exists core_etl_tx_storage_proof_verification (
     id bigserial primary key,
     tx_hash text not null references core_etl_tx(tx_hash),
-    block_height bigint not null,
-    address text not null,
-    verified boolean not null,
+    height bigint not null,
+    proof bytea not null,
     created_at timestamp with time zone not null,
     unique(tx_hash)
 );
@@ -86,11 +83,11 @@ create table if not exists core_etl_tx_storage_proof_verification (
 create table if not exists core_etl_tx_manage_entity (
     id bigserial primary key,
     tx_hash text not null references core_etl_tx(tx_hash),
-    action text not null,
-    entity_id text not null,
+    user_id bigint not null,
     entity_type text not null,
-    metadata jsonb not null,
-    user_id text not null,
+    entity_id bigint not null,
+    action text not null,
+    metadata text not null,
     signature text not null,
     signer text not null,
     nonce text not null,
@@ -117,21 +114,18 @@ create index if not exists core_etl_tx_validator_registration_comet_address_idx 
 create index if not exists core_etl_tx_validator_registration_node_type_idx on core_etl_tx_validator_registration(node_type);
 
 -- Indexes for core_etl_tx_validator_deregistration
-create index if not exists core_etl_tx_validator_deregistration_address_idx on core_etl_tx_validator_deregistration(address);
+create index if not exists core_etl_tx_validator_deregistration_comet_address_idx on core_etl_tx_validator_deregistration(comet_address);
 
 -- Indexes for core_etl_tx_sla_rollup
-create index if not exists core_etl_tx_sla_rollup_time_idx on core_etl_tx_sla_rollup(time);
+create index if not exists core_etl_tx_sla_rollup_timestamp_idx on core_etl_tx_sla_rollup(timestamp);
 create index if not exists core_etl_tx_sla_rollup_block_range_idx on core_etl_tx_sla_rollup(block_start, block_end);
 
 -- Indexes for core_etl_tx_storage_proof
-create index if not exists core_etl_tx_storage_proof_block_height_idx on core_etl_tx_storage_proof(block_height);
+create index if not exists core_etl_tx_storage_proof_height_idx on core_etl_tx_storage_proof(height);
 create index if not exists core_etl_tx_storage_proof_address_idx on core_etl_tx_storage_proof(address);
-create index if not exists core_etl_tx_storage_proof_status_idx on core_etl_tx_storage_proof(status);
 
 -- Indexes for core_etl_tx_storage_proof_verification
-create index if not exists core_etl_tx_storage_proof_verification_block_height_idx on core_etl_tx_storage_proof_verification(block_height);
-create index if not exists core_etl_tx_storage_proof_verification_address_idx on core_etl_tx_storage_proof_verification(address);
-create index if not exists core_etl_tx_storage_proof_verification_verified_idx on core_etl_tx_storage_proof_verification(verified);
+create index if not exists core_etl_tx_storage_proof_verification_height_idx on core_etl_tx_storage_proof_verification(height);
 
 -- Indexes for core_etl_tx_manage_entity
 create index if not exists core_etl_tx_manage_entity_action_idx on core_etl_tx_manage_entity(action);
@@ -145,21 +139,18 @@ drop index if exists core_etl_tx_manage_entity_entity_type_idx;
 drop index if exists core_etl_tx_manage_entity_action_idx;
 
 -- Drop indexes for core_etl_tx_storage_proof_verification
-drop index if exists core_etl_tx_storage_proof_verification_verified_idx;
-drop index if exists core_etl_tx_storage_proof_verification_address_idx;
-drop index if exists core_etl_tx_storage_proof_verification_block_height_idx;
+drop index if exists core_etl_tx_storage_proof_verification_height_idx;
 
 -- Drop indexes for core_etl_tx_storage_proof
-drop index if exists core_etl_tx_storage_proof_status_idx;
 drop index if exists core_etl_tx_storage_proof_address_idx;
-drop index if exists core_etl_tx_storage_proof_block_height_idx;
+drop index if exists core_etl_tx_storage_proof_height_idx;
 
 -- Drop indexes for core_etl_tx_sla_rollup
 drop index if exists core_etl_tx_sla_rollup_block_range_idx;
-drop index if exists core_etl_tx_sla_rollup_time_idx;
+drop index if exists core_etl_tx_sla_rollup_timestamp_idx;
 
 -- Drop indexes for core_etl_tx_validator_deregistration
-drop index if exists core_etl_tx_validator_deregistration_address_idx;
+drop index if exists core_etl_tx_validator_deregistration_comet_address_idx;
 
 -- Drop indexes for core_etl_tx_validator_registration
 drop index if exists core_etl_tx_validator_registration_node_type_idx;

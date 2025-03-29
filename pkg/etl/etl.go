@@ -142,8 +142,9 @@ func processTransaction(ctx context.Context, logger *common.Logger, queries *db.
 		return fmt.Errorf("error inserting decoded tx: %v", err)
 	}
 
-	if plays := signedTx.GetPlays(); plays != nil {
-		for _, play := range plays.Plays {
+	switch t := signedTx.GetTransaction().(type) {
+	case *core_proto.SignedTransaction_Plays:
+		for _, play := range t.Plays.Plays {
 			if err := queries.InsertDecodedPlay(ctx, db.InsertDecodedPlayParams{
 				TxHash:    tx.TxHash,
 				UserID:    play.UserId,
@@ -158,6 +159,81 @@ func processTransaction(ctx context.Context, logger *common.Logger, queries *db.
 				logger.Errorf("failed to insert play record: %v", err)
 				continue
 			}
+		}
+
+	case *core_proto.SignedTransaction_ValidatorRegistration:
+		if err := queries.InsertDecodedValidatorRegistration(ctx, db.InsertDecodedValidatorRegistrationParams{
+			TxHash:       tx.TxHash,
+			Endpoint:     t.ValidatorRegistration.Endpoint,
+			CometAddress: t.ValidatorRegistration.CometAddress,
+			EthBlock:     t.ValidatorRegistration.EthBlock,
+			NodeType:     t.ValidatorRegistration.NodeType,
+			SpID:         t.ValidatorRegistration.SpId,
+			PubKey:       t.ValidatorRegistration.PubKey,
+			Power:        t.ValidatorRegistration.Power,
+			CreatedAt:    pgtype.Timestamptz{Time: tx.CreatedAt.Time, Valid: true},
+		}); err != nil {
+			logger.Errorf("failed to insert validator registration: %v", err)
+		}
+
+	case *core_proto.SignedTransaction_ValidatorDeregistration:
+		if err := queries.InsertDecodedValidatorDeregistration(ctx, db.InsertDecodedValidatorDeregistrationParams{
+			TxHash:       tx.TxHash,
+			CometAddress: t.ValidatorDeregistration.CometAddress,
+			PubKey:       t.ValidatorDeregistration.PubKey,
+			CreatedAt:    pgtype.Timestamptz{Time: tx.CreatedAt.Time, Valid: true},
+		}); err != nil {
+			logger.Errorf("failed to insert validator deregistration: %v", err)
+		}
+
+	case *core_proto.SignedTransaction_SlaRollup:
+		if err := queries.InsertDecodedSlaRollup(ctx, db.InsertDecodedSlaRollupParams{
+			TxHash:     tx.TxHash,
+			BlockStart: t.SlaRollup.BlockStart,
+			BlockEnd:   t.SlaRollup.BlockEnd,
+			Timestamp:  pgtype.Timestamptz{Time: t.SlaRollup.Timestamp.AsTime(), Valid: true},
+			CreatedAt:  pgtype.Timestamptz{Time: tx.CreatedAt.Time, Valid: true},
+		}); err != nil {
+			logger.Errorf("failed to insert SLA rollup: %v", err)
+		}
+
+	case *core_proto.SignedTransaction_StorageProof:
+		if err := queries.InsertDecodedStorageProof(ctx, db.InsertDecodedStorageProofParams{
+			TxHash:          tx.TxHash,
+			Height:          t.StorageProof.Height,
+			Address:         t.StorageProof.Address,
+			Cid:             pgtype.Text{String: t.StorageProof.Cid, Valid: t.StorageProof.Cid != ""},
+			ProofSignature:  t.StorageProof.ProofSignature,
+			ProverAddresses: t.StorageProof.ProverAddresses,
+			CreatedAt:       pgtype.Timestamptz{Time: tx.CreatedAt.Time, Valid: true},
+		}); err != nil {
+			logger.Errorf("failed to insert storage proof: %v", err)
+		}
+
+	case *core_proto.SignedTransaction_StorageProofVerification:
+		if err := queries.InsertDecodedStorageProofVerification(ctx, db.InsertDecodedStorageProofVerificationParams{
+			TxHash:    tx.TxHash,
+			Height:    t.StorageProofVerification.Height,
+			Proof:     t.StorageProofVerification.Proof,
+			CreatedAt: pgtype.Timestamptz{Time: tx.CreatedAt.Time, Valid: true},
+		}); err != nil {
+			logger.Errorf("failed to insert storage proof verification: %v", err)
+		}
+
+	case *core_proto.SignedTransaction_ManageEntity:
+		if err := queries.InsertDecodedManageEntity(ctx, db.InsertDecodedManageEntityParams{
+			TxHash:     tx.TxHash,
+			UserID:     t.ManageEntity.UserId,
+			EntityType: t.ManageEntity.EntityType,
+			EntityID:   t.ManageEntity.EntityId,
+			Action:     t.ManageEntity.Action,
+			Metadata:   t.ManageEntity.Metadata,
+			Signature:  t.ManageEntity.Signature,
+			Signer:     t.ManageEntity.Signer,
+			Nonce:      t.ManageEntity.Nonce,
+			CreatedAt:  pgtype.Timestamptz{Time: tx.CreatedAt.Time, Valid: true},
+		}); err != nil {
+			logger.Errorf("failed to insert manage entity: %v", err)
 		}
 	}
 

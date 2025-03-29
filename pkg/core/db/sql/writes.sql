@@ -65,18 +65,19 @@ insert into storage_proofs (block_height, address, status)
 values ($1, $2, 'fail');
 
 -- name: InsertDecodedTx :exec
-insert into core_tx_decoded (
+insert into core_etl_tx (
     block_height,
     tx_index,
     tx_hash,
     tx_type,
     tx_data,
     created_at
-) values ($1, $2, $3, $4, $5, $6)
-on conflict (tx_hash) do nothing;
+) values (
+    $1, $2, $3, $4, $5, $6
+);
 
 -- name: InsertDecodedPlay :exec
-insert into core_tx_decoded_plays (
+insert into core_etl_tx_plays (
     tx_hash,
     user_id,
     track_id,
@@ -86,5 +87,81 @@ insert into core_tx_decoded_plays (
     region,
     country,
     created_at
-) values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-on conflict (tx_hash, user_id, track_id) do nothing;
+) values (
+    $1, $2, $3, $4, $5, $6, $7, $8, $9
+);
+
+-- name: InsertDecodedValidatorRegistration :exec
+insert into core_etl_tx_validator_registration (
+    tx_hash,
+    endpoint,
+    comet_address,
+    eth_block,
+    node_type,
+    sp_id,
+    pub_key,
+    power,
+    created_at
+) values (
+    $1, $2, $3, $4, $5, $6, $7, $8, $9
+);
+
+-- name: InsertDecodedValidatorDeregistration :exec
+insert into core_etl_tx_validator_deregistration (
+    tx_hash,
+    comet_address,
+    pub_key,
+    created_at
+) values (
+    $1, $2, $3, $4
+);
+
+-- name: InsertDecodedSlaRollup :exec
+insert into core_etl_tx_sla_rollup (
+    tx_hash,
+    block_start,
+    block_end,
+    timestamp,
+    created_at
+) values (
+    $1, $2, $3, $4, $5
+);
+
+-- name: InsertDecodedStorageProof :exec
+insert into core_etl_tx_storage_proof (
+    tx_hash,
+    height,
+    address,
+    cid,
+    proof_signature,
+    prover_addresses,
+    created_at
+) values (
+    $1, $2, $3, $4, $5, $6, $7
+);
+
+-- name: InsertDecodedStorageProofVerification :exec
+insert into core_etl_tx_storage_proof_verification (
+    tx_hash,
+    height,
+    proof,
+    created_at
+) values (
+    $1, $2, $3, $4
+);
+
+-- name: InsertDecodedManageEntity :exec
+insert into core_etl_tx_manage_entity (
+    tx_hash,
+    user_id,
+    entity_type,
+    entity_id,
+    action,
+    metadata,
+    signature,
+    signer,
+    nonce,
+    created_at
+) values (
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+);

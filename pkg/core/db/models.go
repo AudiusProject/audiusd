@@ -69,6 +69,92 @@ type CoreBlock struct {
 	CreatedAt pgtype.Timestamp
 }
 
+type CoreEtlTx struct {
+	ID          int64
+	BlockHeight int64
+	TxIndex     int32
+	TxHash      string
+	TxType      string
+	TxData      []byte
+	CreatedAt   pgtype.Timestamptz
+}
+
+type CoreEtlTxManageEntity struct {
+	ID         int64
+	TxHash     string
+	UserID     int64
+	EntityType string
+	EntityID   int64
+	Action     string
+	Metadata   string
+	Signature  string
+	Signer     string
+	Nonce      string
+	CreatedAt  pgtype.Timestamptz
+}
+
+type CoreEtlTxPlay struct {
+	ID        int64
+	TxHash    string
+	UserID    string
+	TrackID   string
+	PlayedAt  pgtype.Timestamptz
+	Signature string
+	City      pgtype.Text
+	Region    pgtype.Text
+	Country   pgtype.Text
+	CreatedAt pgtype.Timestamptz
+}
+
+type CoreEtlTxSlaRollup struct {
+	ID         int64
+	TxHash     string
+	BlockStart int64
+	BlockEnd   int64
+	Timestamp  pgtype.Timestamptz
+	CreatedAt  pgtype.Timestamptz
+}
+
+type CoreEtlTxStorageProof struct {
+	ID              int64
+	TxHash          string
+	Height          int64
+	Address         string
+	Cid             pgtype.Text
+	ProofSignature  []byte
+	ProverAddresses []string
+	CreatedAt       pgtype.Timestamptz
+}
+
+type CoreEtlTxStorageProofVerification struct {
+	ID        int64
+	TxHash    string
+	Height    int64
+	Proof     []byte
+	CreatedAt pgtype.Timestamptz
+}
+
+type CoreEtlTxValidatorDeregistration struct {
+	ID           int64
+	TxHash       string
+	CometAddress string
+	PubKey       []byte
+	CreatedAt    pgtype.Timestamptz
+}
+
+type CoreEtlTxValidatorRegistration struct {
+	ID           int64
+	TxHash       string
+	Endpoint     string
+	CometAddress string
+	EthBlock     string
+	NodeType     string
+	SpID         string
+	PubKey       []byte
+	Power        int64
+	CreatedAt    pgtype.Timestamptz
+}
+
 type CoreTransaction struct {
 	Rowid       int64
 	BlockID     int64
