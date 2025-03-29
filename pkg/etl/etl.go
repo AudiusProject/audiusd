@@ -17,13 +17,11 @@ import (
 func Run(ctx context.Context, logger *common.Logger) error {
 	logger.Info("Starting ETL service...")
 
-	// Get database connection string from environment
 	dbUrl := os.Getenv("dbUrl")
 	if dbUrl == "" {
 		return fmt.Errorf("dbUrl environment variable not set")
 	}
 
-	// Create connection pool
 	pgConfig, err := pgxpool.ParseConfig(dbUrl)
 	if err != nil {
 		return fmt.Errorf("error parsing database config: %v", err)
@@ -35,17 +33,14 @@ func Run(ctx context.Context, logger *common.Logger) error {
 	}
 	defer pool.Close()
 
-	// Test the connection
 	if err := pool.Ping(ctx); err != nil {
 		return fmt.Errorf("error connecting to database: %v", err)
 	}
 
 	logger.Info("Successfully connected to database")
 
-	// Create a db.Queries instance
 	queries := db.New(pool)
 
-	// Set up notification trigger
 	if _, err := pool.Exec(ctx, `
 		CREATE OR REPLACE FUNCTION notify_new_transaction() RETURNS TRIGGER AS $$
 		BEGIN
@@ -64,14 +59,12 @@ func Run(ctx context.Context, logger *common.Logger) error {
 		return fmt.Errorf("error setting up notification trigger: %v", err)
 	}
 
-	// Start listening for notifications
 	conn, err := pool.Acquire(ctx)
 	if err != nil {
 		return fmt.Errorf("error acquiring connection: %v", err)
 	}
 	defer conn.Release()
 
-	// Listen for new transactions
 	if _, err := conn.Exec(ctx, "LISTEN new_transaction"); err != nil {
 		return fmt.Errorf("error setting up LISTEN: %v", err)
 	}
@@ -93,14 +86,12 @@ func Run(ctx context.Context, logger *common.Logger) error {
 				continue
 			}
 
-			// Get the transaction by hash
 			tx, err := queries.GetTx(ctx, notification.Payload)
 			if err != nil {
 				logger.Errorf("Error getting transaction: %v", err)
 				continue
 			}
 
-			// Process the transaction
 			if err := processTransaction(ctx, logger, queries, tx); err != nil {
 				logger.Errorf("Error processing transaction: %v", err)
 			}
@@ -109,13 +100,11 @@ func Run(ctx context.Context, logger *common.Logger) error {
 }
 
 func processTransaction(ctx context.Context, logger *common.Logger, queries *db.Queries, tx db.CoreTransaction) error {
-	// Parse the protobuf message
 	var signedTx core_proto.SignedTransaction
 	if err := proto.Unmarshal(tx.Transaction, &signedTx); err != nil {
 		return fmt.Errorf("error unmarshaling transaction: %v", err)
 	}
 
-	// Determine transaction type
 	var txType string
 	switch signedTx.GetTransaction().(type) {
 	case *core_proto.SignedTransaction_Plays:
@@ -136,7 +125,6 @@ func processTransaction(ctx context.Context, logger *common.Logger, queries *db.
 		txType = "Unknown"
 	}
 
-	// Insert into core_tx_decoded
 	jsonBytes, err := json.Marshal(signedTx)
 	if err != nil {
 		logger.Errorf("failed to marshal tx to json: %v", err)
@@ -154,7 +142,6 @@ func processTransaction(ctx context.Context, logger *common.Logger, queries *db.
 		return fmt.Errorf("error inserting decoded tx: %v", err)
 	}
 
-	// If this is a play transaction, process the plays
 	if plays := signedTx.GetPlays(); plays != nil {
 		for _, play := range plays.Plays {
 			if err := queries.InsertDecodedPlay(ctx, db.InsertDecodedPlayParams{
