@@ -10,6 +10,7 @@ import (
 	"github.com/AudiusProject/audiusd/pkg/core/gen/core_proto"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -91,14 +92,21 @@ func Run(ctx context.Context, logger *common.Logger) error {
 				continue
 			}
 
-			if err := processTransaction(ctx, logger, queries, tx); err != nil {
+			// Get block height from block ID
+			block, err := queries.GetBlock(ctx, tx.BlockID)
+			if err != nil {
+				logger.Errorf("Error getting block: %v", err)
+				continue
+			}
+
+			if err := processTransaction(ctx, logger, queries, tx, block.Height); err != nil {
 				logger.Errorf("Error processing transaction: %v", err)
 			}
 		}
 	}
 }
 
-func processTransaction(ctx context.Context, logger *common.Logger, queries *db.Queries, tx db.CoreTransaction) error {
+func processTransaction(ctx context.Context, logger *common.Logger, queries *db.Queries, tx db.CoreTransaction, blockHeight int64) error {
 	var signedTx core_proto.SignedTransaction
 	if err := proto.Unmarshal(tx.Transaction, &signedTx); err != nil {
 		return fmt.Errorf("error unmarshaling transaction: %v", err)
@@ -125,10 +133,19 @@ func processTransaction(ctx context.Context, logger *common.Logger, queries *db.
 		txType = "attestation"
 	}
 
+	jsonData, err := protojson.Marshal(&signedTx)
+	if err != nil {
+		logger.Errorf("failed to marshal transaction to JSON: %v", err)
+		return err
+	}
+
 	if err := queries.InsertEtlTx(ctx, db.InsertEtlTxParams{
-		TxHash:    tx.TxHash,
-		TxType:    txType,
-		CreatedAt: pgtype.Timestamptz{Time: tx.CreatedAt.Time, Valid: true},
+		BlockHeight: blockHeight,
+		TxIndex:     tx.Index,
+		TxHash:      tx.TxHash,
+		TxType:      txType,
+		TxData:      jsonData,
+		CreatedAt:   pgtype.Timestamptz{Time: tx.CreatedAt.Time, Valid: true},
 	}); err != nil {
 		logger.Errorf("failed to insert ETL tx record: %v", err)
 	}

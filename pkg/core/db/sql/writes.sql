@@ -65,8 +65,8 @@ insert into storage_proofs (block_height, address, status)
 values ($1, $2, 'fail');
 
 -- name: InsertEtlTx :exec
-insert into core_etl_tx (tx_hash, tx_type, created_at)
-values ($1, $2, $3)
+insert into core_etl_tx (block_height, tx_index, tx_hash, tx_type, tx_data, created_at)
+values ($1, $2, $3, $4, $5, $6)
 on conflict (tx_hash) do nothing;
 
 -- name: InsertEtlDuplicate :exec

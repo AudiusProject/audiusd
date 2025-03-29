@@ -395,19 +395,29 @@ func (q *Queries) InsertEtlDuplicate(ctx context.Context, arg InsertEtlDuplicate
 }
 
 const insertEtlTx = `-- name: InsertEtlTx :exec
-insert into core_etl_tx (tx_hash, tx_type, created_at)
-values ($1, $2, $3)
+insert into core_etl_tx (block_height, tx_index, tx_hash, tx_type, tx_data, created_at)
+values ($1, $2, $3, $4, $5, $6)
 on conflict (tx_hash) do nothing
 `
 
 type InsertEtlTxParams struct {
-	TxHash    string
-	TxType    string
-	CreatedAt pgtype.Timestamptz
+	BlockHeight int64
+	TxIndex     int32
+	TxHash      string
+	TxType      string
+	TxData      []byte
+	CreatedAt   pgtype.Timestamptz
 }
 
 func (q *Queries) InsertEtlTx(ctx context.Context, arg InsertEtlTxParams) error {
-	_, err := q.db.Exec(ctx, insertEtlTx, arg.TxHash, arg.TxType, arg.CreatedAt)
+	_, err := q.db.Exec(ctx, insertEtlTx,
+		arg.BlockHeight,
+		arg.TxIndex,
+		arg.TxHash,
+		arg.TxType,
+		arg.TxData,
+		arg.CreatedAt,
+	)
 	return err
 }
 
