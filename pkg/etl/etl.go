@@ -2,7 +2,6 @@ package etl
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 
@@ -103,43 +102,6 @@ func processTransaction(ctx context.Context, logger *common.Logger, queries *db.
 	var signedTx core_proto.SignedTransaction
 	if err := proto.Unmarshal(tx.Transaction, &signedTx); err != nil {
 		return fmt.Errorf("error unmarshaling transaction: %v", err)
-	}
-
-	var txType string
-	switch signedTx.GetTransaction().(type) {
-	case *core_proto.SignedTransaction_Plays:
-		txType = "Plays"
-	case *core_proto.SignedTransaction_ValidatorRegistration:
-		txType = "ValidatorRegistration"
-	case *core_proto.SignedTransaction_ValidatorDeregistration:
-		txType = "ValidatorDeregistration"
-	case *core_proto.SignedTransaction_SlaRollup:
-		txType = "SlaRollup"
-	case *core_proto.SignedTransaction_StorageProof:
-		txType = "StorageProof"
-	case *core_proto.SignedTransaction_StorageProofVerification:
-		txType = "StorageProofVerification"
-	case *core_proto.SignedTransaction_ManageEntity:
-		txType = "ManageEntity"
-	default:
-		txType = "Unknown"
-	}
-
-	jsonBytes, err := json.Marshal(signedTx)
-	if err != nil {
-		logger.Errorf("failed to marshal tx to json: %v", err)
-		jsonBytes = []byte("{}")
-	}
-
-	if err := queries.InsertDecodedTx(ctx, db.InsertDecodedTxParams{
-		BlockHeight: tx.BlockID,
-		TxIndex:     tx.Index,
-		TxHash:      tx.TxHash,
-		TxType:      txType,
-		TxData:      jsonBytes,
-		CreatedAt:   pgtype.Timestamptz{Time: tx.CreatedAt.Time, Valid: true},
-	}); err != nil {
-		return fmt.Errorf("error inserting decoded tx: %v", err)
 	}
 
 	switch t := signedTx.GetTransaction().(type) {

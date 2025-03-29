@@ -1,20 +1,8 @@
 -- +migrate Up
 
-create table if not exists core_etl_tx (
-    id bigserial primary key,
-    block_height bigint not null,
-    tx_index integer not null,
-    tx_hash text not null,
-    tx_type text not null,
-    tx_data jsonb not null,
-    created_at timestamp with time zone not null,
-    unique(block_height, tx_index),
-    unique(tx_hash)
-);
-
 create table if not exists core_etl_tx_plays (
     id bigserial primary key,
-    tx_hash text not null references core_etl_tx(tx_hash),
+    tx_hash text not null,
     user_id text not null,
     track_id text not null,
     played_at timestamp with time zone not null,
@@ -28,7 +16,7 @@ create table if not exists core_etl_tx_plays (
 
 create table if not exists core_etl_tx_validator_registration (
     id bigserial primary key,
-    tx_hash text not null references core_etl_tx(tx_hash),
+    tx_hash text not null,
     endpoint text not null,
     comet_address text not null,
     eth_block text not null,
@@ -42,7 +30,7 @@ create table if not exists core_etl_tx_validator_registration (
 
 create table if not exists core_etl_tx_validator_deregistration (
     id bigserial primary key,
-    tx_hash text not null references core_etl_tx(tx_hash),
+    tx_hash text not null,
     comet_address text not null,
     pub_key bytea not null,
     created_at timestamp with time zone not null,
@@ -51,7 +39,7 @@ create table if not exists core_etl_tx_validator_deregistration (
 
 create table if not exists core_etl_tx_sla_rollup (
     id bigserial primary key,
-    tx_hash text not null references core_etl_tx(tx_hash),
+    tx_hash text not null,
     block_start bigint not null,
     block_end bigint not null,
     timestamp timestamp with time zone not null,
@@ -61,7 +49,7 @@ create table if not exists core_etl_tx_sla_rollup (
 
 create table if not exists core_etl_tx_storage_proof (
     id bigserial primary key,
-    tx_hash text not null references core_etl_tx(tx_hash),
+    tx_hash text not null,
     height bigint not null,
     address text not null,
     cid text,
@@ -73,7 +61,7 @@ create table if not exists core_etl_tx_storage_proof (
 
 create table if not exists core_etl_tx_storage_proof_verification (
     id bigserial primary key,
-    tx_hash text not null references core_etl_tx(tx_hash),
+    tx_hash text not null,
     height bigint not null,
     proof bytea not null,
     created_at timestamp with time zone not null,
@@ -82,7 +70,7 @@ create table if not exists core_etl_tx_storage_proof_verification (
 
 create table if not exists core_etl_tx_manage_entity (
     id bigserial primary key,
-    tx_hash text not null references core_etl_tx(tx_hash),
+    tx_hash text not null,
     user_id bigint not null,
     entity_type text not null,
     entity_id bigint not null,
@@ -94,11 +82,6 @@ create table if not exists core_etl_tx_manage_entity (
     created_at timestamp with time zone not null,
     unique(tx_hash)
 );
-
--- Indexes for core_etl_tx
-create index if not exists core_etl_tx_block_height_idx on core_etl_tx(block_height);
-create index if not exists core_etl_tx_tx_hash_idx on core_etl_tx(tx_hash);
-create index if not exists core_etl_tx_tx_type_idx on core_etl_tx(tx_type);
 
 -- Indexes for core_etl_tx_plays
 create index if not exists core_etl_tx_plays_city_idx on core_etl_tx_plays(city);
@@ -165,11 +148,6 @@ drop index if exists core_etl_tx_plays_country_idx;
 drop index if exists core_etl_tx_plays_region_idx;
 drop index if exists core_etl_tx_plays_city_idx;
 
--- Drop indexes for core_etl_tx
-drop index if exists core_etl_tx_tx_type_idx;
-drop index if exists core_etl_tx_tx_hash_idx;
-drop index if exists core_etl_tx_block_height_idx;
-
 -- Drop tables
 drop table if exists core_etl_tx_manage_entity;
 drop table if exists core_etl_tx_storage_proof_verification;
@@ -177,5 +155,4 @@ drop table if exists core_etl_tx_storage_proof;
 drop table if exists core_etl_tx_sla_rollup;
 drop table if exists core_etl_tx_validator_deregistration;
 drop table if exists core_etl_tx_validator_registration;
-drop table if exists core_etl_tx_plays;
-drop table if exists core_etl_tx; 
+drop table if exists core_etl_tx_plays; 

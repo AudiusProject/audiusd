@@ -69,16 +69,6 @@ type CoreBlock struct {
 	CreatedAt pgtype.Timestamp
 }
 
-type CoreEtlTx struct {
-	ID          int64
-	BlockHeight int64
-	TxIndex     int32
-	TxHash      string
-	TxType      string
-	TxData      []byte
-	CreatedAt   pgtype.Timestamptz
-}
-
 type CoreEtlTxManageEntity struct {
 	ID         int64
 	TxHash     string

@@ -64,18 +64,6 @@ where block_height = $3 and address = $4;
 insert into storage_proofs (block_height, address, status)
 values ($1, $2, 'fail');
 
--- name: InsertDecodedTx :exec
-insert into core_etl_tx (
-    block_height,
-    tx_index,
-    tx_hash,
-    tx_type,
-    tx_data,
-    created_at
-) values (
-    $1, $2, $3, $4, $5, $6
-);
-
 -- name: InsertDecodedPlay :exec
 insert into core_etl_tx_plays (
     tx_hash,

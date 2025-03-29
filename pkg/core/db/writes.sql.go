@@ -257,40 +257,6 @@ func (q *Queries) InsertDecodedStorageProofVerification(ctx context.Context, arg
 	return err
 }
 
-const insertDecodedTx = `-- name: InsertDecodedTx :exec
-insert into core_etl_tx (
-    block_height,
-    tx_index,
-    tx_hash,
-    tx_type,
-    tx_data,
-    created_at
-) values (
-    $1, $2, $3, $4, $5, $6
-)
-`
-
-type InsertDecodedTxParams struct {
-	BlockHeight int64
-	TxIndex     int32
-	TxHash      string
-	TxType      string
-	TxData      []byte
-	CreatedAt   pgtype.Timestamptz
-}
-
-func (q *Queries) InsertDecodedTx(ctx context.Context, arg InsertDecodedTxParams) error {
-	_, err := q.db.Exec(ctx, insertDecodedTx,
-		arg.BlockHeight,
-		arg.TxIndex,
-		arg.TxHash,
-		arg.TxType,
-		arg.TxData,
-		arg.CreatedAt,
-	)
-	return err
-}
-
 const insertDecodedValidatorDeregistration = `-- name: InsertDecodedValidatorDeregistration :exec
 insert into core_etl_tx_validator_deregistration (
     tx_hash,
