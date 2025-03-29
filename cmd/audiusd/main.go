@@ -99,7 +99,7 @@ func main() {
 		{
 			"etl",
 			func() error { return etl.Run(ctx, logger) },
-			true,
+			os.Getenv("AUDIUSD_ETL_ENABLED") == "true",
 		},
 	}
 
