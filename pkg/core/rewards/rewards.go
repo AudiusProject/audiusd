@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"slices"
 
@@ -15,6 +16,24 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/santhosh-tekuri/jsonschema/v5"
+)
+
+var (
+	ErrInvalidBase64Input       = errors.New("invalid base64 input")
+	ErrInvalidJSON              = errors.New("failed to unmarshal JSON into struct")
+	ErrRemarshalFailed          = errors.New("failed to re-marshal claim struct")
+	ErrSchemaValidationFailed   = errors.New("claim_schema validation failed")
+	ErrCanonicalizationFailed   = errors.New("failed to canonicalize JSON")
+	ErrNotCanonicalJSON         = errors.New("input JSON is not canonicalized")
+	ErrInvalidSignatureHex      = errors.New("invalid signature hex")
+	ErrInvalidSignatureLength   = errors.New("invalid signature length")
+	ErrSignatureRecoveryFailed  = errors.New("failed to recover public key")
+	ErrCanonicalDecodeFailed    = errors.New("failed to decode canonical base64")
+	ErrSigningFailed            = errors.New("failed to sign reward claim")
+	ErrMarshalAttestationFailed = errors.New("failed to marshal attestation")
+	ErrAmountMismatch           = errors.New("amounts not matching")
+	ErrUnauthorizedSigner       = errors.New("not signed by correct key")
+	ErrClaimNotValidReward      = errors.New("claim not valid reward")
 )
 
 type RewardClaim struct {
@@ -123,21 +142,18 @@ func (rs *RewardService) AttestRewardClaim(data, signature string) (string, stri
 		return "", "", err
 	}
 
-	// Decode canonical JSON for signing
 	canonicalJSON, err := base64.StdEncoding.DecodeString(canonicalB64)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to decode canonical base64: %w", err)
+		return "", "", fmt.Errorf("%w: %v", ErrCanonicalDecodeFailed, err)
 	}
 
 	hash := sha256.Sum256(canonicalJSON)
-
 	privKey := rs.config.EthereumKey
 	sigBytes, err := crypto.Sign(hash[:], privKey)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to sign reward claim: %w", err)
+		return "", "", fmt.Errorf("%w: %v", ErrSigningFailed, err)
 	}
 
-	// Build RewardAttestation struct
 	attestation := RewardAttestation{
 		ID:        rewardClaim.ID,
 		Amount:    rewardClaim.Amount,
@@ -145,39 +161,38 @@ func (rs *RewardService) AttestRewardClaim(data, signature string) (string, stri
 		Signature: hex.EncodeToString(sigBytes),
 	}
 
-	// Encode to JSON, then base64
 	attJSON, err := json.Marshal(attestation)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to marshal attestation: %w", err)
+		return "", "", fmt.Errorf("%w: %v", ErrMarshalAttestationFailed, err)
 	}
 
 	attestationB64 := base64.StdEncoding.EncodeToString(attJSON)
-
 	return attestationB64, attestation.Signature, nil
 }
 
 func (rs *RewardService) ParseRewardClaim(data string) (*RewardClaim, error) {
 	jsonBytes, err := base64.StdEncoding.DecodeString(data)
 	if err != nil {
-		return nil, fmt.Errorf("invalid base64 input: %w", err)
+		return nil, fmt.Errorf("%w: %v", ErrInvalidBase64Input, err)
 	}
 
 	var claim RewardClaim
 	if err := json.Unmarshal(jsonBytes, &claim); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal JSON into struct: %w", err)
+		return nil, fmt.Errorf("%w: %v", ErrInvalidJSON, err)
 	}
 
 	structBytes, err := json.Marshal(claim)
 	if err != nil {
-		return nil, fmt.Errorf("failed to re-marshal claim struct: %w", err)
+		return nil, fmt.Errorf("%w: %v", ErrRemarshalFailed, err)
 	}
 
 	var forValidation any
 	if err := json.Unmarshal(structBytes, &forValidation); err != nil {
 		return nil, fmt.Errorf("unexpected: could not prepare for schema validation: %w", err)
 	}
+
 	if err := rs.claimSchema.Validate(forValidation); err != nil {
-		return nil, fmt.Errorf("claim_schema validation failed: %w", err)
+		return nil, fmt.Errorf("%w: %v", ErrSchemaValidationFailed, err)
 	}
 
 	return &claim, nil
@@ -186,32 +201,34 @@ func (rs *RewardService) ParseRewardClaim(data string) (*RewardClaim, error) {
 func (rs *RewardService) RecoverSigner(dataB64, signatureHex string) (string, string, error) {
 	jsonBytes, err := base64.StdEncoding.DecodeString(dataB64)
 	if err != nil {
-		return "", "", fmt.Errorf("invalid base64 input: %w", err)
+		return "", "", fmt.Errorf("%w: %v", ErrInvalidBase64Input, err)
 	}
 
-	// canonicalize the JSON, out of order fields result in different hashes
 	canonicalJSON, err := canonical.Transform(jsonBytes)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to canonicalize JSON: %w", err)
+		return "", "", fmt.Errorf("%w: %v", ErrCanonicalizationFailed, err)
+	}
+
+	if !slices.Equal(canonicalJSON, jsonBytes) {
+		return "", "", ErrNotCanonicalJSON
 	}
 
 	hash := sha256.Sum256(canonicalJSON)
-
 	sigBytes, err := hex.DecodeString(signatureHex)
 	if err != nil {
-		return "", "", fmt.Errorf("invalid signature hex: %w", err)
+		return "", "", fmt.Errorf("%w: %v", ErrInvalidSignatureHex, err)
 	}
+
 	if len(sigBytes) != 65 {
-		return "", "", fmt.Errorf("invalid signature length: expected 65 bytes, got %d", len(sigBytes))
+		return "", "", fmt.Errorf("%w: expected 65 bytes, got %d", ErrInvalidSignatureLength, len(sigBytes))
 	}
 
 	pubKey, err := crypto.SigToPub(hash[:], sigBytes)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to recover public key: %w", err)
+		return "", "", fmt.Errorf("%w: %v", ErrSignatureRecoveryFailed, err)
 	}
 
 	recoveredAddress := crypto.PubkeyToAddress(*pubKey).Hex()
-
 	canonicalB64 := base64.StdEncoding.EncodeToString(canonicalJSON)
 	return recoveredAddress, canonicalB64, nil
 }
@@ -223,16 +240,15 @@ func (rs *RewardService) ValidateRewardClaim(claim *RewardClaim, recoveredSigner
 		}
 
 		if claim.Amount != reward.Amount {
-			return fmt.Errorf("amounts not matching")
+			return ErrAmountMismatch
 		}
 
 		spew.Dump(reward.Pubkeys, recoveredSigner)
-
 		if !slices.Contains(reward.Pubkeys, recoveredSigner) {
-			return fmt.Errorf("not signed by correct key")
+			return ErrUnauthorizedSigner
 		}
 
 		return nil
 	}
-	return fmt.Errorf("claim %s not valid reward", claim.ID)
+	return fmt.Errorf("%w: %s", ErrClaimNotValidReward, claim.ID)
 }
