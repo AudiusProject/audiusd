@@ -12,7 +12,7 @@
     },
     "specifier": {
       "type": "string",
-      "description": "who's claiming the reward"
+      "description": "Unique identifier for this claim instance, relative to the challenge ID. Typically, for rewards that can be claimed once per user, this is a user identifier."
     }
   },
   "required": [

@@ -100,4 +100,4 @@ Once the signed message and the data has been sent to core, core will validate t
 
 Core will validate the amount is correct, the shape of the json is canonicalized, and that the recovered signer is one of the relevant ones listed in the `rewards.json`.
 
-Should these things pass core will return a similar structure. A `data` field with the original data plus the signature from the sender and a signature signed by it's validator key attesting that this is a valid reward. The caller can then acquire multiple of these attestations if required and use these attestations for rewards of their own need.
+Should these things pass core will return a similar structure. A `data` field with the original data plus the signature from the sender and a signature signed by its validator key attesting that this is a valid reward. The caller can then acquire multiple of these attestations if required and use these attestations for rewards of their own need.
