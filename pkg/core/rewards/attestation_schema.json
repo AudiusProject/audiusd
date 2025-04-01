@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RewardAttestation",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "amount": {
+      "type": "number"
+    },
+    "specifier": {
+      "type": "string",
+      "description": "Actual value matching the config's specifierFormat"
+    },
+    "signature": {
+      "type": "string",
+      "pattern": "^(0x)?[a-fA-F0-9]+$",
+      "description": "Signature of the claim made by one of the authorized pubkeys"
+    }
+  },
+  "required": [
+    "id",
+    "amount",
+    "specifier",
+    "signature"
+  ],
+  "additionalProperties": false
+}

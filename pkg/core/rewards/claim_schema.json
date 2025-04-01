@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RewardClaim",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "amount": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "specifier": {
+      "type": "string",
+      "description": "who's claiming the reward"
+    }
+  },
+  "required": [
+    "id",
+    "amount",
+    "specifier"
+  ],
+  "additionalProperties": false
+}

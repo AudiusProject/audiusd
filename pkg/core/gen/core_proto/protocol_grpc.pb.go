@@ -27,6 +27,7 @@ const (
 	Protocol_Ping_FullMethodName                         = "/protocol.Protocol/Ping"
 	Protocol_GetRegistrationAttestation_FullMethodName   = "/protocol.Protocol/GetRegistrationAttestation"
 	Protocol_GetDeregistrationAttestation_FullMethodName = "/protocol.Protocol/GetDeregistrationAttestation"
+	Protocol_GetRewardAttestation_FullMethodName         = "/protocol.Protocol/GetRewardAttestation"
 )
 
 // ProtocolClient is the client API for Protocol service.
@@ -41,6 +42,7 @@ type ProtocolClient interface {
 	Ping(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*PingResponse, error)
 	GetRegistrationAttestation(ctx context.Context, in *RegistrationAttestationRequest, opts ...grpc.CallOption) (*RegistrationAttestationResponse, error)
 	GetDeregistrationAttestation(ctx context.Context, in *DeregistrationAttestationRequest, opts ...grpc.CallOption) (*DeregistrationAttestationResponse, error)
+	GetRewardAttestation(ctx context.Context, in *RewardAttestationRequest, opts ...grpc.CallOption) (*RewardAttestationResponse, error)
 }
 
 type protocolClient struct {
@@ -123,6 +125,15 @@ func (c *protocolClient) GetDeregistrationAttestation(ctx context.Context, in *D
 	return out, nil
 }
 
+func (c *protocolClient) GetRewardAttestation(ctx context.Context, in *RewardAttestationRequest, opts ...grpc.CallOption) (*RewardAttestationResponse, error) {
+	out := new(RewardAttestationResponse)
+	err := c.cc.Invoke(ctx, Protocol_GetRewardAttestation_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ProtocolServer is the server API for Protocol service.
 // All implementations must embed UnimplementedProtocolServer
 // for forward compatibility
@@ -135,6 +146,7 @@ type ProtocolServer interface {
 	Ping(context.Context, *PingRequest) (*PingResponse, error)
 	GetRegistrationAttestation(context.Context, *RegistrationAttestationRequest) (*RegistrationAttestationResponse, error)
 	GetDeregistrationAttestation(context.Context, *DeregistrationAttestationRequest) (*DeregistrationAttestationResponse, error)
+	GetRewardAttestation(context.Context, *RewardAttestationRequest) (*RewardAttestationResponse, error)
 	mustEmbedUnimplementedProtocolServer()
 }
 
@@ -165,6 +177,9 @@ func (UnimplementedProtocolServer) GetRegistrationAttestation(context.Context, *
 }
 func (UnimplementedProtocolServer) GetDeregistrationAttestation(context.Context, *DeregistrationAttestationRequest) (*DeregistrationAttestationResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetDeregistrationAttestation not implemented")
+}
+func (UnimplementedProtocolServer) GetRewardAttestation(context.Context, *RewardAttestationRequest) (*RewardAttestationResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetRewardAttestation not implemented")
 }
 func (UnimplementedProtocolServer) mustEmbedUnimplementedProtocolServer() {}
 
@@ -323,6 +338,24 @@ func _Protocol_GetDeregistrationAttestation_Handler(srv interface{}, ctx context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Protocol_GetRewardAttestation_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RewardAttestationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProtocolServer).GetRewardAttestation(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Protocol_GetRewardAttestation_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProtocolServer).GetRewardAttestation(ctx, req.(*RewardAttestationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Protocol_ServiceDesc is the grpc.ServiceDesc for Protocol service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -361,6 +394,10 @@ var Protocol_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetDeregistrationAttestation",
 			Handler:    _Protocol_GetDeregistrationAttestation_Handler,
+		},
+		{
+			MethodName: "GetRewardAttestation",
+			Handler:    _Protocol_GetRewardAttestation_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

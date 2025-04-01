@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Reward",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique identifier for the reward type"
+    },
+    "amount": {
+      "type": "integer",
+      "description": "Amount of the reward"
+    },
+    "pubkeys": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of authorized public keys to sign claims"
+    }
+  },
+  "required": [
+    "id",
+    "amount",
+    "pubkeys"
+  ],
+  "additionalProperties": false
+}

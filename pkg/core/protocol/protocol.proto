@@ -44,6 +44,12 @@ service Protocol {
       body: "deregistration"
     };
   }
+  rpc GetRewardAttestation(RewardAttestationRequest) returns (RewardAttestationResponse) {
+    option (google.api.http) = {
+      get: "/core/grpc/attest/reward"
+      additional_bindings: {get: "/core/grpc/attest/reward?data={data}&signature={signature}"}
+    };
+  }
 }
 
 message SignedTransaction {
@@ -175,16 +181,16 @@ message SlaNodeReport {
 }
 
 message StorageProof {
-   int64 height = 1; 
-   string address = 2;
-   repeated string prover_addresses = 3;
-   string cid = 4;
-   bytes proof_signature = 5;
+  int64 height = 1;
+  string address = 2;
+  repeated string prover_addresses = 3;
+  string cid = 4;
+  bytes proof_signature = 5;
 }
 
 message StorageProofVerification {
-   int64 height = 1; 
-   bytes proof = 2;
+  int64 height = 1;
+  bytes proof = 2;
 }
 
 message ManageEntityLegacy {
@@ -219,7 +225,21 @@ message DeregistrationAttestationResponse {
 message Attestation {
   repeated string signatures = 1;
   oneof body {
-      ValidatorRegistration validator_registration = 1000;
-      ValidatorDeregistration validator_deregistration = 1001;
+    ValidatorRegistration validator_registration = 1000;
+    ValidatorDeregistration validator_deregistration = 1001;
   }
+}
+
+message RewardAttestationRequest {
+  // base64 encoded json data
+  string data = 1;
+  // signed sha256 hash of the base64 encoded data
+  string signature = 2;
+}
+
+message RewardAttestationResponse {
+  // base64 encoded json data + original signature
+  string data = 1;
+  // signed sha256 hash of the base64 encoded data
+  string signature = 2;
 }

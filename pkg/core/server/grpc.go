@@ -387,3 +387,7 @@ func (s *Server) GetDeregistrationAttestation(ctx context.Context, req *core_pro
 		Deregistration: dereg,
 	}, nil
 }
+
+func (s *Server) GetRewardAttestation(ctx context.Context, req *core_proto.RewardAttestationRequest) (*core_proto.RewardAttestationResponse, error) {
+	return nil, nil
+}
