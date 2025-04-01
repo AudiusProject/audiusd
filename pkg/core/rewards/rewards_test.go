@@ -74,7 +74,7 @@ func TestAttestRewardClaim(t *testing.T) {
 	require.NoError(t, err)
 
 	testClaim := rewards.RewardClaim{
-		ID:        "track-upload",
+		ID:        "u",
 		Amount:    3,
 		Specifier: "1234",
 	}
@@ -133,7 +133,7 @@ func TestError_InvalidJSON(t *testing.T) {
 func TestError_NotCanonicalJSON(t *testing.T) {
 	svc := newTestService(t)
 	claim := rewards.RewardClaim{
-		ID:        "track-upload",
+		ID:        "u",
 		Amount:    3,
 		Specifier: "1234",
 	}
@@ -145,7 +145,7 @@ func TestError_NotCanonicalJSON(t *testing.T) {
 
 func TestError_InvalidSignatureHex(t *testing.T) {
 	svc := newTestService(t)
-	claim := rewards.RewardClaim{ID: "track-upload", Amount: 3, Specifier: "1234"}
+	claim := rewards.RewardClaim{ID: "u", Amount: 3, Specifier: "1234"}
 	data, _ := generateCanonicalSignedClaim(t, trackUploadPrivKey, claim)
 	_, _, err := svc.AttestRewardClaim(data, "ZZZ")
 	require.ErrorIs(t, err, rewards.ErrInvalidSignatureHex)
@@ -153,7 +153,7 @@ func TestError_InvalidSignatureHex(t *testing.T) {
 
 func TestError_InvalidSignatureLength(t *testing.T) {
 	svc := newTestService(t)
-	claim := rewards.RewardClaim{ID: "track-upload", Amount: 3, Specifier: "1234"}
+	claim := rewards.RewardClaim{ID: "u", Amount: 3, Specifier: "1234"}
 	data, _ := generateCanonicalSignedClaim(t, trackUploadPrivKey, claim)
 	_, _, err := svc.AttestRewardClaim(data, "abcd")
 	require.ErrorIs(t, err, rewards.ErrInvalidSignatureLength)
@@ -169,7 +169,7 @@ func TestError_ClaimNotValidReward(t *testing.T) {
 
 func TestError_AmountMismatch(t *testing.T) {
 	svc := newTestService(t)
-	claim := rewards.RewardClaim{ID: "track-upload", Amount: 999, Specifier: "1234"}
+	claim := rewards.RewardClaim{ID: "u", Amount: 999, Specifier: "1234"}
 	data, sig := generateCanonicalSignedClaim(t, trackUploadPrivKey, claim)
 	_, _, err := svc.AttestRewardClaim(data, sig)
 	require.ErrorIs(t, err, rewards.ErrAmountMismatch)
@@ -180,7 +180,7 @@ func TestError_UnauthorizedSigner(t *testing.T) {
 
 	// valid claim, but signer is not in pubkeys for this reward
 	otherKey, _ := crypto.GenerateKey()
-	claim := rewards.RewardClaim{ID: "track-upload", Amount: 3, Specifier: "1234"}
+	claim := rewards.RewardClaim{ID: "u", Amount: 3, Specifier: "1234"}
 	data, sig := generateCanonicalSignedClaim(t, otherKey, claim)
 	_, _, err := svc.AttestRewardClaim(data, sig)
 	require.ErrorIs(t, err, rewards.ErrUnauthorizedSigner)

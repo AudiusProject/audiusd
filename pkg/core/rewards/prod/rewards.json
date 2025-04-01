@@ -1,9 +1,149 @@
 [
   {
-    "id": "track-upload",
-    "amount": 3,
+    "id": "p",
+    "amount": 1,
     "pubkeys": [
-      ""
+      "0xf1a1Bd34b2Bc73629aa69E50E3249E89A3c16786"
+    ]
+  },
+  {
+    "id": "e",
+    "amount": 1,
+    "pubkeys": [
+      "0xf1a1Bd34b2Bc73629aa69E50E3249E89A3c16786"
+    ]
+  },
+  {
+    "id": "u",
+    "amount": 1,
+    "pubkeys": [
+      "0xf1a1Bd34b2Bc73629aa69E50E3249E89A3c16786"
+    ]
+  },
+  {
+    "id": "r",
+    "amount": 1,
+    "pubkeys": [
+      "0xf1a1Bd34b2Bc73629aa69E50E3249E89A3c16786"
+    ]
+  },
+  {
+    "id": "rv",
+    "amount": 1,
+    "pubkeys": [
+      "0xf1a1Bd34b2Bc73629aa69E50E3249E89A3c16786"
+    ]
+  },
+  {
+    "id": "rd",
+    "amount": 1,
+    "pubkeys": [
+      "0xf1a1Bd34b2Bc73629aa69E50E3249E89A3c16786"
+    ]
+  },
+  {
+    "id": "v",
+    "amount": 5,
+    "pubkeys": [
+      "0xf1a1Bd34b2Bc73629aa69E50E3249E89A3c16786"
+    ]
+  },
+  {
+    "id": "m",
+    "amount": 1,
+    "pubkeys": [
+      "0xf1a1Bd34b2Bc73629aa69E50E3249E89A3c16786"
+    ]
+  },
+  {
+    "id": "tt",
+    "amount": 1000,
+    "pubkeys": [
+      "0xf1a1Bd34b2Bc73629aa69E50E3249E89A3c16786"
+    ]
+  },
+  {
+    "id": "tut",
+    "amount": 1000,
+    "pubkeys": [
+      "0xf1a1Bd34b2Bc73629aa69E50E3249E89A3c16786"
+    ]
+  },
+  {
+    "id": "tp",
+    "amount": 100,
+    "pubkeys": [
+      "0xf1a1Bd34b2Bc73629aa69E50E3249E89A3c16786"
+    ]
+  },
+  {
+    "id": "ft",
+    "amount": 2,
+    "pubkeys": [
+      "0xf1a1Bd34b2Bc73629aa69E50E3249E89A3c16786"
+    ]
+  },
+  {
+    "id": "fp",
+    "amount": 2,
+    "pubkeys": [
+      "0xf1a1Bd34b2Bc73629aa69E50E3249E89A3c16786"
+    ]
+  },
+  {
+    "id": "b",
+    "amount": 5,
+    "pubkeys": [
+      "0xf1a1Bd34b2Bc73629aa69E50E3249E89A3c16786"
+    ]
+  },
+  {
+    "id": "s",
+    "amount": 5,
+    "pubkeys": [
+      "0xf1a1Bd34b2Bc73629aa69E50E3249E89A3c16786"
+    ]
+  },
+  {
+    "id": "o",
+    "amount": 1,
+    "pubkeys": [
+      "0xf1a1Bd34b2Bc73629aa69E50E3249E89A3c16786"
+    ]
+  },
+  {
+    "id": "c",
+    "amount": 1,
+    "pubkeys": [
+      "0xf1a1Bd34b2Bc73629aa69E50E3249E89A3c16786"
+    ]
+  },
+  {
+    "id": "p1",
+    "amount": 25,
+    "pubkeys": [
+      "0xf1a1Bd34b2Bc73629aa69E50E3249E89A3c16786"
+    ]
+  },
+  {
+    "id": "p2",
+    "amount": 100,
+    "pubkeys": [
+      "0xf1a1Bd34b2Bc73629aa69E50E3249E89A3c16786"
+    ]
+  },
+  {
+    "id": "p3",
+    "amount": 1000,
+    "pubkeys": [
+      "0xf1a1Bd34b2Bc73629aa69E50E3249E89A3c16786"
+    ]
+  },
+  {
+    "id": "t",
+    "amount": 100,
+    "pubkeys": [
+      "0xf1a1Bd34b2Bc73629aa69E50E3249E89A3c16786"
     ]
   }
 ]

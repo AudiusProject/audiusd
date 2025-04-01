@@ -1,9 +1,149 @@
 [
   {
-    "id": "track-upload",
-    "amount": 3,
+    "id": "p",
+    "amount": 1,
     "pubkeys": [
-      ""
+      "0x8fcFA10Bd3808570987dbb5B1EF4AB74400FbfDA"
+    ]
+  },
+  {
+    "id": "e",
+    "amount": 1,
+    "pubkeys": [
+      "0x8fcFA10Bd3808570987dbb5B1EF4AB74400FbfDA"
+    ]
+  },
+  {
+    "id": "u",
+    "amount": 1,
+    "pubkeys": [
+      "0x8fcFA10Bd3808570987dbb5B1EF4AB74400FbfDA"
+    ]
+  },
+  {
+    "id": "r",
+    "amount": 1,
+    "pubkeys": [
+      "0x8fcFA10Bd3808570987dbb5B1EF4AB74400FbfDA"
+    ]
+  },
+  {
+    "id": "rv",
+    "amount": 1,
+    "pubkeys": [
+      "0x8fcFA10Bd3808570987dbb5B1EF4AB74400FbfDA"
+    ]
+  },
+  {
+    "id": "rd",
+    "amount": 1,
+    "pubkeys": [
+      "0x8fcFA10Bd3808570987dbb5B1EF4AB74400FbfDA"
+    ]
+  },
+  {
+    "id": "v",
+    "amount": 5,
+    "pubkeys": [
+      "0x8fcFA10Bd3808570987dbb5B1EF4AB74400FbfDA"
+    ]
+  },
+  {
+    "id": "m",
+    "amount": 1,
+    "pubkeys": [
+      "0x8fcFA10Bd3808570987dbb5B1EF4AB74400FbfDA"
+    ]
+  },
+  {
+    "id": "tt",
+    "amount": 1000,
+    "pubkeys": [
+      "0x8fcFA10Bd3808570987dbb5B1EF4AB74400FbfDA"
+    ]
+  },
+  {
+    "id": "tut",
+    "amount": 1000,
+    "pubkeys": [
+      "0x8fcFA10Bd3808570987dbb5B1EF4AB74400FbfDA"
+    ]
+  },
+  {
+    "id": "tp",
+    "amount": 100,
+    "pubkeys": [
+      "0x8fcFA10Bd3808570987dbb5B1EF4AB74400FbfDA"
+    ]
+  },
+  {
+    "id": "ft",
+    "amount": 2,
+    "pubkeys": [
+      "0x8fcFA10Bd3808570987dbb5B1EF4AB74400FbfDA"
+    ]
+  },
+  {
+    "id": "fp",
+    "amount": 2,
+    "pubkeys": [
+      "0x8fcFA10Bd3808570987dbb5B1EF4AB74400FbfDA"
+    ]
+  },
+  {
+    "id": "b",
+    "amount": 5,
+    "pubkeys": [
+      "0x8fcFA10Bd3808570987dbb5B1EF4AB74400FbfDA"
+    ]
+  },
+  {
+    "id": "s",
+    "amount": 5,
+    "pubkeys": [
+      "0x8fcFA10Bd3808570987dbb5B1EF4AB74400FbfDA"
+    ]
+  },
+  {
+    "id": "o",
+    "amount": 1,
+    "pubkeys": [
+      "0x8fcFA10Bd3808570987dbb5B1EF4AB74400FbfDA"
+    ]
+  },
+  {
+    "id": "c",
+    "amount": 1,
+    "pubkeys": [
+      "0x8fcFA10Bd3808570987dbb5B1EF4AB74400FbfDA"
+    ]
+  },
+  {
+    "id": "p1",
+    "amount": 25,
+    "pubkeys": [
+      "0x8fcFA10Bd3808570987dbb5B1EF4AB74400FbfDA"
+    ]
+  },
+  {
+    "id": "p2",
+    "amount": 100,
+    "pubkeys": [
+      "0x8fcFA10Bd3808570987dbb5B1EF4AB74400FbfDA"
+    ]
+  },
+  {
+    "id": "p3",
+    "amount": 1000,
+    "pubkeys": [
+      "0x8fcFA10Bd3808570987dbb5B1EF4AB74400FbfDA"
+    ]
+  },
+  {
+    "id": "t",
+    "amount": 100,
+    "pubkeys": [
+      "0x8fcFA10Bd3808570987dbb5B1EF4AB74400FbfDA"
     ]
   }
 ]
