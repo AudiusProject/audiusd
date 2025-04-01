@@ -75,7 +75,7 @@ func TestAttestRewardClaim(t *testing.T) {
 
 	testClaim := rewards.RewardClaim{
 		ID:        "u",
-		Amount:    3,
+		Amount:    1,
 		Specifier: "1234",
 	}
 
@@ -180,7 +180,7 @@ func TestError_UnauthorizedSigner(t *testing.T) {
 
 	// valid claim, but signer is not in pubkeys for this reward
 	otherKey, _ := crypto.GenerateKey()
-	claim := rewards.RewardClaim{ID: "u", Amount: 3, Specifier: "1234"}
+	claim := rewards.RewardClaim{ID: "u", Amount: 1, Specifier: "1234"}
 	data, sig := generateCanonicalSignedClaim(t, otherKey, claim)
 	_, _, err := svc.AttestRewardClaim(data, sig)
 	require.ErrorIs(t, err, rewards.ErrUnauthorizedSigner)

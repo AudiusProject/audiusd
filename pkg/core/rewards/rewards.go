@@ -13,7 +13,6 @@ import (
 	"github.com/AudiusProject/audiusd/pkg/core/common"
 	"github.com/AudiusProject/audiusd/pkg/core/config"
 	canonical "github.com/cyberphone/json-canonicalization/go/src/webpki.org/jsoncanonicalizer"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/santhosh-tekuri/jsonschema/v5"
 )
@@ -243,7 +242,6 @@ func (rs *RewardService) ValidateRewardClaim(claim *RewardClaim, recoveredSigner
 			return ErrAmountMismatch
 		}
 
-		spew.Dump(reward.Pubkeys, recoveredSigner)
 		if !slices.Contains(reward.Pubkeys, recoveredSigner) {
 			return ErrUnauthorizedSigner
 		}
