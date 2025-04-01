@@ -12,21 +12,10 @@ import (
 	"github.com/AudiusProject/audiusd/pkg/core/common"
 	"github.com/AudiusProject/audiusd/pkg/core/config"
 	canonical "github.com/cyberphone/json-canonicalization/go/src/webpki.org/jsoncanonicalizer"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/santhosh-tekuri/jsonschema/v5"
 )
-
-//go:embed claim_schema.json
-var claimSchemaData []byte
-
-//go:embed attestation_schema.json
-var attestationSchemaData []byte
-
-//go:embed reward_schema.json
-var rewardSchemaData []byte
-
-//go:embed rewards.json
-var rewardsData []byte
 
 type RewardClaim struct {
 	ID        string `json:"id"`
@@ -38,6 +27,13 @@ type Reward struct {
 	ID      string   `json:"id"`
 	Amount  uint     `json:"amount"`
 	Pubkeys []string `json:"pubkeys"`
+}
+
+type RewardAttestation struct {
+	ID        string `json:"id"`
+	Amount    uint   `json:"amount"`
+	Specifier string `json:"specifier"`
+	Signature string `json:"signature"`
 }
 
 type RewardService struct {
@@ -52,6 +48,11 @@ type RewardService struct {
 }
 
 func NewRewardService(config *config.Config, logger *common.Logger) (*RewardService, error) {
+	claimSchemaData, attestationSchemaData, rewardSchemaData, rewardsData, err := getEnvFiles(config.Environment)
+	if err != nil {
+		return nil, err
+	}
+
 	claimSchema, err := jsonschema.CompileString("claim_schema.json", string(claimSchemaData))
 	if err != nil {
 		logger.Errorf("could not compile claim_schema.json schema: %v", err)
@@ -113,14 +114,46 @@ func (rs *RewardService) AttestRewardClaim(data, signature string) (string, stri
 		return "", "", err
 	}
 
-	addr, _, err := rs.RecoverSigner(data, signature)
+	addr, canonicalB64, err := rs.RecoverSigner(data, signature)
 	if err != nil {
 		return "", "", err
 	}
 
-	fmt.Printf("%v %v", rewardClaim, addr)
+	if err := rs.ValidateRewardClaim(rewardClaim, addr); err != nil {
+		return "", "", err
+	}
 
-	return "", "", nil
+	// Decode canonical JSON for signing
+	canonicalJSON, err := base64.StdEncoding.DecodeString(canonicalB64)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to decode canonical base64: %w", err)
+	}
+
+	hash := sha256.Sum256(canonicalJSON)
+
+	privKey := rs.config.EthereumKey
+	sigBytes, err := crypto.Sign(hash[:], privKey)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to sign reward claim: %w", err)
+	}
+
+	// Build RewardAttestation struct
+	attestation := RewardAttestation{
+		ID:        rewardClaim.ID,
+		Amount:    rewardClaim.Amount,
+		Specifier: rewardClaim.Specifier,
+		Signature: hex.EncodeToString(sigBytes),
+	}
+
+	// Encode to JSON, then base64
+	attJSON, err := json.Marshal(attestation)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to marshal attestation: %w", err)
+	}
+
+	attestationB64 := base64.StdEncoding.EncodeToString(attJSON)
+
+	return attestationB64, attestation.Signature, nil
 }
 
 func (rs *RewardService) ParseRewardClaim(data string) (*RewardClaim, error) {
@@ -192,6 +225,8 @@ func (rs *RewardService) ValidateRewardClaim(claim *RewardClaim, recoveredSigner
 		if claim.Amount != reward.Amount {
 			return fmt.Errorf("amounts not matching")
 		}
+
+		spew.Dump(reward.Pubkeys, recoveredSigner)
 
 		if !slices.Contains(reward.Pubkeys, recoveredSigner) {
 			return fmt.Errorf("not signed by correct key")
