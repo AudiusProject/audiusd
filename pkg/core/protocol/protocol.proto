@@ -45,10 +45,7 @@ service Protocol {
     };
   }
   rpc GetRewardAttestation(RewardAttestationRequest) returns (RewardAttestationResponse) {
-    option (google.api.http) = {
-      get: "/core/grpc/attest/reward"
-      additional_bindings: {get: "/core/grpc/attest/reward?data={data}&signature={signature}"}
-    };
+    option (google.api.http) = {get: "/core/grpc/attest/reward"};
   }
 }
 
