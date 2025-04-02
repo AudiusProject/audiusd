@@ -13,6 +13,7 @@ import (
 
 	"github.com/AudiusProject/audiusd/pkg/core/common"
 	"github.com/AudiusProject/audiusd/pkg/core/gen/core_proto"
+	"github.com/AudiusProject/audiusd/pkg/core/rewards"
 	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/iancoleman/strcase"
 	"github.com/jackc/pgx/v5"
@@ -389,5 +390,12 @@ func (s *Server) GetDeregistrationAttestation(ctx context.Context, req *core_pro
 }
 
 func (s *Server) GetRewardAttestation(ctx context.Context, req *core_proto.RewardAttestationRequest) (*core_proto.RewardAttestationResponse, error) {
+	specifier := req.Specifier
+	rewardID := req.RewardId
+	encodedUserID := req.EncodedUserId
+	oracleAddress := req.OracleAddress
+
+	rewardSignerHash := rewards.ConstructRewardSignerHash(specifier, rewardID, encodedUserID, oracleAddress)
+
 	return nil, nil
 }
