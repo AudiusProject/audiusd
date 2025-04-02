@@ -1,0 +1,196 @@
+syntax = "proto3";
+
+package protocol;
+
+import "google/api/annotations.proto";
+
+service Protocol {
+  // Submit a signed transaction for a new release (includes metadata + CIDs)
+  rpc SendTransaction(SendTransactionRequest) returns (TransactionResponse) {
+    option (google.api.http) = {
+      post: "/core/grpc/transaction"
+      body: "transaction"
+    };
+  }
+
+  // Upload a single file (e.g. track, image) with a release ID and Ethereum-style signature
+  rpc UploadFile(UploadFileRequest) returns (UploadFileResponse) {
+    option (google.api.http) = {
+      post: "/core/grpc/uploads"
+      body: "*"
+    };
+  }
+
+  // Upload a chunk of a file (used for large uploads)
+  rpc UploadChunk(UploadChunkRequest) returns (UploadChunkResponse) {
+    option (google.api.http) = {
+      post: "/core/grpc/upload_chunk"
+      body: "*"
+    };
+  }
+
+  // Finalize a chunked file upload and return the final CID
+  rpc FinalizeUpload(FinalizeUploadRequest) returns (UploadFileResponse) {
+    option (google.api.http) = {
+      post: "/core/grpc/finalize_upload"
+      body: "*"
+    };
+  }
+
+  // Upload multiple files at once (e.g. stems, album tracks)
+  rpc BatchUploadFiles(BatchUploadFilesRequest) returns (BatchUploadFilesResponse) {
+    option (google.api.http) = {
+      post: "/core/grpc/batch_uploads"
+      body: "*"
+    };
+  }
+}
+
+// === Transaction Types ===
+
+message SendTransactionRequest {
+  SignedTransaction transaction = 1;
+}
+
+message TransactionResponse {
+  string txhash = 1;
+  SignedTransaction transaction = 2;
+  int64 block_height = 3;
+  string block_hash = 4;
+}
+
+message SignedTransaction {
+  // Ethereum-style signature over the transaction message
+  string signature = 1;
+
+  // Optional request identifier for tracing/response mapping
+  string request_id = 2;
+
+  // Type of transaction (can be extended with other messages)
+  oneof transaction {
+    NewReleaseMessage new_release_message = 1008;
+  }
+}
+
+message NewReleaseMessage {
+  ReleaseHeader release_header = 1;
+  repeated Resource resources = 2;
+  repeated Release release_list = 3;
+}
+
+message ReleaseHeader {
+  string message_id = 1;
+}
+
+message Resource {
+  oneof resource {
+    SoundRecording sound_recording = 1;
+    Image image = 2;
+  }
+}
+
+message SoundRecording {
+  // IPFS CID of the uploaded audio file
+  string cid = 1;
+}
+
+message Image {
+  // IPFS CID of the uploaded image file
+  string cid = 1;
+}
+
+message Release {
+  ReleaseId release_id = 1;
+  string title = 2;
+  string genre = 3;
+  repeated ReleaseManager release_managers = 4;
+}
+
+message ReleaseId {
+  oneof id {
+    string isrc = 1;
+    string hash_id = 2;
+  }
+}
+
+message ReleaseManager {
+  // Ethereum address of the manager (artist, label, etc.)
+  string address = 1;
+  bool update = 2;
+  bool delete = 3;
+}
+
+// === File Upload APIs ===
+
+// Upload a single file and return its IPFS CID
+message UploadFileRequest {
+  bytes file = 1;
+
+  // Logical group this file belongs to (e.g. a release)
+  string release_id = 2;
+
+  // Signature over (release_id + file hash)
+  string signature = 3;
+}
+
+message UploadFileResponse {
+  string cid = 1;
+}
+
+// Upload a file in chunks for large uploads
+message UploadChunkRequest {
+  string release_id = 1;
+
+  // Client-defined ID for the file being uploaded in chunks
+  string file_id = 2;
+
+  // Index of this chunk (starting from 0)
+  int32 chunk_index = 3;
+
+  // Raw chunk data
+  bytes chunk_data = 4;
+
+  // Signature over (release_id + file_id + chunk_index + hash(chunk_data))
+  string signature = 5;
+}
+
+message UploadChunkResponse {
+  // Server acknowledgment
+  bool received = 1;
+}
+
+// Finalize a chunked upload and return the full CID
+message FinalizeUploadRequest {
+  string release_id = 1;
+  string file_id = 2;
+  int32 total_chunks = 3;
+
+  // Signature over (release_id + file_id + total_chunks)
+  string signature = 4;
+}
+
+// Upload multiple files at once and return CIDs for each
+message BatchUploadFilesRequest {
+  string release_id = 1;
+
+  // List of files to upload
+  repeated BatchFile files = 2;
+
+  // Signature over (release_id + concatenated file hashes or CIDs)
+  string signature = 3;
+}
+
+message BatchFile {
+  bytes file = 1;
+  string file_name = 2; // optional: "vocals.wav", "cover.jpg", etc.
+  string file_type = 3; // optional: "stem", "track", "image"
+}
+
+message BatchUploadFilesResponse {
+  repeated FileUploadResult results = 1;
+}
+
+message FileUploadResult {
+  string file_name = 1;
+  string cid = 2;
+}
