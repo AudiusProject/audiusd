@@ -17,11 +17,11 @@ import (
 // swagger:model protocolRewardAttestationResponse
 type ProtocolRewardAttestationResponse struct {
 
-	// base64 encoded json data + original signature
-	Data string `json:"data,omitempty"`
-
 	// signed sha256 hash of the base64 encoded data
-	Signature string `json:"signature,omitempty"`
+	Attestation string `json:"attestation,omitempty"`
+
+	// base64 encoded json data + original signature
+	OwnerWallet string `json:"ownerWallet,omitempty"`
 }
 
 // Validate validates this protocol reward attestation response

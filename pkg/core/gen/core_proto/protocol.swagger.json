@@ -99,15 +99,33 @@
         },
         "parameters": [
           {
-            "name": "data",
-            "description": "base64 encoded json data",
+            "name": "oracleAddress",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "specifier",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "rewardId",
+            "description": "might be known as challenge_id elsewhere",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "encodedUserId",
             "in": "query",
             "required": false,
             "type": "string"
           },
           {
             "name": "signature",
-            "description": "signed sha256 hash of the base64 encoded data",
+            "description": "signed sha256 hash of fields concatenated and joined by \"+\"",
             "in": "query",
             "required": false,
             "type": "string"
@@ -450,11 +468,11 @@
     "protocolRewardAttestationResponse": {
       "type": "object",
       "properties": {
-        "data": {
+        "ownerWallet": {
           "type": "string",
           "title": "base64 encoded json data + original signature"
         },
-        "signature": {
+        "attestation": {
           "type": "string",
           "title": "signed sha256 hash of the base64 encoded data"
         }

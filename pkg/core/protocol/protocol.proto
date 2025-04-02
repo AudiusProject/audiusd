@@ -228,15 +228,18 @@ message Attestation {
 }
 
 message RewardAttestationRequest {
-  // base64 encoded json data
-  string data = 1;
-  // signed sha256 hash of the base64 encoded data
-  string signature = 2;
+  string oracle_address = 1;
+  string specifier = 2;
+  // might be known as challenge_id elsewhere
+  string reward_id = 3;
+  string encoded_user_id = 4;
+  // signed sha256 hash of fields concatenated and joined by "+"
+  string signature = 5;
 }
 
 message RewardAttestationResponse {
   // base64 encoded json data + original signature
-  string data = 1;
+  string owner_wallet = 1;
   // signed sha256 hash of the base64 encoded data
-  string signature = 2;
+  string attestation = 2;
 }

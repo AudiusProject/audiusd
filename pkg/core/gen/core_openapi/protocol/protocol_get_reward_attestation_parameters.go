@@ -61,17 +61,26 @@ ProtocolGetRewardAttestationParams contains all the parameters to send to the AP
 */
 type ProtocolGetRewardAttestationParams struct {
 
-	/* Data.
+	// EncodedUserID.
+	EncodedUserID *string
 
-	   base64 encoded json data
+	// OracleAddress.
+	OracleAddress *string
+
+	/* RewardID.
+
+	   might be known as challenge_id elsewhere
 	*/
-	Data *string
+	RewardID *string
 
 	/* Signature.
 
-	   signed sha256 hash of the base64 encoded data
+	   signed sha256 hash of fields concatenated and joined by "+"
 	*/
 	Signature *string
+
+	// Specifier.
+	Specifier *string
 
 	timeout    time.Duration
 	Context    context.Context
@@ -126,15 +135,37 @@ func (o *ProtocolGetRewardAttestationParams) SetHTTPClient(client *http.Client) 
 	o.HTTPClient = client
 }
 
-// WithData adds the data to the protocol get reward attestation params
-func (o *ProtocolGetRewardAttestationParams) WithData(data *string) *ProtocolGetRewardAttestationParams {
-	o.SetData(data)
+// WithEncodedUserID adds the encodedUserID to the protocol get reward attestation params
+func (o *ProtocolGetRewardAttestationParams) WithEncodedUserID(encodedUserID *string) *ProtocolGetRewardAttestationParams {
+	o.SetEncodedUserID(encodedUserID)
 	return o
 }
 
-// SetData adds the data to the protocol get reward attestation params
-func (o *ProtocolGetRewardAttestationParams) SetData(data *string) {
-	o.Data = data
+// SetEncodedUserID adds the encodedUserId to the protocol get reward attestation params
+func (o *ProtocolGetRewardAttestationParams) SetEncodedUserID(encodedUserID *string) {
+	o.EncodedUserID = encodedUserID
+}
+
+// WithOracleAddress adds the oracleAddress to the protocol get reward attestation params
+func (o *ProtocolGetRewardAttestationParams) WithOracleAddress(oracleAddress *string) *ProtocolGetRewardAttestationParams {
+	o.SetOracleAddress(oracleAddress)
+	return o
+}
+
+// SetOracleAddress adds the oracleAddress to the protocol get reward attestation params
+func (o *ProtocolGetRewardAttestationParams) SetOracleAddress(oracleAddress *string) {
+	o.OracleAddress = oracleAddress
+}
+
+// WithRewardID adds the rewardID to the protocol get reward attestation params
+func (o *ProtocolGetRewardAttestationParams) WithRewardID(rewardID *string) *ProtocolGetRewardAttestationParams {
+	o.SetRewardID(rewardID)
+	return o
+}
+
+// SetRewardID adds the rewardId to the protocol get reward attestation params
+func (o *ProtocolGetRewardAttestationParams) SetRewardID(rewardID *string) {
+	o.RewardID = rewardID
 }
 
 // WithSignature adds the signature to the protocol get reward attestation params
@@ -148,6 +179,17 @@ func (o *ProtocolGetRewardAttestationParams) SetSignature(signature *string) {
 	o.Signature = signature
 }
 
+// WithSpecifier adds the specifier to the protocol get reward attestation params
+func (o *ProtocolGetRewardAttestationParams) WithSpecifier(specifier *string) *ProtocolGetRewardAttestationParams {
+	o.SetSpecifier(specifier)
+	return o
+}
+
+// SetSpecifier adds the specifier to the protocol get reward attestation params
+func (o *ProtocolGetRewardAttestationParams) SetSpecifier(specifier *string) {
+	o.Specifier = specifier
+}
+
 // WriteToRequest writes these params to a swagger request
 func (o *ProtocolGetRewardAttestationParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
 
@@ -156,18 +198,52 @@ func (o *ProtocolGetRewardAttestationParams) WriteToRequest(r runtime.ClientRequ
 	}
 	var res []error
 
-	if o.Data != nil {
+	if o.EncodedUserID != nil {
 
-		// query param data
-		var qrData string
+		// query param encodedUserId
+		var qrEncodedUserID string
 
-		if o.Data != nil {
-			qrData = *o.Data
+		if o.EncodedUserID != nil {
+			qrEncodedUserID = *o.EncodedUserID
 		}
-		qData := qrData
-		if qData != "" {
+		qEncodedUserID := qrEncodedUserID
+		if qEncodedUserID != "" {
 
-			if err := r.SetQueryParam("data", qData); err != nil {
+			if err := r.SetQueryParam("encodedUserId", qEncodedUserID); err != nil {
+				return err
+			}
+		}
+	}
+
+	if o.OracleAddress != nil {
+
+		// query param oracleAddress
+		var qrOracleAddress string
+
+		if o.OracleAddress != nil {
+			qrOracleAddress = *o.OracleAddress
+		}
+		qOracleAddress := qrOracleAddress
+		if qOracleAddress != "" {
+
+			if err := r.SetQueryParam("oracleAddress", qOracleAddress); err != nil {
+				return err
+			}
+		}
+	}
+
+	if o.RewardID != nil {
+
+		// query param rewardId
+		var qrRewardID string
+
+		if o.RewardID != nil {
+			qrRewardID = *o.RewardID
+		}
+		qRewardID := qrRewardID
+		if qRewardID != "" {
+
+			if err := r.SetQueryParam("rewardId", qRewardID); err != nil {
 				return err
 			}
 		}
@@ -185,6 +261,23 @@ func (o *ProtocolGetRewardAttestationParams) WriteToRequest(r runtime.ClientRequ
 		if qSignature != "" {
 
 			if err := r.SetQueryParam("signature", qSignature); err != nil {
+				return err
+			}
+		}
+	}
+
+	if o.Specifier != nil {
+
+		// query param specifier
+		var qrSpecifier string
+
+		if o.Specifier != nil {
+			qrSpecifier = *o.Specifier
+		}
+		qSpecifier := qrSpecifier
+		if qSpecifier != "" {
+
+			if err := r.SetQueryParam("specifier", qSpecifier); err != nil {
 				return err
 			}
 		}
