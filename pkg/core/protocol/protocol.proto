@@ -228,13 +228,15 @@ message Attestation {
 }
 
 message RewardAttestationRequest {
-  string oracle_address = 1;
+  // signed sha256 hash of fields concatenated and joined by "+" in proto field order
+  string signature = 1;
   string specifier = 2;
-  // might be known as challenge_id elsewhere
+  // known as challenge_id elsewhere
   string reward_id = 3;
+  // encoded with https://sqids.org/?hashids
   string encoded_user_id = 4;
-  // signed sha256 hash of fields concatenated and joined by "+"
-  string signature = 5;
+  // anti abuse oracle used to attest for this reward
+  string oracle_address = 5;
 }
 
 message RewardAttestationResponse {

@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strings"
 
 	"github.com/AudiusProject/audiusd/pkg/core/common"
 	"github.com/AudiusProject/audiusd/pkg/core/config"
@@ -35,51 +36,23 @@ var (
 	ErrClaimNotValidReward      = errors.New("claim not valid reward")
 )
 
-type RewardClaim struct {
-	ID        string `json:"id"`
-	Amount    uint   `json:"amount"`
-	Specifier string `json:"specifier"`
-}
-
 type Reward struct {
 	ID      string   `json:"id"`
 	Amount  uint     `json:"amount"`
 	Pubkeys []string `json:"pubkeys"`
 }
 
-type RewardAttestation struct {
-	ID        string `json:"id"`
-	Amount    uint   `json:"amount"`
-	Specifier string `json:"specifier"`
-	Signature string `json:"signature"`
-}
-
 type RewardService struct {
 	config *config.Config
 	logger *common.Logger
 
-	rewards []*Reward
-
-	claimSchema       *jsonschema.Schema
-	attestationSchema *jsonschema.Schema
-	rewardSchema      *jsonschema.Schema
+	rewards      []*Reward
+	rewardSchema *jsonschema.Schema
 }
 
 func NewRewardService(config *config.Config, logger *common.Logger) (*RewardService, error) {
-	claimSchemaData, attestationSchemaData, rewardSchemaData, rewardsData, err := getEnvFiles(config.Environment)
+	rewardSchemaData, rewardsData, err := getEnvFiles(config.Environment)
 	if err != nil {
-		return nil, err
-	}
-
-	claimSchema, err := jsonschema.CompileString("claim_schema.json", string(claimSchemaData))
-	if err != nil {
-		logger.Errorf("could not compile claim_schema.json schema: %v", err)
-		return nil, err
-	}
-
-	attestationSchema, err := jsonschema.CompileString("attestation_schema.json", string(attestationSchemaData))
-	if err != nil {
-		logger.Errorf("could not compile attestation_schema.json schema: %v", err)
 		return nil, err
 	}
 
@@ -117,85 +90,26 @@ func NewRewardService(config *config.Config, logger *common.Logger) (*RewardServ
 	}
 
 	return &RewardService{
-		config:            config,
-		logger:            logger,
-		rewards:           rewards,
-		claimSchema:       claimSchema,
-		attestationSchema: attestationSchema,
-		rewardSchema:      rewardSchema,
+		config:       config,
+		logger:       logger,
+		rewards:      rewards,
+		rewardSchema: rewardSchema,
 	}, nil
 }
 
-func (rs *RewardService) AttestRewardClaim(data, signature string) (string, string, error) {
-	rewardClaim, err := rs.ParseRewardClaim(data)
-	if err != nil {
-		return "", "", err
-	}
-
-	addr, canonicalB64, err := rs.RecoverSigner(data, signature)
-	if err != nil {
-		return "", "", err
-	}
-
-	if err := rs.ValidateRewardClaim(rewardClaim, addr); err != nil {
-		return "", "", err
-	}
-
-	canonicalJSON, err := base64.StdEncoding.DecodeString(canonicalB64)
-	if err != nil {
-		return "", "", fmt.Errorf("%w: %v", ErrCanonicalDecodeFailed, err)
-	}
-
-	hash := sha256.Sum256(canonicalJSON)
-	privKey := rs.config.EthereumKey
-	sigBytes, err := crypto.Sign(hash[:], privKey)
-	if err != nil {
-		return "", "", fmt.Errorf("%w: %v", ErrSigningFailed, err)
-	}
-
-	attestation := RewardAttestation{
-		ID:        rewardClaim.ID,
-		Amount:    rewardClaim.Amount,
-		Specifier: rewardClaim.Specifier,
-		Signature: hex.EncodeToString(sigBytes),
-	}
-
-	attJSON, err := json.Marshal(attestation)
-	if err != nil {
-		return "", "", fmt.Errorf("%w: %v", ErrMarshalAttestationFailed, err)
-	}
-
-	attestationB64 := base64.StdEncoding.EncodeToString(attJSON)
-	return attestationB64, attestation.Signature, nil
+func (rs *RewardService) AttestRewardClaim(data, signature string) (owner string, attestation string, err error) {
+	return "", "", nil
 }
 
-func (rs *RewardService) ParseRewardClaim(data string) (*RewardClaim, error) {
-	jsonBytes, err := base64.StdEncoding.DecodeString(data)
-	if err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrInvalidBase64Input, err)
-	}
-
-	var claim RewardClaim
-	if err := json.Unmarshal(jsonBytes, &claim); err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrInvalidJSON, err)
-	}
-
-	structBytes, err := json.Marshal(claim)
-	if err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrRemarshalFailed, err)
-	}
-
-	var forValidation any
-	if err := json.Unmarshal(structBytes, &forValidation); err != nil {
-		return nil, fmt.Errorf("unexpected: could not prepare for schema validation: %w", err)
-	}
-
-	if err := rs.claimSchema.Validate(forValidation); err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrSchemaValidationFailed, err)
-	}
-
-	return &claim, nil
+func ConstructRewardSignerHash(specifier, rewardID, encodedUserID, oracleAddress string) [32]byte {
+	// format string in order of protobuf field indexes
+	data := strings.Join([]string{specifier, rewardID, encodedUserID, oracleAddress}, "+")
+	dataBytes := []byte(data)
+	dataHash := sha256.Sum256(dataBytes)
+	return dataHash
 }
+
+func RecoverRewardSignerAddress(dataHash [32]byte, signature string)
 
 func (rs *RewardService) RecoverSigner(dataB64, signatureHex string) (string, string, error) {
 	jsonBytes, err := base64.StdEncoding.DecodeString(dataB64)

@@ -5,12 +5,6 @@ import (
 	"fmt"
 )
 
-//go:embed schemas/claim_schema.json
-var claimSchema []byte
-
-//go:embed schemas/attestation_schema.json
-var attestationSchema []byte
-
 //go:embed schemas/reward_schema.json
 var rewardSchema []byte
 
@@ -25,15 +19,15 @@ var rewardsStage []byte
 //go:embed prod/rewards.json
 var rewardsProd []byte
 
-func getEnvFiles(env string) (c []byte, a []byte, r []byte, re []byte, err error) {
+func getEnvFiles(env string) (r []byte, re []byte, err error) {
 	switch env {
 	case "dev":
-		return claimSchema, attestationSchema, rewardSchema, rewardsDev, nil
+		return rewardSchema, rewardsDev, nil
 	case "stage":
-		return claimSchema, attestationSchema, rewardSchema, rewardsStage, nil
+		return rewardSchema, rewardsStage, nil
 	case "prod":
-		return claimSchema, attestationSchema, rewardSchema, rewardsProd, nil
+		return rewardSchema, rewardsProd, nil
 	default:
-		return nil, nil, nil, nil, fmt.Errorf("unknown environment: %s", env)
+		return nil, nil, fmt.Errorf("unknown environment: %s", env)
 	}
 }
