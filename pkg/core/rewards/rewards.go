@@ -1,22 +1,21 @@
 package rewards
 
 import (
-	"crypto/sha256"
 	_ "embed"
-	"encoding/base64"
+	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"slices"
 	"strings"
 
 	"github.com/AudiusProject/audiusd/pkg/core/common"
 	"github.com/AudiusProject/audiusd/pkg/core/config"
-	canonical "github.com/cyberphone/json-canonicalization/go/src/webpki.org/jsoncanonicalizer"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/santhosh-tekuri/jsonschema/v5"
 )
+
+const WAUDIO_DECIMALS = 8 // adjust this based on your token setup
 
 var (
 	ErrInvalidBase64Input       = errors.New("invalid base64 input")
@@ -101,66 +100,95 @@ func (rs *RewardService) AttestRewardClaim(data, signature string) (owner string
 	return "", "", nil
 }
 
-func ConstructRewardSignerHash(specifier, rewardID, encodedUserID, oracleAddress string) [32]byte {
-	// format string in order of protobuf field indexes
-	data := strings.Join([]string{specifier, rewardID, encodedUserID, oracleAddress}, "+")
-	dataBytes := []byte(data)
-	dataHash := sha256.Sum256(dataBytes)
-	return dataHash
+type Attestation struct {
+	Amount             string
+	OracleAddress      string
+	UserAddress        string
+	ChallengeID        string
+	ChallengeSpecifier string
 }
 
-func RecoverRewardSignerAddress(dataHash [32]byte, signature string)
-
-func (rs *RewardService) RecoverSigner(dataB64, signatureHex string) (string, string, error) {
-	jsonBytes, err := base64.StdEncoding.DecodeString(dataB64)
-	if err != nil {
-		return "", "", fmt.Errorf("%w: %v", ErrInvalidBase64Input, err)
-	}
-
-	canonicalJSON, err := canonical.Transform(jsonBytes)
-	if err != nil {
-		return "", "", fmt.Errorf("%w: %v", ErrCanonicalizationFailed, err)
-	}
-
-	if !slices.Equal(canonicalJSON, jsonBytes) {
-		return "", "", ErrNotCanonicalJSON
-	}
-
-	hash := sha256.Sum256(canonicalJSON)
-	sigBytes, err := hex.DecodeString(signatureHex)
-	if err != nil {
-		return "", "", fmt.Errorf("%w: %v", ErrInvalidSignatureHex, err)
-	}
-
-	if len(sigBytes) != 65 {
-		return "", "", fmt.Errorf("%w: expected 65 bytes, got %d", ErrInvalidSignatureLength, len(sigBytes))
-	}
-
-	pubKey, err := crypto.SigToPub(hash[:], sigBytes)
-	if err != nil {
-		return "", "", fmt.Errorf("%w: %v", ErrSignatureRecoveryFailed, err)
-	}
-
-	recoveredAddress := crypto.PubkeyToAddress(*pubKey).Hex()
-	canonicalB64 := base64.StdEncoding.EncodeToString(canonicalJSON)
-	return recoveredAddress, canonicalB64, nil
+// String returns the formatted string representation.
+func (a *Attestation) String() string {
+	return fmt.Sprintf(
+		"%s_%s_%s_%s",
+		a.UserAddress,
+		a.Amount,
+		a.getCombinedID(),
+		a.OracleAddress,
+	)
 }
 
-func (rs *RewardService) ValidateRewardClaim(claim *RewardClaim, recoveredSigner string) error {
-	for _, reward := range rs.rewards {
-		if reward.ID != claim.ID {
-			continue
-		}
+func (a *Attestation) getCombinedID() string {
+	return fmt.Sprintf("%s:%s", a.ChallengeID, a.ChallengeSpecifier)
+}
 
-		if claim.Amount != reward.Amount {
-			return ErrAmountMismatch
-		}
-
-		if !slices.Contains(reward.Pubkeys, recoveredSigner) {
-			return ErrUnauthorizedSigner
-		}
-
-		return nil
+func (a *Attestation) getEncodedAmount() ([]byte, error) {
+	// Parse amount as integer
+	var amtInt uint64
+	_, err := fmt.Sscan(a.Amount, &amtInt)
+	if err != nil {
+		return nil, fmt.Errorf("invalid amount: %w", err)
 	}
-	return fmt.Errorf("%w: %s", ErrClaimNotValidReward, claim.ID)
+
+	amt := amtInt * uint64Pow(10, WAUDIO_DECIMALS)
+	buf := make([]byte, 8)
+	binary.LittleEndian.PutUint64(buf, amt)
+	return buf, nil
+}
+
+func (a *Attestation) GetAttestationBytes() ([]byte, error) {
+	userBytes, err := toBytesHex(a.UserAddress)
+	if err != nil {
+		return nil, err
+	}
+
+	oracleBytes, err := toBytesHex(a.OracleAddress)
+	if err != nil {
+		return nil, err
+	}
+
+	combinedIDBytes := []byte(a.getCombinedID())
+
+	amountBytes, err := a.getEncodedAmount()
+	if err != nil {
+		return nil, err
+	}
+
+	sep := []byte("_")
+	joined := append(userBytes, sep...)
+	joined = append(joined, amountBytes...)
+	joined = append(joined, sep...)
+	joined = append(joined, combinedIDBytes...)
+	joined = append(joined, sep...)
+	joined = append(joined, oracleBytes...)
+
+	return joined, nil
+}
+
+func (rs *RewardService) SignAttestation(attestationBytes []byte) (string, error) {
+	privateKey := rs.config.EthereumKey
+
+	hash := crypto.Keccak256(attestationBytes)
+	signature, err := crypto.Sign(hash, privateKey)
+	if err != nil {
+		return "", fmt.Errorf("failed to sign hash: %w", err)
+	}
+
+	return "0x" + hex.EncodeToString(signature), nil
+}
+
+// Helpers
+
+func uint64Pow(a, b int) uint64 {
+	result := uint64(1)
+	for range b {
+		result *= uint64(a)
+	}
+	return result
+}
+
+func toBytesHex(hexStr string) ([]byte, error) {
+	hexStr = strings.TrimPrefix(hexStr, "0x")
+	return hex.DecodeString(hexStr)
 }
