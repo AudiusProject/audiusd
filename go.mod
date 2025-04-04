@@ -254,6 +254,7 @@ require (
 
 require (
 	github.com/cometbft/cometbft-load-test v0.3.0
+	github.com/cyberphone/json-canonicalization v0.0.0-20241213102144-19d51d7fe467
 	github.com/jaswdr/faker v1.19.1
 	github.com/klauspost/cpuid/v2 v2.2.7 // indirect
 	github.com/minio/sha256-simd v1.0.0 // indirect
@@ -263,6 +264,7 @@ require (
 	github.com/multiformats/go-multibase v0.0.3 // indirect
 	github.com/multiformats/go-varint v0.0.6 // indirect
 	github.com/onsi/gomega v1.33.1
+	github.com/santhosh-tekuri/jsonschema/v5 v5.3.1
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	golang.org/x/net v0.33.0 // indirect
 	golang.org/x/sys v0.29.0 // indirect

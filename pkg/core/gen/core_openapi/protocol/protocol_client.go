@@ -64,6 +64,8 @@ type ClientService interface {
 
 	ProtocolGetRegistrationAttestation(params *ProtocolGetRegistrationAttestationParams, opts ...ClientOption) (*ProtocolGetRegistrationAttestationOK, error)
 
+	ProtocolGetRewardAttestation(params *ProtocolGetRewardAttestationParams, opts ...ClientOption) (*ProtocolGetRewardAttestationOK, error)
+
 	ProtocolGetTransaction(params *ProtocolGetTransactionParams, opts ...ClientOption) (*ProtocolGetTransactionOK, error)
 
 	ProtocolPing(params *ProtocolPingParams, opts ...ClientOption) (*ProtocolPingOK, error)
@@ -255,6 +257,43 @@ func (a *Client) ProtocolGetRegistrationAttestation(params *ProtocolGetRegistrat
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*ProtocolGetRegistrationAttestationDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+ProtocolGetRewardAttestation protocol get reward attestation API
+*/
+func (a *Client) ProtocolGetRewardAttestation(params *ProtocolGetRewardAttestationParams, opts ...ClientOption) (*ProtocolGetRewardAttestationOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewProtocolGetRewardAttestationParams()
+	}
+	op := &runtime.ClientOperation{
+		ID:                 "Protocol_GetRewardAttestation",
+		Method:             "GET",
+		PathPattern:        "/core/grpc/attest/reward",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ProtocolGetRewardAttestationReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*ProtocolGetRewardAttestationOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*ProtocolGetRewardAttestationDefault)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 

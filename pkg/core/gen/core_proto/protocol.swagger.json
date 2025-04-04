@@ -80,6 +80,62 @@
         ]
       }
     },
+    "/core/grpc/attest/reward": {
+      "get": {
+        "operationId": "Protocol_GetRewardAttestation",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/protocolRewardAttestationResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "oracleAddress",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "specifier",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "rewardId",
+            "description": "might be known as challenge_id elsewhere",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "encodedUserId",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "signature",
+            "description": "signed sha256 hash of fields concatenated and joined by \"+\"",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "Protocol"
+        ]
+      }
+    },
     "/core/grpc/block/{height}": {
       "get": {
         "operationId": "Protocol_GetBlock",
@@ -406,6 +462,19 @@
         },
         "registration": {
           "$ref": "#/definitions/protocolValidatorRegistration"
+        }
+      }
+    },
+    "protocolRewardAttestationResponse": {
+      "type": "object",
+      "properties": {
+        "ownerWallet": {
+          "type": "string",
+          "title": "base64 encoded json data + original signature"
+        },
+        "attestation": {
+          "type": "string",
+          "title": "signed sha256 hash of the base64 encoded data"
         }
       }
     },

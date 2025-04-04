@@ -44,6 +44,9 @@ service Protocol {
       body: "deregistration"
     };
   }
+  rpc GetRewardAttestation(RewardAttestationRequest) returns (RewardAttestationResponse) {
+    option (google.api.http) = {get: "/core/grpc/attest/reward"};
+  }
 }
 
 message SignedTransaction {
@@ -175,16 +178,16 @@ message SlaNodeReport {
 }
 
 message StorageProof {
-   int64 height = 1; 
-   string address = 2;
-   repeated string prover_addresses = 3;
-   string cid = 4;
-   bytes proof_signature = 5;
+  int64 height = 1;
+  string address = 2;
+  repeated string prover_addresses = 3;
+  string cid = 4;
+  bytes proof_signature = 5;
 }
 
 message StorageProofVerification {
-   int64 height = 1; 
-   bytes proof = 2;
+  int64 height = 1;
+  bytes proof = 2;
 }
 
 message ManageEntityLegacy {
@@ -219,7 +222,26 @@ message DeregistrationAttestationResponse {
 message Attestation {
   repeated string signatures = 1;
   oneof body {
-      ValidatorRegistration validator_registration = 1000;
-      ValidatorDeregistration validator_deregistration = 1001;
+    ValidatorRegistration validator_registration = 1000;
+    ValidatorDeregistration validator_deregistration = 1001;
   }
+}
+
+message RewardAttestationRequest {
+  // signed sha256 hash of fields concatenated and joined by "+" in proto field order
+  string signature = 1;
+  string specifier = 2;
+  // known as challenge_id elsewhere
+  string reward_id = 3;
+  // encoded with https://sqids.org/?hashids
+  string encoded_user_id = 4;
+  // anti abuse oracle used to attest for this reward
+  string oracle_address = 5;
+}
+
+message RewardAttestationResponse {
+  // base64 encoded json data + original signature
+  string owner_wallet = 1;
+  // signed sha256 hash of the base64 encoded data
+  string attestation = 2;
 }
