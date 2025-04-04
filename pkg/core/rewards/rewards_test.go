@@ -1,20 +1,19 @@
-package rewards_test
+package rewards
 
 import (
 	"crypto/ecdsa"
-	"crypto/sha256"
-	"encoding/base64"
 	"encoding/hex"
-	"encoding/json"
-	"errors"
+	"fmt"
 	"log"
+	"strings"
 	"testing"
+
+	"log/slog"
 
 	"github.com/AudiusProject/audiusd/pkg/core/common"
 	"github.com/AudiusProject/audiusd/pkg/core/config"
-	"github.com/AudiusProject/audiusd/pkg/core/rewards"
-	"github.com/cyberphone/json-canonicalization/go/src/webpki.org/jsoncanonicalizer"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -34,154 +33,76 @@ func mustPrivateKeyFromHex(hexKey string) *ecdsa.PrivateKey {
 	return privKey
 }
 
-func generateCanonicalSignedClaim(t *testing.T, privKey *ecdsa.PrivateKey, claim rewards.RewardClaim) (string, string) {
-	raw, err := json.Marshal(claim)
-	require.NoError(t, err)
-
-	canonicalJSON, err := jsoncanonicalizer.Transform(raw)
-	require.NoError(t, err)
-
-	hash := sha256.Sum256(canonicalJSON)
-	sig, err := crypto.Sign(hash[:], privKey)
-	require.NoError(t, err)
-
-	return base64.StdEncoding.EncodeToString(canonicalJSON), hex.EncodeToString(sig)
-}
-
-func generateSignedClaim(t *testing.T, privKey *ecdsa.PrivateKey, claim rewards.RewardClaim) (string, string) {
-	t.Helper()
-
-	claimJSON, err := json.Marshal(claim)
-	require.NoError(t, err)
-
-	canonicalJSON, err := jsoncanonicalizer.Transform(claimJSON)
-	require.NoError(t, err)
-
-	hash := sha256.Sum256(canonicalJSON)
-	sigBytes, err := crypto.Sign(hash[:], privKey)
-	require.NoError(t, err)
-
-	claimBase64 := base64.StdEncoding.EncodeToString(canonicalJSON)
-	signature := hex.EncodeToString(sigBytes)
-	return claimBase64, signature
+func TestTestPrivateKey(t *testing.T) {
+	require.NotNil(t, trackUploadPrivKey)
 }
 
 func TestAttestRewardClaim(t *testing.T) {
-	logger := common.NewLogger(nil)
-
-	// Use the dev embedded rewards.json so match a real pubkey from that
-	nodeKey, err := crypto.GenerateKey()
-	require.NoError(t, err)
-
-	testClaim := rewards.RewardClaim{
-		ID:        "u",
-		Amount:    1,
-		Specifier: "1234",
-	}
-
-	claimDataB64, claimSignature := generateSignedClaim(t, trackUploadPrivKey, testClaim)
-
+	// Setup test config and logger
 	cfg := &config.Config{
-		EthereumKey: nodeKey,
-		Environment: "dev",
+		Environment:   "dev",
+		WalletAddress: "0x24D50c19297592d5d13BEFf90A5a60E63db58c30", // matches pubkey from rewards.json
 	}
+	logger := common.NewLogger(&slog.HandlerOptions{})
 
-	service, err := rewards.NewRewardService(cfg, logger)
-	require.NoError(t, err)
+	// Create reward service
+	rs := NewRewardService(cfg, logger)
 
-	attestationB64, sigHex, err := service.AttestRewardClaim(claimDataB64, claimSignature)
-	require.NoError(t, err)
-	require.NotEmpty(t, attestationB64)
-	require.NotEmpty(t, sigHex)
+	// Test data
+	encodedUserId := "mEx6RYQ"
+	challengeId := "fp" // from rewards.json
+	challengeSpecifier := "37364e80"
+	oracleAddress := "0x00b6462e955dA5841b6D9e1E2529B830F00f31Bf"
 
-	decoded, err := base64.StdEncoding.DecodeString(attestationB64)
-	require.NoError(t, err)
+	// Create a valid signature for the claim
+	claimData := fmt.Sprintf("%s_%s_%s_%s", encodedUserId, challengeId, challengeSpecifier, oracleAddress)
+	hash := crypto.Keccak256([]byte(claimData))
 
-	var att rewards.RewardAttestation
-	err = json.Unmarshal(decoded, &att)
-	require.NoError(t, err)
-	require.Equal(t, testClaim.ID, att.ID)
-	require.Equal(t, testClaim.Amount, att.Amount)
-	require.Equal(t, testClaim.Specifier, att.Specifier)
-	require.Equal(t, sigHex, att.Signature)
-}
+	// Create a private key for signing (this would normally be the oracle's key)
+	privateKey, err := crypto.GenerateKey()
+	assert.NoError(t, err)
 
-func newTestService(t *testing.T) *rewards.RewardService {
-	cfg := &config.Config{
-		EthereumKey: trackUploadPrivKey,
-		Environment: "dev",
+	// Sign the hash
+	signature, err := crypto.Sign(hash, privateKey)
+	assert.NoError(t, err)
+
+	// Convert signature to hex string
+	signatureHex := hex.EncodeToString(signature)
+
+	// Call AttestRewardClaim
+	claimSigner, attestationSigner, attestation, err := rs.AttestRewardClaim(
+		encodedUserId,
+		challengeId,
+		challengeSpecifier,
+		oracleAddress,
+		signatureHex,
+	)
+
+	// Verify results
+	assert.NoError(t, err)
+	assert.NotEmpty(t, claimSigner)
+	assert.Equal(t, cfg.WalletAddress, attestationSigner)
+	assert.NotEmpty(t, attestation)
+
+	// Verify the attestation contains the correct amount (2 for "fp" reward)
+	attestationObj := &Attestation{
+		Amount:             "2", // from rewards.json
+		OracleAddress:      oracleAddress,
+		UserAddress:        claimSigner,
+		ChallengeID:        challengeId,
+		ChallengeSpecifier: challengeSpecifier,
 	}
-	logger := common.NewLogger(nil)
-	svc, err := rewards.NewRewardService(cfg, logger)
-	require.NoError(t, err)
-	return svc
-}
+	expectedBytes, err := attestationObj.GetAttestationBytes()
+	assert.NoError(t, err)
 
-func TestError_InvalidBase64(t *testing.T) {
-	svc := newTestService(t)
-	_, _, err := svc.AttestRewardClaim("!notbase64!", "abc123")
-	require.ErrorIs(t, err, rewards.ErrInvalidBase64Input)
-}
+	// The attestation should be a signature of these bytes
+	// We can verify it was signed by the service's wallet
+	attestationBytes, err := hex.DecodeString(strings.TrimPrefix(attestation, "0x"))
+	assert.NoError(t, err)
 
-func TestError_InvalidJSON(t *testing.T) {
-	svc := newTestService(t)
-	input := base64.StdEncoding.EncodeToString([]byte("{invalid"))
-	_, _, err := svc.AttestRewardClaim(input, "abc123")
-	require.ErrorIs(t, err, rewards.ErrInvalidJSON)
-}
-
-func TestError_NotCanonicalJSON(t *testing.T) {
-	svc := newTestService(t)
-	claim := rewards.RewardClaim{
-		ID:        "u",
-		Amount:    3,
-		Specifier: "1234",
-	}
-	raw, _ := json.Marshal(claim)
-	data := base64.StdEncoding.EncodeToString(raw)
-	_, _, err := svc.AttestRewardClaim(data, "00")
-	require.ErrorIs(t, err, rewards.ErrNotCanonicalJSON)
-}
-
-func TestError_InvalidSignatureHex(t *testing.T) {
-	svc := newTestService(t)
-	claim := rewards.RewardClaim{ID: "u", Amount: 3, Specifier: "1234"}
-	data, _ := generateCanonicalSignedClaim(t, trackUploadPrivKey, claim)
-	_, _, err := svc.AttestRewardClaim(data, "ZZZ")
-	require.ErrorIs(t, err, rewards.ErrInvalidSignatureHex)
-}
-
-func TestError_InvalidSignatureLength(t *testing.T) {
-	svc := newTestService(t)
-	claim := rewards.RewardClaim{ID: "u", Amount: 3, Specifier: "1234"}
-	data, _ := generateCanonicalSignedClaim(t, trackUploadPrivKey, claim)
-	_, _, err := svc.AttestRewardClaim(data, "abcd")
-	require.ErrorIs(t, err, rewards.ErrInvalidSignatureLength)
-}
-
-func TestError_ClaimNotValidReward(t *testing.T) {
-	svc := newTestService(t)
-	claim := rewards.RewardClaim{ID: "does-not-exist", Amount: 1, Specifier: "x"}
-	data, sig := generateCanonicalSignedClaim(t, trackUploadPrivKey, claim)
-	_, _, err := svc.AttestRewardClaim(data, sig)
-	require.True(t, errors.Is(err, rewards.ErrClaimNotValidReward))
-}
-
-func TestError_AmountMismatch(t *testing.T) {
-	svc := newTestService(t)
-	claim := rewards.RewardClaim{ID: "u", Amount: 999, Specifier: "1234"}
-	data, sig := generateCanonicalSignedClaim(t, trackUploadPrivKey, claim)
-	_, _, err := svc.AttestRewardClaim(data, sig)
-	require.ErrorIs(t, err, rewards.ErrAmountMismatch)
-}
-
-func TestError_UnauthorizedSigner(t *testing.T) {
-	svc := newTestService(t)
-
-	// valid claim, but signer is not in pubkeys for this reward
-	otherKey, _ := crypto.GenerateKey()
-	claim := rewards.RewardClaim{ID: "u", Amount: 1, Specifier: "1234"}
-	data, sig := generateCanonicalSignedClaim(t, otherKey, claim)
-	_, _, err := svc.AttestRewardClaim(data, sig)
-	require.ErrorIs(t, err, rewards.ErrUnauthorizedSigner)
+	// Recover the public key from the attestation
+	recoveredPub, err := crypto.SigToPub(expectedBytes, attestationBytes)
+	assert.NoError(t, err)
+	recoveredAddr := crypto.PubkeyToAddress(*recoveredPub)
+	assert.Equal(t, cfg.WalletAddress, recoveredAddr.String())
 }

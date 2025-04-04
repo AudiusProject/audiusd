@@ -5,9 +5,10 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strings"
+
+	"slices"
 
 	"github.com/AudiusProject/audiusd/pkg/core/common"
 	"github.com/AudiusProject/audiusd/pkg/core/config"
@@ -16,24 +17,6 @@ import (
 )
 
 const WAUDIO_DECIMALS = 8 // adjust this based on your token setup
-
-var (
-	ErrInvalidBase64Input       = errors.New("invalid base64 input")
-	ErrInvalidJSON              = errors.New("failed to unmarshal JSON into struct")
-	ErrRemarshalFailed          = errors.New("failed to re-marshal claim struct")
-	ErrSchemaValidationFailed   = errors.New("claim_schema validation failed")
-	ErrCanonicalizationFailed   = errors.New("failed to canonicalize JSON")
-	ErrNotCanonicalJSON         = errors.New("input JSON is not canonicalized")
-	ErrInvalidSignatureHex      = errors.New("invalid signature hex")
-	ErrInvalidSignatureLength   = errors.New("invalid signature length")
-	ErrSignatureRecoveryFailed  = errors.New("failed to recover public key")
-	ErrCanonicalDecodeFailed    = errors.New("failed to decode canonical base64")
-	ErrSigningFailed            = errors.New("failed to sign reward claim")
-	ErrMarshalAttestationFailed = errors.New("failed to marshal attestation")
-	ErrAmountMismatch           = errors.New("amounts not matching")
-	ErrUnauthorizedSigner       = errors.New("not signed by correct key")
-	ErrClaimNotValidReward      = errors.New("claim not valid reward")
-)
 
 type Reward struct {
 	ID      string   `json:"id"`
@@ -49,41 +32,51 @@ type RewardService struct {
 	rewardSchema *jsonschema.Schema
 }
 
-func NewRewardService(config *config.Config, logger *common.Logger) (*RewardService, error) {
+func NewRewardService(config *config.Config, logger *common.Logger) *RewardService {
 	rewardSchemaData, rewardsData, err := getEnvFiles(config.Environment)
 	if err != nil {
-		return nil, err
+		logger.Errorf("could not get env files: %v", err)
+		return &RewardService{
+			config: config,
+			logger: logger,
+		}
 	}
 
 	rewardSchema, err := jsonschema.CompileString("reward_schema.json", string(rewardSchemaData))
 	if err != nil {
 		logger.Errorf("could not compile reward_schema.json schema: %v", err)
-		return nil, err
+		return &RewardService{
+			config: config,
+			logger: logger,
+		}
 	}
 
 	var rawRewards []any
 	if err := json.Unmarshal(rewardsData, &rawRewards); err != nil {
 		logger.Errorf("could not parse rewards.json: %v", err)
-		return nil, err
+		return &RewardService{
+			config: config,
+			logger: logger,
+		}
 	}
 
 	var rewards []*Reward
 	for _, raw := range rawRewards {
 		if err := rewardSchema.Validate(raw); err != nil {
 			logger.Errorf("invalid reward in rewards.json: %v", err)
-			return nil, err
+			continue
 		}
 
 		rawBytes, err := json.Marshal(raw)
 		if err != nil {
 			logger.Errorf("could not re-marshal reward: %v", err)
-			return nil, err
+			continue
 		}
 
 		var reward Reward
 		if err := json.Unmarshal(rawBytes, &reward); err != nil {
 			logger.Errorf("could not unmarshal reward into struct: %v", err)
-			return nil, err
+			continue
 		}
 		rewards = append(rewards, &reward)
 	}
@@ -93,13 +86,75 @@ func NewRewardService(config *config.Config, logger *common.Logger) (*RewardServ
 		logger:       logger,
 		rewards:      rewards,
 		rewardSchema: rewardSchema,
-	}, nil
+	}
 }
 
-func (rs *RewardService) AttestRewardClaim(data, signature string) (owner string, attestation string, err error) {
-	return "", "", nil
+func (rs *RewardService) AttestRewardClaim(encodedUserId, challengeId, challengeSpecifier, oracleAddress, signature string) (claimSigner string, attestationSigner string, attestation string, err error) {
+	// construct the claim data and recover the signer wallet from the signature
+	// claim data is all the fields joined by underscores
+	claimData := fmt.Sprintf("%s_%s_%s_%s", encodedUserId, challengeId, challengeSpecifier, oracleAddress)
+
+	// hash the claim data and get recovered wallet from the signature. signature is a hex string so it needs to be converted to bytes
+	hash := crypto.Keccak256([]byte(claimData))
+	sigBytes, err := hex.DecodeString(signature)
+	if err != nil {
+		return "", "", "", fmt.Errorf("failed to decode signature: %w", err)
+	}
+
+	recoveredWallet, err := crypto.SigToPub(hash[:], sigBytes)
+	if err != nil {
+		return "", "", "", fmt.Errorf("failed to recover wallet from signature: %w", err)
+	}
+
+	claimWallet := crypto.PubkeyToAddress(*recoveredWallet)
+
+	// get reward object from rewards array, use method to get reward by id
+	reward, err := rs.GetRewardById(challengeId)
+	if err != nil {
+		return "", "", "", fmt.Errorf("failed to get reward: %w", err)
+	}
+
+	// compare the claim wallet to the reward pubkeys, early out if match is found.
+	// return error if no match is found
+	found := slices.Contains(reward.Pubkeys, claimWallet.String())
+	if !found {
+		return "", "", "", fmt.Errorf("claim wallet %s does not match any reward pubkeys %v", claimWallet.String(), reward.Pubkeys)
+	}
+
+	// create attestation object
+	attestationObj := &Attestation{
+		Amount:             fmt.Sprintf("%d", reward.Amount),
+		OracleAddress:      oracleAddress,
+		UserAddress:        claimWallet.String(),
+		ChallengeID:        challengeId,
+		ChallengeSpecifier: challengeSpecifier,
+	}
+
+	// get attestation bytes
+	attestationBytes, err := attestationObj.GetAttestationBytes()
+	if err != nil {
+		return "", "", "", fmt.Errorf("failed to get attestation bytes: %w", err)
+	}
+	// Sign the attestation
+	signedAttestation, err := rs.SignAttestation(attestationBytes)
+	if err != nil {
+		return "", "", "", fmt.Errorf("failed to sign attestation: %w", err)
+	}
+
+	return claimWallet.String(), rs.config.WalletAddress, signedAttestation, nil
 }
 
+// iterate through rewards array and return the reward object that matches the challengeId
+func (rs *RewardService) GetRewardById(challengeId string) (*Reward, error) {
+	for _, reward := range rs.rewards {
+		if reward.ID == challengeId {
+			return reward, nil
+		}
+	}
+	return nil, fmt.Errorf("reward not found")
+}
+
+// structure used by the node to sign the attestation that is responded to the GET attest route
 type Attestation struct {
 	Amount             string
 	OracleAddress      string

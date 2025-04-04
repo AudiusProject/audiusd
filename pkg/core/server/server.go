@@ -10,6 +10,7 @@ import (
 	"github.com/AudiusProject/audiusd/pkg/core/contracts"
 	"github.com/AudiusProject/audiusd/pkg/core/db"
 	"github.com/AudiusProject/audiusd/pkg/core/gen/core_proto"
+	"github.com/AudiusProject/audiusd/pkg/core/rewards"
 	"github.com/AudiusProject/audiusd/pkg/core/sdk"
 	"github.com/AudiusProject/audiusd/pkg/pos"
 	cconfig "github.com/cometbft/cometbft/config"
@@ -58,6 +59,8 @@ type Server struct {
 	awaitGrpcServerReady chan struct{}
 	awaitRpcReady        chan struct{}
 	awaitEthNodesReady   chan struct{}
+
+	rewards *rewards.RewardService
 }
 
 func NewServer(config *config.Config, cconfig *cconfig.Config, logger *common.Logger, pool *pgxpool.Pool, eth *ethclient.Client, posChannel chan pos.PoSRequest) (*Server, error) {
@@ -107,6 +110,8 @@ func NewServer(config *config.Config, cconfig *cconfig.Config, logger *common.Lo
 		awaitGrpcServerReady: make(chan struct{}),
 		awaitRpcReady:        make(chan struct{}),
 		awaitEthNodesReady:   make(chan struct{}),
+
+		rewards: rewards.NewRewardService(config, logger),
 	}
 
 	return s, nil

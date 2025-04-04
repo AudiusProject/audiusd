@@ -13,7 +13,6 @@ import (
 
 	"github.com/AudiusProject/audiusd/pkg/core/common"
 	"github.com/AudiusProject/audiusd/pkg/core/gen/core_proto"
-	"github.com/AudiusProject/audiusd/pkg/core/rewards"
 	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/iancoleman/strcase"
 	"github.com/jackc/pgx/v5"
@@ -389,13 +388,39 @@ func (s *Server) GetDeregistrationAttestation(ctx context.Context, req *core_pro
 	}, nil
 }
 
+// old GET https://discoveryprovider3.staging.audius.co/v1/full/challenges/fp/attest?oracle=0x00b6462e955dA5841b6D9e1E2529B830F00f31Bf&specifier=37364e80&user_id=mEx6RYQ
+// old response:
+// {"data": {"owner_wallet": "0x8311f59B72522e728231dC60226359A51878F9A1", "attestation": "0x71b5f50e019aaf7f4ea5b1b5ea06d53fcdf58a133a26a7887779cf8edf5c214c0425236b80e2cbb7848bc83a956057698f00b0a71a6d98ed99de95d408bd062500"}}
+
+// new GET https://discoveryprovider3.staging.audius.co/core/attest?reward=fp&specifier=37364e80&user_id=mEx6RYQ&oracle=0x00b6462e955dA5841b6D9e1E2529B830F00f31Bf&signature=0x123
+// new response:
+// {"data": {"owner_wallet": "0x8311f59B72522e728231dC60226359A51878F9A1", "attestation": "0x71b5f50e019aaf7f4ea5b1b5ea06d53fcdf58a133a26a7887779cf8edf5c214c0425236b80e2cbb7848bc83a956057698f00b0a71a6d98ed99de95d408bd062500"}}
 func (s *Server) GetRewardAttestation(ctx context.Context, req *core_proto.RewardAttestationRequest) (*core_proto.RewardAttestationResponse, error) {
-	specifier := req.Specifier
-	rewardID := req.RewardId
-	encodedUserID := req.EncodedUserId
-	oracleAddress := req.OracleAddress
+	// Validate required fields
+	if req.GetSignature() == "" {
+		return nil, errors.New("signature is required")
+	}
+	if req.GetSpecifier() == "" {
+		return nil, errors.New("specifier is required")
+	}
+	if req.GetRewardId() == "" {
+		return nil, errors.New("reward_id is required")
+	}
+	if req.GetEncodedUserId() == "" {
+		return nil, errors.New("encoded_user_id is required")
+	}
+	if req.GetOracleAddress() == "" {
+		return nil, errors.New("oracle_address is required")
+	}
 
-	rewardSignerHash := rewards.ConstructRewardSignerHash(specifier, rewardID, encodedUserID, oracleAddress)
+	// Get the attestation from the rewards service
+	_, ownerWallet, attestation, err := s.rewards.AttestRewardClaim(req.GetEncodedUserId(), req.GetRewardId(), req.GetSpecifier(), req.GetOracleAddress(), req.GetSignature())
+	if err != nil {
+		return nil, fmt.Errorf("failed to attest reward claim: %w", err)
+	}
 
-	return nil, nil
+	return &core_proto.RewardAttestationResponse{
+		OwnerWallet: ownerWallet,
+		Attestation: attestation,
+	}, nil
 }
