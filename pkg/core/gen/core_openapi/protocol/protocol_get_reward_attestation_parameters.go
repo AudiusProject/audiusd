@@ -61,26 +61,29 @@ ProtocolGetRewardAttestationParams contains all the parameters to send to the AP
 */
 type ProtocolGetRewardAttestationParams struct {
 
-	// EncodedUserID.
-	EncodedUserID *string
+	/* OracleAddress.
 
-	// OracleAddress.
+	   anti abuse oracle used to attest for this reward
+	*/
 	OracleAddress *string
 
 	/* RewardID.
 
-	   might be known as challenge_id elsewhere
+	   known as challenge_id elsewhere
 	*/
 	RewardID *string
 
 	/* Signature.
 
-	   signed sha256 hash of fields concatenated and joined by "+"
+	   signed sha256 hash of fields concatenated and joined by "+" in proto field order
 	*/
 	Signature *string
 
 	// Specifier.
 	Specifier *string
+
+	// UserWallet.
+	UserWallet *string
 
 	timeout    time.Duration
 	Context    context.Context
@@ -135,17 +138,6 @@ func (o *ProtocolGetRewardAttestationParams) SetHTTPClient(client *http.Client) 
 	o.HTTPClient = client
 }
 
-// WithEncodedUserID adds the encodedUserID to the protocol get reward attestation params
-func (o *ProtocolGetRewardAttestationParams) WithEncodedUserID(encodedUserID *string) *ProtocolGetRewardAttestationParams {
-	o.SetEncodedUserID(encodedUserID)
-	return o
-}
-
-// SetEncodedUserID adds the encodedUserId to the protocol get reward attestation params
-func (o *ProtocolGetRewardAttestationParams) SetEncodedUserID(encodedUserID *string) {
-	o.EncodedUserID = encodedUserID
-}
-
 // WithOracleAddress adds the oracleAddress to the protocol get reward attestation params
 func (o *ProtocolGetRewardAttestationParams) WithOracleAddress(oracleAddress *string) *ProtocolGetRewardAttestationParams {
 	o.SetOracleAddress(oracleAddress)
@@ -190,6 +182,17 @@ func (o *ProtocolGetRewardAttestationParams) SetSpecifier(specifier *string) {
 	o.Specifier = specifier
 }
 
+// WithUserWallet adds the userWallet to the protocol get reward attestation params
+func (o *ProtocolGetRewardAttestationParams) WithUserWallet(userWallet *string) *ProtocolGetRewardAttestationParams {
+	o.SetUserWallet(userWallet)
+	return o
+}
+
+// SetUserWallet adds the userWallet to the protocol get reward attestation params
+func (o *ProtocolGetRewardAttestationParams) SetUserWallet(userWallet *string) {
+	o.UserWallet = userWallet
+}
+
 // WriteToRequest writes these params to a swagger request
 func (o *ProtocolGetRewardAttestationParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
 
@@ -197,23 +200,6 @@ func (o *ProtocolGetRewardAttestationParams) WriteToRequest(r runtime.ClientRequ
 		return err
 	}
 	var res []error
-
-	if o.EncodedUserID != nil {
-
-		// query param encodedUserId
-		var qrEncodedUserID string
-
-		if o.EncodedUserID != nil {
-			qrEncodedUserID = *o.EncodedUserID
-		}
-		qEncodedUserID := qrEncodedUserID
-		if qEncodedUserID != "" {
-
-			if err := r.SetQueryParam("encodedUserId", qEncodedUserID); err != nil {
-				return err
-			}
-		}
-	}
 
 	if o.OracleAddress != nil {
 
@@ -278,6 +264,23 @@ func (o *ProtocolGetRewardAttestationParams) WriteToRequest(r runtime.ClientRequ
 		if qSpecifier != "" {
 
 			if err := r.SetQueryParam("specifier", qSpecifier); err != nil {
+				return err
+			}
+		}
+	}
+
+	if o.UserWallet != nil {
+
+		// query param userWallet
+		var qrUserWallet string
+
+		if o.UserWallet != nil {
+			qrUserWallet = *o.UserWallet
+		}
+		qUserWallet := qrUserWallet
+		if qUserWallet != "" {
+
+			if err := r.SetQueryParam("userWallet", qUserWallet); err != nil {
 				return err
 			}
 		}

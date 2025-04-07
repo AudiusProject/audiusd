@@ -1,6 +1,7 @@
 package rewards
 
 import (
+	"crypto/ecdsa"
 	_ "embed"
 	"encoding/binary"
 	"encoding/hex"
@@ -89,24 +90,36 @@ func NewRewardService(config *config.Config, logger *common.Logger) *RewardServi
 	}
 }
 
-func (rs *RewardService) AttestRewardClaim(encodedUserId, challengeId, challengeSpecifier, oracleAddress, signature string) (claimSigner string, attestationSigner string, attestation string, err error) {
-	// construct the claim data and recover the signer wallet from the signature
-	// claim data is all the fields joined by underscores
+// GetClaimDataHash constructs and hashes the claim data from its components
+func GetClaimDataHash(encodedUserId, challengeId, challengeSpecifier, oracleAddress string) []byte {
 	claimData := fmt.Sprintf("%s_%s_%s_%s", encodedUserId, challengeId, challengeSpecifier, oracleAddress)
+	return crypto.Keccak256([]byte(claimData))
+}
 
-	// hash the claim data and get recovered wallet from the signature. signature is a hex string so it needs to be converted to bytes
-	hash := crypto.Keccak256([]byte(claimData))
-	sigBytes, err := hex.DecodeString(signature)
+// RecoverWalletFromSignature recovers the wallet address from a signature and its corresponding hash
+func RecoverWalletFromSignature(hash []byte, signature string) (string, error) {
+	// Remove any existing 0x prefix
+	sigHex := strings.TrimPrefix(signature, "0x")
+	sigBytes, err := hex.DecodeString(sigHex)
 	if err != nil {
-		return "", "", "", fmt.Errorf("failed to decode signature: %w", err)
+		return "", fmt.Errorf("failed to decode signature: %w", err)
 	}
 
 	recoveredWallet, err := crypto.SigToPub(hash[:], sigBytes)
 	if err != nil {
-		return "", "", "", fmt.Errorf("failed to recover wallet from signature: %w", err)
+		return "", fmt.Errorf("failed to recover wallet from signature: %w", err)
 	}
 
-	claimWallet := crypto.PubkeyToAddress(*recoveredWallet)
+	return crypto.PubkeyToAddress(*recoveredWallet).String(), nil
+}
+
+func (rs *RewardService) AttestRewardClaim(userWallet, challengeId, challengeSpecifier, oracleAddress, signature string) (claimSigner string, attestationSigner string, attestation string, err error) {
+	// construct the claim data and recover the signer wallet from the signature
+	hash := GetClaimDataHash(userWallet, challengeId, challengeSpecifier, oracleAddress)
+	claimWallet, err := RecoverWalletFromSignature(hash, signature)
+	if err != nil {
+		return "", "", "", fmt.Errorf("failed to recover wallet: %w", err)
+	}
 
 	// get reward object from rewards array, use method to get reward by id
 	reward, err := rs.GetRewardById(challengeId)
@@ -116,16 +129,16 @@ func (rs *RewardService) AttestRewardClaim(encodedUserId, challengeId, challenge
 
 	// compare the claim wallet to the reward pubkeys, early out if match is found.
 	// return error if no match is found
-	found := slices.Contains(reward.Pubkeys, claimWallet.String())
+	found := slices.Contains(reward.Pubkeys, claimWallet)
 	if !found {
-		return "", "", "", fmt.Errorf("claim wallet %s does not match any reward pubkeys %v", claimWallet.String(), reward.Pubkeys)
+		return "", "", "", fmt.Errorf("claim wallet %s does not match any reward pubkeys %v", claimWallet, reward.Pubkeys)
 	}
 
 	// create attestation object
 	attestationObj := &Attestation{
 		Amount:             fmt.Sprintf("%d", reward.Amount),
 		OracleAddress:      oracleAddress,
-		UserAddress:        claimWallet.String(),
+		UserAddress:        claimWallet,
 		ChallengeID:        challengeId,
 		ChallengeSpecifier: challengeSpecifier,
 	}
@@ -141,7 +154,7 @@ func (rs *RewardService) AttestRewardClaim(encodedUserId, challengeId, challenge
 		return "", "", "", fmt.Errorf("failed to sign attestation: %w", err)
 	}
 
-	return claimWallet.String(), rs.config.WalletAddress, signedAttestation, nil
+	return claimWallet, rs.config.WalletAddress, signedAttestation, nil
 }
 
 // iterate through rewards array and return the reward object that matches the challengeId
@@ -230,6 +243,15 @@ func (rs *RewardService) SignAttestation(attestationBytes []byte) (string, error
 		return "", fmt.Errorf("failed to sign hash: %w", err)
 	}
 
+	return "0x" + hex.EncodeToString(signature), nil
+}
+
+// SignClaimDataHash signs a claim data hash with the provided private key
+func SignClaimDataHash(hash []byte, privateKey *ecdsa.PrivateKey) (string, error) {
+	signature, err := crypto.Sign(hash, privateKey)
+	if err != nil {
+		return "", fmt.Errorf("failed to sign hash: %w", err)
+	}
 	return "0x" + hex.EncodeToString(signature), nil
 }
 

@@ -3,22 +3,15 @@ package rewards
 import (
 	"crypto/ecdsa"
 	"encoding/hex"
-	"fmt"
 	"log"
-	"strings"
 	"testing"
 
-	"log/slog"
-
-	"github.com/AudiusProject/audiusd/pkg/core/common"
-	"github.com/AudiusProject/audiusd/pkg/core/config"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 var (
-	trackUploadPrivKey = mustPrivateKeyFromHex("a57b1cab53462acec8fbd5afa21045780fd2afcbf63c4c288d60d51a00794009")
+	privKey = mustPrivateKeyFromHex("d09ba371c359f10f22ccda12fd26c598c7921bda3220c9942174562bc6a36fe8")
 )
 
 func mustPrivateKeyFromHex(hexKey string) *ecdsa.PrivateKey {
@@ -34,75 +27,16 @@ func mustPrivateKeyFromHex(hexKey string) *ecdsa.PrivateKey {
 }
 
 func TestTestPrivateKey(t *testing.T) {
-	require.NotNil(t, trackUploadPrivKey)
+	require.NotNil(t, privKey)
 }
 
-func TestAttestRewardClaim(t *testing.T) {
-	// Setup test config and logger
-	cfg := &config.Config{
-		Environment:   "dev",
-		WalletAddress: "0x24D50c19297592d5d13BEFf90A5a60E63db58c30", // matches pubkey from rewards.json
-	}
-	logger := common.NewLogger(&slog.HandlerOptions{})
-
-	// Create reward service
-	rs := NewRewardService(cfg, logger)
-
-	// Test data
-	encodedUserId := "mEx6RYQ"
-	challengeId := "fp" // from rewards.json
-	challengeSpecifier := "37364e80"
-	oracleAddress := "0x00b6462e955dA5841b6D9e1E2529B830F00f31Bf"
-
-	// Create a valid signature for the claim
-	claimData := fmt.Sprintf("%s_%s_%s_%s", encodedUserId, challengeId, challengeSpecifier, oracleAddress)
-	hash := crypto.Keccak256([]byte(claimData))
-
-	// Create a private key for signing (this would normally be the oracle's key)
-	privateKey, err := crypto.GenerateKey()
-	assert.NoError(t, err)
-
-	// Sign the hash
-	signature, err := crypto.Sign(hash, privateKey)
-	assert.NoError(t, err)
-
-	// Convert signature to hex string
-	signatureHex := hex.EncodeToString(signature)
-
-	// Call AttestRewardClaim
-	claimSigner, attestationSigner, attestation, err := rs.AttestRewardClaim(
-		encodedUserId,
-		challengeId,
-		challengeSpecifier,
-		oracleAddress,
-		signatureHex,
-	)
-
-	// Verify results
-	assert.NoError(t, err)
-	assert.NotEmpty(t, claimSigner)
-	assert.Equal(t, cfg.WalletAddress, attestationSigner)
-	assert.NotEmpty(t, attestation)
-
-	// Verify the attestation contains the correct amount (2 for "fp" reward)
-	attestationObj := &Attestation{
-		Amount:             "2", // from rewards.json
-		OracleAddress:      oracleAddress,
-		UserAddress:        claimSigner,
-		ChallengeID:        challengeId,
-		ChallengeSpecifier: challengeSpecifier,
-	}
-	expectedBytes, err := attestationObj.GetAttestationBytes()
-	assert.NoError(t, err)
-
-	// The attestation should be a signature of these bytes
-	// We can verify it was signed by the service's wallet
-	attestationBytes, err := hex.DecodeString(strings.TrimPrefix(attestation, "0x"))
-	assert.NoError(t, err)
-
-	// Recover the public key from the attestation
-	recoveredPub, err := crypto.SigToPub(expectedBytes, attestationBytes)
-	assert.NoError(t, err)
-	recoveredAddr := crypto.PubkeyToAddress(*recoveredPub)
-	assert.Equal(t, cfg.WalletAddress, recoveredAddr.String())
+func TestRecovery(t *testing.T) {
+	// sourced from http://audius-protocol-discovery-provider-1/v1/full/challenges/fp/attest?oracle=0xF0D5BC18421fa04D0a2A2ef540ba5A9f04014BE3&specifier=96509ed&user_id=4OWaod
+	hash := GetClaimDataHash("4OWaod", "fp", "96509ed", "0xF0D5BC18421fa04D0a2A2ef540ba5A9f04014BE3")
+	signature, err := SignClaimDataHash(hash, privKey)
+	require.NoError(t, err)
+	require.Equal(t, "0x638ec25893b1eb45b8d4c649a936fb6a3ebd8b261075f958a7fb00e4e76d378538d87772d33ef379af8e367e3592b010194190e36a0d4ddaa3e09182758fd52801", signature)
+	wallet, err := RecoverWalletFromSignature(hash, signature)
+	require.NoError(t, err)
+	require.Equal(t, "0x73EB6d82CFB20bA669e9c178b718d770C49BB52f", wallet)
 }

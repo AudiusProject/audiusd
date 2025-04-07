@@ -99,7 +99,8 @@
         },
         "parameters": [
           {
-            "name": "oracleAddress",
+            "name": "signature",
+            "description": "signed sha256 hash of fields concatenated and joined by \"+\" in proto field order",
             "in": "query",
             "required": false,
             "type": "string"
@@ -112,20 +113,20 @@
           },
           {
             "name": "rewardId",
-            "description": "might be known as challenge_id elsewhere",
+            "description": "known as challenge_id elsewhere",
             "in": "query",
             "required": false,
             "type": "string"
           },
           {
-            "name": "encodedUserId",
+            "name": "userWallet",
             "in": "query",
             "required": false,
             "type": "string"
           },
           {
-            "name": "signature",
-            "description": "signed sha256 hash of fields concatenated and joined by \"+\"",
+            "name": "oracleAddress",
+            "description": "anti abuse oracle used to attest for this reward",
             "in": "query",
             "required": false,
             "type": "string"

@@ -45,7 +45,9 @@ service Protocol {
     };
   }
   rpc GetRewardAttestation(RewardAttestationRequest) returns (RewardAttestationResponse) {
-    option (google.api.http) = {get: "/core/grpc/attest/reward"};
+    option (google.api.http) = {
+      get: "/core/grpc/attest/reward"
+    };
   }
 }
 
@@ -233,8 +235,7 @@ message RewardAttestationRequest {
   string specifier = 2;
   // known as challenge_id elsewhere
   string reward_id = 3;
-  // encoded with https://sqids.org/?hashids
-  string encoded_user_id = 4;
+  string user_wallet = 4;
   // anti abuse oracle used to attest for this reward
   string oracle_address = 5;
 }

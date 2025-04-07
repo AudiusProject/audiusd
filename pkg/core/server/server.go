@@ -121,7 +121,6 @@ func (s *Server) Start(ctx context.Context) error {
 	g, _ := errgroup.WithContext(ctx)
 
 	g.Go(s.startABCI)
-	g.Go(s.startGRPC)
 	g.Go(s.startRegistryBridge)
 	g.Go(s.startEchoServer)
 	g.Go(s.startSyncTasks)

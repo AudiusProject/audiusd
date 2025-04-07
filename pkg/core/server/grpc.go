@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"net"
 	"reflect"
 	"strings"
 	"time"
@@ -231,28 +230,6 @@ func (s *Server) Ping(ctx context.Context, req *core_proto.PingRequest) (*core_p
 	return &core_proto.PingResponse{Message: "pong"}, nil
 }
 
-func (s *Server) startGRPC() error {
-	s.logger.Info("core gRPC server starting")
-
-	gs := s.grpcServer
-
-	grpcLis, err := net.Listen("tcp", s.config.GRPCladdr)
-	if err != nil {
-		return fmt.Errorf("grpc listener not created: %v", err)
-	}
-
-	core_proto.RegisterProtocolServer(gs, s)
-
-	close(s.awaitGrpcServerReady)
-	s.logger.Info("core gRPC server ready")
-
-	if err := gs.Serve(grpcLis); err != nil {
-		s.logger.Errorf("grpc failed to start: %v", err)
-		return err
-	}
-	return nil
-}
-
 // Utilities
 func (s *Server) getBlockRpcFallback(ctx context.Context, height int64) (*core_proto.BlockResponse, error) {
 	currentHeight := s.cache.currentHeight.Load()
@@ -301,7 +278,7 @@ func (s *Server) GetRegistrationAttestation(ctx context.Context, req *core_proto
 	}
 
 	if reg.Deadline < s.cache.currentHeight.Load() || reg.Deadline > s.cache.currentHeight.Load()+maxRegistrationAttestationValidity {
-		return nil, fmt.Errorf("Cannot sign registration request with deadline %d (current height is %d)", reg.Deadline, s.cache.currentHeight.Load())
+		return nil, fmt.Errorf("cannot sign registration request with deadline %d (current height is %d)", reg.Deadline, s.cache.currentHeight.Load())
 	}
 
 	if !s.isNodeRegisteredOnEthereum(
@@ -346,13 +323,13 @@ func (s *Server) GetDeregistrationAttestation(ctx context.Context, req *core_pro
 
 	node, err := s.db.GetRegisteredNodeByCometAddress(ctx, dereg.CometAddress)
 	if err != nil {
-		return nil, fmt.Errorf("Could not attest deregistration for '%s': %v", dereg.CometAddress, err)
+		return nil, fmt.Errorf("could not attest deregistration for '%s': %v", dereg.CometAddress, err)
 	}
 
 	ethBlock := new(big.Int)
 	ethBlock, ok := ethBlock.SetString(node.EthBlock, 10)
 	if !ok {
-		return nil, fmt.Errorf("Could not format eth block '%s' for node '%s'", node.EthBlock, node.Endpoint)
+		return nil, fmt.Errorf("could not format eth block '%s' for node '%s'", node.EthBlock, node.Endpoint)
 	}
 
 	if s.isNodeRegisteredOnEthereum(
@@ -388,14 +365,18 @@ func (s *Server) GetDeregistrationAttestation(ctx context.Context, req *core_pro
 	}, nil
 }
 
-// old GET https://discoveryprovider3.staging.audius.co/v1/full/challenges/fp/attest?oracle=0x00b6462e955dA5841b6D9e1E2529B830F00f31Bf&specifier=37364e80&user_id=mEx6RYQ
-// old response:
-// {"data": {"owner_wallet": "0x8311f59B72522e728231dC60226359A51878F9A1", "attestation": "0x71b5f50e019aaf7f4ea5b1b5ea06d53fcdf58a133a26a7887779cf8edf5c214c0425236b80e2cbb7848bc83a956057698f00b0a71a6d98ed99de95d408bd062500"}}
+// http://audius-protocol-discovery-provider-1/v1/full/challenges/fp/attes6t?oracle=0xF0D5BC18421fa04D0a2A2ef540ba5A9f04014BE3&specifier=96509ed&user_id=4OWaod
+// response: {
+//
+//	"data": {
+//		"owner_wallet": "0x73EB6d82CFB20bA669e9c178b718d770C49BB52f",
+//		"attestation": "0xf187aea2d93525919970a0ea9c2fbddabf5d1e6d62ea40783c9f3f52dc40678535ee90b33c0f3a9a8c38fe35b0dee4e467fd677357e4bbea2ae5a16d457b09bd00"
+//		}
+//		}
 
-// new GET https://discoveryprovider3.staging.audius.co/core/attest?reward=fp&specifier=37364e80&user_id=mEx6RYQ&oracle=0x00b6462e955dA5841b6D9e1E2529B830F00f31Bf&signature=0x123
-// new response:
-// {"data": {"owner_wallet": "0x8311f59B72522e728231dC60226359A51878F9A1", "attestation": "0x71b5f50e019aaf7f4ea5b1b5ea06d53fcdf58a133a26a7887779cf8edf5c214c0425236b80e2cbb7848bc83a956057698f00b0a71a6d98ed99de95d408bd062500"}}
+// https://node1.audiusd.devnet/core/grpc/attest/reward?reward_id=fp&specifier=96509ed&encoded_user_id=4OWaod&oracle_address=0xF0D5BC18421fa04D0a2A2ef540ba5A9f04014BE3&signature=0x638ec25893b1eb45b8d4c649a936fb6a3ebd8b261075f958a7fb00e4e76d378538d87772d33ef379af8e367e3592b010194190e36a0d4ddaa3e09182758fd52801
 func (s *Server) GetRewardAttestation(ctx context.Context, req *core_proto.RewardAttestationRequest) (*core_proto.RewardAttestationResponse, error) {
+	s.logger.Info("GetRewardAttestation", "request", req)
 	// Validate required fields
 	if req.GetSignature() == "" {
 		return nil, errors.New("signature is required")
@@ -406,15 +387,15 @@ func (s *Server) GetRewardAttestation(ctx context.Context, req *core_proto.Rewar
 	if req.GetRewardId() == "" {
 		return nil, errors.New("reward_id is required")
 	}
-	if req.GetEncodedUserId() == "" {
-		return nil, errors.New("encoded_user_id is required")
+	if req.GetUserWallet() == "" {
+		return nil, errors.New("user_wallet is required")
 	}
 	if req.GetOracleAddress() == "" {
 		return nil, errors.New("oracle_address is required")
 	}
 
 	// Get the attestation from the rewards service
-	_, ownerWallet, attestation, err := s.rewards.AttestRewardClaim(req.GetEncodedUserId(), req.GetRewardId(), req.GetSpecifier(), req.GetOracleAddress(), req.GetSignature())
+	_, ownerWallet, attestation, err := s.rewards.AttestRewardClaim(req.GetUserWallet(), req.GetRewardId(), req.GetSpecifier(), req.GetOracleAddress(), req.GetSignature())
 	if err != nil {
 		return nil, fmt.Errorf("failed to attest reward claim: %w", err)
 	}
