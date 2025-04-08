@@ -1,7 +1,10 @@
 package rewards
 
 import (
+	"fmt"
 	"net/http"
+	"slices"
+	"strings"
 
 	"github.com/labstack/echo/v4"
 )
@@ -32,9 +35,32 @@ func (rs *RewardService) AttestReward(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, "signature is required")
 	}
 
+	reward, err := rs.GetRewardById(challengeId)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+
+	claimDataHash := GetClaimDataHash(userWallet, challengeId, challengeSpecifier, oracleAddress)
+	recoveredWallet, err := RecoverWalletFromSignature(claimDataHash, signature)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+
+	if !slices.Contains(reward.ClaimWallets, strings.ToUpper(recoveredWallet)) {
+		return c.JSON(http.StatusUnauthorized, fmt.Sprintf("wallet %s is not authorized to claim reward %s", recoveredWallet, challengeId))
+	}
+
+	// construct attestation bytes
+	attestationBytes := []byte(fmt.Sprintf("%s_%s_%s_%s", userWallet, challengeId, challengeSpecifier, oracleAddress))
+
+	owner, attestation, err := rs.SignAttestation(attestationBytes)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+
 	res := map[string]any{
-		"owner":       "node address",
-		"attestation": "test attestation",
+		"owner":       owner,
+		"attestation": attestation,
 	}
 	return c.JSON(http.StatusOK, res)
 }

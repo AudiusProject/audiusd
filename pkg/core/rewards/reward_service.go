@@ -1,0 +1,44 @@
+package rewards
+
+import (
+	"strings"
+
+	"github.com/AudiusProject/audiusd/pkg/core/common"
+	"github.com/AudiusProject/audiusd/pkg/core/config"
+)
+
+type RewardService struct {
+	Config  *config.Config
+	logger  *common.Logger
+	Rewards []Reward
+}
+
+func NewRewardService(config *config.Config, logger *common.Logger) *RewardService {
+	rewards := []Reward{}
+	if config.Environment == "dev" {
+		rewards = append(rewards, DevRewards...)
+	} else if config.Environment == "stage" {
+		rewards = append(rewards, StageRewards...)
+	} else if config.Environment == "prod" {
+		rewards = append(rewards, ProdRewards...)
+	}
+
+	// caplitalize pubkeys in rewards
+	for i, reward := range rewards {
+		for j, claimWallet := range reward.ClaimWallets {
+			rewards[i].ClaimWallets[j] = strings.ToUpper(claimWallet)
+		}
+	}
+
+	return &RewardService{
+		Config:  config,
+		Rewards: rewards,
+		logger:  logger,
+	}
+}
+
+type Reward struct {
+	ClaimWallets []string `json:"claim_wallets"`
+	Amount       uint64   `json:"amount"`
+	RewardId     string   `json:"reward_id"`
+}
