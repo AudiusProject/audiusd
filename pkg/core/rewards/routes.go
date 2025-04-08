@@ -41,6 +41,10 @@ func (rs *RewardService) AttestReward(c echo.Context) error {
 	}
 
 	claimDataHash := GetClaimDataHash(userWallet, rewardID, specifier, oracleAddress)
+	valid := CompareClaimHash(userWallet, rewardID, specifier, oracleAddress, claimDataHash)
+	if !valid {
+		return c.JSON(http.StatusUnauthorized, "invalid claim data hash")
+	}
 	recoveredWallet, err := RecoverWalletFromSignature(claimDataHash, signature)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())

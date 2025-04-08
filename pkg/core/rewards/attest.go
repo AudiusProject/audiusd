@@ -89,6 +89,11 @@ func GetAttestationBytes(userWallet, rewardID, specifier, oracleAddress string, 
 	return attestationBytes, nil
 }
 
+func CompareClaimHash(userWallet, challengeId, challengeSpecifier, oracleAddress string, claimHash []byte) bool {
+	claimDataHash := GetClaimDataHash(userWallet, challengeId, challengeSpecifier, oracleAddress)
+	return bytes.Equal(claimDataHash, claimHash)
+}
+
 func RecoverWalletFromSignature(hash []byte, signature string) (string, error) {
 	// Remove any existing 0x prefix
 	sigHex := strings.TrimPrefix(signature, "0x")
