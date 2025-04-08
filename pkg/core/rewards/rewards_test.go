@@ -30,12 +30,15 @@ func TestTestPrivateKey(t *testing.T) {
 	require.NotNil(t, privKey)
 }
 
+// expected attestation: 0x661327f5968ac95063dff94dcedbcfcf8dd464461aceffba5071dcf05b3287dc3dd69d86ba3b8776ad4b7e2116c71e148938a539403975ae8439b2acdd93348901
 func TestRecovery(t *testing.T) {
-	// sourced from http://audius-protocol-discovery-provider-1/v1/full/challenges/fp/attest?oracle=0xF0D5BC18421fa04D0a2A2ef540ba5A9f04014BE3&specifier=96509ed&user_id=4OWaod
-	hash := GetClaimDataHash("4OWaod", "fp", "96509ed", "0xF0D5BC18421fa04D0a2A2ef540ba5A9f04014BE3")
+	// sourced from http://audius-protocol-discovery-provider-1/v1/full/challenges/c/attest?oracle=0xF0D5BC18421fa04D0a2A2ef540ba5A9f04014BE3&specifier=b9256e3:202515&user_id=x5j9dMq
+
+	// equivalent to: https://node1.audiusd.devnet/core/grpc/attest/reward?reward_id=c&specifier=b9256e3:202515&user_wallet=0xe811761771ef65f9de0b64d6335f3b8ff50adc44&oracle_address=0xF0D5BC18421fa04D0a2A2ef540ba5A9f04014BE3&signature=0xe2a5877f389aecf80fdbf0467f37f94b8a7f14e7d76354ae8d7df2f0677f04d850eaca83a5726bd02db972fd46778870e872d9248ac23399aa726bcac42ab43301
+	hash := GetClaimDataHash("0xe811761771ef65f9de0b64d6335f3b8ff50adc44", "c", "b9256e3:202515", "0xF0D5BC18421fa04D0a2A2ef540ba5A9f04014BE3")
 	signature, err := SignClaimDataHash(hash, privKey)
 	require.NoError(t, err)
-	require.Equal(t, "0x638ec25893b1eb45b8d4c649a936fb6a3ebd8b261075f958a7fb00e4e76d378538d87772d33ef379af8e367e3592b010194190e36a0d4ddaa3e09182758fd52801", signature)
+	require.Equal(t, "0xe2a5877f389aecf80fdbf0467f37f94b8a7f14e7d76354ae8d7df2f0677f04d850eaca83a5726bd02db972fd46778870e872d9248ac23399aa726bcac42ab43301", signature)
 	wallet, err := RecoverWalletFromSignature(hash, signature)
 	require.NoError(t, err)
 	require.Equal(t, "0x73EB6d82CFB20bA669e9c178b718d770C49BB52f", wallet)

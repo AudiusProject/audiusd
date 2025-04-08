@@ -3,7 +3,6 @@ package server
 
 import (
 	"context"
-	"net"
 	"net/http"
 	"net/http/pprof"
 	"time"
@@ -20,10 +19,6 @@ import (
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"golang.org/x/net/http2"
-	"golang.org/x/net/http2/h2c"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
 func (s *Server) startEchoServer() error {
@@ -37,20 +32,10 @@ func (s *Server) startEchoServer() error {
 
 	// wait for grpc server to start first since the http
 	// forward requires the grpc routes to be functional
-	s.logger.Info("core gRPC server starting")
-	core_proto.RegisterProtocolServer(s.grpcServer, s)
-	close(s.awaitGrpcServerReady)
-	s.logger.Info("core gRPC server ready (embedded via Echo/h2c)")
-
+	<-s.awaitGrpcServerReady
 	gwMux := runtime.NewServeMux()
-	err := core_proto.RegisterProtocolHandlerFromEndpoint(
-		context.TODO(),
-		gwMux,
-		s.config.CoreServerAddr,
-		[]grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())},
-	)
-	if err != nil {
-		s.logger.Errorf("could not register grpc-gateway handlers: %v", err)
+	if err := core_proto.RegisterProtocolHandlerServer(context.TODO(), gwMux, s); err != nil {
+		s.logger.Errorf("could not register protocol handler server: %v", err)
 	}
 
 	gqlResolver := gql.NewGraphQLServer(s.config, s.logger, s.db)
@@ -128,24 +113,8 @@ func (s *Server) startEchoServer() error {
 	close(s.awaitHttpServerReady)
 	s.logger.Info("core http server ready")
 
-	ln, err := net.Listen("tcp", s.config.CoreServerAddr)
-	if err != nil {
-		s.logger.Errorf("could not listen on %s: %v", s.config.CoreServerAddr, err)
-		return err
-	}
-
-	httpSrv := &http.Server{
-		Handler: h2c.NewHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if r.ProtoMajor == 2 && r.Header.Get("Content-Type") == "application/grpc" {
-				s.grpcServer.ServeHTTP(w, r)
-			} else {
-				s.httpServer.ServeHTTP(w, r)
-			}
-		}), &http2.Server{}),
-	}
-
-	if err := httpSrv.Serve(ln); err != nil {
-		s.logger.Errorf("http server failed: %v", err)
+	if err := s.httpServer.Start(s.config.CoreServerAddr); err != nil {
+		s.logger.Errorf("echo failed to start: %v", err)
 		return err
 	}
 	return nil

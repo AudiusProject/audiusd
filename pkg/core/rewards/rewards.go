@@ -1,19 +1,23 @@
 package rewards
 
 import (
+	"bytes"
 	"crypto/ecdsa"
 	_ "embed"
 	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"strings"
 
 	"slices"
 
 	"github.com/AudiusProject/audiusd/pkg/core/common"
 	"github.com/AudiusProject/audiusd/pkg/core/config"
+	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/labstack/echo/v4"
 	"github.com/santhosh-tekuri/jsonschema/v5"
 )
 
@@ -91,8 +95,8 @@ func NewRewardService(config *config.Config, logger *common.Logger) *RewardServi
 }
 
 // GetClaimDataHash constructs and hashes the claim data from its components
-func GetClaimDataHash(encodedUserId, challengeId, challengeSpecifier, oracleAddress string) []byte {
-	claimData := fmt.Sprintf("%s_%s_%s_%s", encodedUserId, challengeId, challengeSpecifier, oracleAddress)
+func GetClaimDataHash(userWallet, challengeId, challengeSpecifier, oracleAddress string) []byte {
+	claimData := fmt.Sprintf("%s_%s_%s_%s", userWallet, challengeId, challengeSpecifier, oracleAddress)
 	return crypto.Keccak256([]byte(claimData))
 }
 
@@ -113,9 +117,44 @@ func RecoverWalletFromSignature(hash []byte, signature string) (string, error) {
 	return crypto.PubkeyToAddress(*recoveredWallet).String(), nil
 }
 
+func (rs *RewardService) AttestReward(c echo.Context) error {
+	rs.logger.Infof("AttestReward %v", c.QueryParams())
+	userWallet := c.QueryParam("user_wallet")
+	if userWallet == "" {
+		return c.JSON(http.StatusBadRequest, "user_wallet is required")
+	}
+	challengeId := c.QueryParam("reward_id")
+	if challengeId == "" {
+		return c.JSON(http.StatusBadRequest, "reward_id is required")
+	}
+	challengeSpecifier := c.QueryParam("specifier")
+	if challengeSpecifier == "" {
+		return c.JSON(http.StatusBadRequest, "specifier is required")
+	}
+	oracleAddress := c.QueryParam("oracle_address")
+	if oracleAddress == "" {
+		return c.JSON(http.StatusBadRequest, "oracle_address is required")
+	}
+	signature := c.QueryParam("signature")
+	if signature == "" {
+		return c.JSON(http.StatusBadRequest, "signature is required")
+	}
+
+	_, attestationSigner, attestation, err := rs.AttestRewardClaim(userWallet, challengeId, challengeSpecifier, oracleAddress, signature)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, err.Error())
+	}
+
+	return c.JSON(http.StatusOK, map[string]string{
+		"owner":       attestationSigner,
+		"attestation": attestation,
+	})
+}
+
 func (rs *RewardService) AttestRewardClaim(userWallet, challengeId, challengeSpecifier, oracleAddress, signature string) (claimSigner string, attestationSigner string, attestation string, err error) {
 	// construct the claim data and recover the signer wallet from the signature
 	hash := GetClaimDataHash(userWallet, challengeId, challengeSpecifier, oracleAddress)
+	rs.logger.Infof("signature: %s, hash: %s", signature, hash)
 	claimWallet, err := RecoverWalletFromSignature(hash, signature)
 	if err != nil {
 		return "", "", "", fmt.Errorf("failed to recover wallet: %w", err)
@@ -223,26 +262,29 @@ func (a *Attestation) GetAttestationBytes() ([]byte, error) {
 		return nil, err
 	}
 
-	sep := []byte("_")
-	joined := append(userBytes, sep...)
-	joined = append(joined, amountBytes...)
-	joined = append(joined, sep...)
-	joined = append(joined, combinedIDBytes...)
-	joined = append(joined, sep...)
-	joined = append(joined, oracleBytes...)
+	joined := bytes.Join([][]byte{
+		userBytes,
+		amountBytes,
+		combinedIDBytes,
+		oracleBytes,
+	}, []byte("_"))
 
 	return joined, nil
 }
 
 func (rs *RewardService) SignAttestation(attestationBytes []byte) (string, error) {
-	privateKey := rs.config.EthereumKey
+	privateKey := rs.config.EthereumKey // should be *ecdsa.PrivateKey
 
-	hash := crypto.Keccak256(attestationBytes)
-	signature, err := crypto.Sign(hash, privateKey)
+	// Apply Ethereum message prefix and hash
+	prefixedHash := accounts.TextHash(attestationBytes)
+
+	// Sign the prefixed hash
+	signature, err := crypto.Sign(prefixedHash, privateKey)
 	if err != nil {
-		return "", fmt.Errorf("failed to sign hash: %w", err)
+		return "", fmt.Errorf("failed to sign attestation: %w", err)
 	}
 
+	// Return hex-encoded signature
 	return "0x" + hex.EncodeToString(signature), nil
 }
 
@@ -259,7 +301,7 @@ func SignClaimDataHash(hash []byte, privateKey *ecdsa.PrivateKey) (string, error
 
 func uint64Pow(a, b int) uint64 {
 	result := uint64(1)
-	for range b {
+	for i := 0; i < b; i++ {
 		result *= uint64(a)
 	}
 	return result
