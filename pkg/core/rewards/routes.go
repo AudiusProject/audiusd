@@ -18,12 +18,12 @@ func (rs *RewardService) AttestReward(c echo.Context) error {
 	if userWallet == "" {
 		return c.JSON(http.StatusBadRequest, "user_wallet is required")
 	}
-	challengeId := c.QueryParam("reward_id")
-	if challengeId == "" {
+	rewardID := c.QueryParam("reward_id")
+	if rewardID == "" {
 		return c.JSON(http.StatusBadRequest, "reward_id is required")
 	}
-	challengeSpecifier := c.QueryParam("specifier")
-	if challengeSpecifier == "" {
+	specifier := c.QueryParam("specifier")
+	if specifier == "" {
 		return c.JSON(http.StatusBadRequest, "specifier is required")
 	}
 	oracleAddress := c.QueryParam("oracle_address")
@@ -35,23 +35,26 @@ func (rs *RewardService) AttestReward(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, "signature is required")
 	}
 
-	reward, err := rs.GetRewardById(challengeId)
+	reward, err := rs.GetRewardById(rewardID)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
 
-	claimDataHash := GetClaimDataHash(userWallet, challengeId, challengeSpecifier, oracleAddress)
+	claimDataHash := GetClaimDataHash(userWallet, rewardID, specifier, oracleAddress)
 	recoveredWallet, err := RecoverWalletFromSignature(claimDataHash, signature)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
 
 	if !slices.Contains(reward.ClaimWallets, strings.ToUpper(recoveredWallet)) {
-		return c.JSON(http.StatusUnauthorized, fmt.Sprintf("wallet %s is not authorized to claim reward %s", recoveredWallet, challengeId))
+		return c.JSON(http.StatusUnauthorized, fmt.Sprintf("wallet %s is not authorized to claim reward %s", recoveredWallet, rewardID))
 	}
 
 	// construct attestation bytes
-	attestationBytes := []byte(fmt.Sprintf("%s_%s_%s_%s", userWallet, challengeId, challengeSpecifier, oracleAddress))
+	attestationBytes, err := GetAttestationBytes(userWallet, rewardID, specifier, oracleAddress, reward.Amount)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
 
 	owner, attestation, err := rs.SignAttestation(attestationBytes)
 	if err != nil {
