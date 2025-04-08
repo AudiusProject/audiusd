@@ -181,3 +181,49 @@ func TestMissingParams(t *testing.T) {
 		})
 	}
 }
+
+func TestInvalidClaimHash(t *testing.T) {
+	// Setup
+	e := echo.New()
+	rs := rewards.NewRewardService(&config.Config{
+		Environment: "dev",
+		EthereumKey: privKey,
+	})
+
+	// Test data
+	rewardID := "c"
+	specifier := "b9256e3:202515"
+	userWallet := "0xe811761771ef65f9de0b64d6335f3b8ff50adc44"
+	oracleAddress := "0xF0D5BC18421fa04D0a2A2ef540ba5A9f04014BE3"
+
+	// Generate a signature for incorrect data
+	incorrectData := "wrong_data"
+	incorrectHash := crypto.Keccak256([]byte(incorrectData))
+	signature, err := rewards.SignClaimDataHash(incorrectHash, privKey)
+	require.NoError(t, err)
+
+	// Create request
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	q := req.URL.Query()
+	q.Add("reward_id", rewardID)
+	q.Add("specifier", specifier)
+	q.Add("user_wallet", userWallet)
+	q.Add("oracle_address", oracleAddress)
+	q.Add("signature", signature)
+	req.URL.RawQuery = q.Encode()
+
+	// Create recorder and context
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	// Call handler
+	err = rs.AttestReward(c)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusUnauthorized, rec.Code)
+
+	// Parse response
+	var res string
+	err = json.Unmarshal(rec.Body.Bytes(), &res)
+	require.NoError(t, err)
+	require.Contains(t, res, "is not authorized")
+}
