@@ -80,3 +80,104 @@ func TestAttestRewardWithEcho(t *testing.T) {
 	require.Equal(t, expectedAttestation, res["attestation"])
 	require.Equal(t, expectedOwner, res["owner"])
 }
+
+func TestMissingParams(t *testing.T) {
+	// Setup
+	e := echo.New()
+	rs := rewards.NewRewardService(&config.Config{
+		Environment: "dev",
+		EthereumKey: privKey,
+	})
+
+	// Test data
+	rewardID := "c"
+	specifier := "b9256e3:202515"
+	userWallet := "0xe811761771ef65f9de0b64d6335f3b8ff50adc44"
+	oracleAddress := "0xF0D5BC18421fa04D0a2A2ef540ba5A9f04014BE3"
+	signature := "0xe2a5877f389aecf80fdbf0467f37f94b8a7f14e7d76354ae8d7df2f0677f04d850eaca83a5726bd02db972fd46778870e872d9248ac23399aa726bcac42ab43301"
+
+	// Test cases for each missing parameter
+	testCases := []struct {
+		name         string
+		missingParam string
+		params       map[string]string
+	}{
+		{
+			name:         "missing user_wallet",
+			missingParam: "user_wallet",
+			params: map[string]string{
+				"reward_id":      rewardID,
+				"specifier":      specifier,
+				"oracle_address": oracleAddress,
+				"signature":      signature,
+			},
+		},
+		{
+			name:         "missing reward_id",
+			missingParam: "reward_id",
+			params: map[string]string{
+				"user_wallet":    userWallet,
+				"specifier":      specifier,
+				"oracle_address": oracleAddress,
+				"signature":      signature,
+			},
+		},
+		{
+			name:         "missing specifier",
+			missingParam: "specifier",
+			params: map[string]string{
+				"user_wallet":    userWallet,
+				"reward_id":      rewardID,
+				"oracle_address": oracleAddress,
+				"signature":      signature,
+			},
+		},
+		{
+			name:         "missing oracle_address",
+			missingParam: "oracle_address",
+			params: map[string]string{
+				"user_wallet": userWallet,
+				"reward_id":   rewardID,
+				"specifier":   specifier,
+				"signature":   signature,
+			},
+		},
+		{
+			name:         "missing signature",
+			missingParam: "signature",
+			params: map[string]string{
+				"user_wallet":    userWallet,
+				"reward_id":      rewardID,
+				"specifier":      specifier,
+				"oracle_address": oracleAddress,
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Create request
+			req := httptest.NewRequest(http.MethodGet, "/", nil)
+			q := req.URL.Query()
+			for k, v := range tc.params {
+				q.Add(k, v)
+			}
+			req.URL.RawQuery = q.Encode()
+
+			// Create recorder and context
+			rec := httptest.NewRecorder()
+			c := e.NewContext(req, rec)
+
+			// Call handler
+			err := rs.AttestReward(c)
+			require.NoError(t, err)
+			require.Equal(t, http.StatusBadRequest, rec.Code)
+
+			// Parse response
+			var res string
+			err = json.Unmarshal(rec.Body.Bytes(), &res)
+			require.NoError(t, err)
+			require.Contains(t, res, tc.missingParam)
+		})
+	}
+}
