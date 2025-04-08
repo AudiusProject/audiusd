@@ -89,8 +89,8 @@ func GetAttestationBytes(userWallet, rewardID, specifier, oracleAddress string, 
 	return attestationBytes, nil
 }
 
-func CompareClaimHash(userWallet, challengeId, challengeSpecifier, oracleAddress string, claimHash []byte) bool {
-	claimDataHash := GetClaimDataHash(userWallet, challengeId, challengeSpecifier, oracleAddress)
+func CompareClaimHash(userWallet, rewardID, specifier, oracleAddress string, claimHash []byte) bool {
+	claimDataHash := GetClaimDataHash(userWallet, rewardID, specifier, oracleAddress)
 	return bytes.Equal(claimDataHash, claimHash)
 }
 
