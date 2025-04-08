@@ -3,17 +3,15 @@ package rewards
 import (
 	"strings"
 
-	"github.com/AudiusProject/audiusd/pkg/core/common"
 	"github.com/AudiusProject/audiusd/pkg/core/config"
 )
 
 type RewardService struct {
 	Config  *config.Config
-	logger  *common.Logger
 	Rewards []Reward
 }
 
-func NewRewardService(config *config.Config, logger *common.Logger) *RewardService {
+func NewRewardService(config *config.Config) *RewardService {
 	rewards := []Reward{}
 	if config.Environment == "dev" {
 		rewards = append(rewards, DevRewards...)
@@ -33,7 +31,6 @@ func NewRewardService(config *config.Config, logger *common.Logger) *RewardServi
 	return &RewardService{
 		Config:  config,
 		Rewards: rewards,
-		logger:  logger,
 	}
 }
 
