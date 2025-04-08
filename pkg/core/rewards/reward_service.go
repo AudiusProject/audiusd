@@ -38,4 +38,5 @@ type Reward struct {
 	ClaimWallets []string `json:"claim_wallets"`
 	Amount       uint64   `json:"amount"`
 	RewardId     string   `json:"reward_id"`
+	Name         string   `json:"name"`
 }
