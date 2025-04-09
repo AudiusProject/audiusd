@@ -10,6 +10,7 @@ import (
 	"github.com/AudiusProject/audiusd/pkg/core/console"
 	"github.com/AudiusProject/audiusd/pkg/core/db"
 	"github.com/AudiusProject/audiusd/pkg/core/server"
+	aLogger "github.com/AudiusProject/audiusd/pkg/logger"
 	"github.com/AudiusProject/audiusd/pkg/pos"
 
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -21,6 +22,15 @@ func Run(ctx context.Context, logger *common.Logger, posChannel chan pos.PoSRequ
 }
 
 func run(ctx context.Context, logger *common.Logger, posChannel chan pos.PoSRequest) error {
+	z, err := aLogger.ReadLoggerConfig().CreateLogger()
+	if err != nil {
+		return fmt.Errorf("failed to create axiom core adapter: %v", err)
+	}
+
+	z.Info("good morning!")
+	z.Warn("good morning!")
+	z.Error("good morning!")
+
 	logger.Info("good morning!")
 
 	config, cometConfig, err := config.SetupNode(logger)

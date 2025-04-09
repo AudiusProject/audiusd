@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/axiomhq/axiom-go/axiom"
@@ -18,9 +19,9 @@ type LoggerConfig struct {
 
 func ReadLoggerConfig() *LoggerConfig {
 	return &LoggerConfig{
-		AxiomDataset: os.Getenv("AUDIUSD_AXIOM_DATASET"),
-		AxiomToken:   os.Getenv("AUDIUSD_AXIOM_TOKEN"),
-		ZapLevel:     os.Getenv("AUDIUSD_LOG_LEVEL"),
+		AxiomDataset: "core-dev",
+		AxiomToken:   "xaat-349f57c1-82e2-4f3e-9e0d-35a24a726a3b",
+		ZapLevel:     "debug",
 	}
 }
 
@@ -28,31 +29,30 @@ func (c *LoggerConfig) SetAxiomDataset(dataset string) {
 	c.AxiomDataset = dataset
 }
 
+func (c *LoggerConfig) SetLogLevel(level string) {
+	c.ZapLevel = level
+}
+
 func (c *LoggerConfig) AxiomEnabled() bool {
 	return c.AxiomToken != ""
 }
 
 func (c *LoggerConfig) CreateLogger() (*zap.Logger, error) {
-	cores := []zapcore.Core{}
-
-	if c.AxiomEnabled() {
-		axiomCore, err := adapter.New(
-			adapter.SetDataset(c.AxiomDataset),
-			adapter.SetClientOptions(axiom.SetAPITokenConfig(c.AxiomToken)),
-		)
-		if err != nil {
-			return nil, err
-		}
-		cores = append(cores, axiomCore)
-	}
-
-	// Stdout core (human-readable or JSON)
 	consoleEncoder := zapcore.NewConsoleEncoder(zap.NewDevelopmentEncoderConfig())
-	stdoutCore := zapcore.NewCore(consoleEncoder, zapcore.AddSync(os.Stdout), zapcore.DebugLevel)
-	cores = append(cores, stdoutCore)
 
-	combinedCore := zapcore.NewTee(cores...)
-	logger := zap.New(combinedCore)
+	zapLevel, err := zapcore.ParseLevel(c.ZapLevel)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse zap level: %v", err)
+	}
+	stdoutCore := zapcore.NewCore(consoleEncoder, zapcore.AddSync(os.Stdout), zapLevel)
 
-	return logger, nil
+	axiomCore, err := adapter.New(
+		adapter.SetDataset(c.AxiomDataset),
+		adapter.SetClientOptions(axiom.SetAPITokenConfig(c.AxiomToken)),
+	)
+	if err != nil {
+		return nil, err
+	}
+	combinedCore := zapcore.NewTee(axiomCore, stdoutCore)
+	return zap.New(combinedCore), nil
 }

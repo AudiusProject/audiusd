@@ -11,6 +11,7 @@ import (
 	"github.com/AudiusProject/audiusd/pkg/core/db"
 	"github.com/AudiusProject/audiusd/pkg/core/gen/core_proto"
 	"github.com/AudiusProject/audiusd/pkg/core/sdk"
+	aLogger "github.com/AudiusProject/audiusd/pkg/logger"
 	"github.com/AudiusProject/audiusd/pkg/pos"
 	cconfig "github.com/cometbft/cometbft/config"
 	nm "github.com/cometbft/cometbft/node"
@@ -18,6 +19,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/labstack/echo/v4"
+	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 )
@@ -26,6 +28,8 @@ type Server struct {
 	config         *config.Config
 	cometbftConfig *cconfig.Config
 	logger         *common.Logger
+	zConfig        *aLogger.LoggerConfig
+	z              *zap.Logger
 
 	httpServer         *echo.Echo
 	grpcServer         *grpc.Server
@@ -79,10 +83,27 @@ func NewServer(config *config.Config, cconfig *cconfig.Config, logger *common.Lo
 	ethNodes := []*contracts.Node{}
 	duplicateEthNodes := []*contracts.Node{}
 
+	zConfig := &aLogger.LoggerConfig{
+		AxiomDataset: "core-dev",
+		AxiomToken:   "xaat-93f0f688-630b-480e-ba78-2675948b95bc",
+		ZapLevel:     "debug",
+	}
+
+	baseLogger, err := zConfig.CreateLogger()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create zap logger: %v", err)
+	}
+	baseLogger.Info("HELLO???")
+
+	z := baseLogger.With(zap.String("service", "core"))
+	z.Info("core server starting", zap.Any("axiom", zConfig))
+
 	s := &Server{
 		config:         config,
 		cometbftConfig: cconfig,
 		logger:         logger.Child("server"),
+		zConfig:        zConfig,
+		z:              z,
 
 		pool:               pool,
 		contracts:          c,
@@ -125,7 +146,7 @@ func (s *Server) Start(ctx context.Context) error {
 	g.Go(s.startCache)
 	g.Go(s.startDataCompanion)
 
-	s.logger.Info("services started")
+	s.z.Info("services started")
 
 	return g.Wait()
 }
@@ -141,6 +162,12 @@ func (s *Server) Shutdown(ctx context.Context) error {
 		s.grpcServer.GracefulStop()
 		return nil
 	})
+
+	defer func() {
+		if syncErr := s.z.Sync(); syncErr != nil {
+			fmt.Printf("failed to sync logger: %v", syncErr)
+		}
+	}()
 
 	return g.Wait()
 }
