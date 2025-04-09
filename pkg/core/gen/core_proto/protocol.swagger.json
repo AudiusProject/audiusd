@@ -542,14 +542,6 @@
         },
         "country": {
           "type": "string"
-        },
-        "latitude": {
-          "type": "number",
-          "format": "double"
-        },
-        "longitude": {
-          "type": "number",
-          "format": "double"
         }
       }
     },
