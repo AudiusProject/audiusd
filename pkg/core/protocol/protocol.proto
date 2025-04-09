@@ -154,6 +154,8 @@ message TrackPlay {
   string city = 5;
   string region = 6;
   string country = 7;
+  double latitude = 8;
+  double longitude = 9;
 }
 
 message PingRequest {}

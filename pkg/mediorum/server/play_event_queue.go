@@ -55,6 +55,8 @@ type PlayEvent struct {
 	City      string
 	Region    string
 	Country   string
+	Latitude  float64
+	Longitude float64
 }
 
 func (ss *MediorumServer) startPlayEventQueue() {
@@ -96,6 +98,8 @@ func (ss *MediorumServer) processPlayRecordBatch() error {
 			City:      play.City,
 			Country:   play.Country,
 			Region:    play.Region,
+			Latitude:  play.Latitude,
+			Longitude: play.Longitude,
 		})
 	}
 

@@ -349,6 +349,8 @@ func (ss *MediorumServer) logTrackListen(c echo.Context) {
 			City:      geoData.City,
 			Country:   geoData.Country,
 			Region:    geoData.Region,
+			Latitude:  geoData.Latitude,
+			Longitude: geoData.Longitude,
 		})
 	}()
 

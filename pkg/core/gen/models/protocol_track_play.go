@@ -25,6 +25,12 @@ type ProtocolTrackPlay struct {
 	// country
 	Country string `json:"country,omitempty"`
 
+	// latitude
+	Latitude float64 `json:"latitude,omitempty"`
+
+	// longitude
+	Longitude float64 `json:"longitude,omitempty"`
+
 	// region
 	Region string `json:"region,omitempty"`
 
