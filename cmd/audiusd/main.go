@@ -30,10 +30,12 @@ import (
 	"github.com/AudiusProject/audiusd/pkg/core/common"
 	"github.com/AudiusProject/audiusd/pkg/core/console"
 	"github.com/AudiusProject/audiusd/pkg/etl"
+	"github.com/AudiusProject/audiusd/pkg/logger"
 	"github.com/AudiusProject/audiusd/pkg/mediorum"
 	"github.com/AudiusProject/audiusd/pkg/mediorum/server"
 	"github.com/AudiusProject/audiusd/pkg/pos"
 	"github.com/AudiusProject/audiusd/pkg/uptime"
+	"go.uber.org/zap"
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/labstack/echo/v4"
@@ -65,6 +67,20 @@ func main() {
 	startTime = time.Now().UTC()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
+	l, err := logger.ReadLoggerConfig().CreateLogger()
+	if err != nil {
+		log.Fatalf("failed to create axiom core adapter: %v", err)
+	}
+	l.Info("This is awesome!", zap.String("mood", "hyped"))
+	l.Warn("This is a little bit worrisome...", zap.String("mood", "worried"))
+	l.Error("This is rather bad.", zap.String("mood", "depressed"))
+
+	defer func() {
+		if syncErr := l.Sync(); syncErr != nil {
+			log.Fatal(syncErr)
+		}
+	}()
 
 	logger := setupLogger()
 	hostUrl := setupHostUrl()
