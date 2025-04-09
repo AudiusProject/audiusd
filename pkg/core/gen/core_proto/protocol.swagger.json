@@ -441,6 +441,9 @@
         },
         "attestation": {
           "$ref": "#/definitions/protocolAttestation"
+        },
+        "release": {
+          "$ref": "#/definitions/v1NewReleaseMessage"
         }
       }
     },
@@ -683,6 +686,226 @@
             "type": "object",
             "$ref": "#/definitions/protobufAny"
           }
+        }
+      }
+    },
+    "v1AlbumRelease": {
+      "type": "object",
+      "properties": {
+        "releaseId": {
+          "$ref": "#/definitions/v1ReleaseId"
+        },
+        "title": {
+          "type": "string"
+        },
+        "genre": {
+          "type": "string"
+        },
+        "artist": {
+          "type": "string"
+        }
+      }
+    },
+    "v1Image": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/definitions/v1ImageId"
+        },
+        "cid": {
+          "type": "string"
+        }
+      }
+    },
+    "v1ImageId": {
+      "type": "object",
+      "properties": {
+        "proprietaryId": {
+          "type": "string"
+        },
+        "namespace": {
+          "type": "string"
+        }
+      }
+    },
+    "v1MessagingParty": {
+      "type": "object",
+      "properties": {
+        "partyId": {
+          "type": "string"
+        },
+        "partyName": {
+          "type": "string"
+        },
+        "pubKey": {
+          "type": "string",
+          "format": "byte"
+        }
+      }
+    },
+    "v1NewReleaseMessage": {
+      "type": "object",
+      "properties": {
+        "releaseHeader": {
+          "$ref": "#/definitions/v1ReleaseHeader"
+        },
+        "resources": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Resource"
+          }
+        },
+        "releaseList": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Release"
+          }
+        }
+      }
+    },
+    "v1Release": {
+      "type": "object",
+      "properties": {
+        "trackRelease": {
+          "$ref": "#/definitions/v1TrackRelease"
+        },
+        "albumRelease": {
+          "$ref": "#/definitions/v1AlbumRelease"
+        }
+      }
+    },
+    "v1ReleaseHeader": {
+      "type": "object",
+      "properties": {
+        "messageId": {
+          "type": "string"
+        },
+        "sender": {
+          "$ref": "#/definitions/v1MessagingParty"
+        },
+        "sentOnBehalfOf": {
+          "$ref": "#/definitions/v1MessagingParty"
+        },
+        "recipient": {
+          "$ref": "#/definitions/v1MessagingParty"
+        }
+      }
+    },
+    "v1ReleaseId": {
+      "type": "object",
+      "properties": {
+        "isrc": {
+          "type": "string"
+        },
+        "icpn": {
+          "type": "string"
+        },
+        "grid": {
+          "type": "string"
+        },
+        "catalogueNumber": {
+          "type": "string"
+        },
+        "namespace": {
+          "type": "string"
+        }
+      }
+    },
+    "v1Resource": {
+      "type": "object",
+      "properties": {
+        "soundRecording": {
+          "$ref": "#/definitions/v1SoundRecording"
+        },
+        "image": {
+          "$ref": "#/definitions/v1Image"
+        }
+      }
+    },
+    "v1ResourceContributor": {
+      "type": "object",
+      "properties": {
+        "partyName": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        }
+      }
+    },
+    "v1SoundRecording": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/definitions/v1SoundRecordingId"
+        },
+        "filename": {
+          "type": "string"
+        },
+        "md5Hash": {
+          "type": "string"
+        },
+        "cid": {
+          "type": "string"
+        },
+        "contributors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1ResourceContributor"
+          }
+        },
+        "indirectContributors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1ResourceContributor"
+          }
+        },
+        "transcodings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1TranscodedAudioReference"
+          }
+        }
+      }
+    },
+    "v1SoundRecordingId": {
+      "type": "object",
+      "properties": {
+        "isrc": {
+          "type": "string"
+        }
+      }
+    },
+    "v1TrackRelease": {
+      "type": "object",
+      "properties": {
+        "releaseId": {
+          "$ref": "#/definitions/v1ReleaseId"
+        },
+        "title": {
+          "type": "string"
+        },
+        "genre": {
+          "type": "string"
+        },
+        "artist": {
+          "type": "string"
+        }
+      }
+    },
+    "v1TranscodedAudioReference": {
+      "type": "object",
+      "properties": {
+        "cid": {
+          "type": "string"
+        },
+        "kbps": {
+          "type": "string"
         }
       }
     }
