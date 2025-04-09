@@ -13,31 +13,24 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// V1ReleaseHeader v1 release header
+// V1beta1ReleaseHeader v1beta1 release header
 //
-// swagger:model v1ReleaseHeader
-type V1ReleaseHeader struct {
+// swagger:model v1beta1ReleaseHeader
+type V1beta1ReleaseHeader struct {
 
 	// message Id
 	MessageID string `json:"messageId,omitempty"`
 
-	// recipient
-	Recipient *V1Party `json:"recipient,omitempty"`
-
 	// sender
-	Sender *V1Party `json:"sender,omitempty"`
+	Sender *V1beta1Party `json:"sender,omitempty"`
 
 	// sent on behalf of
-	SentOnBehalfOf *V1Party `json:"sentOnBehalfOf,omitempty"`
+	SentOnBehalfOf *V1beta1Party `json:"sentOnBehalfOf,omitempty"`
 }
 
-// Validate validates this v1 release header
-func (m *V1ReleaseHeader) Validate(formats strfmt.Registry) error {
+// Validate validates this v1beta1 release header
+func (m *V1beta1ReleaseHeader) Validate(formats strfmt.Registry) error {
 	var res []error
-
-	if err := m.validateRecipient(formats); err != nil {
-		res = append(res, err)
-	}
 
 	if err := m.validateSender(formats); err != nil {
 		res = append(res, err)
@@ -53,26 +46,7 @@ func (m *V1ReleaseHeader) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *V1ReleaseHeader) validateRecipient(formats strfmt.Registry) error {
-	if swag.IsZero(m.Recipient) { // not required
-		return nil
-	}
-
-	if m.Recipient != nil {
-		if err := m.Recipient.Validate(formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
-				return ve.ValidateName("recipient")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
-				return ce.ValidateName("recipient")
-			}
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (m *V1ReleaseHeader) validateSender(formats strfmt.Registry) error {
+func (m *V1beta1ReleaseHeader) validateSender(formats strfmt.Registry) error {
 	if swag.IsZero(m.Sender) { // not required
 		return nil
 	}
@@ -91,7 +65,7 @@ func (m *V1ReleaseHeader) validateSender(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *V1ReleaseHeader) validateSentOnBehalfOf(formats strfmt.Registry) error {
+func (m *V1beta1ReleaseHeader) validateSentOnBehalfOf(formats strfmt.Registry) error {
 	if swag.IsZero(m.SentOnBehalfOf) { // not required
 		return nil
 	}
@@ -110,13 +84,9 @@ func (m *V1ReleaseHeader) validateSentOnBehalfOf(formats strfmt.Registry) error 
 	return nil
 }
 
-// ContextValidate validate this v1 release header based on the context it is used
-func (m *V1ReleaseHeader) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+// ContextValidate validate this v1beta1 release header based on the context it is used
+func (m *V1beta1ReleaseHeader) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	var res []error
-
-	if err := m.contextValidateRecipient(ctx, formats); err != nil {
-		res = append(res, err)
-	}
 
 	if err := m.contextValidateSender(ctx, formats); err != nil {
 		res = append(res, err)
@@ -132,28 +102,7 @@ func (m *V1ReleaseHeader) ContextValidate(ctx context.Context, formats strfmt.Re
 	return nil
 }
 
-func (m *V1ReleaseHeader) contextValidateRecipient(ctx context.Context, formats strfmt.Registry) error {
-
-	if m.Recipient != nil {
-
-		if swag.IsZero(m.Recipient) { // not required
-			return nil
-		}
-
-		if err := m.Recipient.ContextValidate(ctx, formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
-				return ve.ValidateName("recipient")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
-				return ce.ValidateName("recipient")
-			}
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (m *V1ReleaseHeader) contextValidateSender(ctx context.Context, formats strfmt.Registry) error {
+func (m *V1beta1ReleaseHeader) contextValidateSender(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.Sender != nil {
 
@@ -174,7 +123,7 @@ func (m *V1ReleaseHeader) contextValidateSender(ctx context.Context, formats str
 	return nil
 }
 
-func (m *V1ReleaseHeader) contextValidateSentOnBehalfOf(ctx context.Context, formats strfmt.Registry) error {
+func (m *V1beta1ReleaseHeader) contextValidateSentOnBehalfOf(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.SentOnBehalfOf != nil {
 
@@ -196,7 +145,7 @@ func (m *V1ReleaseHeader) contextValidateSentOnBehalfOf(ctx context.Context, for
 }
 
 // MarshalBinary interface implementation
-func (m *V1ReleaseHeader) MarshalBinary() ([]byte, error) {
+func (m *V1beta1ReleaseHeader) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -204,8 +153,8 @@ func (m *V1ReleaseHeader) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *V1ReleaseHeader) UnmarshalBinary(b []byte) error {
-	var res V1ReleaseHeader
+func (m *V1beta1ReleaseHeader) UnmarshalBinary(b []byte) error {
+	var res V1beta1ReleaseHeader
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

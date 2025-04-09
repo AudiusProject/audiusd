@@ -443,7 +443,7 @@
           "$ref": "#/definitions/protocolAttestation"
         },
         "release": {
-          "$ref": "#/definitions/v1NewReleaseMessage"
+          "$ref": "#/definitions/v1beta1NewReleaseMessage"
         }
       }
     },
@@ -689,11 +689,11 @@
         }
       }
     },
-    "v1AlbumRelease": {
+    "v1beta1AlbumRelease": {
       "type": "object",
       "properties": {
         "releaseId": {
-          "$ref": "#/definitions/v1ReleaseId"
+          "$ref": "#/definitions/v1beta1ReleaseId"
         },
         "title": {
           "type": "string"
@@ -706,18 +706,18 @@
         }
       }
     },
-    "v1Image": {
+    "v1beta1Image": {
       "type": "object",
       "properties": {
         "id": {
-          "$ref": "#/definitions/v1ImageId"
+          "$ref": "#/definitions/v1beta1ImageId"
         },
         "cid": {
           "type": "string"
         }
       }
     },
-    "v1ImageId": {
+    "v1beta1ImageId": {
       "type": "object",
       "properties": {
         "proprietaryId": {
@@ -728,13 +728,32 @@
         }
       }
     },
-    "v1MessagingParty": {
+    "v1beta1NewReleaseMessage": {
+      "type": "object",
+      "properties": {
+        "releaseHeader": {
+          "$ref": "#/definitions/v1beta1ReleaseHeader"
+        },
+        "resourceList": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1beta1Resource"
+          }
+        },
+        "releaseList": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1beta1Release"
+          }
+        }
+      }
+    },
+    "v1beta1Party": {
       "type": "object",
       "properties": {
         "partyId": {
-          "type": "string"
-        },
-        "partyName": {
           "type": "string"
         },
         "pubKey": {
@@ -743,57 +762,32 @@
         }
       }
     },
-    "v1NewReleaseMessage": {
-      "type": "object",
-      "properties": {
-        "releaseHeader": {
-          "$ref": "#/definitions/v1ReleaseHeader"
-        },
-        "resources": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/v1Resource"
-          }
-        },
-        "releaseList": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/v1Release"
-          }
-        }
-      }
-    },
-    "v1Release": {
+    "v1beta1Release": {
       "type": "object",
       "properties": {
         "trackRelease": {
-          "$ref": "#/definitions/v1TrackRelease"
+          "$ref": "#/definitions/v1beta1TrackRelease"
         },
         "albumRelease": {
-          "$ref": "#/definitions/v1AlbumRelease"
+          "$ref": "#/definitions/v1beta1AlbumRelease"
         }
       }
     },
-    "v1ReleaseHeader": {
+    "v1beta1ReleaseHeader": {
       "type": "object",
       "properties": {
         "messageId": {
           "type": "string"
         },
         "sender": {
-          "$ref": "#/definitions/v1MessagingParty"
+          "$ref": "#/definitions/v1beta1Party"
         },
         "sentOnBehalfOf": {
-          "$ref": "#/definitions/v1MessagingParty"
-        },
-        "recipient": {
-          "$ref": "#/definitions/v1MessagingParty"
+          "$ref": "#/definitions/v1beta1Party"
         }
       }
     },
-    "v1ReleaseId": {
+    "v1beta1ReleaseId": {
       "type": "object",
       "properties": {
         "isrc": {
@@ -813,18 +807,21 @@
         }
       }
     },
-    "v1Resource": {
+    "v1beta1Resource": {
       "type": "object",
       "properties": {
+        "resourceReference": {
+          "type": "string"
+        },
         "soundRecording": {
-          "$ref": "#/definitions/v1SoundRecording"
+          "$ref": "#/definitions/v1beta1SoundRecording"
         },
         "image": {
-          "$ref": "#/definitions/v1Image"
+          "$ref": "#/definitions/v1beta1Image"
         }
       }
     },
-    "v1ResourceContributor": {
+    "v1beta1ResourceContributor": {
       "type": "object",
       "properties": {
         "partyName": {
@@ -835,11 +832,11 @@
         }
       }
     },
-    "v1SoundRecording": {
+    "v1beta1SoundRecording": {
       "type": "object",
       "properties": {
         "id": {
-          "$ref": "#/definitions/v1SoundRecordingId"
+          "$ref": "#/definitions/v1beta1SoundRecordingId"
         },
         "filename": {
           "type": "string"
@@ -854,26 +851,19 @@
           "type": "array",
           "items": {
             "type": "object",
-            "$ref": "#/definitions/v1ResourceContributor"
+            "$ref": "#/definitions/v1beta1ResourceContributor"
           }
         },
         "indirectContributors": {
           "type": "array",
           "items": {
             "type": "object",
-            "$ref": "#/definitions/v1ResourceContributor"
-          }
-        },
-        "transcodings": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/v1TranscodedAudioReference"
+            "$ref": "#/definitions/v1beta1ResourceContributor"
           }
         }
       }
     },
-    "v1SoundRecordingId": {
+    "v1beta1SoundRecordingId": {
       "type": "object",
       "properties": {
         "isrc": {
@@ -881,11 +871,17 @@
         }
       }
     },
-    "v1TrackRelease": {
+    "v1beta1TrackRelease": {
       "type": "object",
       "properties": {
         "releaseId": {
-          "$ref": "#/definitions/v1ReleaseId"
+          "$ref": "#/definitions/v1beta1ReleaseId"
+        },
+        "releaseResourceReference": {
+          "type": "string"
+        },
+        "linkedReleaseResourceReference": {
+          "type": "string"
         },
         "title": {
           "type": "string"
@@ -894,17 +890,6 @@
           "type": "string"
         },
         "artist": {
-          "type": "string"
-        }
-      }
-    },
-    "v1TranscodedAudioReference": {
-      "type": "object",
-      "properties": {
-        "cid": {
-          "type": "string"
-        },
-        "kbps": {
           "type": "string"
         }
       }

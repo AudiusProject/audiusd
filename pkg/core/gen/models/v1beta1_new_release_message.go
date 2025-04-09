@@ -14,23 +14,23 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// V1NewReleaseMessage v1 new release message
+// V1beta1NewReleaseMessage v1beta1 new release message
 //
-// swagger:model v1NewReleaseMessage
-type V1NewReleaseMessage struct {
+// swagger:model v1beta1NewReleaseMessage
+type V1beta1NewReleaseMessage struct {
 
 	// release header
-	ReleaseHeader *V1ReleaseHeader `json:"releaseHeader,omitempty"`
+	ReleaseHeader *V1beta1ReleaseHeader `json:"releaseHeader,omitempty"`
 
 	// release list
-	ReleaseList []*V1Release `json:"releaseList"`
+	ReleaseList []*V1beta1Release `json:"releaseList"`
 
 	// resource list
-	ResourceList []*V1Resource `json:"resourceList"`
+	ResourceList []*V1beta1Resource `json:"resourceList"`
 }
 
-// Validate validates this v1 new release message
-func (m *V1NewReleaseMessage) Validate(formats strfmt.Registry) error {
+// Validate validates this v1beta1 new release message
+func (m *V1beta1NewReleaseMessage) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateReleaseHeader(formats); err != nil {
@@ -51,7 +51,7 @@ func (m *V1NewReleaseMessage) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *V1NewReleaseMessage) validateReleaseHeader(formats strfmt.Registry) error {
+func (m *V1beta1NewReleaseMessage) validateReleaseHeader(formats strfmt.Registry) error {
 	if swag.IsZero(m.ReleaseHeader) { // not required
 		return nil
 	}
@@ -70,7 +70,7 @@ func (m *V1NewReleaseMessage) validateReleaseHeader(formats strfmt.Registry) err
 	return nil
 }
 
-func (m *V1NewReleaseMessage) validateReleaseList(formats strfmt.Registry) error {
+func (m *V1beta1NewReleaseMessage) validateReleaseList(formats strfmt.Registry) error {
 	if swag.IsZero(m.ReleaseList) { // not required
 		return nil
 	}
@@ -96,7 +96,7 @@ func (m *V1NewReleaseMessage) validateReleaseList(formats strfmt.Registry) error
 	return nil
 }
 
-func (m *V1NewReleaseMessage) validateResourceList(formats strfmt.Registry) error {
+func (m *V1beta1NewReleaseMessage) validateResourceList(formats strfmt.Registry) error {
 	if swag.IsZero(m.ResourceList) { // not required
 		return nil
 	}
@@ -122,8 +122,8 @@ func (m *V1NewReleaseMessage) validateResourceList(formats strfmt.Registry) erro
 	return nil
 }
 
-// ContextValidate validate this v1 new release message based on the context it is used
-func (m *V1NewReleaseMessage) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+// ContextValidate validate this v1beta1 new release message based on the context it is used
+func (m *V1beta1NewReleaseMessage) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.contextValidateReleaseHeader(ctx, formats); err != nil {
@@ -144,7 +144,7 @@ func (m *V1NewReleaseMessage) ContextValidate(ctx context.Context, formats strfm
 	return nil
 }
 
-func (m *V1NewReleaseMessage) contextValidateReleaseHeader(ctx context.Context, formats strfmt.Registry) error {
+func (m *V1beta1NewReleaseMessage) contextValidateReleaseHeader(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.ReleaseHeader != nil {
 
@@ -165,7 +165,7 @@ func (m *V1NewReleaseMessage) contextValidateReleaseHeader(ctx context.Context, 
 	return nil
 }
 
-func (m *V1NewReleaseMessage) contextValidateReleaseList(ctx context.Context, formats strfmt.Registry) error {
+func (m *V1beta1NewReleaseMessage) contextValidateReleaseList(ctx context.Context, formats strfmt.Registry) error {
 
 	for i := 0; i < len(m.ReleaseList); i++ {
 
@@ -190,7 +190,7 @@ func (m *V1NewReleaseMessage) contextValidateReleaseList(ctx context.Context, fo
 	return nil
 }
 
-func (m *V1NewReleaseMessage) contextValidateResourceList(ctx context.Context, formats strfmt.Registry) error {
+func (m *V1beta1NewReleaseMessage) contextValidateResourceList(ctx context.Context, formats strfmt.Registry) error {
 
 	for i := 0; i < len(m.ResourceList); i++ {
 
@@ -216,7 +216,7 @@ func (m *V1NewReleaseMessage) contextValidateResourceList(ctx context.Context, f
 }
 
 // MarshalBinary interface implementation
-func (m *V1NewReleaseMessage) MarshalBinary() ([]byte, error) {
+func (m *V1beta1NewReleaseMessage) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -224,8 +224,8 @@ func (m *V1NewReleaseMessage) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *V1NewReleaseMessage) UnmarshalBinary(b []byte) error {
-	var res V1NewReleaseMessage
+func (m *V1beta1NewReleaseMessage) UnmarshalBinary(b []byte) error {
+	var res V1beta1NewReleaseMessage
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

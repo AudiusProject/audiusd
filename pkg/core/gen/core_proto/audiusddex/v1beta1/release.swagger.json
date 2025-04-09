@@ -1,7 +1,7 @@
 {
   "swagger": "2.0",
   "info": {
-    "title": "audiusddex/v1/release.proto",
+    "title": "audiusddex/v1beta1/release.proto",
     "version": "version not set"
   },
   "consumes": [

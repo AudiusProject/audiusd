@@ -28,7 +28,7 @@ type ProtocolSignedTransaction struct {
 	Plays *ProtocolTrackPlays `json:"plays,omitempty"`
 
 	// release
-	Release *V1NewReleaseMessage `json:"release,omitempty"`
+	Release *V1beta1NewReleaseMessage `json:"release,omitempty"`
 
 	// request Id
 	RequestID string `json:"requestId,omitempty"`

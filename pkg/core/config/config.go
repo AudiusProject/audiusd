@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/AudiusProject/audiusd/pkg/core/common"
+	"github.com/AudiusProject/audiusd/pkg/common"
 	"github.com/AudiusProject/audiusd/pkg/rewards"
 	"github.com/cometbft/cometbft/crypto/ed25519"
 	"github.com/cometbft/cometbft/types"
@@ -186,10 +186,7 @@ func ReadConfig(logger *common.Logger) (*Config, error) {
 	}
 	cfg.EthereumKey = ethKey
 
-	ethAddress, err := common.PrivKeyToAddress(ethKey)
-	if err != nil {
-		return nil, fmt.Errorf("could not get address from priv key: %v", err)
-	}
+	ethAddress := common.PrivKeyToAddress(ethKey)
 	cfg.WalletAddress = ethAddress
 
 	key, err := common.EthToCometKey(cfg.EthereumKey)
