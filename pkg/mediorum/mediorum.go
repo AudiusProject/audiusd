@@ -12,7 +12,7 @@ import (
 
 	_ "embed"
 
-	"github.com/AudiusProject/audiusd/pkg/core/common"
+	"github.com/AudiusProject/audiusd/pkg/common"
 	"github.com/AudiusProject/audiusd/pkg/httputil"
 	"github.com/AudiusProject/audiusd/pkg/mediorum/ethcontracts"
 	"github.com/AudiusProject/audiusd/pkg/mediorum/server"

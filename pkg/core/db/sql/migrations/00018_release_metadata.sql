@@ -11,7 +11,7 @@ create table if not exists sound_recordings(
   sound_recording_id text not null,
   track_id text not null,
   cid text not null unique,
-  transcode_details text
+  encoding_details text
 );
 
 create index idx_sound_recordings_track_id on sound_recordings(track_id);

@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package protocol.audiusddex.v1;
+package protocol.audiusddex.v1beta1;
 
-option go_package = "./core_proto/audiusddex/v1;audiusddex_v1";
+option go_package = "github.com/AudiusProject/audiusd/pkg/core/gen/core_proto/audiusddex/v1beta1;audiusddex_v1beta1";
 
 message NewReleaseMessage {
   ReleaseHeader release_header = 1;
@@ -14,19 +14,18 @@ message ReleaseHeader {
   string message_id = 1;
   Party sender = 2;
   Party sent_on_behalf_of = 3;
-  Party recipient = 4;
 }
 
 message Party {
   string party_id = 1;
-  string party_name = 2;
   bytes pub_key = 3;
 }
 
 message Resource {
+  string resource_reference = 1;
   oneof resource {
-    SoundRecording sound_recording = 1;
-    Image image = 2;
+    SoundRecording sound_recording = 2;
+    Image image = 3;
   }
 }
 
@@ -37,16 +36,10 @@ message SoundRecording {
   string cid = 5;
   repeated ResourceContributor contributors = 6;
   repeated ResourceContributor indirect_contributors = 7;
-  repeated TranscodedAudioReference transcodings = 8;
 }
 
 message SoundRecordingId {
   string isrc = 2;
-}
-
-message TranscodedAudioReference {
-  string cid = 1;
-  string kbps = 2;
 }
 
 message ResourceContributor {
@@ -73,9 +66,11 @@ message Release {
 
 message TrackRelease {
   ReleaseId release_id = 1;
-  string title = 2;
-  string genre = 3;
-  string artist = 4;
+  string release_resource_reference = 2;
+  string linked_release_resource_reference = 3;
+  string title = 4;
+  string genre = 5;
+  string artist = 6;
 }
 
 message AlbumRelease {

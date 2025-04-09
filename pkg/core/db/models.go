@@ -224,7 +224,7 @@ type SoundRecording struct {
 	SoundRecordingID string
 	TrackID          string
 	Cid              string
-	TranscodeDetails pgtype.Text
+	EncodingDetails  pgtype.Text
 }
 
 type StorageProof struct {

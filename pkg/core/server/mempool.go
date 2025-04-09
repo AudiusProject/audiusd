@@ -9,7 +9,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/AudiusProject/audiusd/pkg/core/common"
+	"github.com/AudiusProject/audiusd/pkg/common"
+	ccommon "github.com/AudiusProject/audiusd/pkg/core/common"
 	"github.com/AudiusProject/audiusd/pkg/core/config"
 	"github.com/AudiusProject/audiusd/pkg/core/db"
 	"github.com/AudiusProject/audiusd/pkg/core/gen/core_openapi/protocol"
@@ -175,7 +176,7 @@ func (s *Server) broadcastMempoolTransaction(key string, tx *MempoolTransaction)
 	for _, peer := range peers {
 		go func(logger *common.Logger, peer *sdk.Sdk) {
 			params := protocol.NewProtocolForwardTransactionParams()
-			params.SetTransaction(common.SignedTxProtoIntoSignedTxOapi(tx.Tx))
+			params.SetTransaction(ccommon.SignedTxProtoIntoSignedTxOapi(tx.Tx))
 			_, err := peer.ProtocolForwardTransaction(params)
 			if err != nil {
 				logger.Errorf("could not broadcast tx %s: %v", key, err)
