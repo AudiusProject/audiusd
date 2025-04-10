@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"net/http"
 
 	corev1connect "github.com/AudiusProject/audiusd/pkg/api/core/v1/v1connect"
 	etlv1connect "github.com/AudiusProject/audiusd/pkg/api/etl/v1/v1connect"
@@ -21,23 +22,27 @@ func main() {
 	e.HideBanner = true
 	e.Use(middleware.Logger())
 
-	h2s := &http2.Server{}
-
 	rpcGroup := e.Group("")
-
 	coreService := core.NewCoreService(nil)
 	corePath, coreHandler := corev1connect.NewCoreServiceHandler(coreService)
-	rpcGroup.Any(corePath+"*", echo.WrapHandler(h2c.NewHandler(coreHandler, h2s)))
+	rpcGroup.Any(corePath+"*", echo.WrapHandler(coreHandler))
 
 	storageService := storage.NewStorageService()
 	storagePath, storageHandler := storagev1connect.NewStorageServiceHandler(storageService)
-	rpcGroup.Any(storagePath+"*", echo.WrapHandler(h2c.NewHandler(storageHandler, h2s)))
+	rpcGroup.Any(storagePath+"*", echo.WrapHandler(storageHandler))
 
 	etlService := etl.NewETLService(nil)
 	etlPath, etlHandler := etlv1connect.NewETLServiceHandler(etlService)
-	rpcGroup.Any(etlPath+"*", echo.WrapHandler(h2c.NewHandler(etlHandler, h2s)))
+	rpcGroup.Any(etlPath+"*", echo.WrapHandler(etlHandler))
 
-	if err := e.Start(":8080"); err != nil {
+	h2s := &http2.Server{}
+	h1s := &http.Server{
+		Addr:    ":8080",
+		Handler: h2c.NewHandler(e, h2s), // 👈 Wrap entire Echo router here
+	}
+
+	log.Println("Server listening on http://localhost:8080 (Connect + gRPC over H2C)")
+	if err := h1s.ListenAndServe(); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}
 }
