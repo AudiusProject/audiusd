@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/AudiusProject/audiusd/pkg/common"
 	"github.com/axiomhq/axiom-go/axiom"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -11,44 +12,41 @@ import (
 	adapter "github.com/axiomhq/axiom-go/adapters/zap"
 )
 
-type LoggerConfig struct {
-	AxiomDataset string
-	AxiomToken   string
-	ZapLevel     string
-}
+const (
+	AxiomTokenProd  = "eGFhdC1lNDRjZjRmMS02NGY1LTQyZWMtOGM4MC05MzA4ZjU1NmE0ZmRhem93ZXJuYXNkZm9pYQ=="
+	AxiomTokenStage = "eGFhdC02YTk0NTQ1NC01YWRiLTRjMmYtYjkzNi0zN2RlZDNlOTI2MzNhem93ZXJuYXNkZm9pYQ=="
+	AxiomTokenDev   = "eGFhdC0zMGVhM2FiNy02NWJkLTQ2MzYtYjk5Ny02YzBjMDg5MzM2M2Nhem93ZXJuYXNkZm9pYQ=="
+)
 
-func ReadLoggerConfig() *LoggerConfig {
-	return &LoggerConfig{
-		AxiomDataset: "core-dev",
-		AxiomToken:   "xaat-349f57c1-82e2-4f3e-9e0d-35a24a726a3b",
-		ZapLevel:     "debug",
-	}
-}
+func CreateLogger(env, level string) (*zap.Logger, error) {
+	consoleEncoder := zapcore.NewConsoleEncoder(zap.NewProductionEncoderConfig())
 
-func (c *LoggerConfig) SetAxiomDataset(dataset string) {
-	c.AxiomDataset = dataset
-}
-
-func (c *LoggerConfig) SetLogLevel(level string) {
-	c.ZapLevel = level
-}
-
-func (c *LoggerConfig) AxiomEnabled() bool {
-	return c.AxiomToken != ""
-}
-
-func (c *LoggerConfig) CreateLogger() (*zap.Logger, error) {
-	consoleEncoder := zapcore.NewConsoleEncoder(zap.NewDevelopmentEncoderConfig())
-
-	zapLevel, err := zapcore.ParseLevel(c.ZapLevel)
+	zapLevel, err := zapcore.ParseLevel(level)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse zap level: %v", err)
 	}
 	stdoutCore := zapcore.NewCore(consoleEncoder, zapcore.AddSync(os.Stdout), zapLevel)
 
+	var axiomToken string
+	switch env {
+	case "prod":
+		axiomToken = AxiomTokenProd
+	case "stage":
+		axiomToken = AxiomTokenStage
+	case "dev":
+		axiomToken = AxiomTokenDev
+	default:
+		return nil, fmt.Errorf("invalid environment: %s", env)
+	}
+
+	axiomToken, err = common.Deobfuscate(axiomToken)
+	if err != nil {
+		return nil, fmt.Errorf("failed to deobfuscate axiom token: %v", err)
+	}
+
 	axiomCore, err := adapter.New(
-		adapter.SetDataset(c.AxiomDataset),
-		adapter.SetClientOptions(axiom.SetAPITokenConfig(c.AxiomToken)),
+		adapter.SetDataset(fmt.Sprintf("core-%s", env)),
+		adapter.SetClientOptions(axiom.SetAPITokenConfig(axiomToken)),
 	)
 	if err != nil {
 		return nil, err
