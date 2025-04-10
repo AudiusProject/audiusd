@@ -15,6 +15,10 @@ var _ v1connect.StorageServiceHandler = (*StorageService)(nil)
 type StorageService struct {
 }
 
+func NewStorageService() *StorageService {
+	return &StorageService{}
+}
+
 func (s *StorageService) GetSignedStreamUrl(ctx context.Context, req *connect.Request[v1.GetSignedStreamUrlRequest]) (*connect.Response[v1.GetSignedStreamUrlResponse], error) {
 	// Mock JWT verification
 	if req.Msg.Jwt != "Bearer valid-jwt-token" {
