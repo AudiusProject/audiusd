@@ -23,17 +23,19 @@ func main() {
 
 	h2s := &http2.Server{}
 
+	rpcGroup := e.Group("")
+
 	coreService := core.NewCoreService(nil)
 	corePath, coreHandler := corev1connect.NewCoreServiceHandler(coreService)
-	e.Group("").Any(corePath+"*", echo.WrapHandler(h2c.NewHandler(coreHandler, h2s)))
+	rpcGroup.Any(corePath+"*", echo.WrapHandler(h2c.NewHandler(coreHandler, h2s)))
 
 	storageService := storage.NewStorageService()
 	storagePath, storageHandler := storagev1connect.NewStorageServiceHandler(storageService)
-	e.Group("").Any(storagePath+"*", echo.WrapHandler(h2c.NewHandler(storageHandler, h2s)))
+	rpcGroup.Any(storagePath+"*", echo.WrapHandler(h2c.NewHandler(storageHandler, h2s)))
 
 	etlService := etl.NewETLService(nil)
 	etlPath, etlHandler := etlv1connect.NewETLServiceHandler(etlService)
-	e.Group("").Any(etlPath+"*", echo.WrapHandler(h2c.NewHandler(etlHandler, h2s)))
+	rpcGroup.Any(etlPath+"*", echo.WrapHandler(h2c.NewHandler(etlHandler, h2s)))
 
 	if err := e.Start(":8080"); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
