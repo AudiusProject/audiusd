@@ -71,6 +71,7 @@ type MediorumConfig struct {
 	StoreAll                  bool
 	VersionJson               VersionJson
 	DiscoveryListensEndpoints []string
+	LogLevel                  string
 
 	// should have a basedir type of thing
 	// by default will put db + blobs there
@@ -193,7 +194,7 @@ func New(config MediorumConfig, posChannel chan pos.PoSRequest) (*MediorumServer
 	}
 
 	logger := slog.With("self", config.Self.Host)
-	baseLogger, err := aLogger.CreateLogger(config.Env, "info")
+	baseLogger, err := aLogger.CreateLogger(config.Env, config.LogLevel)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create zap logger: %v", err)
 	}
