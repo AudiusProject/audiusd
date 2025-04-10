@@ -2,6 +2,8 @@ package console
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/AudiusProject/audiusd/pkg/core/common"
@@ -18,7 +20,7 @@ type State struct {
 	db     *db.Queries
 
 	latestBlocks       []pages.BlockView
-	latestTransactions []db.CoreTransaction
+	latestTransactions []pages.TxData
 
 	totalBlocks         int64
 	totalTransactions   int64
@@ -49,11 +51,16 @@ func (state *State) recalculateState() {
 	ctx := context.Background()
 	logger := state.logger
 
-	recentTransactions, err := state.db.GetRecentTxs(ctx)
+	// Get 10 most recent transactions
+	recentTransactions, err := state.db.GetRecentTxs(ctx, 10)
 	if err != nil {
 		logger.Errorf("could not get recent txs: %v", err)
 	} else {
-		state.latestTransactions = recentTransactions
+		recentTransactionData := []pages.TxData{}
+		for _, tx := range recentTransactions {
+			recentTransactionData = append(recentTransactionData, pages.NewTxData(tx))
+		}
+		state.latestTransactions = recentTransactionData
 	}
 
 	// on initial load
@@ -94,7 +101,8 @@ func (state *State) recalculateState() {
 
 	latestBlocks := []pages.BlockView{}
 
-	latestIndexedBlocks, err := state.db.GetRecentBlocks(context.Background())
+	// Get 10 most recent blocks
+	latestIndexedBlocks, err := state.db.GetRecentBlocks(context.Background(), 10)
 	if err != nil {
 		state.logger.Errorf("failed to get latest blocks in db: %v", err)
 	}
@@ -110,10 +118,22 @@ func (state *State) recalculateState() {
 			txs = append(txs, tx.Transaction)
 		}
 
+		proposer := block.Proposer
+		proposerEndpoint := ""
+		node, err := state.db.GetRegisteredNodeByCometAddress(ctx, strings.ToUpper(proposer))
+		if err != nil {
+			logger.Errorf("could not get node by proposer address: %v", err)
+		} else {
+			proposerEndpoint = fmt.Sprintf("%s (%s...)", node.Endpoint, node.CometAddress[:8])
+		}
+
 		latestBlocks = append(latestBlocks, pages.BlockView{
-			Height:    block.Height,
-			Timestamp: block.CreatedAt.Time,
-			Txs:       txs,
+			Height:           block.Height,
+			Timestamp:        block.CreatedAt.Time,
+			Txs:              txs,
+			Proposer:         proposer,
+			ProposerEndpoint: proposerEndpoint,
+			Hash:             block.Hash,
 		})
 	}
 
@@ -130,8 +150,6 @@ func (state *State) Start() error {
 
 	for {
 		time.Sleep(5 * time.Second)
-
-		
 
 		highestBlock, err := state.db.GetLatestBlock(context.Background())
 		if err != nil {

@@ -25,6 +25,10 @@ select *
 from core_validators
 order by comet_address;
 
+-- name: GetAllEthAddressesOfRegisteredNodes :many
+select eth_address
+from core_validators;
+
 -- name: GetNodeByEndpoint :one
 select *
 from core_validators
@@ -122,10 +126,10 @@ select * from core_validators where eth_address = $1;
 select * from core_validators where comet_address = $1;
 
 -- name: GetRecentBlocks :many
-select * from core_blocks order by created_at desc limit 10;
+select * from core_blocks order by created_at desc limit $1;
 
 -- name: GetRecentTxs :many
-select * from core_transactions order by created_at desc limit 10;
+select * from core_transactions order by created_at desc limit $1;
 
 -- name: TotalBlocks :one
 select count(*) from core_blocks;
@@ -180,3 +184,91 @@ where block_height in (
 
 -- name: GetLatestBlock :one
 select * from core_blocks order by height desc limit 1;
+
+-- name: GetDecodedTx :one
+select id, block_height, tx_index, tx_hash, tx_type, tx_data, created_at
+from core_etl_tx
+where tx_hash = $1 limit 1;
+
+-- name: GetLatestDecodedTxs :many
+select id, block_height, tx_index, tx_hash, tx_type, tx_data, created_at
+from core_etl_tx
+order by created_at desc
+limit $1;
+
+-- name: GetDecodedTxsByType :many
+select id, block_height, tx_index, tx_hash, tx_type, tx_data, created_at
+from core_etl_tx
+where tx_type = $1
+order by created_at desc
+limit $2;
+
+-- name: GetDecodedTxsByBlock :many
+select id, block_height, tx_index, tx_hash, tx_type, tx_data, created_at
+from core_etl_tx
+where block_height = $1
+order by tx_index asc;
+
+-- name: GetDecodedPlays :many
+select tx_hash, user_id, track_id, played_at, signature, city, region, country, created_at
+from core_etl_tx_plays
+order by played_at desc
+limit $1;
+
+-- name: GetDecodedPlaysByUser :many
+select tx_hash, user_id, track_id, played_at, signature, city, region, country, created_at
+from core_etl_tx_plays
+where user_id = $1
+order by played_at desc
+limit $2;
+
+-- name: GetDecodedPlaysByTrack :many
+select tx_hash, user_id, track_id, played_at, signature, city, region, country, created_at
+from core_etl_tx_plays
+where track_id = $1
+order by played_at desc
+limit $2;
+
+-- name: GetDecodedPlaysByTimeRange :many
+select tx_hash, user_id, track_id, played_at, signature, city, region, country, created_at
+from core_etl_tx_plays
+where played_at between $1 and $2
+order by played_at desc
+limit $3;
+
+-- name: GetDecodedPlaysByLocation :many
+select tx_hash, user_id, track_id, played_at, signature, city, region, country, created_at
+from core_etl_tx_plays
+where 
+    (nullif($1, '')::text is null or lower(city) = lower($1)) and
+    (nullif($2, '')::text is null or lower(region) = lower($2)) and
+    (nullif($3, '')::text is null or lower(country) = lower($3))
+order by played_at desc
+limit $4;
+
+-- name: GetAvailableCities :many
+select city, region, country, count(*) as play_count
+from core_etl_tx_plays
+where city is not null
+  and (nullif($1, '')::text is null or lower(country) = lower($1))
+  and (nullif($2, '')::text is null or lower(region) = lower($2))
+group by city, region, country
+order by count(*) desc
+limit $3;
+
+-- name: GetAvailableRegions :many
+select region, country, count(*) as play_count
+from core_etl_tx_plays
+where region is not null
+  and (nullif($1, '')::text is null or lower(country) = lower($1))
+group by region, country
+order by count(*) desc
+limit $2;
+
+-- name: GetAvailableCountries :many
+select country, count(*) as play_count
+from core_etl_tx_plays
+where country is not null
+group by country
+order by count(*) desc
+limit $1;

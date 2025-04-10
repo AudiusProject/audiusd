@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
+	"io"
 	"log"
 	"log/slog"
 	"math/big"
@@ -20,6 +21,7 @@ import (
 	"os"
 	"os/signal"
 	"runtime/debug"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -27,6 +29,7 @@ import (
 	"github.com/AudiusProject/audiusd/pkg/core"
 	"github.com/AudiusProject/audiusd/pkg/core/common"
 	"github.com/AudiusProject/audiusd/pkg/core/console"
+	"github.com/AudiusProject/audiusd/pkg/etl"
 	"github.com/AudiusProject/audiusd/pkg/mediorum"
 	"github.com/AudiusProject/audiusd/pkg/mediorum/server"
 	"github.com/AudiusProject/audiusd/pkg/pos"
@@ -92,6 +95,11 @@ func main() {
 			"uptime",
 			func() error { return uptime.Run(ctx, logger) },
 			isUpTimeEnabled(hostUrl),
+		},
+		{
+			"etl",
+			func() error { return etl.Run(ctx, logger) },
+			os.Getenv("AUDIUSD_ETL_ENABLED") == "true",
 		},
 	}
 
@@ -260,6 +268,64 @@ func startEchoProxy(hostUrl *url.URL, logger *common.Logger) error {
 		return c.JSON(http.StatusOK, map[string]int{"a": 440})
 	})
 
+	// TODO: acdc backward compatibility - remove me
+	e.POST("/chain", func(c echo.Context) error {
+		var request struct {
+			JsonRPC string        `json:"jsonrpc"`
+			ID      interface{}   `json:"id"`
+			Method  string        `json:"method"`
+			Params  []interface{} `json:"params,omitempty"`
+		}
+
+		if err := c.Bind(&request); err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request"})
+		}
+
+		switch request.Method {
+		case "eth_blockNumber":
+			return c.JSON(http.StatusOK, map[string]interface{}{
+				"jsonrpc": "2.0",
+				"result":  "0x3bd6580",
+				"id":      request.ID,
+			})
+
+		case "eth_getBlockByNumber":
+			timestamp := fmt.Sprintf("0x%x", time.Now().Unix())
+
+			return c.JSON(http.StatusOK, map[string]interface{}{
+				"jsonrpc": "2.0",
+				"result": map[string]interface{}{
+					"author":           "0x2cd66a3931c36596efb037b06753476dce6b4e86",
+					"difficulty":       "0x2",
+					"extraData":        "0x4e65746865726d696e6420312e31342e332d302d3730373436313239332d3230a8868520252ddcb7f234cb92b3a0d293032b2be4415daf67a58523cfcf5e25457920834c196060569bba0551b7d4bf6c01d019b652b54d08f0318a19ae2cd66301",
+					"gasLimit":         "0xa00000",
+					"gasUsed":          "0x0",
+					"hash":             "0x0ea06edc49e6724167c9f898ca6798c6ed9843b30fb440fc99a70c4454c7136d",
+					"logsBloom":        "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+					"miner":            "0x0000000000000000000000000000000000000000",
+					"mixHash":          "0x0000000000000000000000000000000000000000000000000000000000000000",
+					"nonce":            "0x0000000000000000",
+					"number":           "0x3bd6580",
+					"parentHash":       "0x8a036b5657ccd2ee6493e31968a67736b7efe4798820e9354b7d3971c3962980",
+					"receiptsRoot":     "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+					"sha3Uncles":       "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+					"size":             "0x262",
+					"stateRoot":        "0x8d990c12eb0aaca6a7aa280e28bd8f8d1c8a2bdd70e4e0ce7c74eb9da645abd0",
+					"totalDifficulty":  "0x757a43f",
+					"timestamp":        timestamp,
+					"transactions":     []interface{}{},
+					"transactionsRoot": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+					"uncles":           []interface{}{},
+				},
+				"id": request.ID,
+			})
+
+		default:
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": "unsupported method"})
+		}
+	})
+	// end: acdc backward compatibility
+
 	e.GET("/health-check", func(c echo.Context) error {
 		return c.JSON(http.StatusOK, getHealthCheckResponse(hostUrl))
 	})
@@ -278,6 +344,56 @@ func startEchoProxy(hostUrl *url.URL, logger *common.Logger) error {
 		{"/console/*", "http://localhost:26659"},
 		{"/core/*", "http://localhost:26659"},
 	}
+
+	// dashboard compatibility - country flags + version info
+	locationHandler := func(c echo.Context) error {
+		type ipInfoResponse struct {
+			Country string `json:"country"`
+			Loc     string `json:"loc"`
+		}
+
+		response := struct {
+			Country   string  `json:"country"`
+			Version   string  `json:"version"`
+			Latitude  float64 `json:"latitude"`
+			Longitude float64 `json:"longitude"`
+		}{
+			Version: mediorum.GetVersionJson().Version,
+		}
+
+		resp, err := http.Get("https://ipinfo.io")
+		if err == nil && resp.StatusCode == http.StatusOK {
+			defer resp.Body.Close()
+			body, err := io.ReadAll(resp.Body)
+			if err == nil {
+				var ipInfo ipInfoResponse
+				if err := json.Unmarshal(body, &ipInfo); err == nil {
+					response.Country = ipInfo.Country
+					// parse lat long
+					if loc := strings.Split(ipInfo.Loc, ","); len(loc) == 2 {
+						response.Latitude, _ = strconv.ParseFloat(loc[0], 64)
+						response.Longitude, _ = strconv.ParseFloat(loc[1], 64)
+					}
+				}
+			}
+		}
+		// dashboard expected format
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"data": response,
+			"version": map[string]string{
+				"version": mediorum.GetVersionJson().Version,
+			},
+		})
+	}
+
+	corsGroup := e.Group("", middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins: []string{"*"},
+		AllowMethods: []string{http.MethodGet},
+	}))
+
+	corsGroup.GET("/version", locationHandler)
+	corsGroup.GET("/location", locationHandler)
+	// end dashboard compatibility
 
 	if isUpTimeEnabled(hostUrl) {
 		proxies = append(proxies, proxyConfig{"/d_api/*", "http://localhost:1996"})

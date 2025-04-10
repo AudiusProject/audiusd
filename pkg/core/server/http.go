@@ -11,6 +11,7 @@ import (
 	"github.com/99designs/gqlgen/graphql/handler/extension"
 	"github.com/99designs/gqlgen/graphql/handler/transport"
 	"github.com/99designs/gqlgen/graphql/playground"
+	"github.com/AudiusProject/audiusd/pkg/core/console/views/sandbox"
 	"github.com/AudiusProject/audiusd/pkg/core/gen/core_gql"
 	"github.com/AudiusProject/audiusd/pkg/core/gen/core_proto"
 	"github.com/AudiusProject/audiusd/pkg/core/gql"
@@ -68,8 +69,12 @@ func (s *Server) startEchoServer() error {
 
 	/** /core routes **/
 	g.Any("/grpc/*", echo.WrapHandler(gwMux))
-	g.Any("/gql", queryHandler)
-	g.GET("/graphiql", graphiqlHandler)
+
+	if s.config.GraphQLModule {
+		g.Any("/gql", queryHandler)
+		g.GET("/graphiql", graphiqlHandler)
+	}
+
 	g.GET("/nodes", s.getRegisteredNodes)
 	g.GET("/nodes/verbose", s.getRegisteredNodes)
 	g.GET("/nodes/discovery", s.getRegisteredNodes)
@@ -77,6 +82,12 @@ func (s *Server) startEchoServer() error {
 	g.GET("/nodes/content", s.getRegisteredNodes)
 	g.GET("/nodes/content/verbose", s.getRegisteredNodes)
 	g.GET("/nodes/eth", s.getEthNodesHandler)
+
+	// kind of weird pattern
+	s.createEthRPC()
+	g.GET("/sdk", echo.WrapHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		sandbox.ServeSandbox(s.config, w, r)
+	})))
 
 	if s.config.CometModule {
 		g.Any("/debug/comet*", s.proxyCometRequest)
