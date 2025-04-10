@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package rpc.v1;
+import "rpc/v1/types.proto";
+
+option go_package = "github.com/AudiusProject/audiusd/pkg/api/rpc/v1";
+
+service RPCService {
+    rpc GetPlays(GetPlaysRequest) returns (GetPlaysResponse) {}
+}

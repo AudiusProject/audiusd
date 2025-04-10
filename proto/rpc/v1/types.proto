@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package rpc.v1;
+
+option go_package = "github.com/AudiusProject/audiusd/pkg/api/rpc/v1";
+
+enum Order {
+    ORDER_ASC = 0;
+    ORDER_DESC = 1;
+}
+
+message GetPlaysRequestFilter {
+    string user_id = 1;
+    string track_id = 2;
+    int64 limit = 3;
+    Order order = 4;
+}
+
+message GetPlayResponse {
+    string user_id = 1;
+    string track_id = 2;
+    int64 timestamp = 3;
+    string city = 4;
+    string country = 5;
+    string region = 6;
+    int64 block_height = 7;
+    string tx_hash = 8;
+}
+
+message GetPlaysRequest {
+    GetPlaysRequestFilter filter = 2;
+}
+
+message GetPlaysResponse {
+    repeated GetPlayResponse plays = 1;
+}

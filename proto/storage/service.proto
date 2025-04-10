@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+package storage;
+import "storage/types.proto";
+option go_package = "github.com/AudiusProject/audiusd/pkg/api/storage";
+
+service StorageService {
+    rpc GetSignedStreamUrl(GetSignedStreamUrlRequest) returns (GetSignedStreamUrlResponse) {}
+}

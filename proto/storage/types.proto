@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package storage;
+
+option go_package = "github.com/AudiusProject/audiusd/pkg/api/storage";
+
+message GetSignedStreamUrlRequest {
+    string cid = 1;
+    string jwt = 2;
+}
+
+message GetSignedStreamUrlResponse {
+    string url = 1;
+}
