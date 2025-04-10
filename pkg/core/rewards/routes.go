@@ -1,9 +1,11 @@
 package rewards
 
 import (
+	"bytes"
 	"fmt"
 	"net/http"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/labstack/echo/v4"
@@ -34,13 +36,39 @@ func (rs *RewardService) AttestReward(c echo.Context) error {
 	if signature == "" {
 		return c.JSON(http.StatusBadRequest, "signature is required")
 	}
+	amount := c.QueryParam("amount")
+	if amount == "" {
+		return c.JSON(http.StatusBadRequest, "amount is required")
+	}
+	amountUint, err := strconv.ParseUint(amount, 10, 64)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, "amount is invalid")
+	}
 
 	reward, err := rs.GetRewardById(rewardID)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
 
-	claimDataHash := GetClaimDataHash(userWallet, rewardID, specifier, oracleAddress)
+	if amountUint != reward.Amount {
+		return c.JSON(http.StatusBadRequest, "amount does not match reward amount")
+	}
+
+	claimDataHash, err := GetClaimDataHash(userWallet, rewardID, specifier, oracleAddress, amountUint)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+
+	// recreate hash with registered reward data
+	expectedClaimDataHash, err := GetClaimDataHash(userWallet, reward.RewardId, specifier, oracleAddress, reward.Amount)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+
+	if !bytes.Equal(claimDataHash, expectedClaimDataHash) {
+		return c.JSON(http.StatusBadRequest, "claim data hash does not match expected claim data hash")
+	}
+
 	recoveredWallet, err := RecoverWalletFromSignature(claimDataHash, signature)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())

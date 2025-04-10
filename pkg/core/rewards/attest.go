@@ -89,6 +89,14 @@ func GetAttestationBytes(userWallet, rewardID, specifier, oracleAddress string, 
 	return attestationBytes, nil
 }
 
+func GetClaimDataHash(userWallet, rewardID, specifier, oracleAddress string, amount uint64) ([]byte, error) {
+	claimData, err := GetAttestationBytes(userWallet, rewardID, specifier, oracleAddress, amount)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get attestation bytes: %w", err)
+	}
+	return crypto.Keccak256(claimData), nil
+}
+
 func RecoverWalletFromSignature(hash []byte, signature string) (string, error) {
 	// Remove any existing 0x prefix
 	sigHex := strings.TrimPrefix(signature, "0x")
@@ -103,11 +111,6 @@ func RecoverWalletFromSignature(hash []byte, signature string) (string, error) {
 	}
 
 	return crypto.PubkeyToAddress(*recoveredWallet).String(), nil
-}
-
-func GetClaimDataHash(userWallet, challengeId, challengeSpecifier, oracleAddress string) []byte {
-	claimData := fmt.Sprintf("%s_%s_%s_%s", userWallet, challengeId, challengeSpecifier, oracleAddress)
-	return crypto.Keccak256([]byte(claimData))
 }
 
 func SignClaimDataHash(hash []byte, privateKey *ecdsa.PrivateKey) (string, error) {
