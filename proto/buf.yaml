@@ -1,5 +1,7 @@
 version: v1
 name: buf.build/audius/audiusd
+deps:
+  - buf.build/googleapis/googleapis
 breaking:
   use:
     - FILE
