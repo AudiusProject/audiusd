@@ -1,12 +1,13 @@
 syntax = "proto3";
 
-package rpc.v1;
+package etl.v1;
 
-option go_package = "github.com/AudiusProject/audiusd/pkg/api/rpc/v1";
+option go_package = "github.com/AudiusProject/audiusd/pkg/api/etl/v1";
 
 enum Order {
-    ORDER_ASC = 0;
-    ORDER_DESC = 1;
+    ORDER_UNSPECIFIED = 0;
+    ORDER_ASC = 1;
+    ORDER_DESC = 2;
 }
 
 message GetPlaysRequestFilter {

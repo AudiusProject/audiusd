@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.33.0
 // 	protoc        (unknown)
-// source: rpc/v1/types.proto
+// source: etl/v1/types.proto
 
 package v1
 
@@ -23,19 +23,22 @@ const (
 type Order int32
 
 const (
-	Order_ORDER_ASC  Order = 0
-	Order_ORDER_DESC Order = 1
+	Order_ORDER_UNSPECIFIED Order = 0
+	Order_ORDER_ASC         Order = 1
+	Order_ORDER_DESC        Order = 2
 )
 
 // Enum value maps for Order.
 var (
 	Order_name = map[int32]string{
-		0: "ORDER_ASC",
-		1: "ORDER_DESC",
+		0: "ORDER_UNSPECIFIED",
+		1: "ORDER_ASC",
+		2: "ORDER_DESC",
 	}
 	Order_value = map[string]int32{
-		"ORDER_ASC":  0,
-		"ORDER_DESC": 1,
+		"ORDER_UNSPECIFIED": 0,
+		"ORDER_ASC":         1,
+		"ORDER_DESC":        2,
 	}
 )
 
@@ -50,11 +53,11 @@ func (x Order) String() string {
 }
 
 func (Order) Descriptor() protoreflect.EnumDescriptor {
-	return file_rpc_v1_types_proto_enumTypes[0].Descriptor()
+	return file_etl_v1_types_proto_enumTypes[0].Descriptor()
 }
 
 func (Order) Type() protoreflect.EnumType {
-	return &file_rpc_v1_types_proto_enumTypes[0]
+	return &file_etl_v1_types_proto_enumTypes[0]
 }
 
 func (x Order) Number() protoreflect.EnumNumber {
@@ -63,7 +66,7 @@ func (x Order) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Order.Descriptor instead.
 func (Order) EnumDescriptor() ([]byte, []int) {
-	return file_rpc_v1_types_proto_rawDescGZIP(), []int{0}
+	return file_etl_v1_types_proto_rawDescGZIP(), []int{0}
 }
 
 type GetPlaysRequestFilter struct {
@@ -74,13 +77,13 @@ type GetPlaysRequestFilter struct {
 	UserId  string `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	TrackId string `protobuf:"bytes,2,opt,name=track_id,json=trackId,proto3" json:"track_id,omitempty"`
 	Limit   int64  `protobuf:"varint,3,opt,name=limit,proto3" json:"limit,omitempty"`
-	Order   Order  `protobuf:"varint,4,opt,name=order,proto3,enum=rpc.v1.Order" json:"order,omitempty"`
+	Order   Order  `protobuf:"varint,4,opt,name=order,proto3,enum=etl.v1.Order" json:"order,omitempty"`
 }
 
 func (x *GetPlaysRequestFilter) Reset() {
 	*x = GetPlaysRequestFilter{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_rpc_v1_types_proto_msgTypes[0]
+		mi := &file_etl_v1_types_proto_msgTypes[0]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -93,7 +96,7 @@ func (x *GetPlaysRequestFilter) String() string {
 func (*GetPlaysRequestFilter) ProtoMessage() {}
 
 func (x *GetPlaysRequestFilter) ProtoReflect() protoreflect.Message {
-	mi := &file_rpc_v1_types_proto_msgTypes[0]
+	mi := &file_etl_v1_types_proto_msgTypes[0]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -106,7 +109,7 @@ func (x *GetPlaysRequestFilter) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPlaysRequestFilter.ProtoReflect.Descriptor instead.
 func (*GetPlaysRequestFilter) Descriptor() ([]byte, []int) {
-	return file_rpc_v1_types_proto_rawDescGZIP(), []int{0}
+	return file_etl_v1_types_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *GetPlaysRequestFilter) GetUserId() string {
@@ -134,7 +137,7 @@ func (x *GetPlaysRequestFilter) GetOrder() Order {
 	if x != nil {
 		return x.Order
 	}
-	return Order_ORDER_ASC
+	return Order_ORDER_UNSPECIFIED
 }
 
 type GetPlayResponse struct {
@@ -155,7 +158,7 @@ type GetPlayResponse struct {
 func (x *GetPlayResponse) Reset() {
 	*x = GetPlayResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_rpc_v1_types_proto_msgTypes[1]
+		mi := &file_etl_v1_types_proto_msgTypes[1]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -168,7 +171,7 @@ func (x *GetPlayResponse) String() string {
 func (*GetPlayResponse) ProtoMessage() {}
 
 func (x *GetPlayResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_rpc_v1_types_proto_msgTypes[1]
+	mi := &file_etl_v1_types_proto_msgTypes[1]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -181,7 +184,7 @@ func (x *GetPlayResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPlayResponse.ProtoReflect.Descriptor instead.
 func (*GetPlayResponse) Descriptor() ([]byte, []int) {
-	return file_rpc_v1_types_proto_rawDescGZIP(), []int{1}
+	return file_etl_v1_types_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *GetPlayResponse) GetUserId() string {
@@ -251,7 +254,7 @@ type GetPlaysRequest struct {
 func (x *GetPlaysRequest) Reset() {
 	*x = GetPlaysRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_rpc_v1_types_proto_msgTypes[2]
+		mi := &file_etl_v1_types_proto_msgTypes[2]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -264,7 +267,7 @@ func (x *GetPlaysRequest) String() string {
 func (*GetPlaysRequest) ProtoMessage() {}
 
 func (x *GetPlaysRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_rpc_v1_types_proto_msgTypes[2]
+	mi := &file_etl_v1_types_proto_msgTypes[2]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -277,7 +280,7 @@ func (x *GetPlaysRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPlaysRequest.ProtoReflect.Descriptor instead.
 func (*GetPlaysRequest) Descriptor() ([]byte, []int) {
-	return file_rpc_v1_types_proto_rawDescGZIP(), []int{2}
+	return file_etl_v1_types_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *GetPlaysRequest) GetFilter() *GetPlaysRequestFilter {
@@ -298,7 +301,7 @@ type GetPlaysResponse struct {
 func (x *GetPlaysResponse) Reset() {
 	*x = GetPlaysResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_rpc_v1_types_proto_msgTypes[3]
+		mi := &file_etl_v1_types_proto_msgTypes[3]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -311,7 +314,7 @@ func (x *GetPlaysResponse) String() string {
 func (*GetPlaysResponse) ProtoMessage() {}
 
 func (x *GetPlaysResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_rpc_v1_types_proto_msgTypes[3]
+	mi := &file_etl_v1_types_proto_msgTypes[3]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -324,7 +327,7 @@ func (x *GetPlaysResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPlaysResponse.ProtoReflect.Descriptor instead.
 func (*GetPlaysResponse) Descriptor() ([]byte, []int) {
-	return file_rpc_v1_types_proto_rawDescGZIP(), []int{3}
+	return file_etl_v1_types_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *GetPlaysResponse) GetPlays() []*GetPlayResponse {
@@ -334,11 +337,11 @@ func (x *GetPlaysResponse) GetPlays() []*GetPlayResponse {
 	return nil
 }
 
-var File_rpc_v1_types_proto protoreflect.FileDescriptor
+var File_etl_v1_types_proto protoreflect.FileDescriptor
 
-var file_rpc_v1_types_proto_rawDesc = []byte{
-	0x0a, 0x12, 0x72, 0x70, 0x63, 0x2f, 0x76, 0x31, 0x2f, 0x74, 0x79, 0x70, 0x65, 0x73, 0x2e, 0x70,
-	0x72, 0x6f, 0x74, 0x6f, 0x12, 0x06, 0x72, 0x70, 0x63, 0x2e, 0x76, 0x31, 0x22, 0x86, 0x01, 0x0a,
+var file_etl_v1_types_proto_rawDesc = []byte{
+	0x0a, 0x12, 0x65, 0x74, 0x6c, 0x2f, 0x76, 0x31, 0x2f, 0x74, 0x79, 0x70, 0x65, 0x73, 0x2e, 0x70,
+	0x72, 0x6f, 0x74, 0x6f, 0x12, 0x06, 0x65, 0x74, 0x6c, 0x2e, 0x76, 0x31, 0x22, 0x86, 0x01, 0x0a,
 	0x15, 0x47, 0x65, 0x74, 0x50, 0x6c, 0x61, 0x79, 0x73, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
 	0x46, 0x69, 0x6c, 0x74, 0x65, 0x72, 0x12, 0x17, 0x0a, 0x07, 0x75, 0x73, 0x65, 0x72, 0x5f, 0x69,
 	0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x75, 0x73, 0x65, 0x72, 0x49, 0x64, 0x12,
@@ -346,7 +349,7 @@ var file_rpc_v1_types_proto_rawDesc = []byte{
 	0x09, 0x52, 0x07, 0x74, 0x72, 0x61, 0x63, 0x6b, 0x49, 0x64, 0x12, 0x14, 0x0a, 0x05, 0x6c, 0x69,
 	0x6d, 0x69, 0x74, 0x18, 0x03, 0x20, 0x01, 0x28, 0x03, 0x52, 0x05, 0x6c, 0x69, 0x6d, 0x69, 0x74,
 	0x12, 0x23, 0x0a, 0x05, 0x6f, 0x72, 0x64, 0x65, 0x72, 0x18, 0x04, 0x20, 0x01, 0x28, 0x0e, 0x32,
-	0x0d, 0x2e, 0x72, 0x70, 0x63, 0x2e, 0x76, 0x31, 0x2e, 0x4f, 0x72, 0x64, 0x65, 0x72, 0x52, 0x05,
+	0x0d, 0x2e, 0x65, 0x74, 0x6c, 0x2e, 0x76, 0x31, 0x2e, 0x4f, 0x72, 0x64, 0x65, 0x72, 0x52, 0x05,
 	0x6f, 0x72, 0x64, 0x65, 0x72, 0x22, 0xe5, 0x01, 0x0a, 0x0f, 0x47, 0x65, 0x74, 0x50, 0x6c, 0x61,
 	0x79, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x17, 0x0a, 0x07, 0x75, 0x73, 0x65,
 	0x72, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x75, 0x73, 0x65, 0x72,
@@ -364,46 +367,48 @@ var file_rpc_v1_types_proto_rawDesc = []byte{
 	0x08, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x74, 0x78, 0x48, 0x61, 0x73, 0x68, 0x22, 0x48, 0x0a,
 	0x0f, 0x47, 0x65, 0x74, 0x50, 0x6c, 0x61, 0x79, 0x73, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
 	0x12, 0x35, 0x0a, 0x06, 0x66, 0x69, 0x6c, 0x74, 0x65, 0x72, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b,
-	0x32, 0x1d, 0x2e, 0x72, 0x70, 0x63, 0x2e, 0x76, 0x31, 0x2e, 0x47, 0x65, 0x74, 0x50, 0x6c, 0x61,
+	0x32, 0x1d, 0x2e, 0x65, 0x74, 0x6c, 0x2e, 0x76, 0x31, 0x2e, 0x47, 0x65, 0x74, 0x50, 0x6c, 0x61,
 	0x79, 0x73, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x46, 0x69, 0x6c, 0x74, 0x65, 0x72, 0x52,
 	0x06, 0x66, 0x69, 0x6c, 0x74, 0x65, 0x72, 0x22, 0x41, 0x0a, 0x10, 0x47, 0x65, 0x74, 0x50, 0x6c,
 	0x61, 0x79, 0x73, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x2d, 0x0a, 0x05, 0x70,
-	0x6c, 0x61, 0x79, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x17, 0x2e, 0x72, 0x70, 0x63,
+	0x6c, 0x61, 0x79, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x17, 0x2e, 0x65, 0x74, 0x6c,
 	0x2e, 0x76, 0x31, 0x2e, 0x47, 0x65, 0x74, 0x50, 0x6c, 0x61, 0x79, 0x52, 0x65, 0x73, 0x70, 0x6f,
-	0x6e, 0x73, 0x65, 0x52, 0x05, 0x70, 0x6c, 0x61, 0x79, 0x73, 0x2a, 0x26, 0x0a, 0x05, 0x4f, 0x72,
-	0x64, 0x65, 0x72, 0x12, 0x0d, 0x0a, 0x09, 0x4f, 0x52, 0x44, 0x45, 0x52, 0x5f, 0x41, 0x53, 0x43,
-	0x10, 0x00, 0x12, 0x0e, 0x0a, 0x0a, 0x4f, 0x52, 0x44, 0x45, 0x52, 0x5f, 0x44, 0x45, 0x53, 0x43,
-	0x10, 0x01, 0x42, 0x31, 0x5a, 0x2f, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d,
-	0x2f, 0x41, 0x75, 0x64, 0x69, 0x75, 0x73, 0x50, 0x72, 0x6f, 0x6a, 0x65, 0x63, 0x74, 0x2f, 0x61,
-	0x75, 0x64, 0x69, 0x75, 0x73, 0x64, 0x2f, 0x70, 0x6b, 0x67, 0x2f, 0x61, 0x70, 0x69, 0x2f, 0x72,
-	0x70, 0x63, 0x2f, 0x76, 0x31, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x6e, 0x73, 0x65, 0x52, 0x05, 0x70, 0x6c, 0x61, 0x79, 0x73, 0x2a, 0x3d, 0x0a, 0x05, 0x4f, 0x72,
+	0x64, 0x65, 0x72, 0x12, 0x15, 0x0a, 0x11, 0x4f, 0x52, 0x44, 0x45, 0x52, 0x5f, 0x55, 0x4e, 0x53,
+	0x50, 0x45, 0x43, 0x49, 0x46, 0x49, 0x45, 0x44, 0x10, 0x00, 0x12, 0x0d, 0x0a, 0x09, 0x4f, 0x52,
+	0x44, 0x45, 0x52, 0x5f, 0x41, 0x53, 0x43, 0x10, 0x01, 0x12, 0x0e, 0x0a, 0x0a, 0x4f, 0x52, 0x44,
+	0x45, 0x52, 0x5f, 0x44, 0x45, 0x53, 0x43, 0x10, 0x02, 0x42, 0x31, 0x5a, 0x2f, 0x67, 0x69, 0x74,
+	0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x41, 0x75, 0x64, 0x69, 0x75, 0x73, 0x50, 0x72,
+	0x6f, 0x6a, 0x65, 0x63, 0x74, 0x2f, 0x61, 0x75, 0x64, 0x69, 0x75, 0x73, 0x64, 0x2f, 0x70, 0x6b,
+	0x67, 0x2f, 0x61, 0x70, 0x69, 0x2f, 0x65, 0x74, 0x6c, 0x2f, 0x76, 0x31, 0x62, 0x06, 0x70, 0x72,
+	0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
-	file_rpc_v1_types_proto_rawDescOnce sync.Once
-	file_rpc_v1_types_proto_rawDescData = file_rpc_v1_types_proto_rawDesc
+	file_etl_v1_types_proto_rawDescOnce sync.Once
+	file_etl_v1_types_proto_rawDescData = file_etl_v1_types_proto_rawDesc
 )
 
-func file_rpc_v1_types_proto_rawDescGZIP() []byte {
-	file_rpc_v1_types_proto_rawDescOnce.Do(func() {
-		file_rpc_v1_types_proto_rawDescData = protoimpl.X.CompressGZIP(file_rpc_v1_types_proto_rawDescData)
+func file_etl_v1_types_proto_rawDescGZIP() []byte {
+	file_etl_v1_types_proto_rawDescOnce.Do(func() {
+		file_etl_v1_types_proto_rawDescData = protoimpl.X.CompressGZIP(file_etl_v1_types_proto_rawDescData)
 	})
-	return file_rpc_v1_types_proto_rawDescData
+	return file_etl_v1_types_proto_rawDescData
 }
 
-var file_rpc_v1_types_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_rpc_v1_types_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
-var file_rpc_v1_types_proto_goTypes = []interface{}{
-	(Order)(0),                    // 0: rpc.v1.Order
-	(*GetPlaysRequestFilter)(nil), // 1: rpc.v1.GetPlaysRequestFilter
-	(*GetPlayResponse)(nil),       // 2: rpc.v1.GetPlayResponse
-	(*GetPlaysRequest)(nil),       // 3: rpc.v1.GetPlaysRequest
-	(*GetPlaysResponse)(nil),      // 4: rpc.v1.GetPlaysResponse
+var file_etl_v1_types_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_etl_v1_types_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_etl_v1_types_proto_goTypes = []interface{}{
+	(Order)(0),                    // 0: etl.v1.Order
+	(*GetPlaysRequestFilter)(nil), // 1: etl.v1.GetPlaysRequestFilter
+	(*GetPlayResponse)(nil),       // 2: etl.v1.GetPlayResponse
+	(*GetPlaysRequest)(nil),       // 3: etl.v1.GetPlaysRequest
+	(*GetPlaysResponse)(nil),      // 4: etl.v1.GetPlaysResponse
 }
-var file_rpc_v1_types_proto_depIdxs = []int32{
-	0, // 0: rpc.v1.GetPlaysRequestFilter.order:type_name -> rpc.v1.Order
-	1, // 1: rpc.v1.GetPlaysRequest.filter:type_name -> rpc.v1.GetPlaysRequestFilter
-	2, // 2: rpc.v1.GetPlaysResponse.plays:type_name -> rpc.v1.GetPlayResponse
+var file_etl_v1_types_proto_depIdxs = []int32{
+	0, // 0: etl.v1.GetPlaysRequestFilter.order:type_name -> etl.v1.Order
+	1, // 1: etl.v1.GetPlaysRequest.filter:type_name -> etl.v1.GetPlaysRequestFilter
+	2, // 2: etl.v1.GetPlaysResponse.plays:type_name -> etl.v1.GetPlayResponse
 	3, // [3:3] is the sub-list for method output_type
 	3, // [3:3] is the sub-list for method input_type
 	3, // [3:3] is the sub-list for extension type_name
@@ -411,13 +416,13 @@ var file_rpc_v1_types_proto_depIdxs = []int32{
 	0, // [0:3] is the sub-list for field type_name
 }
 
-func init() { file_rpc_v1_types_proto_init() }
-func file_rpc_v1_types_proto_init() {
-	if File_rpc_v1_types_proto != nil {
+func init() { file_etl_v1_types_proto_init() }
+func file_etl_v1_types_proto_init() {
+	if File_etl_v1_types_proto != nil {
 		return
 	}
 	if !protoimpl.UnsafeEnabled {
-		file_rpc_v1_types_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
+		file_etl_v1_types_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetPlaysRequestFilter); i {
 			case 0:
 				return &v.state
@@ -429,7 +434,7 @@ func file_rpc_v1_types_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_v1_types_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
+		file_etl_v1_types_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetPlayResponse); i {
 			case 0:
 				return &v.state
@@ -441,7 +446,7 @@ func file_rpc_v1_types_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_v1_types_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
+		file_etl_v1_types_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetPlaysRequest); i {
 			case 0:
 				return &v.state
@@ -453,7 +458,7 @@ func file_rpc_v1_types_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_v1_types_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
+		file_etl_v1_types_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetPlaysResponse); i {
 			case 0:
 				return &v.state
@@ -470,19 +475,19 @@ func file_rpc_v1_types_proto_init() {
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: file_rpc_v1_types_proto_rawDesc,
+			RawDescriptor: file_etl_v1_types_proto_rawDesc,
 			NumEnums:      1,
 			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
-		GoTypes:           file_rpc_v1_types_proto_goTypes,
-		DependencyIndexes: file_rpc_v1_types_proto_depIdxs,
-		EnumInfos:         file_rpc_v1_types_proto_enumTypes,
-		MessageInfos:      file_rpc_v1_types_proto_msgTypes,
+		GoTypes:           file_etl_v1_types_proto_goTypes,
+		DependencyIndexes: file_etl_v1_types_proto_depIdxs,
+		EnumInfos:         file_etl_v1_types_proto_enumTypes,
+		MessageInfos:      file_etl_v1_types_proto_msgTypes,
 	}.Build()
-	File_rpc_v1_types_proto = out.File
-	file_rpc_v1_types_proto_rawDesc = nil
-	file_rpc_v1_types_proto_goTypes = nil
-	file_rpc_v1_types_proto_depIdxs = nil
+	File_etl_v1_types_proto = out.File
+	file_etl_v1_types_proto_rawDesc = nil
+	file_etl_v1_types_proto_goTypes = nil
+	file_etl_v1_types_proto_depIdxs = nil
 }

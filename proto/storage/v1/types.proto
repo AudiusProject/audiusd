@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package storage;
 
-option go_package = "github.com/AudiusProject/audiusd/pkg/api/storage";
+option go_package = "github.com/AudiusProject/audiusd/pkg/api/storage/v1";
 
 message GetSignedStreamUrlRequest {
     string cid = 1;
