@@ -265,7 +265,7 @@ require (
 	github.com/multiformats/go-varint v0.0.6 // indirect
 	github.com/onsi/gomega v1.33.1
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
-	golang.org/x/net v0.33.0 // indirect
+	golang.org/x/net v0.33.0
 	golang.org/x/sys v0.29.0 // indirect
 	lukechampine.com/blake3 v1.1.6 // indirect
 )
