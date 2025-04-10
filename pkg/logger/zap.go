@@ -19,6 +19,8 @@ const (
 )
 
 func CreateLogger(env, level string) (*zap.Logger, error) {
+	skipAxiom := os.Getenv("AUDIUSD_SKIP_AXIOM") == "true"
+
 	consoleEncoder := zapcore.NewConsoleEncoder(zap.NewProductionEncoderConfig())
 
 	zapLevel, err := zapcore.ParseLevel(level)
@@ -36,21 +38,25 @@ func CreateLogger(env, level string) (*zap.Logger, error) {
 	case "dev":
 		axiomToken = AxiomTokenDev
 	default:
-		return nil, fmt.Errorf("invalid environment: %s", env)
+		axiomToken = ""
 	}
 
-	axiomToken, err = common.Deobfuscate(axiomToken)
-	if err != nil {
-		return nil, fmt.Errorf("failed to deobfuscate axiom token: %v", err)
+	if axiomToken != "" && !skipAxiom {
+		axiomToken, err = common.Deobfuscate(axiomToken)
+		if err != nil {
+			return nil, fmt.Errorf("failed to deobfuscate axiom token: %v", err)
+		}
+
+		axiomCore, err := adapter.New(
+			adapter.SetDataset(fmt.Sprintf("core-%s", env)),
+			adapter.SetClientOptions(axiom.SetAPITokenConfig(axiomToken)),
+		)
+		if err != nil {
+			return nil, err
+		}
+		combinedCore := zapcore.NewTee(axiomCore, stdoutCore)
+		return zap.New(combinedCore), nil
 	}
 
-	axiomCore, err := adapter.New(
-		adapter.SetDataset(fmt.Sprintf("core-%s", env)),
-		adapter.SetClientOptions(axiom.SetAPITokenConfig(axiomToken)),
-	)
-	if err != nil {
-		return nil, err
-	}
-	combinedCore := zapcore.NewTee(axiomCore, stdoutCore)
-	return zap.New(combinedCore), nil
+	return zap.New(stdoutCore), nil
 }
