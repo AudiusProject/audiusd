@@ -15,6 +15,10 @@ type ETLService struct {
 	db *db.Queries
 }
 
+func NewETLService(db *db.Queries) *ETLService {
+	return &ETLService{db: db}
+}
+
 // GetPlays implements v1connect.ETLServiceHandler.
 func (e *ETLService) GetPlays(context.Context, *connect.Request[v1.GetPlaysRequest]) (*connect.Response[v1.GetPlaysResponse], error) {
 	return &connect.Response[v1.GetPlaysResponse]{
@@ -31,8 +35,4 @@ func (e *ETLService) GetPlays(context.Context, *connect.Request[v1.GetPlaysReque
 			}},
 		},
 	}, nil
-}
-
-func NewETLService(db *db.Queries) *ETLService {
-	return &ETLService{db: db}
 }

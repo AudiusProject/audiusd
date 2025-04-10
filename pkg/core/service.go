@@ -18,11 +18,7 @@ type CoreService struct {
 
 func (c *CoreService) GetBlock(ctx context.Context, req *connect.Request[v1.GetBlockRequest]) (*connect.Response[v1.GetBlockResponse], error) {
 	blockNumber := req.Msg.Height
-	block, err := c.db.GetBlock(ctx, blockNumber)
-	if err != nil {
-		return nil, err
-	}
-	return connect.NewResponse(&v1.GetBlockResponse{Block: &v1.Block{Height: block.Height}}), nil
+	return connect.NewResponse(&v1.GetBlockResponse{Block: &v1.Block{Height: blockNumber}}), nil
 }
 
 func NewCoreService(db *db.Queries) *CoreService {
