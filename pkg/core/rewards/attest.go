@@ -21,14 +21,6 @@ func (rs *RewardService) GetRewardById(rewardID string) (*Reward, error) {
 }
 
 func (rs *RewardService) SignAttestation(attestationBytes []byte) (owner string, attestation string, err error) {
-	/**
-		def sign_attestation(attestation_bytes: bytes, private_key: str):
-	    k = keys.PrivateKey(HexBytes(private_key))
-	    to_sign_hash = Web3.keccak(attestation_bytes)
-	    sig = k.sign_msg_hash(to_sign_hash)
-	    return sig.to_hex()
-	*/
-
 	privateKey := rs.Config.EthereumKey
 	pubKey := privateKey.Public()
 	pubKeyECDSA, ok := pubKey.(*ecdsa.PublicKey)
@@ -47,33 +39,12 @@ func (rs *RewardService) SignAttestation(attestationBytes []byte) (owner string,
 }
 
 func GetAttestationBytes(userWallet, rewardID, specifier, oracleAddress string, amount uint64) ([]byte, error) {
-	/**
-	  def _get_combined_id(self):
-	      return f"{self.challenge_id}:{self.challenge_specifier}"
-	*/
 	combinedID := fmt.Sprintf("%s:%s", rewardID, specifier)
 
-	/**
-	WAUDIO_DECIMALS = 8
-
-	def _get_encoded_amount(self):
-		amt = int(self.amount) * 10**WAUDIO_DECIMALS
-		return amt.to_bytes(8, byteorder="little")
-	*/
 	encodedAmount := amount * 1e8
 	amountBytes := make([]byte, 8)
 	binary.LittleEndian.PutUint64(amountBytes, uint64(encodedAmount))
 
-	/**
-	def get_attestation_bytes(self):
-		user_bytes = to_bytes(hexstr=self.user_address)
-		oracle_bytes = to_bytes(hexstr=self.oracle_address)
-		combined_id_bytes = to_bytes(text=self._get_combined_id())
-		amount_bytes = self._get_encoded_amount()
-		items = [user_bytes, amount_bytes, combined_id_bytes, oracle_bytes]
-		joined = to_bytes(text="_").join(items)
-		return joined
-	*/
 	userBytes, err := hex.DecodeString(strings.TrimPrefix(userWallet, "0x"))
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode user wallet: %w", err)
