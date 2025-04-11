@@ -61,7 +61,7 @@ func TestAttestRewardWithEcho(t *testing.T) {
 	// Test data
 	rewardID := "c"
 	specifier := "b9256e3:202515"
-	userWallet := "0xe811761771ef65f9de0b64d6335f3b8ff50adc44"
+	ethRecipientAddress := "0xe811761771ef65f9de0b64d6335f3b8ff50adc44"
 	oracleAddress := "0xF0D5BC18421fa04D0a2A2ef540ba5A9f04014BE3"
 	signature := testSignature()
 
@@ -70,7 +70,7 @@ func TestAttestRewardWithEcho(t *testing.T) {
 	q := req.URL.Query()
 	q.Add("reward_id", rewardID)
 	q.Add("specifier", specifier)
-	q.Add("user_wallet", userWallet)
+	q.Add("eth_recipient_address", ethRecipientAddress)
 	q.Add("oracle_address", oracleAddress)
 	q.Add("signature", signature)
 	q.Add("amount", "1")
@@ -109,7 +109,7 @@ func TestMissingParams(t *testing.T) {
 	// Test data
 	rewardID := "c"
 	specifier := "b9256e3:202515"
-	userWallet := "0xe811761771ef65f9de0b64d6335f3b8ff50adc44"
+	ethRecipientAddress := "0xe811761771ef65f9de0b64d6335f3b8ff50adc44"
 	oracleAddress := "0xF0D5BC18421fa04D0a2A2ef540ba5A9f04014BE3"
 	signature := testSignature()
 	amount := "1"
@@ -121,8 +121,8 @@ func TestMissingParams(t *testing.T) {
 		params       map[string]string
 	}{
 		{
-			name:         "missing user_wallet",
-			missingParam: "user_wallet",
+			name:         "missing eth_recipient_address",
+			missingParam: "eth_recipient_address",
 			params: map[string]string{
 				"reward_id":      rewardID,
 				"specifier":      specifier,
@@ -135,55 +135,55 @@ func TestMissingParams(t *testing.T) {
 			name:         "missing reward_id",
 			missingParam: "reward_id",
 			params: map[string]string{
-				"user_wallet":    userWallet,
-				"specifier":      specifier,
-				"oracle_address": oracleAddress,
-				"signature":      signature,
-				"amount":         amount,
+				"eth_recipient_address": ethRecipientAddress,
+				"specifier":             specifier,
+				"oracle_address":        oracleAddress,
+				"signature":             signature,
+				"amount":                amount,
 			},
 		},
 		{
 			name:         "missing specifier",
 			missingParam: "specifier",
 			params: map[string]string{
-				"user_wallet":    userWallet,
-				"reward_id":      rewardID,
-				"oracle_address": oracleAddress,
-				"signature":      signature,
-				"amount":         amount,
+				"eth_recipient_address": ethRecipientAddress,
+				"reward_id":             rewardID,
+				"oracle_address":        oracleAddress,
+				"signature":             signature,
+				"amount":                amount,
 			},
 		},
 		{
 			name:         "missing oracle_address",
 			missingParam: "oracle_address",
 			params: map[string]string{
-				"user_wallet": userWallet,
-				"reward_id":   rewardID,
-				"specifier":   specifier,
-				"signature":   signature,
-				"amount":      amount,
+				"eth_recipient_address": ethRecipientAddress,
+				"reward_id":             rewardID,
+				"specifier":             specifier,
+				"signature":             signature,
+				"amount":                amount,
 			},
 		},
 		{
 			name:         "missing signature",
 			missingParam: "signature",
 			params: map[string]string{
-				"user_wallet":    userWallet,
-				"reward_id":      rewardID,
-				"specifier":      specifier,
-				"oracle_address": oracleAddress,
-				"amount":         amount,
+				"eth_recipient_address": ethRecipientAddress,
+				"reward_id":             rewardID,
+				"specifier":             specifier,
+				"oracle_address":        oracleAddress,
+				"amount":                amount,
 			},
 		},
 		{
 			name:         "missing amount",
 			missingParam: "amount",
 			params: map[string]string{
-				"user_wallet":    userWallet,
-				"reward_id":      rewardID,
-				"specifier":      specifier,
-				"oracle_address": oracleAddress,
-				"signature":      signature,
+				"eth_recipient_address": ethRecipientAddress,
+				"reward_id":             rewardID,
+				"specifier":             specifier,
+				"oracle_address":        oracleAddress,
+				"signature":             signature,
 			},
 		},
 	}
@@ -227,7 +227,7 @@ func TestInvalidClaimHash(t *testing.T) {
 	// Test data
 	rewardID := "c"
 	specifier := "b9256e3:202515"
-	userWallet := "0xe811761771ef65f9de0b64d6335f3b8ff50adc44"
+	ethRecipientAddress := "0xe811761771ef65f9de0b64d6335f3b8ff50adc44"
 	oracleAddress := "0xF0D5BC18421fa04D0a2A2ef540ba5A9f04014BE3"
 
 	// Generate a signature for incorrect data
@@ -241,7 +241,7 @@ func TestInvalidClaimHash(t *testing.T) {
 	q := req.URL.Query()
 	q.Add("reward_id", rewardID)
 	q.Add("specifier", specifier)
-	q.Add("user_wallet", userWallet)
+	q.Add("eth_recipient_address", ethRecipientAddress)
 	q.Add("oracle_address", oracleAddress)
 	q.Add("signature", signature)
 	q.Add("amount", "1")
@@ -274,7 +274,7 @@ func TestInvalidClaimSignature(t *testing.T) {
 	// Test data
 	rewardID := "c"
 	specifier := "b9256e3:202515"
-	userWallet := "0xe811761771ef65f9de0b64d6335f3b8ff50adc44"
+	ethRecipientAddress := "0xe811761771ef65f9de0b64d6335f3b8ff50adc44"
 	oracleAddress := "0xF0D5BC18421fa04D0a2A2ef540ba5A9f04014BE3"
 
 	// Generate a random private key
@@ -282,7 +282,7 @@ func TestInvalidClaimSignature(t *testing.T) {
 	require.NoError(t, err)
 
 	// Generate signature with correct data but wrong private key
-	claimDataHash, err := rewards.GetClaimDataHash(userWallet, rewardID, specifier, oracleAddress, 1)
+	claimDataHash, err := rewards.GetClaimDataHash(ethRecipientAddress, rewardID, specifier, oracleAddress, 1)
 	require.NoError(t, err)
 	signature, err := rewards.SignClaimDataHash(claimDataHash, randomPrivKey)
 	require.NoError(t, err)
@@ -292,7 +292,7 @@ func TestInvalidClaimSignature(t *testing.T) {
 	q := req.URL.Query()
 	q.Add("reward_id", rewardID)
 	q.Add("specifier", specifier)
-	q.Add("user_wallet", userWallet)
+	q.Add("eth_recipient_address", ethRecipientAddress)
 	q.Add("oracle_address", oracleAddress)
 	q.Add("signature", signature)
 	q.Add("amount", "1")
@@ -317,9 +317,9 @@ func TestInvalidClaimSignature(t *testing.T) {
 func TestGenerateClaimSignature(t *testing.T) {
 	rewardID := "c"
 	specifier := "b9256e3:202515"
-	userWallet := "0xe811761771ef65f9de0b64d6335f3b8ff50adc44"
+	ethRecipientAddress := "0xe811761771ef65f9de0b64d6335f3b8ff50adc44"
 	oracleAddress := "0xF0D5BC18421fa04D0a2A2ef540ba5A9f04014BE3"
-	claimDataHash, err := rewards.GetClaimDataHash(userWallet, rewardID, specifier, oracleAddress, 1)
+	claimDataHash, err := rewards.GetClaimDataHash(ethRecipientAddress, rewardID, specifier, oracleAddress, 1)
 	require.NoError(t, err)
 	signature, err := rewards.SignClaimDataHash(claimDataHash, privKey)
 	require.NoError(t, err)
@@ -337,7 +337,7 @@ func TestAmountMismatch(t *testing.T) {
 	// Test data
 	rewardID := "c"
 	specifier := "b9256e3:202515"
-	userWallet := "0xe811761771ef65f9de0b64d6335f3b8ff50adc44"
+	ethRecipientAddress := "0xe811761771ef65f9de0b64d6335f3b8ff50adc44"
 	oracleAddress := "0xF0D5BC18421fa04D0a2A2ef540ba5A9f04014BE3"
 	signature := testSignature()
 
@@ -346,7 +346,7 @@ func TestAmountMismatch(t *testing.T) {
 	q := req.URL.Query()
 	q.Add("reward_id", rewardID)
 	q.Add("specifier", specifier)
-	q.Add("user_wallet", userWallet)
+	q.Add("eth_recipient_address", ethRecipientAddress)
 	q.Add("oracle_address", oracleAddress)
 	q.Add("signature", signature)
 	q.Add("amount", "2") // Incorrect amount

@@ -14,9 +14,9 @@ func (rs *RewardService) GetRewards(c echo.Context) error {
 }
 
 func (rs *RewardService) AttestReward(c echo.Context) error {
-	userWallet := c.QueryParam("user_wallet")
-	if userWallet == "" {
-		return c.JSON(http.StatusBadRequest, "user_wallet is required")
+	ethRecipientAddress := c.QueryParam("eth_recipient_address")
+	if ethRecipientAddress == "" {
+		return c.JSON(http.StatusBadRequest, "eth_recipient_address is required")
 	}
 	rewardID := c.QueryParam("reward_id")
 	if rewardID == "" {
@@ -52,13 +52,13 @@ func (rs *RewardService) AttestReward(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, "amount does not match reward amount")
 	}
 
-	claimDataHash, err := GetClaimDataHash(userWallet, rewardID, specifier, oracleAddress, amountUint)
+	claimDataHash, err := GetClaimDataHash(ethRecipientAddress, rewardID, specifier, oracleAddress, amountUint)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
 
 	// recreate hash with registered reward data
-	expectedClaimDataHash, err := GetClaimDataHash(userWallet, reward.RewardId, specifier, oracleAddress, reward.Amount)
+	expectedClaimDataHash, err := GetClaimDataHash(ethRecipientAddress, reward.RewardId, specifier, oracleAddress, reward.Amount)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
@@ -77,7 +77,7 @@ func (rs *RewardService) AttestReward(c echo.Context) error {
 	}
 
 	// construct attestation bytes
-	attestationBytes, err := GetAttestationBytes(userWallet, rewardID, specifier, oracleAddress, reward.Amount)
+	attestationBytes, err := GetAttestationBytes(ethRecipientAddress, rewardID, specifier, oracleAddress, reward.Amount)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
