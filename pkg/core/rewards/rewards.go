@@ -1,6 +1,33 @@
 package rewards
 
 var (
+	DevClaimAuthorities   = []ClaimAuthority{{Address: "0x73EB6d82CFB20bA669e9c178b718d770C49BB52f", Name: "TikiLabsDiscovery"}, {Address: "0xfc3916B97489d2eFD81DDFDf11bad8E33ad5b87a", Name: "TikiLabsBridge"}}
+	StageClaimAuthorities = []ClaimAuthority{{Address: "0x8fcFA10Bd3808570987dbb5B1EF4AB74400FbfDA", Name: "TikiLabsDiscovery"}, {Address: "0x788aab45F3D4b7e44dBE71c688589942a9261651", Name: "TikiLabsBridge"}}
+	ProdClaimAuthorities  = []ClaimAuthority{{Address: "0xf1a1Bd34b2Bc73629aa69E50E3249E89A3c16786", Name: "TikiLabsDiscovery"}, {Address: "0x66C72FC7D7b36c7691ed72CA243dd427880C8ec8", Name: "TikiLabsBridge"}}
+)
+
+type ClaimAuthority struct {
+	Address string `json:"address"`
+	Name    string `json:"name"`
+}
+
+type Reward struct {
+	ClaimAuthorities []ClaimAuthority `json:"claim_authorities"`
+	Amount           uint64           `json:"amount"`
+	RewardId         string           `json:"reward_id"`
+	Name             string           `json:"name"`
+}
+
+func ValidClaimAuthority(claimAuthorities []ClaimAuthority, address string) bool {
+	for _, authority := range claimAuthorities {
+		if authority.Address == address {
+			return true
+		}
+	}
+	return false
+}
+
+var (
 	// BaseRewards contains all rewards that are common across all environments
 	BaseRewards = []Reward{
 		{
@@ -91,17 +118,17 @@ var (
 		{
 			Amount:   25,
 			RewardId: "p1",
-			Name:     "profile completion",
+			Name:     "play count milestone",
 		},
 		{
 			Amount:   100,
 			RewardId: "p2",
-			Name:     "profile completion",
+			Name:     "play count milestone",
 		},
 		{
 			Amount:   1000,
 			RewardId: "p3",
-			Name:     "profile completion",
+			Name:     "play count milestone",
 		},
 		{
 			Amount:   100,
@@ -128,9 +155,4 @@ var (
 	ProdRewardExtensions = []Reward{
 		// Add prod-specific rewards here
 	}
-
-	// Environment-specific pubkey mappings
-	DevPubkeys   = []string{"0x73EB6d82CFB20bA669e9c178b718d770C49BB52f", "0xfc3916B97489d2eFD81DDFDf11bad8E33ad5b87a"}
-	StagePubkeys = []string{"0x8fcFA10Bd3808570987dbb5B1EF4AB74400FbfDA", "0x788aab45F3D4b7e44dBE71c688589942a9261651"}
-	ProdPubkeys  = []string{"0xf1a1Bd34b2Bc73629aa69E50E3249E89A3c16786", "0x66C72FC7D7b36c7691ed72CA243dd427880C8ec8"}
 )

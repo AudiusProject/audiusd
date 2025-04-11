@@ -1,8 +1,6 @@
 package rewards
 
 import (
-	"strings"
-
 	"github.com/AudiusProject/audiusd/pkg/core/config"
 )
 
@@ -17,28 +15,23 @@ func NewRewardService(config *config.Config) *RewardService {
 	copy(rewards, BaseRewards)
 
 	// Get the appropriate pubkeys and reward extensions based on environment
-	var pubkeys []string
+	var pubkeys []ClaimAuthority
 	var extensions []Reward
 	switch config.Environment {
 	case "dev":
-		pubkeys = DevPubkeys
+		pubkeys = DevClaimAuthorities
 		extensions = DevRewardExtensions
 	case "stage":
-		pubkeys = StagePubkeys
+		pubkeys = StageClaimAuthorities
 		extensions = StageRewardExtensions
 	case "prod":
-		pubkeys = ProdPubkeys
+		pubkeys = ProdClaimAuthorities
 		extensions = ProdRewardExtensions
-	}
-
-	// Capitalize pubkeys
-	for i := range pubkeys {
-		pubkeys[i] = strings.ToUpper(pubkeys[i])
 	}
 
 	// Assign pubkeys to all base rewards
 	for i := range rewards {
-		rewards[i].ClaimWallets = pubkeys
+		rewards[i].ClaimAuthorities = pubkeys
 	}
 
 	// Add environment-specific rewards
@@ -49,7 +42,7 @@ func NewRewardService(config *config.Config) *RewardService {
 
 		// Assign pubkeys to extended rewards
 		for i := range extendedRewards {
-			extendedRewards[i].ClaimWallets = pubkeys
+			extendedRewards[i].ClaimAuthorities = pubkeys
 		}
 
 		// Append extended rewards to base rewards
@@ -60,11 +53,4 @@ func NewRewardService(config *config.Config) *RewardService {
 		Config:  config,
 		Rewards: rewards,
 	}
-}
-
-type Reward struct {
-	ClaimWallets []string `json:"claim_wallets"`
-	Amount       uint64   `json:"amount"`
-	RewardId     string   `json:"reward_id"`
-	Name         string   `json:"name"`
 }

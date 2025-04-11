@@ -4,9 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"net/http"
-	"slices"
 	"strconv"
-	"strings"
 
 	"github.com/labstack/echo/v4"
 )
@@ -74,7 +72,7 @@ func (rs *RewardService) AttestReward(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
 
-	if !slices.Contains(reward.ClaimWallets, strings.ToUpper(recoveredWallet)) {
+	if !ValidClaimAuthority(reward.ClaimAuthorities, recoveredWallet) {
 		return c.JSON(http.StatusUnauthorized, fmt.Sprintf("wallet %s is not authorized to claim reward %s", recoveredWallet, rewardID))
 	}
 
