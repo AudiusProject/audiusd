@@ -49,7 +49,7 @@ func (rs *RewardService) AttestReward(c echo.Context) error {
 	}
 
 	if amountUint > reward.Amount {
-		return c.JSON(http.StatusBadRequest, "amount does not match reward amount")
+		return c.JSON(http.StatusBadRequest, "amount is too large for given reward ID")
 	}
 
 	claimDataHash, err := GetClaimDataHash(ethRecipientAddress, rewardID, specifier, oracleAddress, amountUint)
