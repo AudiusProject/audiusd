@@ -365,5 +365,5 @@ func TestAmountMismatch(t *testing.T) {
 	var res string
 	err = json.Unmarshal(rec.Body.Bytes(), &res)
 	require.NoError(t, err)
-	require.Contains(t, res, "amount does not match reward amount")
+	require.Contains(t, res, "amount is too large")
 }
