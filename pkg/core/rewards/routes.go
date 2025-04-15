@@ -48,7 +48,7 @@ func (rs *RewardService) AttestReward(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
 
-	if amountUint != reward.Amount {
+	if amountUint > reward.Amount {
 		return c.JSON(http.StatusBadRequest, "amount does not match reward amount")
 	}
 
