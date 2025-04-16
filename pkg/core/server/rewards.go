@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/AudiusProject/audiusd/pkg/core/rewards"
+	"github.com/AudiusProject/audiusd/pkg/rewards"
 	"github.com/labstack/echo/v4"
 )
 

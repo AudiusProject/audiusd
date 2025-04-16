@@ -4,7 +4,7 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"github.com/AudiusProject/audiusd/pkg/core/rewards"
+	"github.com/AudiusProject/audiusd/pkg/rewards"
 	"github.com/stretchr/testify/require"
 )
 
