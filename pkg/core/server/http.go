@@ -76,7 +76,7 @@ func (s *Server) startEchoServer() error {
 	}
 
 	g.GET("/rewards", s.getRewards)
-	g.GET("/rewards/attestation", s.GetRewardAttestation)
+	g.GET("/rewards/attestation", s.getRewardAttestation)
 	g.GET("/nodes", s.getRegisteredNodes)
 	g.GET("/nodes/verbose", s.getRegisteredNodes)
 	g.GET("/nodes/discovery", s.getRegisteredNodes)

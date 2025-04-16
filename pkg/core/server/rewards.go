@@ -12,7 +12,7 @@ func (s *Server) getRewards(c echo.Context) error {
 	return c.JSON(http.StatusOK, s.rewards.Rewards)
 }
 
-func (s *Server) GetRewardAttestation(c echo.Context) error {
+func (s *Server) getRewardAttestation(c echo.Context) error {
 	ethRecipientAddress := c.QueryParam("eth_recipient_address")
 	if ethRecipientAddress == "" {
 		return c.JSON(http.StatusBadRequest, "eth_recipient_address is required")

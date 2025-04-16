@@ -61,7 +61,7 @@ func TestGetRewardAttestation(t *testing.T) {
 	c := e.NewContext(req, rec)
 
 	// Call handler
-	err = s.GetRewardAttestation(c)
+	err = s.getRewardAttestation(c)
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
 
