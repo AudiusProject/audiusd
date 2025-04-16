@@ -48,7 +48,7 @@ type Server struct {
 	cache     *Cache
 	abciState *ABCIState
 
-	rewards *rewards.RewardService
+	rewards *rewards.RewardAttester
 
 	core_proto.UnimplementedProtocolServer
 
@@ -106,7 +106,7 @@ func NewServer(config *config.Config, cconfig *cconfig.Config, logger *common.Lo
 		duplicateEthNodes: duplicateEthNodes,
 		missingEthNodes:   []string{},
 
-		rewards: rewards.NewRewardService(config),
+		rewards: rewards.NewRewardAttester(config),
 
 		awaitHttpServerReady: make(chan struct{}),
 		awaitGrpcServerReady: make(chan struct{}),
