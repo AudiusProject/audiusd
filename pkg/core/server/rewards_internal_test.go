@@ -8,7 +8,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/AudiusProject/audiusd/pkg/core/config"
 	"github.com/AudiusProject/audiusd/pkg/core/rewards"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/labstack/echo/v4"
@@ -31,10 +30,7 @@ func TestGetRewardAttestation(t *testing.T) {
 
 	// Setup
 	e := echo.New()
-	attester := rewards.NewRewardAttester(&config.Config{
-		Environment: "dev",
-		EthereumKey: privKey,
-	})
+	attester := rewards.NewRewardAttester("dev", privKey)
 	s := &Server{rewards: attester}
 
 	if err != nil {

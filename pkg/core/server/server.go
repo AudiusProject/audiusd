@@ -106,7 +106,7 @@ func NewServer(config *config.Config, cconfig *cconfig.Config, logger *common.Lo
 		duplicateEthNodes: duplicateEthNodes,
 		missingEthNodes:   []string{},
 
-		rewards: rewards.NewRewardAttester(config),
+		rewards: rewards.NewRewardAttester(config.Environment, config.EthereumKey),
 
 		awaitHttpServerReady: make(chan struct{}),
 		awaitGrpcServerReady: make(chan struct{}),

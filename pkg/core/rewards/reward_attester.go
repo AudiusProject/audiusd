@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/AudiusProject/audiusd/pkg/core/config"
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
@@ -73,7 +72,7 @@ func (rs *RewardAttester) Attest(claim RewardClaim) (message []byte, signature s
 	return claimData, "0x" + hex.EncodeToString(signatureBytes), nil
 }
 
-func NewRewardAttester(config *config.Config) *RewardAttester {
+func NewRewardAttester(environment string, ethereumKey *ecdsa.PrivateKey) *RewardAttester {
 	// Create a deep copy of BaseRewards
 	rewards := make([]Reward, len(BaseRewards))
 	copy(rewards, BaseRewards)
@@ -81,7 +80,7 @@ func NewRewardAttester(config *config.Config) *RewardAttester {
 	// Get the appropriate pubkeys and reward extensions based on environment
 	var pubkeys []ClaimAuthority
 	var extensions []Reward
-	switch config.Environment {
+	switch environment {
 	case "dev":
 		pubkeys = DevClaimAuthorities
 		extensions = DevRewardExtensions
@@ -115,15 +114,15 @@ func NewRewardAttester(config *config.Config) *RewardAttester {
 
 	// Get owner address from private key
 	address := ""
-	if config.EthereumKey != nil {
-		pubKey := config.EthereumKey.Public()
+	if ethereumKey != nil {
+		pubKey := ethereumKey.Public()
 		pubKeyECDSA, _ := pubKey.(*ecdsa.PublicKey)
 		address = crypto.PubkeyToAddress(*pubKeyECDSA).Hex()
 	}
 
 	return &RewardAttester{
 		EthereumAddress: address,
-		EthereumKey:     config.EthereumKey,
+		EthereumKey:     ethereumKey,
 		Rewards:         rewards,
 	}
 }

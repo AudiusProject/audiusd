@@ -5,17 +5,13 @@ import (
 	"log"
 	"testing"
 
-	"github.com/AudiusProject/audiusd/pkg/core/config"
 	"github.com/AudiusProject/audiusd/pkg/core/rewards"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/stretchr/testify/require"
 )
 
 func TestValidate(t *testing.T) {
-	attester := rewards.NewRewardAttester(&config.Config{
-		Environment: "dev",
-	})
-
+	attester := rewards.NewRewardAttester("dev", nil)
 	claim := rewards.RewardClaim{
 		RewardID:                  "xxx",
 		Specifier:                 "b9256e3:202515",
@@ -75,7 +71,7 @@ func TestAuthenticate(t *testing.T) {
 	signature := "0x661327f5968ac95063dff94dcedbcfcf8dd464461aceffba5071dcf05b3287dc3dd69d86ba3b8776ad4b7e2116c71e148938a539403975ae8439b2acdd93348901"
 
 	// Explicitly don't set up the authorities
-	attester := rewards.NewRewardAttester(&config.Config{})
+	attester := rewards.NewRewardAttester("", nil)
 
 	err := attester.Authenticate(claim, signature)
 	require.Error(t, err, "should error when signed by unauthorized signer")
@@ -103,10 +99,7 @@ func TestAttest(t *testing.T) {
 		log.Fatalf("failed to convert to ECDSA: %v", err)
 	}
 
-	attester := rewards.NewRewardAttester(&config.Config{
-		Environment: "dev",
-		EthereumKey: privKey,
-	})
+	attester := rewards.NewRewardAttester("dev", privKey)
 
 	claim := rewards.RewardClaim{
 		RewardID:                  "c",
