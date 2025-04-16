@@ -1,7 +1,6 @@
 package server
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
 	"io"
@@ -12,11 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/AudiusProject/audiusd/pkg/core/gen/core_proto"
-	adx "github.com/AudiusProject/audiusd/pkg/core/gen/core_proto/audiusddex/v1beta1"
 	"github.com/AudiusProject/audiusd/pkg/mediorum/cidutil"
 	"github.com/AudiusProject/audiusd/pkg/mediorum/server/signature"
-	"github.com/google/uuid"
 
 	"github.com/labstack/echo/v4"
 	"github.com/oklog/ulid/v2"
@@ -154,18 +150,14 @@ func (ss *MediorumServer) postUpload(c echo.Context) error {
 	// ... fall back to (legacy) X-User-Wallet header
 	userWallet := sql.NullString{Valid: false}
 
-	sender := &adx.Party{}
-
 	// updateUpload uses the requireUserSignature c.Get("signer-wallet")
 	// but requireUserSignature will fail request if missing
 	// so parse direclty here
-	sig, err := signature.ParseFromQueryString(c.QueryParam("signature"))
-	if err == nil {
+	if sig, err := signature.ParseFromQueryString(c.QueryParam("signature")); err == nil {
 		userWallet = sql.NullString{
 			String: sig.SignerWallet,
 			Valid:  true,
 		}
-		sender.PubKey = sig.SignerPubkey
 	} else {
 		userWalletHeader := c.Request().Header.Get("X-User-Wallet-Addr")
 		if userWalletHeader != "" {
@@ -224,7 +216,6 @@ func (ss *MediorumServer) postUpload(c echo.Context) error {
 			String: selectedPreviewString,
 		}
 	}
-
 	files := form.File[filesFormFieldName]
 	defer form.RemoveAll()
 
@@ -234,10 +225,7 @@ func (ss *MediorumServer) postUpload(c echo.Context) error {
 	// - some task queue stuff
 
 	uploads := make([]*Upload, len(files))
-	resources := make([]*adx.Resource, len(files))
-	releases := make([]*adx.Release, len(files))
 	wg, _ := errgroup.WithContext(c.Request().Context())
-
 	for idx, formFile := range files {
 
 		idx := idx
@@ -300,111 +288,22 @@ func (ss *MediorumServer) postUpload(c echo.Context) error {
 				upload.TranscodeProgress = 1
 				upload.TranscodedAt = time.Now().UTC()
 				upload.Status = JobStatusDone
-				resources[idx] = &adx.Resource{
-					ResourceReference: fmt.Sprint("AI%d", idx),
-					Resource: &adx.Resource_Image{
-						Image: &adx.Image{
-							Id:  &adx.ImageId{},
-							Cid: formFileCID,
-						},
-					},
-				}
 				return ss.crud.Create(upload)
 			}
 
 			ss.crud.Create(upload)
 			ss.transcodeWork <- upload
-
-			resourceRef := fmt.Sprint("AT%d", idx)
-			resources[idx] = &adx.Resource{
-				ResourceReference: resourceRef,
-				Resource: &adx.Resource_SoundRecording{
-					SoundRecording: &adx.SoundRecording{
-						Id:  &adx.SoundRecordingId{},
-						Cid: formFileCID,
-					},
-				},
-			}
-			releases[idx] = &adx.Release{
-				Release: &adx.Release_TrackRelease{
-					TrackRelease: &adx.TrackRelease{
-						ReleaseId: &adx.ReleaseId{
-							Grid: uuid.NewString(),
-						},
-						ReleaseResourceReference: resourceRef,
-						Title:                    c.FormValue("title"),
-						Genre:                    c.FormValue("genre"),
-					},
-				},
-			}
-
 			return nil
 		})
 	}
 
+	status := 200
 	if err := wg.Wait(); err != nil {
 		ss.logger.Error("failed to process new upload", "err", err)
-		return c.JSON(422, uploads)
+		status = 422
 	}
 
-	// Get image reference and link to releases
-	var imgRef string
-	for _, res := range resources {
-		if strings.HasPrefix(res.ResourceReference, "AI") {
-			imgRef = res.ResourceReference
-		}
-	}
-	condensedReleases := make([]*adx.Release, 0, len(resources))
-	for _, rel := range releases {
-		if rel != nil {
-			condensedReleases = append(condensedReleases, rel)
-			if rel.GetTrackRelease() != nil {
-				rel.GetTrackRelease().LinkedReleaseResourceReference = imgRef
-			}
-		}
-	}
-
-	ern := &adx.NewReleaseMessage{
-		ReleaseHeader: &adx.ReleaseHeader{
-			Sender: sender,
-		},
-		ResourceList: resources,
-		ReleaseList:  condensedReleases,
-	}
-
-	if err := ss.submitERNTx(ern); err != nil {
-		ss.logger.Error("Failed to submit ERN Tx to core", "err", err)
-	}
-
-	return c.JSON(200, uploads)
-}
-
-func (ss *MediorumServer) submitERNTx(ern *adx.NewReleaseMessage) error {
-	sig, err := signature.SignCoreBytes(ern, ss.Config.privateKey)
-	if err != nil {
-		ss.logger.Error("error signing ern tx", "err", err)
-		return err
-	}
-
-	signedTx := &core_proto.SignedTransaction{
-		Signature: sig,
-		Transaction: &core_proto.SignedTransaction_Release{
-			Release: ern,
-		},
-	}
-
-	sdk := ss.coreSdk
-	res, err := sdk.SendTransaction(context.Background(), &core_proto.SendTransactionRequest{
-		Transaction: signedTx,
-	})
-
-	if err != nil {
-		ss.logger.Error("core error submitting ern", "err", err)
-		return err
-	}
-
-	ss.logger.Info("submitted ern", "tx", res.Txhash)
-	return nil
+	return c.JSON(status, uploads)
 }
 
 func copyUploadToTempFile(file *multipart.FileHeader) (*os.File, error) {
