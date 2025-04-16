@@ -33,12 +33,18 @@ const (
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
+	// ETLServicePingProcedure is the fully-qualified name of the ETLService's Ping RPC.
+	ETLServicePingProcedure = "/etl.v1.ETLService/Ping"
+	// ETLServiceGetHealthProcedure is the fully-qualified name of the ETLService's GetHealth RPC.
+	ETLServiceGetHealthProcedure = "/etl.v1.ETLService/GetHealth"
 	// ETLServiceGetPlaysProcedure is the fully-qualified name of the ETLService's GetPlays RPC.
 	ETLServiceGetPlaysProcedure = "/etl.v1.ETLService/GetPlays"
 )
 
 // ETLServiceClient is a client for the etl.v1.ETLService service.
 type ETLServiceClient interface {
+	Ping(context.Context, *connect.Request[v1.PingRequest]) (*connect.Response[v1.PingResponse], error)
+	GetHealth(context.Context, *connect.Request[v1.GetHealthRequest]) (*connect.Response[v1.GetHealthResponse], error)
 	GetPlays(context.Context, *connect.Request[v1.GetPlaysRequest]) (*connect.Response[v1.GetPlaysResponse], error)
 }
 
@@ -53,6 +59,18 @@ func NewETLServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 	baseURL = strings.TrimRight(baseURL, "/")
 	eTLServiceMethods := v1.File_etl_v1_service_proto.Services().ByName("ETLService").Methods()
 	return &eTLServiceClient{
+		ping: connect.NewClient[v1.PingRequest, v1.PingResponse](
+			httpClient,
+			baseURL+ETLServicePingProcedure,
+			connect.WithSchema(eTLServiceMethods.ByName("Ping")),
+			connect.WithClientOptions(opts...),
+		),
+		getHealth: connect.NewClient[v1.GetHealthRequest, v1.GetHealthResponse](
+			httpClient,
+			baseURL+ETLServiceGetHealthProcedure,
+			connect.WithSchema(eTLServiceMethods.ByName("GetHealth")),
+			connect.WithClientOptions(opts...),
+		),
 		getPlays: connect.NewClient[v1.GetPlaysRequest, v1.GetPlaysResponse](
 			httpClient,
 			baseURL+ETLServiceGetPlaysProcedure,
@@ -64,7 +82,19 @@ func NewETLServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 
 // eTLServiceClient implements ETLServiceClient.
 type eTLServiceClient struct {
-	getPlays *connect.Client[v1.GetPlaysRequest, v1.GetPlaysResponse]
+	ping      *connect.Client[v1.PingRequest, v1.PingResponse]
+	getHealth *connect.Client[v1.GetHealthRequest, v1.GetHealthResponse]
+	getPlays  *connect.Client[v1.GetPlaysRequest, v1.GetPlaysResponse]
+}
+
+// Ping calls etl.v1.ETLService.Ping.
+func (c *eTLServiceClient) Ping(ctx context.Context, req *connect.Request[v1.PingRequest]) (*connect.Response[v1.PingResponse], error) {
+	return c.ping.CallUnary(ctx, req)
+}
+
+// GetHealth calls etl.v1.ETLService.GetHealth.
+func (c *eTLServiceClient) GetHealth(ctx context.Context, req *connect.Request[v1.GetHealthRequest]) (*connect.Response[v1.GetHealthResponse], error) {
+	return c.getHealth.CallUnary(ctx, req)
 }
 
 // GetPlays calls etl.v1.ETLService.GetPlays.
@@ -74,6 +104,8 @@ func (c *eTLServiceClient) GetPlays(ctx context.Context, req *connect.Request[v1
 
 // ETLServiceHandler is an implementation of the etl.v1.ETLService service.
 type ETLServiceHandler interface {
+	Ping(context.Context, *connect.Request[v1.PingRequest]) (*connect.Response[v1.PingResponse], error)
+	GetHealth(context.Context, *connect.Request[v1.GetHealthRequest]) (*connect.Response[v1.GetHealthResponse], error)
 	GetPlays(context.Context, *connect.Request[v1.GetPlaysRequest]) (*connect.Response[v1.GetPlaysResponse], error)
 }
 
@@ -84,6 +116,18 @@ type ETLServiceHandler interface {
 // and JSON codecs. They also support gzip compression.
 func NewETLServiceHandler(svc ETLServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
 	eTLServiceMethods := v1.File_etl_v1_service_proto.Services().ByName("ETLService").Methods()
+	eTLServicePingHandler := connect.NewUnaryHandler(
+		ETLServicePingProcedure,
+		svc.Ping,
+		connect.WithSchema(eTLServiceMethods.ByName("Ping")),
+		connect.WithHandlerOptions(opts...),
+	)
+	eTLServiceGetHealthHandler := connect.NewUnaryHandler(
+		ETLServiceGetHealthProcedure,
+		svc.GetHealth,
+		connect.WithSchema(eTLServiceMethods.ByName("GetHealth")),
+		connect.WithHandlerOptions(opts...),
+	)
 	eTLServiceGetPlaysHandler := connect.NewUnaryHandler(
 		ETLServiceGetPlaysProcedure,
 		svc.GetPlays,
@@ -92,6 +136,10 @@ func NewETLServiceHandler(svc ETLServiceHandler, opts ...connect.HandlerOption) 
 	)
 	return "/etl.v1.ETLService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
+		case ETLServicePingProcedure:
+			eTLServicePingHandler.ServeHTTP(w, r)
+		case ETLServiceGetHealthProcedure:
+			eTLServiceGetHealthHandler.ServeHTTP(w, r)
 		case ETLServiceGetPlaysProcedure:
 			eTLServiceGetPlaysHandler.ServeHTTP(w, r)
 		default:
@@ -102,6 +150,14 @@ func NewETLServiceHandler(svc ETLServiceHandler, opts ...connect.HandlerOption) 
 
 // UnimplementedETLServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedETLServiceHandler struct{}
+
+func (UnimplementedETLServiceHandler) Ping(context.Context, *connect.Request[v1.PingRequest]) (*connect.Response[v1.PingResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("etl.v1.ETLService.Ping is not implemented"))
+}
+
+func (UnimplementedETLServiceHandler) GetHealth(context.Context, *connect.Request[v1.GetHealthRequest]) (*connect.Response[v1.GetHealthResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("etl.v1.ETLService.GetHealth is not implemented"))
+}
 
 func (UnimplementedETLServiceHandler) GetPlays(context.Context, *connect.Request[v1.GetPlaysRequest]) (*connect.Response[v1.GetPlaysResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("etl.v1.ETLService.GetPlays is not implemented"))

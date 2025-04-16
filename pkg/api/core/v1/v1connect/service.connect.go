@@ -33,13 +33,39 @@ const (
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
+	// CoreServicePingProcedure is the fully-qualified name of the CoreService's Ping RPC.
+	CoreServicePingProcedure = "/core.v1.CoreService/Ping"
+	// CoreServiceGetHealthProcedure is the fully-qualified name of the CoreService's GetHealth RPC.
+	CoreServiceGetHealthProcedure = "/core.v1.CoreService/GetHealth"
 	// CoreServiceGetBlockProcedure is the fully-qualified name of the CoreService's GetBlock RPC.
 	CoreServiceGetBlockProcedure = "/core.v1.CoreService/GetBlock"
+	// CoreServiceGetTransactionProcedure is the fully-qualified name of the CoreService's
+	// GetTransaction RPC.
+	CoreServiceGetTransactionProcedure = "/core.v1.CoreService/GetTransaction"
+	// CoreServiceSendTransactionProcedure is the fully-qualified name of the CoreService's
+	// SendTransaction RPC.
+	CoreServiceSendTransactionProcedure = "/core.v1.CoreService/SendTransaction"
+	// CoreServiceForwardTransactionProcedure is the fully-qualified name of the CoreService's
+	// ForwardTransaction RPC.
+	CoreServiceForwardTransactionProcedure = "/core.v1.CoreService/ForwardTransaction"
+	// CoreServiceGetRegistrationAttestationProcedure is the fully-qualified name of the CoreService's
+	// GetRegistrationAttestation RPC.
+	CoreServiceGetRegistrationAttestationProcedure = "/core.v1.CoreService/GetRegistrationAttestation"
+	// CoreServiceGetDeregistrationAttestationProcedure is the fully-qualified name of the CoreService's
+	// GetDeregistrationAttestation RPC.
+	CoreServiceGetDeregistrationAttestationProcedure = "/core.v1.CoreService/GetDeregistrationAttestation"
 )
 
 // CoreServiceClient is a client for the core.v1.CoreService service.
 type CoreServiceClient interface {
+	Ping(context.Context, *connect.Request[v1.PingRequest]) (*connect.Response[v1.PingResponse], error)
+	GetHealth(context.Context, *connect.Request[v1.GetHealthRequest]) (*connect.Response[v1.GetHealthResponse], error)
 	GetBlock(context.Context, *connect.Request[v1.GetBlockRequest]) (*connect.Response[v1.GetBlockResponse], error)
+	GetTransaction(context.Context, *connect.Request[v1.GetTransactionRequest]) (*connect.Response[v1.GetTransactionResponse], error)
+	SendTransaction(context.Context, *connect.Request[v1.SendTransactionRequest]) (*connect.Response[v1.SendTransactionResponse], error)
+	ForwardTransaction(context.Context, *connect.Request[v1.ForwardTransactionRequest]) (*connect.Response[v1.ForwardTransactionResponse], error)
+	GetRegistrationAttestation(context.Context, *connect.Request[v1.GetRegistrationAttestationRequest]) (*connect.Response[v1.GetRegistrationAttestationResponse], error)
+	GetDeregistrationAttestation(context.Context, *connect.Request[v1.GetDeregistrationAttestationRequest]) (*connect.Response[v1.GetDeregistrationAttestationResponse], error)
 }
 
 // NewCoreServiceClient constructs a client for the core.v1.CoreService service. By default, it uses
@@ -53,11 +79,52 @@ func NewCoreServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 	baseURL = strings.TrimRight(baseURL, "/")
 	coreServiceMethods := v1.File_core_v1_service_proto.Services().ByName("CoreService").Methods()
 	return &coreServiceClient{
+		ping: connect.NewClient[v1.PingRequest, v1.PingResponse](
+			httpClient,
+			baseURL+CoreServicePingProcedure,
+			connect.WithSchema(coreServiceMethods.ByName("Ping")),
+			connect.WithClientOptions(opts...),
+		),
+		getHealth: connect.NewClient[v1.GetHealthRequest, v1.GetHealthResponse](
+			httpClient,
+			baseURL+CoreServiceGetHealthProcedure,
+			connect.WithSchema(coreServiceMethods.ByName("GetHealth")),
+			connect.WithClientOptions(opts...),
+		),
 		getBlock: connect.NewClient[v1.GetBlockRequest, v1.GetBlockResponse](
 			httpClient,
 			baseURL+CoreServiceGetBlockProcedure,
 			connect.WithSchema(coreServiceMethods.ByName("GetBlock")),
-			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
+		getTransaction: connect.NewClient[v1.GetTransactionRequest, v1.GetTransactionResponse](
+			httpClient,
+			baseURL+CoreServiceGetTransactionProcedure,
+			connect.WithSchema(coreServiceMethods.ByName("GetTransaction")),
+			connect.WithClientOptions(opts...),
+		),
+		sendTransaction: connect.NewClient[v1.SendTransactionRequest, v1.SendTransactionResponse](
+			httpClient,
+			baseURL+CoreServiceSendTransactionProcedure,
+			connect.WithSchema(coreServiceMethods.ByName("SendTransaction")),
+			connect.WithClientOptions(opts...),
+		),
+		forwardTransaction: connect.NewClient[v1.ForwardTransactionRequest, v1.ForwardTransactionResponse](
+			httpClient,
+			baseURL+CoreServiceForwardTransactionProcedure,
+			connect.WithSchema(coreServiceMethods.ByName("ForwardTransaction")),
+			connect.WithClientOptions(opts...),
+		),
+		getRegistrationAttestation: connect.NewClient[v1.GetRegistrationAttestationRequest, v1.GetRegistrationAttestationResponse](
+			httpClient,
+			baseURL+CoreServiceGetRegistrationAttestationProcedure,
+			connect.WithSchema(coreServiceMethods.ByName("GetRegistrationAttestation")),
+			connect.WithClientOptions(opts...),
+		),
+		getDeregistrationAttestation: connect.NewClient[v1.GetDeregistrationAttestationRequest, v1.GetDeregistrationAttestationResponse](
+			httpClient,
+			baseURL+CoreServiceGetDeregistrationAttestationProcedure,
+			connect.WithSchema(coreServiceMethods.ByName("GetDeregistrationAttestation")),
 			connect.WithClientOptions(opts...),
 		),
 	}
@@ -65,7 +132,24 @@ func NewCoreServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 
 // coreServiceClient implements CoreServiceClient.
 type coreServiceClient struct {
-	getBlock *connect.Client[v1.GetBlockRequest, v1.GetBlockResponse]
+	ping                         *connect.Client[v1.PingRequest, v1.PingResponse]
+	getHealth                    *connect.Client[v1.GetHealthRequest, v1.GetHealthResponse]
+	getBlock                     *connect.Client[v1.GetBlockRequest, v1.GetBlockResponse]
+	getTransaction               *connect.Client[v1.GetTransactionRequest, v1.GetTransactionResponse]
+	sendTransaction              *connect.Client[v1.SendTransactionRequest, v1.SendTransactionResponse]
+	forwardTransaction           *connect.Client[v1.ForwardTransactionRequest, v1.ForwardTransactionResponse]
+	getRegistrationAttestation   *connect.Client[v1.GetRegistrationAttestationRequest, v1.GetRegistrationAttestationResponse]
+	getDeregistrationAttestation *connect.Client[v1.GetDeregistrationAttestationRequest, v1.GetDeregistrationAttestationResponse]
+}
+
+// Ping calls core.v1.CoreService.Ping.
+func (c *coreServiceClient) Ping(ctx context.Context, req *connect.Request[v1.PingRequest]) (*connect.Response[v1.PingResponse], error) {
+	return c.ping.CallUnary(ctx, req)
+}
+
+// GetHealth calls core.v1.CoreService.GetHealth.
+func (c *coreServiceClient) GetHealth(ctx context.Context, req *connect.Request[v1.GetHealthRequest]) (*connect.Response[v1.GetHealthResponse], error) {
+	return c.getHealth.CallUnary(ctx, req)
 }
 
 // GetBlock calls core.v1.CoreService.GetBlock.
@@ -73,9 +157,41 @@ func (c *coreServiceClient) GetBlock(ctx context.Context, req *connect.Request[v
 	return c.getBlock.CallUnary(ctx, req)
 }
 
+// GetTransaction calls core.v1.CoreService.GetTransaction.
+func (c *coreServiceClient) GetTransaction(ctx context.Context, req *connect.Request[v1.GetTransactionRequest]) (*connect.Response[v1.GetTransactionResponse], error) {
+	return c.getTransaction.CallUnary(ctx, req)
+}
+
+// SendTransaction calls core.v1.CoreService.SendTransaction.
+func (c *coreServiceClient) SendTransaction(ctx context.Context, req *connect.Request[v1.SendTransactionRequest]) (*connect.Response[v1.SendTransactionResponse], error) {
+	return c.sendTransaction.CallUnary(ctx, req)
+}
+
+// ForwardTransaction calls core.v1.CoreService.ForwardTransaction.
+func (c *coreServiceClient) ForwardTransaction(ctx context.Context, req *connect.Request[v1.ForwardTransactionRequest]) (*connect.Response[v1.ForwardTransactionResponse], error) {
+	return c.forwardTransaction.CallUnary(ctx, req)
+}
+
+// GetRegistrationAttestation calls core.v1.CoreService.GetRegistrationAttestation.
+func (c *coreServiceClient) GetRegistrationAttestation(ctx context.Context, req *connect.Request[v1.GetRegistrationAttestationRequest]) (*connect.Response[v1.GetRegistrationAttestationResponse], error) {
+	return c.getRegistrationAttestation.CallUnary(ctx, req)
+}
+
+// GetDeregistrationAttestation calls core.v1.CoreService.GetDeregistrationAttestation.
+func (c *coreServiceClient) GetDeregistrationAttestation(ctx context.Context, req *connect.Request[v1.GetDeregistrationAttestationRequest]) (*connect.Response[v1.GetDeregistrationAttestationResponse], error) {
+	return c.getDeregistrationAttestation.CallUnary(ctx, req)
+}
+
 // CoreServiceHandler is an implementation of the core.v1.CoreService service.
 type CoreServiceHandler interface {
+	Ping(context.Context, *connect.Request[v1.PingRequest]) (*connect.Response[v1.PingResponse], error)
+	GetHealth(context.Context, *connect.Request[v1.GetHealthRequest]) (*connect.Response[v1.GetHealthResponse], error)
 	GetBlock(context.Context, *connect.Request[v1.GetBlockRequest]) (*connect.Response[v1.GetBlockResponse], error)
+	GetTransaction(context.Context, *connect.Request[v1.GetTransactionRequest]) (*connect.Response[v1.GetTransactionResponse], error)
+	SendTransaction(context.Context, *connect.Request[v1.SendTransactionRequest]) (*connect.Response[v1.SendTransactionResponse], error)
+	ForwardTransaction(context.Context, *connect.Request[v1.ForwardTransactionRequest]) (*connect.Response[v1.ForwardTransactionResponse], error)
+	GetRegistrationAttestation(context.Context, *connect.Request[v1.GetRegistrationAttestationRequest]) (*connect.Response[v1.GetRegistrationAttestationResponse], error)
+	GetDeregistrationAttestation(context.Context, *connect.Request[v1.GetDeregistrationAttestationRequest]) (*connect.Response[v1.GetDeregistrationAttestationResponse], error)
 }
 
 // NewCoreServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -85,17 +201,72 @@ type CoreServiceHandler interface {
 // and JSON codecs. They also support gzip compression.
 func NewCoreServiceHandler(svc CoreServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
 	coreServiceMethods := v1.File_core_v1_service_proto.Services().ByName("CoreService").Methods()
+	coreServicePingHandler := connect.NewUnaryHandler(
+		CoreServicePingProcedure,
+		svc.Ping,
+		connect.WithSchema(coreServiceMethods.ByName("Ping")),
+		connect.WithHandlerOptions(opts...),
+	)
+	coreServiceGetHealthHandler := connect.NewUnaryHandler(
+		CoreServiceGetHealthProcedure,
+		svc.GetHealth,
+		connect.WithSchema(coreServiceMethods.ByName("GetHealth")),
+		connect.WithHandlerOptions(opts...),
+	)
 	coreServiceGetBlockHandler := connect.NewUnaryHandler(
 		CoreServiceGetBlockProcedure,
 		svc.GetBlock,
 		connect.WithSchema(coreServiceMethods.ByName("GetBlock")),
-		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
+	coreServiceGetTransactionHandler := connect.NewUnaryHandler(
+		CoreServiceGetTransactionProcedure,
+		svc.GetTransaction,
+		connect.WithSchema(coreServiceMethods.ByName("GetTransaction")),
+		connect.WithHandlerOptions(opts...),
+	)
+	coreServiceSendTransactionHandler := connect.NewUnaryHandler(
+		CoreServiceSendTransactionProcedure,
+		svc.SendTransaction,
+		connect.WithSchema(coreServiceMethods.ByName("SendTransaction")),
+		connect.WithHandlerOptions(opts...),
+	)
+	coreServiceForwardTransactionHandler := connect.NewUnaryHandler(
+		CoreServiceForwardTransactionProcedure,
+		svc.ForwardTransaction,
+		connect.WithSchema(coreServiceMethods.ByName("ForwardTransaction")),
+		connect.WithHandlerOptions(opts...),
+	)
+	coreServiceGetRegistrationAttestationHandler := connect.NewUnaryHandler(
+		CoreServiceGetRegistrationAttestationProcedure,
+		svc.GetRegistrationAttestation,
+		connect.WithSchema(coreServiceMethods.ByName("GetRegistrationAttestation")),
+		connect.WithHandlerOptions(opts...),
+	)
+	coreServiceGetDeregistrationAttestationHandler := connect.NewUnaryHandler(
+		CoreServiceGetDeregistrationAttestationProcedure,
+		svc.GetDeregistrationAttestation,
+		connect.WithSchema(coreServiceMethods.ByName("GetDeregistrationAttestation")),
 		connect.WithHandlerOptions(opts...),
 	)
 	return "/core.v1.CoreService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
+		case CoreServicePingProcedure:
+			coreServicePingHandler.ServeHTTP(w, r)
+		case CoreServiceGetHealthProcedure:
+			coreServiceGetHealthHandler.ServeHTTP(w, r)
 		case CoreServiceGetBlockProcedure:
 			coreServiceGetBlockHandler.ServeHTTP(w, r)
+		case CoreServiceGetTransactionProcedure:
+			coreServiceGetTransactionHandler.ServeHTTP(w, r)
+		case CoreServiceSendTransactionProcedure:
+			coreServiceSendTransactionHandler.ServeHTTP(w, r)
+		case CoreServiceForwardTransactionProcedure:
+			coreServiceForwardTransactionHandler.ServeHTTP(w, r)
+		case CoreServiceGetRegistrationAttestationProcedure:
+			coreServiceGetRegistrationAttestationHandler.ServeHTTP(w, r)
+		case CoreServiceGetDeregistrationAttestationProcedure:
+			coreServiceGetDeregistrationAttestationHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -105,6 +276,34 @@ func NewCoreServiceHandler(svc CoreServiceHandler, opts ...connect.HandlerOption
 // UnimplementedCoreServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedCoreServiceHandler struct{}
 
+func (UnimplementedCoreServiceHandler) Ping(context.Context, *connect.Request[v1.PingRequest]) (*connect.Response[v1.PingResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("core.v1.CoreService.Ping is not implemented"))
+}
+
+func (UnimplementedCoreServiceHandler) GetHealth(context.Context, *connect.Request[v1.GetHealthRequest]) (*connect.Response[v1.GetHealthResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("core.v1.CoreService.GetHealth is not implemented"))
+}
+
 func (UnimplementedCoreServiceHandler) GetBlock(context.Context, *connect.Request[v1.GetBlockRequest]) (*connect.Response[v1.GetBlockResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("core.v1.CoreService.GetBlock is not implemented"))
+}
+
+func (UnimplementedCoreServiceHandler) GetTransaction(context.Context, *connect.Request[v1.GetTransactionRequest]) (*connect.Response[v1.GetTransactionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("core.v1.CoreService.GetTransaction is not implemented"))
+}
+
+func (UnimplementedCoreServiceHandler) SendTransaction(context.Context, *connect.Request[v1.SendTransactionRequest]) (*connect.Response[v1.SendTransactionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("core.v1.CoreService.SendTransaction is not implemented"))
+}
+
+func (UnimplementedCoreServiceHandler) ForwardTransaction(context.Context, *connect.Request[v1.ForwardTransactionRequest]) (*connect.Response[v1.ForwardTransactionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("core.v1.CoreService.ForwardTransaction is not implemented"))
+}
+
+func (UnimplementedCoreServiceHandler) GetRegistrationAttestation(context.Context, *connect.Request[v1.GetRegistrationAttestationRequest]) (*connect.Response[v1.GetRegistrationAttestationResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("core.v1.CoreService.GetRegistrationAttestation is not implemented"))
+}
+
+func (UnimplementedCoreServiceHandler) GetDeregistrationAttestation(context.Context, *connect.Request[v1.GetDeregistrationAttestationRequest]) (*connect.Response[v1.GetDeregistrationAttestationResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("core.v1.CoreService.GetDeregistrationAttestation is not implemented"))
 }
