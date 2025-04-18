@@ -97,7 +97,6 @@ COPY ./pkg ./pkg
 COPY ./go.mod ./go.mod
 COPY ./go.sum ./go.sum
 COPY ./.air.toml ./.air.toml
-RUN chmod 644 .air.toml
 
 RUN go build -o ./tmp/audiusd cmd/audiusd/main.go
 
