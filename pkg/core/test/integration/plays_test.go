@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/AudiusProject/audiusd/pkg/core/common"
+	"github.com/AudiusProject/audiusd/pkg/common"
 	"github.com/AudiusProject/audiusd/pkg/core/gen/core_proto"
 	"github.com/AudiusProject/audiusd/pkg/core/test/integration/utils"
 	"github.com/google/uuid"
