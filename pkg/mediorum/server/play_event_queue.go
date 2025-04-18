@@ -33,11 +33,7 @@ func (p *PlayEventQueue) popPlayEventBatch() []*PlayEvent {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	batchSize := playBatch
-	if len(p.plays) < playBatch {
-		batchSize = len(p.plays)
-	}
-
+	batchSize := min(len(p.plays), playBatch)
 	batch := p.plays[:batchSize]
 	p.plays = p.plays[batchSize:]
 
@@ -83,12 +79,10 @@ func (ss *MediorumServer) processPlayRecordBatch() error {
 		return nil
 	}
 
-	// assemble batch of plays into core tx
-	sdk := ss.coreSdk
-
-	corePlays := []*core_proto.TrackPlay{}
+	uniquePlays := make(map[string]*core_proto.TrackPlay)
 	for _, play := range plays {
-		corePlays = append(corePlays, &core_proto.TrackPlay{
+		// use play signature to deduplicate plays
+		uniquePlays[play.Signature] = &core_proto.TrackPlay{
 			UserId:    play.UserID,
 			TrackId:   play.TrackID,
 			Timestamp: timestamppb.New(play.PlayTime),
@@ -96,7 +90,13 @@ func (ss *MediorumServer) processPlayRecordBatch() error {
 			City:      play.City,
 			Country:   play.Country,
 			Region:    play.Region,
-		})
+		}
+	}
+
+	// Convert map values back to array
+	corePlays := make([]*core_proto.TrackPlay, 0, len(uniquePlays))
+	for _, play := range uniquePlays {
+		corePlays = append(corePlays, play)
 	}
 
 	playsTx := &core_proto.TrackPlays{
@@ -119,7 +119,7 @@ func (ss *MediorumServer) processPlayRecordBatch() error {
 	}
 
 	// submit to configured core node
-	res, err := sdk.SendTransaction(ctx, &core_proto.SendTransactionRequest{
+	res, err := ss.coreSdk.SendTransaction(ctx, &core_proto.SendTransactionRequest{
 		Transaction: signedTx,
 	})
 
