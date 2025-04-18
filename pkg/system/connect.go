@@ -2,6 +2,7 @@ package system
 
 import (
 	"context"
+	"sync"
 
 	"connectrpc.com/connect"
 	coreV1 "github.com/AudiusProject/audiusd/pkg/api/core/v1"
@@ -28,8 +29,43 @@ func NewSystemService(core *server.CoreService, storage *storageServer.StorageSe
 }
 
 // GetHealth implements v1connect.SystemServiceHandler.
-func (s *SystemService) GetHealth(context.Context, *connect.Request[v1.GetHealthRequest]) (*connect.Response[v1.GetHealthResponse], error) {
-	return connect.NewResponse(&v1.GetHealthResponse{}), nil
+func (s *SystemService) GetHealth(ctx context.Context, req *connect.Request[v1.GetHealthRequest]) (*connect.Response[v1.GetHealthResponse], error) {
+	res := &v1.GetHealthResponse{Status: "up"}
+
+	var wg sync.WaitGroup
+
+	wg.Add(3)
+
+	go func() {
+		defer wg.Done()
+		coreHealth, err := s.core.GetHealth(ctx, connect.NewRequest(&coreV1.GetHealthRequest{}))
+		if err != nil {
+			return
+		}
+		res.CoreHealth = coreHealth.Msg
+	}()
+
+	go func() {
+		defer wg.Done()
+		storageHealth, err := s.storage.GetHealth(ctx, connect.NewRequest(&storageV1.GetHealthRequest{}))
+		if err != nil {
+			return
+		}
+		res.StorageHealth = storageHealth.Msg
+	}()
+
+	go func() {
+		defer wg.Done()
+		etlHealth, err := s.etl.GetHealth(ctx, connect.NewRequest(&etlV1.GetHealthRequest{}))
+		if err != nil {
+			return
+		}
+		res.EtlHealth = etlHealth.Msg
+	}()
+
+	wg.Wait()
+
+	return connect.NewResponse(res), nil
 }
 
 // Ping implements v1connect.SystemServiceHandler.
