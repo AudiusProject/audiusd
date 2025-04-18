@@ -36,14 +36,14 @@ var uploadCmd = &cobra.Command{
 		}
 
 		// upload audio file
-		storageSdk := sdk.NewStorageSDK(serverAddr)
+		storageSdk := sdk.NewStorageSDK(fmt.Sprintf("https://%s", serverAddr))
 		uploadRes, err := storageSdk.UploadAudio(filePath)
 		if err != nil || len(uploadRes) == 0 {
 			return fmt.Errorf("failed to upload file: %w", err)
 		}
 		upload := uploadRes[0]
 
-		coreSdk, err := core_sdk.NewSdk(core_sdk.WithGrpcendpoint(serverAddr))
+		coreSdk, err := core_sdk.NewSdk(core_sdk.WithOapiendpoint(serverAddr))
 		if err != nil {
 			return fmt.Errorf("failed to connect to gRPC server: %w", err)
 		}
@@ -66,7 +66,7 @@ var uploadCmd = &cobra.Command{
 				},
 				&adx.Resource{
 					ResourceReference: "AT1",
-					&adx.Resource_SoundRecording{
+					Resource: &adx.Resource_SoundRecording{
 						SoundRecording: &adx.SoundRecording{
 							Cid: upload.OrigFileCID,
 							Id: &adx.SoundRecordingId{
@@ -77,21 +77,23 @@ var uploadCmd = &cobra.Command{
 				},
 			},
 			ReleaseList: []*adx.Release{
-				&adx.Release_TrackRelease{
-					TrackRelease: &adx.TrackRelease{
-						ReleaseId: &adx.ReleaseId{
-							Isrc: uuid.NewString(),
+				&adx.Release{
+					Release: &adx.Release_TrackRelease{
+						TrackRelease: &adx.TrackRelease{
+							ReleaseId: &adx.ReleaseId{
+								Isrc: uuid.NewString(),
+							},
+							ReleaseResourceReference:       "AT1",
+							LinkedReleaseResourceReference: "AI1",
+							Title:                          title,
+							Genre:                          genre,
 						},
-						ReleaseResourceReference:       "AT1",
-						LinkedReleaseResourceReference: "AI1",
-						Title:                          title,
-						Genre:                          genre,
 					},
 				},
 			},
 		}
 
-		ernBytes, err := proto.Marshal(verificationTx)
+		ernBytes, err := proto.Marshal(ern)
 		if err != nil {
 			return fmt.Errorf("failure to marshal ern: %v", err)
 		}
@@ -113,7 +115,7 @@ var uploadCmd = &cobra.Command{
 			return fmt.Errorf("ern failed: %w", err)
 		}
 
-		fmt.Printf("Upload successful: %v\n", resp.GetMessage())
+		fmt.Printf("Upload successful: %s\n", txhash)
 		return nil
 	},
 }
@@ -142,7 +144,7 @@ func init() {
 	rootCmd.AddCommand(uploadCmd)
 }
 
-var rootCmd = &cobra.Command{Use: "mycli"}
+var rootCmd = &cobra.Command{Use: "upload"}
 
 func Execute() error {
 	return rootCmd.Execute()

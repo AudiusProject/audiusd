@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package protocol.audiusddex.v1beta1;
 
-option go_package = "github.com/AudiusProject/audiusd/pkg/core/gen/core_proto/audiusddex/v1beta1;audiusddex_v1beta1";
+option go_package = "github.com/AudiusProject/audiusd/proto/audiusddex/v1beta1;audiusddex_v1beta1";
 
 message NewReleaseMessage {
   ReleaseHeader release_header = 1;
@@ -32,14 +32,13 @@ message Resource {
 message SoundRecording {
   SoundRecordingId id = 1;
   string filename = 2;
-  string md5_hash = 3;
-  string cid = 5;
-  repeated ResourceContributor contributors = 6;
-  repeated ResourceContributor indirect_contributors = 7;
+  string cid = 3;
+  repeated ResourceContributor contributors = 4;
+  repeated ResourceContributor indirect_contributors = 5;
 }
 
 message SoundRecordingId {
-  string isrc = 2;
+  string isrc = 1;
 }
 
 message ResourceContributor {
