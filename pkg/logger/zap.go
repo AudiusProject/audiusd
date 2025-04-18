@@ -3,8 +3,10 @@ package logger
 import (
 	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/AudiusProject/audiusd/pkg/common"
+	"github.com/AudiusProject/audiusd/pkg/core/config"
 	"github.com/axiomhq/axiom-go/axiom"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -19,7 +21,8 @@ const (
 )
 
 func CreateLogger(env, level string) (*zap.Logger, error) {
-	skipAxiom := os.Getenv("AUDIUSD_SKIP_AXIOM") == "true"
+	enableAxiomDefault := strconv.FormatBool(env != "dev")
+	enableAxiom := config.GetEnvWithDefault("AUDIUSD_ENABLE_AXIOM", enableAxiomDefault) == "true"
 
 	consoleEncoder := zapcore.NewConsoleEncoder(zap.NewProductionEncoderConfig())
 
@@ -41,7 +44,7 @@ func CreateLogger(env, level string) (*zap.Logger, error) {
 		axiomToken = ""
 	}
 
-	if axiomToken != "" && !skipAxiom {
+	if axiomToken != "" && enableAxiom {
 		axiomToken, err = common.Deobfuscate(axiomToken)
 		if err != nil {
 			return nil, fmt.Errorf("failed to deobfuscate axiom token: %v", err)
