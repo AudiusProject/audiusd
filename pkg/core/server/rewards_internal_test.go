@@ -85,7 +85,6 @@ func TestGetRewardAttestation(t *testing.T) {
 	require.NoError(t, err)
 
 	// Assertions
-	log.Println(res)
 	require.Equal(t, expectedAttestation, res["attestation"])
 	require.Equal(t, expectedOwner, res["owner"])
 }
