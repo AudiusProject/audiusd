@@ -29,7 +29,7 @@ func (c *CoreService) ForwardTransaction(ctx context.Context, req *connect.Reque
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert transaction: %w", err)
 	}
-	c.core.ForwardTransaction(ctx, &core_proto.ForwardTransactionRequest{
+	_, err = c.core.ForwardTransaction(ctx, &core_proto.ForwardTransactionRequest{
 		Transaction: tx,
 	})
 	if err != nil {
