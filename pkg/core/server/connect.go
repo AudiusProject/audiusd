@@ -29,7 +29,7 @@ func (c *CoreService) ForwardTransaction(ctx context.Context, req *connect.Reque
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert transaction: %w", err)
 	}
-	c.core.ForwardTransaction(ctx, &core_proto.ForwardTransactionRequest{
+	_, err = c.core.ForwardTransaction(ctx, &core_proto.ForwardTransactionRequest{
 		Transaction: tx,
 	})
 	if err != nil {
@@ -73,8 +73,26 @@ func (c *CoreService) GetBlock(ctx context.Context, req *connect.Request[v1.GetB
 }
 
 // GetDeregistrationAttestation implements v1connect.CoreServiceHandler.
-func (c *CoreService) GetDeregistrationAttestation(context.Context, *connect.Request[v1.GetDeregistrationAttestationRequest]) (*connect.Response[v1.GetDeregistrationAttestationResponse], error) {
-	panic("unimplemented")
+func (c *CoreService) GetDeregistrationAttestation(ctx context.Context, req *connect.Request[v1.GetDeregistrationAttestationRequest]) (*connect.Response[v1.GetDeregistrationAttestationResponse], error) {
+	deregistrationRequest := req.Msg.Deregistration
+	res, err := c.core.GetDeregistrationAttestation(ctx, &core_proto.DeregistrationAttestationRequest{
+		Deregistration: &core_proto.ValidatorDeregistration{
+			CometAddress: deregistrationRequest.CometAddress,
+			PubKey:       deregistrationRequest.PubKey,
+			Deadline:     deregistrationRequest.Deadline,
+		},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get deregistration attestation: %w", err)
+	}
+	return connect.NewResponse(&v1.GetDeregistrationAttestationResponse{
+		Signature: res.Signature,
+		Deregistration: &v1.ValidatorDeregistration{
+			CometAddress: res.Deregistration.CometAddress,
+			PubKey:       res.Deregistration.PubKey,
+			Deadline:     res.Deregistration.Deadline,
+		},
+	}), nil
 }
 
 // GetHealth implements v1connect.CoreServiceHandler.
@@ -83,8 +101,38 @@ func (c *CoreService) GetHealth(context.Context, *connect.Request[v1.GetHealthRe
 }
 
 // GetRegistrationAttestation implements v1connect.CoreServiceHandler.
-func (c *CoreService) GetRegistrationAttestation(context.Context, *connect.Request[v1.GetRegistrationAttestationRequest]) (*connect.Response[v1.GetRegistrationAttestationResponse], error) {
-	panic("unimplemented")
+func (c *CoreService) GetRegistrationAttestation(ctx context.Context, req *connect.Request[v1.GetRegistrationAttestationRequest]) (*connect.Response[v1.GetRegistrationAttestationResponse], error) {
+	registrationRequest := req.Msg.Registration
+	res, err := c.core.GetRegistrationAttestation(ctx, &core_proto.RegistrationAttestationRequest{
+		Registration: &core_proto.ValidatorRegistration{
+			DelegateWallet: registrationRequest.DelegateWallet,
+			CometAddress:   registrationRequest.CometAddress,
+			PubKey:         registrationRequest.PubKey,
+			Deadline:       registrationRequest.Deadline,
+			Endpoint:       registrationRequest.Endpoint,
+			NodeType:       registrationRequest.NodeType,
+			SpId:           registrationRequest.SpId,
+			EthBlock:       registrationRequest.EthBlock,
+			Power:          registrationRequest.Power,
+		},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get registration attestation: %w", err)
+	}
+	return connect.NewResponse(&v1.GetRegistrationAttestationResponse{
+		Signature: res.Signature,
+		Registration: &v1.ValidatorRegistration{
+			DelegateWallet: res.Registration.DelegateWallet,
+			CometAddress:   res.Registration.CometAddress,
+			PubKey:         res.Registration.PubKey,
+			Deadline:       res.Registration.Deadline,
+			Endpoint:       res.Registration.Endpoint,
+			NodeType:       res.Registration.NodeType,
+			SpId:           res.Registration.SpId,
+			EthBlock:       res.Registration.EthBlock,
+			Power:          res.Registration.Power,
+		},
+	}), nil
 }
 
 // GetTransaction implements v1connect.CoreServiceHandler.
