@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/AudiusProject/audiusd/pkg/core/common"
+	"github.com/AudiusProject/audiusd/pkg/rewards"
 	"github.com/cometbft/cometbft/crypto/ed25519"
 	"github.com/cometbft/cometbft/types"
 )
@@ -111,6 +112,7 @@ type Config struct {
 	EthereumKey *ecdsa.PrivateKey
 	CometKey    *ed25519.PrivKey
 	NodeType    NodeType
+	Rewards     []rewards.Reward
 
 	/* Optional Modules */
 	ConsoleModule bool
@@ -205,6 +207,7 @@ func ReadConfig(logger *common.Logger) (*Config, error) {
 
 		cfg.SlaRollupInterval = mainnetRollupInterval
 		cfg.ValidatorVotingPower = mainnetValidatorVotingPower
+		cfg.Rewards = MakeRewards(ProdClaimAuthorities, ProdRewardExtensions)
 
 	case "stage", "staging", "testnet":
 		cfg.PersistentPeers = GetEnvWithDefault("persistentPeers", moduloPersistentPeers(ethAddress, StagePersistentPeers, 3))
@@ -214,6 +217,7 @@ func ReadConfig(logger *common.Logger) (*Config, error) {
 		}
 		cfg.SlaRollupInterval = testnetRollupInterval
 		cfg.ValidatorVotingPower = testnetValidatorVotingPower
+		cfg.Rewards = MakeRewards(StageClaimAuthorities, StageRewardExtensions)
 
 	case "dev", "development", "devnet", "local", "sandbox":
 		cfg.PersistentPeers = GetEnvWithDefault("persistentPeers", DevPersistentPeers)
@@ -227,6 +231,7 @@ func ReadConfig(logger *common.Logger) (*Config, error) {
 		}
 		cfg.SlaRollupInterval = devnetRollupInterval
 		cfg.ValidatorVotingPower = devnetValidatorVotingPower
+		cfg.Rewards = MakeRewards(DevClaimAuthorities, DevRewardExtensions)
 	}
 
 	// Disable ssl for local postgres db connection

@@ -14,6 +14,17 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var (
+	TestRewards = []rewards.Reward{
+		{
+			Amount:           1,
+			RewardId:         "c",
+			Name:             "first weekly comment",
+			ClaimAuthorities: []rewards.ClaimAuthority{{Address: "0x73EB6d82CFB20bA669e9c178b718d770C49BB52f", Name: "TikiLabsDiscovery"}},
+		},
+	}
+)
+
 func TestGetRewardAttestation(t *testing.T) {
 	// arbitrary privkey
 	privKeyHex := "3b44ad90f0a3bf1c00b3b960c1b575db4d65a3e0b883f47ff80e3323b1c1c2f2"
@@ -30,7 +41,7 @@ func TestGetRewardAttestation(t *testing.T) {
 
 	// Setup
 	e := echo.New()
-	attester := rewards.NewRewardAttester("dev", privKey)
+	attester := rewards.NewRewardAttester(privKey, TestRewards)
 	s := &Server{rewards: attester}
 
 	if err != nil {

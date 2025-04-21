@@ -10,8 +10,19 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var (
+	TestRewards = []rewards.Reward{
+		{
+			Amount:           1,
+			RewardId:         "c",
+			Name:             "first weekly comment",
+			ClaimAuthorities: []rewards.ClaimAuthority{{Address: "0x73EB6d82CFB20bA669e9c178b718d770C49BB52f", Name: "TikiLabsDiscovery"}},
+		},
+	}
+)
+
 func TestValidate(t *testing.T) {
-	attester := rewards.NewRewardAttester("dev", nil)
+	attester := rewards.NewRewardAttester(nil, TestRewards)
 	claim := rewards.RewardClaim{
 		RewardID:                  "xxx",
 		Specifier:                 "b9256e3:202515",
@@ -71,7 +82,7 @@ func TestAuthenticate(t *testing.T) {
 	signature := "0x661327f5968ac95063dff94dcedbcfcf8dd464461aceffba5071dcf05b3287dc3dd69d86ba3b8776ad4b7e2116c71e148938a539403975ae8439b2acdd93348901"
 
 	// Explicitly don't set up the authorities
-	attester := rewards.NewRewardAttester("", nil)
+	attester := rewards.NewRewardAttester(nil, []rewards.Reward{{RewardId: "c", Amount: uint64(1), ClaimAuthorities: []rewards.ClaimAuthority{}}})
 
 	err := attester.Authenticate(claim, signature)
 	require.Error(t, err, "should error when signed by unauthorized signer")
@@ -99,7 +110,7 @@ func TestAttest(t *testing.T) {
 		log.Fatalf("failed to convert to ECDSA: %v", err)
 	}
 
-	attester := rewards.NewRewardAttester("dev", privKey)
+	attester := rewards.NewRewardAttester(privKey, TestRewards)
 
 	claim := rewards.RewardClaim{
 		RewardID:                  "c",
