@@ -1,17 +1,27 @@
 package main
 
 import (
-	"context"
 	"crypto/ecdsa"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
+	"net/http"
+	"net/url"
+	"os"
+	"time"
 
+	"github.com/gowebpki/jcs"
+
+	"github.com/AudiusProject/audiusd/pkg/core/gen/core_openapi/protocol"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/AudiusProject/audiusd/pkg/common"
+	ccommon "github.com/AudiusProject/audiusd/pkg/core/common"
 	"github.com/AudiusProject/audiusd/pkg/core/gen/core_proto"
 	adx "github.com/AudiusProject/audiusd/pkg/core/gen/core_proto/audiusddex/v1beta1"
 	core_sdk "github.com/AudiusProject/audiusd/pkg/core/sdk"
@@ -24,6 +34,8 @@ var (
 	title       string
 	genre       string
 	serverAddr  string
+	outputPath  string
+	trackId     string
 )
 
 var uploadCmd = &cobra.Command{
@@ -51,7 +63,12 @@ var uploadCmd = &cobra.Command{
 		imgCid := "asdf"
 
 		ern := &adx.NewReleaseMessage{
-			ReleaseHeader: &adx.ReleaseHeader{},
+			ReleaseHeader: &adx.ReleaseHeader{
+				Sender: &adx.Party{
+					PartyId: "aupl_cli",
+					PubKey:  crypto.CompressPubkey(&privateKey.PublicKey),
+				},
+			},
 			ResourceList: []*adx.Resource{
 				&adx.Resource{
 					ResourceReference: "AI1",
@@ -110,12 +127,92 @@ var uploadCmd = &cobra.Command{
 				Release: ern,
 			},
 		}
-		txhash, err := coreSdk.SendTransaction(context.Background(), &core_proto.SendTransactionRequest{Transaction: tx})
+		sendParams := protocol.NewProtocolSendTransactionParams()
+		sendParams.SetTransaction(ccommon.SignedTxProtoIntoSignedTxOapi(tx))
+		res, err := coreSdk.ProtocolSendTransaction(sendParams)
 		if err != nil {
 			return fmt.Errorf("ern failed: %w", err)
 		}
 
-		fmt.Printf("Upload successful: %s\n", txhash)
+		fmt.Printf("Upload successful: %s\n", res.Payload.Txhash)
+		return nil
+	},
+}
+
+var downloadCmd = &cobra.Command{
+	Use:   "download",
+	Short: "Download a file with metadata and signature",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		privateKey, err := loadPrivateKey(privKeyPath)
+		if err != nil {
+			return err
+		}
+
+		dataObj := map[string]interface{}{
+			"upload_id":   trackId,
+			"cid":         "",
+			"shouldCache": 0,
+			"timestamp":   time.Now().Unix(),
+			"trackId":     0,
+			"userId":      0,
+		}
+
+		jsonBytes, err := json.Marshal(dataObj)
+		if err != nil {
+			return fmt.Errorf("failed to marshal: %w", err)
+		}
+		canonicalJSON, err := jcs.Transform(jsonBytes)
+		if err != nil {
+			return fmt.Errorf("failed to canonicalize: %w", err)
+		}
+
+		// Hash and sign
+		hash := crypto.Keccak256Hash(canonicalJSON)
+		sig, err := crypto.Sign(hash[:], privateKey)
+		if err != nil {
+			return fmt.Errorf("failed to sign: %w", err)
+		}
+		sigHex := "0x" + hex.EncodeToString(sig)
+
+		// Wrap in envelope
+		envelope := map[string]string{
+			"Data":      string(jsonBytes),
+			"Signature": sigHex,
+		}
+		envelopeBytes, err := json.Marshal(envelope)
+		if err != nil {
+			return fmt.Errorf("failed to marshal envelope: %w", err)
+		}
+		query := url.Values{}
+
+		query.Set("signature", string(envelopeBytes))
+
+		fullURL := fmt.Sprintf("https://%s/tracks/stream/%s?%s", serverAddr, trackId, query.Encode())
+		fmt.Printf("Downloading from: %s\n", fullURL)
+
+		resp, err := http.Get(fullURL)
+		if err != nil {
+			return fmt.Errorf("failed to make GET request: %w", err)
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			body, _ := io.ReadAll(resp.Body)
+			return fmt.Errorf("download failed: status %d - %s", resp.StatusCode, string(body))
+		}
+
+		outFile, err := os.Create(outputPath)
+		if err != nil {
+			return fmt.Errorf("failed to create output file: %w", err)
+		}
+		defer outFile.Close()
+
+		_, err = io.Copy(outFile, resp.Body)
+		if err != nil {
+			return fmt.Errorf("failed to write to file: %w", err)
+		}
+
+		fmt.Printf("Download successful: saved to %s\n", outputPath)
 		return nil
 	},
 }
@@ -137,11 +234,21 @@ func init() {
 	uploadCmd.Flags().StringVar(&filePath, "file", "", "Path to file to upload")
 	uploadCmd.Flags().StringVar(&title, "title", "", "Title of the upload")
 	uploadCmd.Flags().StringVar(&genre, "genre", "", "Genre of the upload")
-	uploadCmd.Flags().StringVar(&serverAddr, "server", "", "gRPC server address")
+	uploadCmd.Flags().StringVar(&serverAddr, "server", "", "server address")
 	uploadCmd.MarkFlagRequired("key")
 	uploadCmd.MarkFlagRequired("file")
 
 	rootCmd.AddCommand(uploadCmd)
+
+	downloadCmd.Flags().StringVar(&privKeyPath, "key", "", "Path to Ethereum private key file")
+	downloadCmd.Flags().StringVar(&trackId, "id", "", "Track ID to download")
+	downloadCmd.Flags().StringVar(&serverAddr, "server", "", "server address")
+	downloadCmd.Flags().StringVar(&outputPath, "out", "track.mp3", "Path to save the downloaded file")
+	downloadCmd.MarkFlagRequired("key")
+	downloadCmd.MarkFlagRequired("id")
+
+	rootCmd.AddCommand(downloadCmd)
+
 }
 
 var rootCmd = &cobra.Command{Use: "upload"}

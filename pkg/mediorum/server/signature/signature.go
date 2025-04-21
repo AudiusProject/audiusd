@@ -52,25 +52,25 @@ func ParseFromQueryString(queryStringValue string) (*RecoveredSignature, error) 
 
 	err := json.Unmarshal([]byte(queryStringValue), &envelope)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not unmarshal json query string, %v", err)
 	}
 
 	// ensure json keys are sorted
 	inner, err := jcs.Transform([]byte(envelope.Data))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not sort json query string, %v", err)
 	}
 
 	hash := crypto.Keccak256Hash(inner)
 
 	signatureBytes, err := hex.DecodeString(envelope.Signature[2:])
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not decode signature bytes, %v", err)
 	}
 
 	recoveredPubkey, err := crypto.SigToPub(hash.Bytes(), signatureBytes)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not recover public key: %v, envelope: %v", err, envelope)
 	}
 	recoveredAddress := crypto.PubkeyToAddress(*recoveredPubkey)
 	pubkeyBytes := crypto.CompressPubkey(recoveredPubkey)
@@ -78,7 +78,7 @@ func ParseFromQueryString(queryStringValue string) (*RecoveredSignature, error) 
 	var data SignatureData
 	err = json.Unmarshal([]byte(envelope.Data), &data)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not unmarshal envelope data, %v", err)
 	}
 
 	recovered := &RecoveredSignature{

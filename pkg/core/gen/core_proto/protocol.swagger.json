@@ -821,17 +821,6 @@
         }
       }
     },
-    "v1beta1ResourceContributor": {
-      "type": "object",
-      "properties": {
-        "partyName": {
-          "type": "string"
-        },
-        "role": {
-          "type": "string"
-        }
-      }
-    },
     "v1beta1SoundRecording": {
       "type": "object",
       "properties": {
@@ -841,25 +830,8 @@
         "filename": {
           "type": "string"
         },
-        "md5Hash": {
-          "type": "string"
-        },
         "cid": {
           "type": "string"
-        },
-        "contributors": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/v1beta1ResourceContributor"
-          }
-        },
-        "indirectContributors": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/v1beta1ResourceContributor"
-          }
         }
       }
     },
