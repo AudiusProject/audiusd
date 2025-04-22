@@ -7,6 +7,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"io/ioutil"
 
 	"github.com/cometbft/cometbft/crypto/ed25519"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -86,4 +87,16 @@ func HexToUtf8(hex [32]byte) string {
 		}
 	}
 	return string(hex[:end])
+}
+
+func LoadPrivateKey(path string) (*ecdsa.PrivateKey, error) {
+	keyBytes, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("could not read private key file: %w", err)
+	}
+	key, err := crypto.HexToECDSA(string(keyBytes))
+	if err != nil {
+		return nil, fmt.Errorf("invalid private key: %w", err)
+	}
+	return key, nil
 }
