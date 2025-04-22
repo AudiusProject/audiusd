@@ -17,6 +17,10 @@ import (
 )
 
 func (s *Server) isValidReleaseTx(ctx context.Context, tx *core_proto.SignedTransaction) error {
+	if !s.config.ERNAccessControlEnabled {
+		return errors.New("ERN feature disabled")
+	}
+
 	ern := tx.GetRelease()
 	if ern == nil {
 		return errors.New("Empty release in signed tx")

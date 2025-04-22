@@ -127,6 +127,9 @@ type Config struct {
 	AttRegistrationRSize   int // rendezvous size for registration attestations (should be >= to AttRegistrationMin)
 	AttDeregistrationMin   int // minimum number of attestations needed to deregister a node
 	AttDeregistrationRSize int // rendezvous size for deregistration attestations (should be >= to AttDeregistrationMin)
+
+	/* Feature flags */
+	ERNAccessControlEnabled bool
 }
 
 func ReadConfig(logger *common.Logger) (*Config, error) {
@@ -208,6 +211,7 @@ func ReadConfig(logger *common.Logger) (*Config, error) {
 		cfg.SlaRollupInterval = mainnetRollupInterval
 		cfg.ValidatorVotingPower = mainnetValidatorVotingPower
 		cfg.Rewards = MakeRewards(ProdClaimAuthorities, ProdRewardExtensions)
+		cfg.ERNAccessControlEnabled = false
 
 	case "stage", "staging", "testnet":
 		cfg.PersistentPeers = GetEnvWithDefault("persistentPeers", moduloPersistentPeers(ethAddress, StagePersistentPeers, 3))
@@ -218,6 +222,7 @@ func ReadConfig(logger *common.Logger) (*Config, error) {
 		cfg.SlaRollupInterval = testnetRollupInterval
 		cfg.ValidatorVotingPower = testnetValidatorVotingPower
 		cfg.Rewards = MakeRewards(StageClaimAuthorities, StageRewardExtensions)
+		cfg.ERNAccessControlEnabled = false
 
 	case "dev", "development", "devnet", "local", "sandbox":
 		cfg.PersistentPeers = GetEnvWithDefault("persistentPeers", DevPersistentPeers)
@@ -232,6 +237,7 @@ func ReadConfig(logger *common.Logger) (*Config, error) {
 		cfg.SlaRollupInterval = devnetRollupInterval
 		cfg.ValidatorVotingPower = devnetValidatorVotingPower
 		cfg.Rewards = MakeRewards(DevClaimAuthorities, DevRewardExtensions)
+		cfg.ERNAccessControlEnabled = true
 	}
 
 	// Disable ssl for local postgres db connection

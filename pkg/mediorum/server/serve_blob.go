@@ -508,6 +508,10 @@ func (ss *MediorumServer) serveLegacyBlobAnalysis(c echo.Context) error {
 }
 
 func (ss *MediorumServer) serveTrack(c echo.Context) error {
+	if ss.Config.Env != "dev" {
+		return c.String(404, "not found")
+	}
+
 	trackId := c.Param("trackId")
 	ctx := c.Request().Context()
 	sig, err := signature.ParseFromQueryString(c.QueryParam("signature"))
