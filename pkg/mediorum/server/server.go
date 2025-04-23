@@ -20,6 +20,7 @@ import (
 	_ "net/http/pprof"
 
 	core "github.com/AudiusProject/audiusd/pkg/core/sdk"
+	coreServer "github.com/AudiusProject/audiusd/pkg/core/server"
 	aLogger "github.com/AudiusProject/audiusd/pkg/logger"
 	"github.com/AudiusProject/audiusd/pkg/mediorum/cidutil"
 	"github.com/AudiusProject/audiusd/pkg/mediorum/crudr"
@@ -129,6 +130,8 @@ type MediorumServer struct {
 	coreSdk      *core.Sdk
 	coreSdkReady chan struct{}
 
+	core *coreServer.CoreService
+
 	geoIPdb      *maxminddb.Reader
 	geoIPdbReady chan struct{}
 
@@ -148,7 +151,7 @@ var (
 
 const PercentSeededThreshold = 50
 
-func New(config MediorumConfig, posChannel chan pos.PoSRequest) (*MediorumServer, error) {
+func New(config MediorumConfig, posChannel chan pos.PoSRequest, core *coreServer.CoreService) (*MediorumServer, error) {
 	if env := os.Getenv("MEDIORUM_ENV"); env != "" {
 		config.Env = env
 	}
@@ -328,6 +331,8 @@ func New(config MediorumConfig, posChannel chan pos.PoSRequest) (*MediorumServer
 		Config:       config,
 		coreSdkReady: make(chan struct{}),
 		geoIPdbReady: make(chan struct{}),
+
+		core: core,
 
 		playEventQueue: NewPlayEventQueue(),
 	}
