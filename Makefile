@@ -10,8 +10,8 @@ GIT_SHA := $(shell git rev-parse HEAD)
 SQL_SRCS := $(shell find pkg/core/db/sql -type f -name '*.sql') pkg/core/db/sqlc.yaml
 SQL_ARTIFACTS := $(wildcard pkg/core/db/*.sql.go)
 
-PROTO_SRCS := pkg/core/protocol/protocol.proto
-PROTO_ARTIFACTS := $(wildcard pkg/core/gen/core_proto/*.pb.go)
+PROTO_SRCS := $(shell find proto -type f -name '*.proto')
+PROTO_ARTIFACTS := $(shell find pkg/api -type f -name '*.pb.go')
 
 TEMPL_SRCS := $(shell find pkg/core/console -type f -name "*.templ")
 TEMPL_ARTIFACTS := $(shell find pkg/core/console -type f -name "*_templ.go")
@@ -129,11 +129,10 @@ $(TEMPL_ARTIFACTS): $(TEMPL_SRCS)
 	cd pkg/core/console && go generate ./...
 
 .PHONY: regen-proto
-regen-proto: $(PROTO_ARTIFACTS)
-$(PROTO_ARTIFACTS): $(PROTO_SRCS)
+regen-proto:
 	@echo Regenerating protobuf code
-	cd pkg/core && buf --version && buf generate
-	cd pkg/core/gen/core_proto && swagger generate client -f protocol.swagger.json -t ../ --client-package=core_openapi
+	buf --version
+	buf generate
 
 .PHONY: regen-gql
 regen-gql: $(GQL_ARTIFACTS)
