@@ -1,7 +1,7 @@
 version: v2
 modules:
   - path: proto
-    name: buf.build/audius/audiusd
+    name: buf.build/audiusd/audiusd
 deps:
   - buf.build/googleapis/googleapis
 lint:
