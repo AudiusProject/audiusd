@@ -19,7 +19,6 @@ import (
 	_ "embed"
 	_ "net/http/pprof"
 
-	core "github.com/AudiusProject/audiusd/pkg/core/sdk"
 	coreServer "github.com/AudiusProject/audiusd/pkg/core/server"
 	aLogger "github.com/AudiusProject/audiusd/pkg/logger"
 	"github.com/AudiusProject/audiusd/pkg/mediorum/cidutil"
@@ -126,9 +125,6 @@ type MediorumServer struct {
 
 	// handle communication between core and mediorum for Proof of Storage
 	posChannel chan pos.PoSRequest
-
-	coreSdk      *core.Sdk
-	coreSdkReady chan struct{}
 
 	core *coreServer.CoreService
 
@@ -329,7 +325,6 @@ func New(config MediorumConfig, posChannel chan pos.PoSRequest, core *coreServer
 
 		StartedAt:    time.Now().UTC(),
 		Config:       config,
-		coreSdkReady: make(chan struct{}),
 		geoIPdbReady: make(chan struct{}),
 
 		core: core,
@@ -443,7 +438,6 @@ func New(config MediorumConfig, posChannel chan pos.PoSRequest, core *coreServer
 	internalApi.GET("/proxy_health_check", ss.proxyHealthCheck)
 
 	go ss.loadGeoIPDatabase()
-	go ss.initCoreSdk()
 
 	return ss, nil
 
