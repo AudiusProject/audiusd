@@ -2,6 +2,7 @@ package sdk
 
 import (
 	"net/http"
+	"strings"
 
 	corev1connect "github.com/AudiusProject/audiusd/pkg/api/core/v1/v1connect"
 	etlv1connect "github.com/AudiusProject/audiusd/pkg/api/etl/v1/v1connect"
@@ -16,13 +17,21 @@ type AudiusdSDK struct {
 	System  systemv1connect.SystemServiceClient
 }
 
+func ensureURLProtocol(url string) string {
+	if !strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://") {
+		return "https://" + url
+	}
+	return url
+}
+
 func NewAudiusdSDK(nodeURL string) *AudiusdSDK {
 	httpClient := http.DefaultClient
+	url := ensureURLProtocol(nodeURL)
 	sdk := &AudiusdSDK{
-		Core:    corev1connect.NewCoreServiceClient(httpClient, nodeURL),
-		Storage: storagev1connect.NewStorageServiceClient(httpClient, nodeURL),
-		ETL:     etlv1connect.NewETLServiceClient(httpClient, nodeURL),
-		System:  systemv1connect.NewSystemServiceClient(httpClient, nodeURL),
+		Core:    corev1connect.NewCoreServiceClient(httpClient, url),
+		Storage: storagev1connect.NewStorageServiceClient(httpClient, url),
+		ETL:     etlv1connect.NewETLServiceClient(httpClient, url),
+		System:  systemv1connect.NewSystemServiceClient(httpClient, url),
 	}
 
 	return sdk

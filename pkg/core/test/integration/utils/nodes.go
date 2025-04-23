@@ -7,10 +7,10 @@ import (
 )
 
 var (
-	DiscoveryOneRPC = getEnvWithDefault("discoveryOneRPC", "https://node1.audiusd.devnet")
-	ContentOneRPC   = getEnvWithDefault("contentOneRPC", "https://node2.audiusd.devnet")
-	ContentTwoRPC   = getEnvWithDefault("contentTwoRPC", "https://node3.audiusd.devnet")
-	ContentThreeRPC = getEnvWithDefault("contentThreeRPC", "https://node4.audiusd.devnet")
+	DiscoveryOneRPC = getEnvWithDefault("discoveryOneRPC", "node1.audiusd.devnet")
+	ContentOneRPC   = getEnvWithDefault("contentOneRPC", "node2.audiusd.devnet")
+	ContentTwoRPC   = getEnvWithDefault("contentTwoRPC", "node3.audiusd.devnet")
+	ContentThreeRPC = getEnvWithDefault("contentThreeRPC", "node4.audiusd.devnet")
 
 	DiscoveryOne *sdk.AudiusdSDK
 	ContentOne   *sdk.AudiusdSDK
