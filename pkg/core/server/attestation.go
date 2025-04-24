@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	v1 "github.com/AudiusProject/audiusd/pkg/api/core/v1"
-	"github.com/AudiusProject/audiusd/pkg/core/common"
+	"github.com/AudiusProject/audiusd/pkg/common"
 	"github.com/jackc/pgx/v5"
 	"google.golang.org/protobuf/proto"
 )

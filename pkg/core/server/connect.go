@@ -11,7 +11,7 @@ import (
 	"connectrpc.com/connect"
 	v1 "github.com/AudiusProject/audiusd/pkg/api/core/v1"
 	"github.com/AudiusProject/audiusd/pkg/api/core/v1/v1connect"
-	"github.com/AudiusProject/audiusd/pkg/core/common"
+	"github.com/AudiusProject/audiusd/pkg/common"
 	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/jackc/pgx/v5"
 	"google.golang.org/protobuf/proto"

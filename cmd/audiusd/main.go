@@ -27,8 +27,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/AudiusProject/audiusd/pkg/common"
 	"github.com/AudiusProject/audiusd/pkg/core"
-	"github.com/AudiusProject/audiusd/pkg/core/common"
 	"github.com/AudiusProject/audiusd/pkg/core/console"
 	coreServer "github.com/AudiusProject/audiusd/pkg/core/server"
 	"github.com/AudiusProject/audiusd/pkg/etl"

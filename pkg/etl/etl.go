@@ -6,7 +6,7 @@ import (
 	"os"
 
 	v1 "github.com/AudiusProject/audiusd/pkg/api/core/v1"
-	"github.com/AudiusProject/audiusd/pkg/core/common"
+	"github.com/AudiusProject/audiusd/pkg/common"
 	"github.com/AudiusProject/audiusd/pkg/core/db"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"

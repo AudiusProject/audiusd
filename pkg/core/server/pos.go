@@ -12,7 +12,7 @@ import (
 
 	"connectrpc.com/connect"
 	v1 "github.com/AudiusProject/audiusd/pkg/api/core/v1"
-	"github.com/AudiusProject/audiusd/pkg/core/common"
+	"github.com/AudiusProject/audiusd/pkg/common"
 	"github.com/AudiusProject/audiusd/pkg/core/db"
 	"github.com/AudiusProject/audiusd/pkg/pos"
 	"github.com/cometbft/cometbft/crypto/ed25519"

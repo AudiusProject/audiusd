@@ -11,7 +11,7 @@ import (
 
 	"connectrpc.com/connect"
 	v1 "github.com/AudiusProject/audiusd/pkg/api/core/v1"
-	"github.com/AudiusProject/audiusd/pkg/core/common"
+	"github.com/AudiusProject/audiusd/pkg/common"
 	"github.com/AudiusProject/audiusd/pkg/core/contracts"
 	"github.com/AudiusProject/audiusd/pkg/logger"
 	"github.com/cometbft/cometbft/crypto/ed25519"

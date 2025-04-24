@@ -59,6 +59,10 @@ bin/audius-ctl-x86_64-darwin: $(BUILD_SRCS)
 	@echo "Building macos x86 audius-ctl..."
 	@bash scripts/build-audius-ctl.sh $@ amd64 darwin
 
+bin/aupl: $(BUILD_SRCS)
+	@echo "Building aupl for native platform and architecture..."
+	@CGO_ENABLED=0 go build -o $@ ./cmd/aupl
+
 .PHONY: release-audius-ctl audius-ctl-production-build
 release-audius-ctl:
 	bash scripts/release-audius-ctl.sh
