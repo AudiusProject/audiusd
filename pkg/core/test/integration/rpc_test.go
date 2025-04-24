@@ -31,7 +31,7 @@ func TestConnectGRPCWeb(t *testing.T) {
 	t.Run("should return a health response", func(t *testing.T) {
 		ctx := context.Background()
 
-		endpoint := "https://" + utils.DiscoveryOneRPC
+		endpoint := "http://" + utils.DiscoveryOneRPC
 		client := connectv1system.NewSystemServiceClient(http.DefaultClient, endpoint, connect.WithGRPCWeb())
 		res, err := client.GetHealth(ctx, connect.NewRequest(&systemv1.GetHealthRequest{}))
 		if err != nil {
