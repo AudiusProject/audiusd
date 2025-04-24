@@ -2,7 +2,6 @@
 package server
 
 import (
-	"context"
 	"net/http"
 	"net/http/pprof"
 	"time"
@@ -13,10 +12,8 @@ import (
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/AudiusProject/audiusd/pkg/core/console/views/sandbox"
 	"github.com/AudiusProject/audiusd/pkg/core/gen/core_gql"
-	"github.com/AudiusProject/audiusd/pkg/core/gen/core_proto"
 	"github.com/AudiusProject/audiusd/pkg/core/gql"
 	"github.com/gorilla/websocket"
-	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
@@ -29,14 +26,6 @@ func (s *Server) startEchoServer() error {
 	httpServer.Use(middleware.Recover())
 	httpServer.Use(middleware.CORS())
 	httpServer.HideBanner = true
-
-	// wait for grpc server to start first since the http
-	// forward requires the grpc routes to be functional
-	<-s.awaitGrpcServerReady
-	gwMux := runtime.NewServeMux()
-	if err := core_proto.RegisterProtocolHandlerServer(context.TODO(), gwMux, s); err != nil {
-		s.logger.Errorf("could not register protocol handler server: %v", err)
-	}
 
 	gqlResolver := gql.NewGraphQLServer(s.config, s.logger, s.db)
 	srv := handler.New(core_gql.NewExecutableSchema(core_gql.Config{Resolvers: gqlResolver}))
@@ -66,9 +55,6 @@ func (s *Server) startEchoServer() error {
 	}
 
 	g := s.httpServer.Group("/core")
-
-	/** /core routes **/
-	g.Any("/grpc/*", echo.WrapHandler(gwMux))
 
 	if s.config.GraphQLModule {
 		g.Any("/gql", queryHandler)

@@ -11,10 +11,9 @@ import (
 
 	"connectrpc.com/connect"
 	v1 "github.com/AudiusProject/audiusd/pkg/api/core/v1"
+	corev1connect "github.com/AudiusProject/audiusd/pkg/api/core/v1/v1connect"
 	"github.com/AudiusProject/audiusd/pkg/core/common"
 	"github.com/AudiusProject/audiusd/pkg/core/contracts"
-	"github.com/AudiusProject/audiusd/pkg/core/gen/core_openapi/protocol"
-	"github.com/AudiusProject/audiusd/pkg/core/gen/core_proto"
 	"github.com/AudiusProject/audiusd/pkg/logger"
 	"github.com/cometbft/cometbft/crypto/ed25519"
 
@@ -180,7 +179,7 @@ func (s *Server) registerSelfOnComet(ctx context.Context, delegateOwnerWallet ge
 	rendezvous := common.GetAttestorRendezvous(addrs, keyBytes, s.config.AttRegistrationRSize)
 
 	attestations := make([]string, 0, s.config.AttRegistrationRSize)
-	reg := &core_proto.ValidatorRegistration{
+	reg := &v1.ValidatorRegistration{
 		CometAddress:   s.config.ProposerAddress,
 		PubKey:         s.config.CometKey.PubKey().Bytes(),
 		Power:          int64(s.config.ValidatorVotingPower),
@@ -191,8 +190,6 @@ func (s *Server) registerSelfOnComet(ctx context.Context, delegateOwnerWallet ge
 		SpId:           spID,
 		Deadline:       s.cache.currentHeight.Load() + 120,
 	}
-	params := protocol.NewProtocolGetRegistrationAttestationParams()
-	params.SetRegistration(common.ValidatorRegistrationIntoOapi(reg))
 	for addr, _ := range rendezvous {
 		if peer, ok := peers[addr]; ok {
 			resp, err := peer.GetRegistrationAttestation(ctx, connect.NewRequest(&v1.GetRegistrationAttestationRequest{
@@ -216,9 +213,9 @@ func (s *Server) registerSelfOnComet(ctx context.Context, delegateOwnerWallet ge
 		}
 	}
 
-	registrationAtt := &core_proto.Attestation{
+	registrationAtt := &v1.Attestation{
 		Signatures: attestations,
-		Body:       &core_proto.Attestation_ValidatorRegistration{ValidatorRegistration: reg},
+		Body:       &v1.Attestation_ValidatorRegistration{ValidatorRegistration: reg},
 	}
 
 	txBytes, err := proto.Marshal(registrationAtt)
@@ -231,19 +228,25 @@ func (s *Server) registerSelfOnComet(ctx context.Context, delegateOwnerWallet ge
 		return fmt.Errorf("could not sign register tx: %v", err)
 	}
 
-	tx := &core_proto.SignedTransaction{
+	tx := &v1.SignedTransaction{
 		Signature: sig,
 		RequestId: uuid.NewString(),
-		Transaction: &core_proto.SignedTransaction_Attestation{
+		Transaction: &v1.SignedTransaction_Attestation{
 			Attestation: registrationAtt,
 		},
 	}
 
-	txreq := &core_proto.SendTransactionRequest{
+	txreq := &v1.SendTransactionRequest{
 		Transaction: tx,
 	}
 
-	txhash, err := s.SendTransaction(context.Background(), txreq)
+	// send tx to first peer
+	var peer corev1connect.CoreServiceClient
+	for _, p := range peers {
+		peer = p
+		break
+	}
+	txhash, err := peer.SendTransaction(context.Background(), connect.NewRequest(txreq))
 	if err != nil {
 		return fmt.Errorf("send register tx failed: %v", err)
 	}
@@ -412,15 +415,13 @@ func (s *Server) deregisterMissingNode(ctx context.Context, ethAddress string) {
 	pubKey := ed25519.PubKey(node.CometPubKey)
 	rendezvous := common.GetAttestorRendezvous(addrs, pubKey.Bytes(), s.config.AttDeregistrationRSize)
 	attestations := make([]string, 0, s.config.AttRegistrationRSize)
-	dereg := &core_proto.ValidatorDeregistration{
+	dereg := &v1.ValidatorDeregistration{
 		CometAddress: s.config.ProposerAddress,
 		PubKey:       s.config.CometKey.PubKey().Bytes(),
 		Deadline:     s.cache.currentHeight.Load() + 120,
 	}
 
 	peers := s.GetPeers()
-	params := protocol.NewProtocolGetDeregistrationAttestationParams()
-	params.SetDeregistration(common.ValidatorDeregistrationIntoOapi(dereg))
 	for addr, _ := range rendezvous {
 		if peer, ok := peers[addr]; ok {
 			resp, err := peer.GetDeregistrationAttestation(ctx, connect.NewRequest(&v1.GetDeregistrationAttestationRequest{
@@ -438,9 +439,9 @@ func (s *Server) deregisterMissingNode(ctx context.Context, ethAddress string) {
 		}
 	}
 
-	deregistrationAtt := &core_proto.Attestation{
+	deregistrationAtt := &v1.Attestation{
 		Signatures: attestations,
-		Body:       &core_proto.Attestation_ValidatorDeregistration{ValidatorDeregistration: dereg},
+		Body:       &v1.Attestation_ValidatorDeregistration{ValidatorDeregistration: dereg},
 	}
 
 	txBytes, err := proto.Marshal(deregistrationAtt)
@@ -455,19 +456,26 @@ func (s *Server) deregisterMissingNode(ctx context.Context, ethAddress string) {
 		return
 	}
 
-	tx := &core_proto.SignedTransaction{
+	tx := &v1.SignedTransaction{
 		Signature: sig,
 		RequestId: uuid.NewString(),
-		Transaction: &core_proto.SignedTransaction_Attestation{
+		Transaction: &v1.SignedTransaction_Attestation{
 			Attestation: deregistrationAtt,
 		},
 	}
 
-	txreq := &core_proto.SendTransactionRequest{
+	txreq := &v1.SendTransactionRequest{
 		Transaction: tx,
 	}
 
-	txhash, err := s.SendTransaction(context.Background(), txreq)
+	// send tx to first peer
+	var peer corev1connect.CoreServiceClient
+	for _, p := range peers {
+		peer = p
+		break
+	}
+
+	txhash, err := peer.SendTransaction(context.Background(), connect.NewRequest(txreq))
 	if err != nil {
 		s.logger.Error("send deregister tx failed", "error", err)
 		return

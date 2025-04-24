@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/hex"
@@ -483,8 +484,30 @@ func startWithTLS(e *echo.Echo, httpPort, httpsPort string, hostUrl *url.URL, lo
 		}
 
 		logger.Infof("Starting HTTPS server on port %s", httpsPort)
+
+		tlsCert, err := tls.X509KeyPair(cert, key)
+		if err != nil {
+			logger.Errorf("Failed to load X509 key pair: %v", err)
+			return fmt.Errorf("failed to load X509 key pair: %v", err)
+		}
 		go func() {
-			if err := e.StartTLS(":"+httpsPort, certFile, keyFile); err != nil && err != http.ErrServerClosed {
+			tlsConfig := &tls.Config{
+				NextProtos: []string{"h2"},
+			}
+			tlsConfig.Certificates = []tls.Certificate{
+				tlsCert,
+			}
+
+			h2Server := &http2.Server{}
+			server := &http.Server{
+				Addr:      ":" + httpsPort,
+				Handler:   e,
+				TLSConfig: tlsConfig,
+			}
+
+			http2.ConfigureServer(server, h2Server)
+
+			if err := server.ListenAndServeTLS(certFile, keyFile); err != nil && err != http.ErrServerClosed {
 				logger.Errorf("Failed to start HTTPS server: %v", err)
 			}
 		}()
