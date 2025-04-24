@@ -30,6 +30,7 @@ type Server struct {
 	cometbftConfig *cconfig.Config
 	logger         *common.Logger
 	z              *zap.Logger
+	self           corev1connect.CoreServiceClient
 
 	httpServer         *echo.Echo
 	grpcServer         *grpc.Server
@@ -141,6 +142,10 @@ func (s *Server) Start(ctx context.Context) error {
 	s.z.Info("routines started")
 
 	return g.Wait()
+}
+
+func (s *Server) setSelf(self corev1connect.CoreServiceClient) {
+	s.self = self
 }
 
 func (s *Server) syncLogs() error {

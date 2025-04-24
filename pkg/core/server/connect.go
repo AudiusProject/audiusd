@@ -28,6 +28,7 @@ func NewCoreService() *CoreService {
 
 func (c *CoreService) SetCore(core *Server) {
 	c.core = core
+	c.core.setSelf(c)
 }
 
 var _ v1connect.CoreServiceHandler = (*CoreService)(nil)

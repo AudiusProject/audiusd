@@ -12,7 +12,6 @@ import (
 
 	"connectrpc.com/connect"
 	v1 "github.com/AudiusProject/audiusd/pkg/api/core/v1"
-	corev1connect "github.com/AudiusProject/audiusd/pkg/api/core/v1/v1connect"
 	"github.com/AudiusProject/audiusd/pkg/core/common"
 	"github.com/AudiusProject/audiusd/pkg/core/db"
 	"github.com/AudiusProject/audiusd/pkg/pos"
@@ -125,14 +124,7 @@ func (s *Server) submitStorageProofTx(height int64, _ []byte, cid string, replic
 		Transaction: tx,
 	}
 
-	// send tx to first peer
-	var peer corev1connect.CoreServiceClient
-	for _, p := range s.GetPeers() {
-		peer = p
-		break
-	}
-
-	txhash, err := peer.SendTransaction(context.Background(), connect.NewRequest(req))
+	txhash, err := s.self.SendTransaction(context.Background(), connect.NewRequest(req))
 	if err != nil {
 		return fmt.Errorf("send storage proof tx failed: %v", err)
 	}
@@ -175,13 +167,7 @@ func (s *Server) submitStorageProofVerificationTx(height int64, proof []byte) er
 		Transaction: tx,
 	}
 
-	// send tx to first peer
-	var peer corev1connect.CoreServiceClient
-	for _, p := range s.GetPeers() {
-		peer = p
-		break
-	}
-	txhash, err := peer.SendTransaction(context.Background(), connect.NewRequest(req))
+	txhash, err := s.self.SendTransaction(context.Background(), connect.NewRequest(req))
 	if err != nil {
 		return fmt.Errorf("send storage proof verification tx failed: %v", err)
 	}

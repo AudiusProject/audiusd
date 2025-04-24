@@ -11,7 +11,6 @@ import (
 
 	"connectrpc.com/connect"
 	v1 "github.com/AudiusProject/audiusd/pkg/api/core/v1"
-	corev1connect "github.com/AudiusProject/audiusd/pkg/api/core/v1/v1connect"
 	"github.com/AudiusProject/audiusd/pkg/core/common"
 	"github.com/AudiusProject/audiusd/pkg/core/contracts"
 	"github.com/AudiusProject/audiusd/pkg/logger"
@@ -240,13 +239,7 @@ func (s *Server) registerSelfOnComet(ctx context.Context, delegateOwnerWallet ge
 		Transaction: tx,
 	}
 
-	// send tx to first peer
-	var peer corev1connect.CoreServiceClient
-	for _, p := range peers {
-		peer = p
-		break
-	}
-	txhash, err := peer.SendTransaction(context.Background(), connect.NewRequest(txreq))
+	txhash, err := s.self.SendTransaction(context.Background(), connect.NewRequest(txreq))
 	if err != nil {
 		return fmt.Errorf("send register tx failed: %v", err)
 	}
@@ -468,14 +461,7 @@ func (s *Server) deregisterMissingNode(ctx context.Context, ethAddress string) {
 		Transaction: tx,
 	}
 
-	// send tx to first peer
-	var peer corev1connect.CoreServiceClient
-	for _, p := range peers {
-		peer = p
-		break
-	}
-
-	txhash, err := peer.SendTransaction(context.Background(), connect.NewRequest(txreq))
+	txhash, err := s.self.SendTransaction(context.Background(), connect.NewRequest(txreq))
 	if err != nil {
 		s.logger.Error("send deregister tx failed", "error", err)
 		return
