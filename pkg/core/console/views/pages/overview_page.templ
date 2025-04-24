@@ -44,8 +44,6 @@ type OverviewPageView struct {
 	Txs    []TxData
 }
 
-func (p *Pages) OverviewPageJSON() {}
-
 templ (p *Pages) OverviewPageHTML(data *OverviewPageView) {
 	@p.layout.SiteFrame() {
 		<div class="uk-grid-small uk-child-width-1-2@s uk-grid-match" uk-grid>

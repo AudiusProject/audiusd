@@ -16,22 +16,6 @@ type TxView struct {
 	Tx        []byte
 }
 
-type TxPageJSONResponse struct {
-	Hash  string                 `json:"txhash"`
-	Block string                 `json:"block_height"`
-	Tx    map[string]interface{} `json:"tx"`
-}
-
-func (p *Pages) TxPageJSON(data *TxView) (*TxPageJSONResponse, error) {
-	obj := p.toJSON(data.Tx)
-
-	return &TxPageJSONResponse{
-		Hash:  data.Hash,
-		Block: data.Block,
-		Tx:    obj,
-	}, nil
-}
-
 func (p *Pages) toJSON(tx []byte) map[string]interface{} {
 	empty := make(map[string]interface{})
 
