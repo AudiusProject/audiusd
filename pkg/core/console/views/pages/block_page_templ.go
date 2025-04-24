@@ -11,7 +11,7 @@ import templruntime "github.com/a-h/templ/runtime"
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/AudiusProject/audiusd/pkg/core/gen/core_proto"
+	v1 "github.com/AudiusProject/audiusd/pkg/api/core/v1"
 	"github.com/dustin/go-humanize"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
@@ -41,7 +41,7 @@ func (p *Pages) BlockPageJSON(data *BlockView) (*BlockPageJSONResponse, error) {
 	jsonDataArray := [][]byte{}
 
 	for _, tx := range txs {
-		var transaction core_proto.SignedTransaction
+		var transaction v1.SignedTransaction
 		err := proto.Unmarshal(tx, &transaction)
 		if err != nil {
 			return nil, fmt.Errorf("could not marshal tx into signed tx: %v", err)
