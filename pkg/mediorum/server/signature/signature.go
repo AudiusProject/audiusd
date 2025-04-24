@@ -4,6 +4,7 @@ import (
 	"crypto/ecdsa"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -62,13 +63,24 @@ func ParseFromQueryString(queryStringValue string) (*RecoveredSignature, error) 
 	}
 
 	hash := crypto.Keccak256Hash(inner)
+	// TextHash will prepend Ethereum signed message prefix to the hash
+	// and hash that again
+	hash2 := accounts.TextHash(hash.Bytes())
 
 	signatureBytes, err := hex.DecodeString(envelope.Signature[2:])
 	if err != nil {
 		return nil, err
 	}
 
-	recoveredPubkey, err := crypto.SigToPub(hash.Bytes(), signatureBytes)
+	// Normalize v
+	if len(signatureBytes) < 65 {
+		return nil, errors.New("Invalid signature length")
+	}
+	if signatureBytes[64] >= 27 {
+		signatureBytes[64] -= 27
+	}
+
+	recoveredPubkey, err := crypto.SigToPub(hash2, signatureBytes)
 	if err != nil {
 		return nil, err
 	}
