@@ -128,7 +128,7 @@ $(TEMPL_ARTIFACTS): $(TEMPL_SRCS)
 	cd pkg/core/console && go generate ./...
 
 .PHONY: regen-proto
-regen-proto:
+regen-proto: $(PROTO_SRCS)
 	@echo Regenerating protobuf code
 	buf --version
 	buf generate
