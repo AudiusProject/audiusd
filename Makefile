@@ -16,9 +16,6 @@ PROTO_ARTIFACTS := $(shell find pkg/api -type f -name '*.pb.go')
 TEMPL_SRCS := $(shell find pkg/core/console -type f -name "*.templ")
 TEMPL_ARTIFACTS := $(shell find pkg/core/console -type f -name "*_templ.go")
 
-GQL_SRCS := $(shell find pkg/core/gql -type f -name "*.graphqls")
-GQL_ARTIFACTS := $(shell find pkg/core/gen/core_gql -type f -name "*.go")
-
 VERSION_LDFLAG := -X github.com/AudiusProject/audius-protocol/core/config.Version=$(GIT_SHA)
 
 JSON_SRCS := $(wildcard pkg/core/config/genesis/*.json)
@@ -112,8 +109,6 @@ install-go-deps:
 	go install -v github.com/cortesi/modd/cmd/modd@latest
 	go install -v github.com/a-h/templ/cmd/templ@latest
 	go install -v github.com/ethereum/go-ethereum/cmd/abigen@latest
-	go install -v github.com/go-swagger/go-swagger/cmd/swagger@latest
-	go install github.com/99designs/gqlgen@latest
 	go install honnef.co/go/tools/cmd/staticcheck@latest
 
 go.sum: go.mod
@@ -124,7 +119,7 @@ go.mod: $(GO_SRCS)
 	@touch go.mod # in case there's nothing to tidy
 
 .PHONY: gen
-gen: regen-templ regen-proto regen-sql regen-gql regen-go
+gen: regen-templ regen-proto regen-sql regen-go
 
 .PHONY: regen-templ
 regen-templ: $(TEMPL_ARTIFACTS)
@@ -137,12 +132,6 @@ regen-proto:
 	@echo Regenerating protobuf code
 	buf --version
 	buf generate
-
-.PHONY: regen-gql
-regen-gql: $(GQL_ARTIFACTS)
-$(GQL_ARTIFACTS): $(GQL_SRCS)
-	@echo Regenerating gql code
-	cd pkg/core/gql && gqlgen generate
 
 .PHONY: regen-sql
 regen-sql: $(SQL_ARTIFACTS)
