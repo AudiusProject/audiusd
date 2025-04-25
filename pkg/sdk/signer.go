@@ -7,6 +7,16 @@ import (
 	"github.com/AudiusProject/audiusd/pkg/common"
 )
 
+func (s *AudiusdSDK) ReadPrivKey(path string) error {
+	privKey, err := common.LoadPrivateKey(path)
+	if err != nil {
+		return err
+	}
+
+	s.privKey = privKey
+	return nil
+}
+
 func (s *AudiusdSDK) SetPrivKey(privKey *ecdsa.PrivateKey) {
 	s.privKey = privKey
 }

@@ -120,8 +120,8 @@ elif [ "${AUDIUSD_TEST_MODE:-false}" = "true" ]; then
             su - postgres -c "psql -f $sql_file"
         fi
     done
-    echo "executing command: $@"
-    exec "$@"
+    echo "executing command: $*"
+    exec "$*"
 else
     setup_postgres
     echo "Starting audiusd..."
