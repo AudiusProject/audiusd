@@ -17,6 +17,16 @@ message GetHealthRequest {}
 
 message GetHealthResponse {}
 
+message GetNodeInfoRequest {}
+
+message GetNodeInfoResponse {
+  string chainid = 1;
+  bool synced = 2;
+  string comet_address = 3;
+  string eth_address = 4;
+  int64 current_height = 5;
+}
+
 message GetBlockRequest {
   int64 height = 1;
 }

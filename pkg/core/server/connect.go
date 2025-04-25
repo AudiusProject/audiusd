@@ -33,6 +33,23 @@ func (c *CoreService) SetCore(core *Server) {
 
 var _ v1connect.CoreServiceHandler = (*CoreService)(nil)
 
+// GetNodeInfo implements v1connect.CoreServiceHandler.
+func (c *CoreService) GetNodeInfo(ctx context.Context, req *connect.Request[v1.GetNodeInfoRequest]) (*connect.Response[v1.GetNodeInfoResponse], error) {
+	status, err := c.core.rpc.Status(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	res := &v1.GetNodeInfoResponse{
+		Chainid:       c.core.config.GenesisFile.ChainID,
+		Synced:        !status.SyncInfo.CatchingUp,
+		CometAddress:  c.core.config.ProposerAddress,
+		EthAddress:    c.core.config.WalletAddress,
+		CurrentHeight: status.SyncInfo.LatestBlockHeight,
+	}
+	return connect.NewResponse(res), nil
+}
+
 // ForwardTransaction implements v1connect.CoreServiceHandler.
 func (c *CoreService) ForwardTransaction(ctx context.Context, req *connect.Request[v1.ForwardTransactionRequest]) (*connect.Response[v1.ForwardTransactionResponse], error) {
 	// TODO: check signature from known node
