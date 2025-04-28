@@ -137,7 +137,7 @@ func (c *CoreService) GetBlock(ctx context.Context, req *connect.Request[v1.GetB
 		Timestamp:    timestamppb.New(block.CreatedAt.Time),
 	}
 
-	return connect.NewResponse(&v1.GetBlockResponse{Block: res}), nil
+	return connect.NewResponse(&v1.GetBlockResponse{Block: res, CurrentHeight: c.core.cache.currentHeight.Load()}), nil
 }
 
 // GetDeregistrationAttestation implements v1connect.CoreServiceHandler.

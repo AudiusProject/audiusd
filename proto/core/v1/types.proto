@@ -33,6 +33,7 @@ message GetBlockRequest {
 
 message GetBlockResponse {
   Block block = 1;
+  int64 current_height = 2;
 }
 
 message GetTransactionRequest {
