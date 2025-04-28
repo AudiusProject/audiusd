@@ -26,6 +26,22 @@ func TestConnectRPC(t *testing.T) {
 	})
 }
 
+func TestGRPC(t *testing.T) {
+	t.Run("should return a health response", func(t *testing.T) {
+		ctx := context.Background()
+
+		endpoint := utils.EnsureProtocol(utils.DiscoveryOneRPC)
+		client := connectv1system.NewSystemServiceClient(http.DefaultClient, endpoint, connect.WithGRPC())
+		res, err := client.GetHealth(ctx, connect.NewRequest(&systemv1.GetHealthRequest{}))
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+		if res.Msg.Status != "up" {
+			t.Errorf("expected status 'up', got %q", res.Msg.Status)
+		}
+	})
+}
+
 func TestConnectGRPCWeb(t *testing.T) {
 	t.Run("should return a health response", func(t *testing.T) {
 		ctx := context.Background()
