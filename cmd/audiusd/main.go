@@ -294,6 +294,26 @@ func startEchoProxy(hostUrl *url.URL, logger *common.Logger, coreService *coreSe
 	systemPath, systemHandler := systemv1connect.NewSystemServiceHandler(systemService)
 	rpcGroup.Any(systemPath+"*", echo.WrapHandler(systemHandler))
 
+	go func() {
+		grpcServer := echo.New()
+		grpcServerGroup := grpcServer.Group("")
+		grpcServerGroup.Any(corePath+"*", echo.WrapHandler(coreHandler))
+		grpcServerGroup.Any(storagePath+"*", echo.WrapHandler(storageHandler))
+		grpcServerGroup.Any(etlPath+"*", echo.WrapHandler(etlHandler))
+		grpcServerGroup.Any(systemPath+"*", echo.WrapHandler(systemHandler))
+
+		// Create h2c-compatible server
+		h2cServer := &http.Server{
+			Addr:    ":50051",
+			Handler: h2c.NewHandler(grpcServer, &http2.Server{}),
+		}
+
+		if err := h2cServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Errorf("grpcServer on 50051 failed: %v", err)
+			return
+		}
+	}()
+
 	e.GET("/", func(c echo.Context) error {
 		return c.JSON(http.StatusOK, map[string]int{"a": 440})
 	})

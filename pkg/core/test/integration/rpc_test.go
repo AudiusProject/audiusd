@@ -39,6 +39,16 @@ func TestGRPC(t *testing.T) {
 		if res.Msg.Status != "up" {
 			t.Errorf("expected status 'up', got %q", res.Msg.Status)
 		}
+
+		endpoint = utils.EnsureProtocol(utils.DiscoveryOneRPC) + ":50051"
+		client = connectv1system.NewSystemServiceClient(http.DefaultClient, endpoint, connect.WithGRPC())
+		res, err = client.GetHealth(ctx, connect.NewRequest(&systemv1.GetHealthRequest{}))
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+		if res.Msg.Status != "up" {
+			t.Errorf("expected status 'up', got %q", res.Msg.Status)
+		}
 	})
 }
 
