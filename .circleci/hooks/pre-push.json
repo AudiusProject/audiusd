@@ -3,6 +3,10 @@
     {
       "name": "validate-ci-config",
       "command": "circleci config validate .circleci/config.yml"
+    },
+    {
+      "name": "lint",
+      "command": "make lint"
     }
   ]
 }
