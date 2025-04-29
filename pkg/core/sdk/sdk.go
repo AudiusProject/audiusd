@@ -178,7 +178,7 @@ func (sdk *Sdk) ReleaseTrack(cid, title, genre string) (*ReleaseResult, error) {
 			},
 		},
 		ResourceList: []*adx.Resource{
-			{
+			&adx.Resource{
 				ResourceReference: "AT1",
 				Resource: &adx.Resource_SoundRecording{
 					SoundRecording: &adx.SoundRecording{
@@ -191,7 +191,7 @@ func (sdk *Sdk) ReleaseTrack(cid, title, genre string) (*ReleaseResult, error) {
 			},
 		},
 		ReleaseList: []*adx.Release{
-			{
+			&adx.Release{
 				Release: &adx.Release_TrackRelease{
 					TrackRelease: &adx.TrackRelease{
 						ReleaseId: &adx.ReleaseId{

@@ -194,7 +194,7 @@ func (s *Server) registerSelfOnComet(ctx context.Context, delegateOwnerWallet ge
 	}
 	params := protocol.NewProtocolGetRegistrationAttestationParams()
 	params.SetRegistration(ccommon.ValidatorRegistrationIntoOapi(reg))
-	for addr := range rendezvous {
+	for addr, _ := range rendezvous {
 		if peer, ok := peers[addr]; ok {
 			resp, err := peer.GetRegistrationAttestation(ctx, connect.NewRequest(&v1.GetRegistrationAttestationRequest{
 				Registration: &v1.ValidatorRegistration{
@@ -422,7 +422,7 @@ func (s *Server) deregisterMissingNode(ctx context.Context, ethAddress string) {
 	peers := s.GetPeers()
 	params := protocol.NewProtocolGetDeregistrationAttestationParams()
 	params.SetDeregistration(ccommon.ValidatorDeregistrationIntoOapi(dereg))
-	for addr := range rendezvous {
+	for addr, _ := range rendezvous {
 		if peer, ok := peers[addr]; ok {
 			resp, err := peer.GetDeregistrationAttestation(ctx, connect.NewRequest(&v1.GetDeregistrationAttestationRequest{
 				Deregistration: &v1.ValidatorDeregistration{

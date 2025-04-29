@@ -21,9 +21,9 @@ func (cs *Console) posFragment(c echo.Context) error {
 	proofs, err := cs.db.GetStorageProofsForNodeInRange(
 		ctx,
 		db.GetStorageProofsForNodeInRangeParams{
-			BlockHeight:   start,
-			BlockHeight_2: end,
-			Address:       cs.state.cometAddress,
+			start,
+			end,
+			cs.state.cometAddress,
 		},
 	)
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {

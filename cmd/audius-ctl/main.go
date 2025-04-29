@@ -65,7 +65,7 @@ func main() {
 
 	vmsg := <-msgCh
 	if vmsg != "" {
-		fmt.Fprint(os.Stderr, vmsg)
+		fmt.Fprintf(os.Stderr, vmsg)
 	}
 
 	if err != nil {

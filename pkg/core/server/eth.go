@@ -113,7 +113,7 @@ func (s *Server) gatherEthNodes() error {
 	}
 
 	missingEthNodes := make([]string, 0, len(missingEthNodeSet))
-	for addr := range missingEthNodeSet {
+	for addr, _ := range missingEthNodeSet {
 		missingEthNodes = append(missingEthNodes, addr)
 	}
 	s.missingEthNodes = missingEthNodes
