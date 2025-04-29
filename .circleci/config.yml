@@ -1,28 +1,9 @@
 version: 2.1
 
 orbs:
-  gh: circleci/github-cli@2.4.0
+  gh: circleci/github-cli@2.7.0
 
 commands:
-  setup-audius-ctl:
-    description: Checkout and install audius-ctl built in previous job
-    steps:
-      - checkout
-      - attach_workspace:
-          at: ./
-      - run:
-          name: Uninstall any existing audius-ctl binary
-          command: |
-            make uninstall
-      - run:
-          name: Install audius-ctl
-          command: |
-            make install
-      - run:
-          name: 'Install self-signed ssl certificate for devnet.audius-d'
-          command: |
-            sudo cp dev-tools/tls/devnet-cert.pem /usr/local/share/ca-certificates/devnet.audius-d.crt
-            sudo update-ca-certificates
   docker-login:
     steps:
       - run:
@@ -137,6 +118,8 @@ jobs:
             AUDIUSD_IMAGE=audius/audiusd:${CIRCLE_SHA1}-amd64 \
             AUDIUSD_TEST_IMAGE=audius/audiusd:${CIRCLE_SHA1}-test \
             TTY_FLAG="--no-TTY" make core-test
+      - store_test_results:
+          path: test-results
       - when:
           condition:
             equal: [ main, << pipeline.git.branch >> ]
@@ -146,7 +129,8 @@ jobs:
                 command: docker push audius/audiusd:${CIRCLE_SHA1}-amd64
 
   build-audiusd-arm64:
-    machine: true
+    machine:
+      image: ubuntu-2404:current
     resource_class: arm.medium
     steps:
       - checkout
