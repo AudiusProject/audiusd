@@ -109,15 +109,18 @@ jobs:
       - run:
           name: Run (unit) mediorum tests
           command: |
+            mkdir -p test-results
             AUDIUSD_IMAGE=audius/audiusd:${CIRCLE_SHA1}-amd64 \
             AUDIUSD_TEST_IMAGE=audius/audiusd:${CIRCLE_SHA1}-test \
             TTY_FLAG="--no-TTY" make mediorum-test
+            go test -v -count=1 -timeout=60s ./pkg/mediorum/... -json > test-results/mediorum.json
       - run:
           name: Run (integration) core tests
           command: |
             AUDIUSD_IMAGE=audius/audiusd:${CIRCLE_SHA1}-amd64 \
             AUDIUSD_TEST_IMAGE=audius/audiusd:${CIRCLE_SHA1}-test \
             TTY_FLAG="--no-TTY" make core-test
+            go test -v -count=1 -timeout=60s ./pkg/core/... -json > test-results/core.json
       - store_test_results:
           path: test-results
       - when:
