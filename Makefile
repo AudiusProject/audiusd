@@ -117,13 +117,13 @@ go.mod: $(GO_SRCS)
 	@touch go.mod # in case there's nothing to tidy
 
 .PHONY: gen
-gen: regen-templ regen-proto regen-sql regen-go
+gen: regen-templ regen-proto regen-sql
 
 .PHONY: regen-templ
 regen-templ: $(TEMPL_ARTIFACTS)
 $(TEMPL_ARTIFACTS): $(TEMPL_SRCS)
 	@echo Regenerating templ code
-	cd pkg/core/console && go generate ./...
+	cd pkg/core/console && templ generate -log-level error
 
 .PHONY: regen-proto
 regen-proto: $(PROTO_ARTIFACTS)
@@ -138,9 +138,10 @@ $(SQL_ARTIFACTS): $(SQL_SRCS)
 	@echo Regenerating sql code
 	cd pkg/core/db && sqlc generate
 
-.PHONY: regen-go
-regen-go:
-	cd pkg/core && go generate ./...
+.PHONY: regen-contracts
+regen-contracts:
+	@echo Regenerating contracts
+	cd pkg/core && sh -c "./generate_contract.sh"
 
 .PHONY: docker-test docker-dev docker-local
 docker-test:
