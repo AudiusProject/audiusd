@@ -20,55 +20,6 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type Order int32
-
-const (
-	Order_ORDER_UNSPECIFIED Order = 0
-	Order_ORDER_ASC         Order = 1
-	Order_ORDER_DESC        Order = 2
-)
-
-// Enum value maps for Order.
-var (
-	Order_name = map[int32]string{
-		0: "ORDER_UNSPECIFIED",
-		1: "ORDER_ASC",
-		2: "ORDER_DESC",
-	}
-	Order_value = map[string]int32{
-		"ORDER_UNSPECIFIED": 0,
-		"ORDER_ASC":         1,
-		"ORDER_DESC":        2,
-	}
-)
-
-func (x Order) Enum() *Order {
-	p := new(Order)
-	*p = x
-	return p
-}
-
-func (x Order) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (Order) Descriptor() protoreflect.EnumDescriptor {
-	return file_storage_v1_types_proto_enumTypes[0].Descriptor()
-}
-
-func (Order) Type() protoreflect.EnumType {
-	return &file_storage_v1_types_proto_enumTypes[0]
-}
-
-func (x Order) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use Order.Descriptor instead.
-func (Order) EnumDescriptor() ([]byte, []int) {
-	return file_storage_v1_types_proto_rawDescGZIP(), []int{0}
-}
-
 type PingRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -230,17 +181,14 @@ func (*GetHealthResponse) Descriptor() ([]byte, []int) {
 	return file_storage_v1_types_proto_rawDescGZIP(), []int{3}
 }
 
-type GetUploadsRequest struct {
+type UploadTrackRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
-
-	Pagination *Pagination `protobuf:"bytes,1,opt,name=pagination,proto3" json:"pagination,omitempty"`
-	Order      Order       `protobuf:"varint,2,opt,name=order,proto3,enum=storage.v1.Order" json:"order,omitempty"`
 }
 
-func (x *GetUploadsRequest) Reset() {
-	*x = GetUploadsRequest{}
+func (x *UploadTrackRequest) Reset() {
+	*x = UploadTrackRequest{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_storage_v1_types_proto_msgTypes[4]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -248,13 +196,13 @@ func (x *GetUploadsRequest) Reset() {
 	}
 }
 
-func (x *GetUploadsRequest) String() string {
+func (x *UploadTrackRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetUploadsRequest) ProtoMessage() {}
+func (*UploadTrackRequest) ProtoMessage() {}
 
-func (x *GetUploadsRequest) ProtoReflect() protoreflect.Message {
+func (x *UploadTrackRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_storage_v1_types_proto_msgTypes[4]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -266,35 +214,19 @@ func (x *GetUploadsRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetUploadsRequest.ProtoReflect.Descriptor instead.
-func (*GetUploadsRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use UploadTrackRequest.ProtoReflect.Descriptor instead.
+func (*UploadTrackRequest) Descriptor() ([]byte, []int) {
 	return file_storage_v1_types_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *GetUploadsRequest) GetPagination() *Pagination {
-	if x != nil {
-		return x.Pagination
-	}
-	return nil
-}
-
-func (x *GetUploadsRequest) GetOrder() Order {
-	if x != nil {
-		return x.Order
-	}
-	return Order_ORDER_UNSPECIFIED
-}
-
-type GetUploadsResponse struct {
+type UploadTrackResponse struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
-
-	Uploads []*Upload `protobuf:"bytes,1,rep,name=uploads,proto3" json:"uploads,omitempty"`
 }
 
-func (x *GetUploadsResponse) Reset() {
-	*x = GetUploadsResponse{}
+func (x *UploadTrackResponse) Reset() {
+	*x = UploadTrackResponse{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_storage_v1_types_proto_msgTypes[5]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -302,13 +234,13 @@ func (x *GetUploadsResponse) Reset() {
 	}
 }
 
-func (x *GetUploadsResponse) String() string {
+func (x *UploadTrackResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetUploadsResponse) ProtoMessage() {}
+func (*UploadTrackResponse) ProtoMessage() {}
 
-func (x *GetUploadsResponse) ProtoReflect() protoreflect.Message {
+func (x *UploadTrackResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_storage_v1_types_proto_msgTypes[5]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -320,16 +252,85 @@ func (x *GetUploadsResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetUploadsResponse.ProtoReflect.Descriptor instead.
-func (*GetUploadsResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use UploadTrackResponse.ProtoReflect.Descriptor instead.
+func (*UploadTrackResponse) Descriptor() ([]byte, []int) {
 	return file_storage_v1_types_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *GetUploadsResponse) GetUploads() []*Upload {
-	if x != nil {
-		return x.Uploads
+type UploadImageRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+}
+
+func (x *UploadImageRequest) Reset() {
+	*x = UploadImageRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_storage_v1_types_proto_msgTypes[6]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
 	}
-	return nil
+}
+
+func (x *UploadImageRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UploadImageRequest) ProtoMessage() {}
+
+func (x *UploadImageRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_storage_v1_types_proto_msgTypes[6]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UploadImageRequest.ProtoReflect.Descriptor instead.
+func (*UploadImageRequest) Descriptor() ([]byte, []int) {
+	return file_storage_v1_types_proto_rawDescGZIP(), []int{6}
+}
+
+type UploadImageResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+}
+
+func (x *UploadImageResponse) Reset() {
+	*x = UploadImageResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_storage_v1_types_proto_msgTypes[7]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *UploadImageResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UploadImageResponse) ProtoMessage() {}
+
+func (x *UploadImageResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_storage_v1_types_proto_msgTypes[7]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UploadImageResponse.ProtoReflect.Descriptor instead.
+func (*UploadImageResponse) Descriptor() ([]byte, []int) {
+	return file_storage_v1_types_proto_rawDescGZIP(), []int{7}
 }
 
 type GetUploadRequest struct {
@@ -343,7 +344,7 @@ type GetUploadRequest struct {
 func (x *GetUploadRequest) Reset() {
 	*x = GetUploadRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_storage_v1_types_proto_msgTypes[6]
+		mi := &file_storage_v1_types_proto_msgTypes[8]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -356,7 +357,7 @@ func (x *GetUploadRequest) String() string {
 func (*GetUploadRequest) ProtoMessage() {}
 
 func (x *GetUploadRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_storage_v1_types_proto_msgTypes[6]
+	mi := &file_storage_v1_types_proto_msgTypes[8]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -369,7 +370,7 @@ func (x *GetUploadRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUploadRequest.ProtoReflect.Descriptor instead.
 func (*GetUploadRequest) Descriptor() ([]byte, []int) {
-	return file_storage_v1_types_proto_rawDescGZIP(), []int{6}
+	return file_storage_v1_types_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *GetUploadRequest) GetId() string {
@@ -390,7 +391,7 @@ type GetUploadResponse struct {
 func (x *GetUploadResponse) Reset() {
 	*x = GetUploadResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_storage_v1_types_proto_msgTypes[7]
+		mi := &file_storage_v1_types_proto_msgTypes[9]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -403,7 +404,7 @@ func (x *GetUploadResponse) String() string {
 func (*GetUploadResponse) ProtoMessage() {}
 
 func (x *GetUploadResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_storage_v1_types_proto_msgTypes[7]
+	mi := &file_storage_v1_types_proto_msgTypes[9]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -416,7 +417,7 @@ func (x *GetUploadResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUploadResponse.ProtoReflect.Descriptor instead.
 func (*GetUploadResponse) Descriptor() ([]byte, []int) {
-	return file_storage_v1_types_proto_rawDescGZIP(), []int{7}
+	return file_storage_v1_types_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *GetUploadResponse) GetUpload() *Upload {
@@ -437,7 +438,7 @@ type StreamTrackRequest struct {
 func (x *StreamTrackRequest) Reset() {
 	*x = StreamTrackRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_storage_v1_types_proto_msgTypes[8]
+		mi := &file_storage_v1_types_proto_msgTypes[10]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -450,7 +451,7 @@ func (x *StreamTrackRequest) String() string {
 func (*StreamTrackRequest) ProtoMessage() {}
 
 func (x *StreamTrackRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_storage_v1_types_proto_msgTypes[8]
+	mi := &file_storage_v1_types_proto_msgTypes[10]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -463,7 +464,7 @@ func (x *StreamTrackRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StreamTrackRequest.ProtoReflect.Descriptor instead.
 func (*StreamTrackRequest) Descriptor() ([]byte, []int) {
-	return file_storage_v1_types_proto_rawDescGZIP(), []int{8}
+	return file_storage_v1_types_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *StreamTrackRequest) GetId() string {
@@ -484,7 +485,7 @@ type StreamTrackResponse struct {
 func (x *StreamTrackResponse) Reset() {
 	*x = StreamTrackResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_storage_v1_types_proto_msgTypes[9]
+		mi := &file_storage_v1_types_proto_msgTypes[11]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -497,7 +498,7 @@ func (x *StreamTrackResponse) String() string {
 func (*StreamTrackResponse) ProtoMessage() {}
 
 func (x *StreamTrackResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_storage_v1_types_proto_msgTypes[9]
+	mi := &file_storage_v1_types_proto_msgTypes[11]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -510,7 +511,7 @@ func (x *StreamTrackResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StreamTrackResponse.ProtoReflect.Descriptor instead.
 func (*StreamTrackResponse) Descriptor() ([]byte, []int) {
-	return file_storage_v1_types_proto_rawDescGZIP(), []int{9}
+	return file_storage_v1_types_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *StreamTrackResponse) GetData() []byte {
@@ -531,7 +532,7 @@ type StreamImageRequest struct {
 func (x *StreamImageRequest) Reset() {
 	*x = StreamImageRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_storage_v1_types_proto_msgTypes[10]
+		mi := &file_storage_v1_types_proto_msgTypes[12]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -544,7 +545,7 @@ func (x *StreamImageRequest) String() string {
 func (*StreamImageRequest) ProtoMessage() {}
 
 func (x *StreamImageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_storage_v1_types_proto_msgTypes[10]
+	mi := &file_storage_v1_types_proto_msgTypes[12]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -557,7 +558,7 @@ func (x *StreamImageRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StreamImageRequest.ProtoReflect.Descriptor instead.
 func (*StreamImageRequest) Descriptor() ([]byte, []int) {
-	return file_storage_v1_types_proto_rawDescGZIP(), []int{10}
+	return file_storage_v1_types_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *StreamImageRequest) GetId() string {
@@ -578,7 +579,7 @@ type StreamImageResponse struct {
 func (x *StreamImageResponse) Reset() {
 	*x = StreamImageResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_storage_v1_types_proto_msgTypes[11]
+		mi := &file_storage_v1_types_proto_msgTypes[13]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -591,7 +592,7 @@ func (x *StreamImageResponse) String() string {
 func (*StreamImageResponse) ProtoMessage() {}
 
 func (x *StreamImageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_storage_v1_types_proto_msgTypes[11]
+	mi := &file_storage_v1_types_proto_msgTypes[13]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -604,7 +605,7 @@ func (x *StreamImageResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StreamImageResponse.ProtoReflect.Descriptor instead.
 func (*StreamImageResponse) Descriptor() ([]byte, []int) {
-	return file_storage_v1_types_proto_rawDescGZIP(), []int{11}
+	return file_storage_v1_types_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *StreamImageResponse) GetData() []byte {
@@ -612,61 +613,6 @@ func (x *StreamImageResponse) GetData() []byte {
 		return x.Data
 	}
 	return nil
-}
-
-type Pagination struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Limit  int64 `protobuf:"varint,1,opt,name=limit,proto3" json:"limit,omitempty"`
-	Offset int64 `protobuf:"varint,2,opt,name=offset,proto3" json:"offset,omitempty"`
-}
-
-func (x *Pagination) Reset() {
-	*x = Pagination{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_storage_v1_types_proto_msgTypes[12]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *Pagination) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Pagination) ProtoMessage() {}
-
-func (x *Pagination) ProtoReflect() protoreflect.Message {
-	mi := &file_storage_v1_types_proto_msgTypes[12]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Pagination.ProtoReflect.Descriptor instead.
-func (*Pagination) Descriptor() ([]byte, []int) {
-	return file_storage_v1_types_proto_rawDescGZIP(), []int{12}
-}
-
-func (x *Pagination) GetLimit() int64 {
-	if x != nil {
-		return x.Limit
-	}
-	return 0
-}
-
-func (x *Pagination) GetOffset() int64 {
-	if x != nil {
-		return x.Offset
-	}
-	return 0
 }
 
 type Upload struct {
@@ -685,7 +631,7 @@ type Upload struct {
 func (x *Upload) Reset() {
 	*x = Upload{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_storage_v1_types_proto_msgTypes[13]
+		mi := &file_storage_v1_types_proto_msgTypes[14]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -698,7 +644,7 @@ func (x *Upload) String() string {
 func (*Upload) ProtoMessage() {}
 
 func (x *Upload) ProtoReflect() protoreflect.Message {
-	mi := &file_storage_v1_types_proto_msgTypes[13]
+	mi := &file_storage_v1_types_proto_msgTypes[14]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -711,7 +657,7 @@ func (x *Upload) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Upload.ProtoReflect.Descriptor instead.
 func (*Upload) Descriptor() ([]byte, []int) {
-	return file_storage_v1_types_proto_rawDescGZIP(), []int{13}
+	return file_storage_v1_types_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *Upload) GetId() string {
@@ -767,18 +713,12 @@ var file_storage_v1_types_proto_rawDesc = []byte{
 	0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x6d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x22, 0x12, 0x0a,
 	0x10, 0x47, 0x65, 0x74, 0x48, 0x65, 0x61, 0x6c, 0x74, 0x68, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73,
 	0x74, 0x22, 0x13, 0x0a, 0x11, 0x47, 0x65, 0x74, 0x48, 0x65, 0x61, 0x6c, 0x74, 0x68, 0x52, 0x65,
-	0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x74, 0x0a, 0x11, 0x47, 0x65, 0x74, 0x55, 0x70, 0x6c,
-	0x6f, 0x61, 0x64, 0x73, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x36, 0x0a, 0x0a, 0x70,
-	0x61, 0x67, 0x69, 0x6e, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32,
-	0x16, 0x2e, 0x73, 0x74, 0x6f, 0x72, 0x61, 0x67, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x50, 0x61, 0x67,
-	0x69, 0x6e, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x52, 0x0a, 0x70, 0x61, 0x67, 0x69, 0x6e, 0x61, 0x74,
-	0x69, 0x6f, 0x6e, 0x12, 0x27, 0x0a, 0x05, 0x6f, 0x72, 0x64, 0x65, 0x72, 0x18, 0x02, 0x20, 0x01,
-	0x28, 0x0e, 0x32, 0x11, 0x2e, 0x73, 0x74, 0x6f, 0x72, 0x61, 0x67, 0x65, 0x2e, 0x76, 0x31, 0x2e,
-	0x4f, 0x72, 0x64, 0x65, 0x72, 0x52, 0x05, 0x6f, 0x72, 0x64, 0x65, 0x72, 0x22, 0x42, 0x0a, 0x12,
-	0x47, 0x65, 0x74, 0x55, 0x70, 0x6c, 0x6f, 0x61, 0x64, 0x73, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e,
-	0x73, 0x65, 0x12, 0x2c, 0x0a, 0x07, 0x75, 0x70, 0x6c, 0x6f, 0x61, 0x64, 0x73, 0x18, 0x01, 0x20,
-	0x03, 0x28, 0x0b, 0x32, 0x12, 0x2e, 0x73, 0x74, 0x6f, 0x72, 0x61, 0x67, 0x65, 0x2e, 0x76, 0x31,
-	0x2e, 0x55, 0x70, 0x6c, 0x6f, 0x61, 0x64, 0x52, 0x07, 0x75, 0x70, 0x6c, 0x6f, 0x61, 0x64, 0x73,
+	0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x14, 0x0a, 0x12, 0x55, 0x70, 0x6c, 0x6f, 0x61, 0x64,
+	0x54, 0x72, 0x61, 0x63, 0x6b, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x22, 0x15, 0x0a, 0x13,
+	0x55, 0x70, 0x6c, 0x6f, 0x61, 0x64, 0x54, 0x72, 0x61, 0x63, 0x6b, 0x52, 0x65, 0x73, 0x70, 0x6f,
+	0x6e, 0x73, 0x65, 0x22, 0x14, 0x0a, 0x12, 0x55, 0x70, 0x6c, 0x6f, 0x61, 0x64, 0x49, 0x6d, 0x61,
+	0x67, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x22, 0x15, 0x0a, 0x13, 0x55, 0x70, 0x6c,
+	0x6f, 0x61, 0x64, 0x49, 0x6d, 0x61, 0x67, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65,
 	0x22, 0x22, 0x0a, 0x10, 0x47, 0x65, 0x74, 0x55, 0x70, 0x6c, 0x6f, 0x61, 0x64, 0x52, 0x65, 0x71,
 	0x75, 0x65, 0x73, 0x74, 0x12, 0x0e, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09,
 	0x52, 0x02, 0x69, 0x64, 0x22, 0x3f, 0x0a, 0x11, 0x47, 0x65, 0x74, 0x55, 0x70, 0x6c, 0x6f, 0x61,
@@ -795,29 +735,21 @@ var file_storage_v1_types_proto_rawDesc = []byte{
 	0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x02, 0x69, 0x64, 0x22, 0x29, 0x0a, 0x13,
 	0x53, 0x74, 0x72, 0x65, 0x61, 0x6d, 0x49, 0x6d, 0x61, 0x67, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f,
 	0x6e, 0x73, 0x65, 0x12, 0x12, 0x0a, 0x04, 0x64, 0x61, 0x74, 0x61, 0x18, 0x01, 0x20, 0x01, 0x28,
-	0x0c, 0x52, 0x04, 0x64, 0x61, 0x74, 0x61, 0x22, 0x3a, 0x0a, 0x0a, 0x50, 0x61, 0x67, 0x69, 0x6e,
-	0x61, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x14, 0x0a, 0x05, 0x6c, 0x69, 0x6d, 0x69, 0x74, 0x18, 0x01,
-	0x20, 0x01, 0x28, 0x03, 0x52, 0x05, 0x6c, 0x69, 0x6d, 0x69, 0x74, 0x12, 0x16, 0x0a, 0x06, 0x6f,
-	0x66, 0x66, 0x73, 0x65, 0x74, 0x18, 0x02, 0x20, 0x01, 0x28, 0x03, 0x52, 0x06, 0x6f, 0x66, 0x66,
-	0x73, 0x65, 0x74, 0x22, 0xa3, 0x01, 0x0a, 0x06, 0x55, 0x70, 0x6c, 0x6f, 0x61, 0x64, 0x12, 0x0e,
-	0x0a, 0x02, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x02, 0x69, 0x64, 0x12, 0x17,
-	0x0a, 0x07, 0x75, 0x73, 0x65, 0x72, 0x5f, 0x69, 0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52,
-	0x06, 0x75, 0x73, 0x65, 0x72, 0x49, 0x64, 0x12, 0x19, 0x0a, 0x08, 0x74, 0x72, 0x61, 0x63, 0x6b,
-	0x5f, 0x69, 0x64, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x74, 0x72, 0x61, 0x63, 0x6b,
-	0x49, 0x64, 0x12, 0x1b, 0x0a, 0x09, 0x66, 0x69, 0x6c, 0x65, 0x5f, 0x6e, 0x61, 0x6d, 0x65, 0x18,
-	0x04, 0x20, 0x01, 0x28, 0x09, 0x52, 0x08, 0x66, 0x69, 0x6c, 0x65, 0x4e, 0x61, 0x6d, 0x65, 0x12,
-	0x1b, 0x0a, 0x09, 0x66, 0x69, 0x6c, 0x65, 0x5f, 0x74, 0x79, 0x70, 0x65, 0x18, 0x05, 0x20, 0x01,
-	0x28, 0x09, 0x52, 0x08, 0x66, 0x69, 0x6c, 0x65, 0x54, 0x79, 0x70, 0x65, 0x12, 0x1b, 0x0a, 0x09,
-	0x66, 0x69, 0x6c, 0x65, 0x5f, 0x73, 0x69, 0x7a, 0x65, 0x18, 0x06, 0x20, 0x01, 0x28, 0x09, 0x52,
-	0x08, 0x66, 0x69, 0x6c, 0x65, 0x53, 0x69, 0x7a, 0x65, 0x2a, 0x3d, 0x0a, 0x05, 0x4f, 0x72, 0x64,
-	0x65, 0x72, 0x12, 0x15, 0x0a, 0x11, 0x4f, 0x52, 0x44, 0x45, 0x52, 0x5f, 0x55, 0x4e, 0x53, 0x50,
-	0x45, 0x43, 0x49, 0x46, 0x49, 0x45, 0x44, 0x10, 0x00, 0x12, 0x0d, 0x0a, 0x09, 0x4f, 0x52, 0x44,
-	0x45, 0x52, 0x5f, 0x41, 0x53, 0x43, 0x10, 0x01, 0x12, 0x0e, 0x0a, 0x0a, 0x4f, 0x52, 0x44, 0x45,
-	0x52, 0x5f, 0x44, 0x45, 0x53, 0x43, 0x10, 0x02, 0x42, 0x35, 0x5a, 0x33, 0x67, 0x69, 0x74, 0x68,
-	0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x41, 0x75, 0x64, 0x69, 0x75, 0x73, 0x50, 0x72, 0x6f,
-	0x6a, 0x65, 0x63, 0x74, 0x2f, 0x61, 0x75, 0x64, 0x69, 0x75, 0x73, 0x64, 0x2f, 0x70, 0x6b, 0x67,
-	0x2f, 0x61, 0x70, 0x69, 0x2f, 0x73, 0x74, 0x6f, 0x72, 0x61, 0x67, 0x65, 0x2f, 0x76, 0x31, 0x62,
-	0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x0c, 0x52, 0x04, 0x64, 0x61, 0x74, 0x61, 0x22, 0xa3, 0x01, 0x0a, 0x06, 0x55, 0x70, 0x6c, 0x6f,
+	0x61, 0x64, 0x12, 0x0e, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x02,
+	0x69, 0x64, 0x12, 0x17, 0x0a, 0x07, 0x75, 0x73, 0x65, 0x72, 0x5f, 0x69, 0x64, 0x18, 0x02, 0x20,
+	0x01, 0x28, 0x09, 0x52, 0x06, 0x75, 0x73, 0x65, 0x72, 0x49, 0x64, 0x12, 0x19, 0x0a, 0x08, 0x74,
+	0x72, 0x61, 0x63, 0x6b, 0x5f, 0x69, 0x64, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x74,
+	0x72, 0x61, 0x63, 0x6b, 0x49, 0x64, 0x12, 0x1b, 0x0a, 0x09, 0x66, 0x69, 0x6c, 0x65, 0x5f, 0x6e,
+	0x61, 0x6d, 0x65, 0x18, 0x04, 0x20, 0x01, 0x28, 0x09, 0x52, 0x08, 0x66, 0x69, 0x6c, 0x65, 0x4e,
+	0x61, 0x6d, 0x65, 0x12, 0x1b, 0x0a, 0x09, 0x66, 0x69, 0x6c, 0x65, 0x5f, 0x74, 0x79, 0x70, 0x65,
+	0x18, 0x05, 0x20, 0x01, 0x28, 0x09, 0x52, 0x08, 0x66, 0x69, 0x6c, 0x65, 0x54, 0x79, 0x70, 0x65,
+	0x12, 0x1b, 0x0a, 0x09, 0x66, 0x69, 0x6c, 0x65, 0x5f, 0x73, 0x69, 0x7a, 0x65, 0x18, 0x06, 0x20,
+	0x01, 0x28, 0x09, 0x52, 0x08, 0x66, 0x69, 0x6c, 0x65, 0x53, 0x69, 0x7a, 0x65, 0x42, 0x35, 0x5a,
+	0x33, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x41, 0x75, 0x64, 0x69,
+	0x75, 0x73, 0x50, 0x72, 0x6f, 0x6a, 0x65, 0x63, 0x74, 0x2f, 0x61, 0x75, 0x64, 0x69, 0x75, 0x73,
+	0x64, 0x2f, 0x70, 0x6b, 0x67, 0x2f, 0x61, 0x70, 0x69, 0x2f, 0x73, 0x74, 0x6f, 0x72, 0x61, 0x67,
+	0x65, 0x2f, 0x76, 0x31, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -832,35 +764,31 @@ func file_storage_v1_types_proto_rawDescGZIP() []byte {
 	return file_storage_v1_types_proto_rawDescData
 }
 
-var file_storage_v1_types_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_storage_v1_types_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
+var file_storage_v1_types_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
 var file_storage_v1_types_proto_goTypes = []interface{}{
-	(Order)(0),                  // 0: storage.v1.Order
-	(*PingRequest)(nil),         // 1: storage.v1.PingRequest
-	(*PingResponse)(nil),        // 2: storage.v1.PingResponse
-	(*GetHealthRequest)(nil),    // 3: storage.v1.GetHealthRequest
-	(*GetHealthResponse)(nil),   // 4: storage.v1.GetHealthResponse
-	(*GetUploadsRequest)(nil),   // 5: storage.v1.GetUploadsRequest
-	(*GetUploadsResponse)(nil),  // 6: storage.v1.GetUploadsResponse
-	(*GetUploadRequest)(nil),    // 7: storage.v1.GetUploadRequest
-	(*GetUploadResponse)(nil),   // 8: storage.v1.GetUploadResponse
-	(*StreamTrackRequest)(nil),  // 9: storage.v1.StreamTrackRequest
-	(*StreamTrackResponse)(nil), // 10: storage.v1.StreamTrackResponse
-	(*StreamImageRequest)(nil),  // 11: storage.v1.StreamImageRequest
-	(*StreamImageResponse)(nil), // 12: storage.v1.StreamImageResponse
-	(*Pagination)(nil),          // 13: storage.v1.Pagination
+	(*PingRequest)(nil),         // 0: storage.v1.PingRequest
+	(*PingResponse)(nil),        // 1: storage.v1.PingResponse
+	(*GetHealthRequest)(nil),    // 2: storage.v1.GetHealthRequest
+	(*GetHealthResponse)(nil),   // 3: storage.v1.GetHealthResponse
+	(*UploadTrackRequest)(nil),  // 4: storage.v1.UploadTrackRequest
+	(*UploadTrackResponse)(nil), // 5: storage.v1.UploadTrackResponse
+	(*UploadImageRequest)(nil),  // 6: storage.v1.UploadImageRequest
+	(*UploadImageResponse)(nil), // 7: storage.v1.UploadImageResponse
+	(*GetUploadRequest)(nil),    // 8: storage.v1.GetUploadRequest
+	(*GetUploadResponse)(nil),   // 9: storage.v1.GetUploadResponse
+	(*StreamTrackRequest)(nil),  // 10: storage.v1.StreamTrackRequest
+	(*StreamTrackResponse)(nil), // 11: storage.v1.StreamTrackResponse
+	(*StreamImageRequest)(nil),  // 12: storage.v1.StreamImageRequest
+	(*StreamImageResponse)(nil), // 13: storage.v1.StreamImageResponse
 	(*Upload)(nil),              // 14: storage.v1.Upload
 }
 var file_storage_v1_types_proto_depIdxs = []int32{
-	13, // 0: storage.v1.GetUploadsRequest.pagination:type_name -> storage.v1.Pagination
-	0,  // 1: storage.v1.GetUploadsRequest.order:type_name -> storage.v1.Order
-	14, // 2: storage.v1.GetUploadsResponse.uploads:type_name -> storage.v1.Upload
-	14, // 3: storage.v1.GetUploadResponse.upload:type_name -> storage.v1.Upload
-	4,  // [4:4] is the sub-list for method output_type
-	4,  // [4:4] is the sub-list for method input_type
-	4,  // [4:4] is the sub-list for extension type_name
-	4,  // [4:4] is the sub-list for extension extendee
-	0,  // [0:4] is the sub-list for field type_name
+	14, // 0: storage.v1.GetUploadResponse.upload:type_name -> storage.v1.Upload
+	1,  // [1:1] is the sub-list for method output_type
+	1,  // [1:1] is the sub-list for method input_type
+	1,  // [1:1] is the sub-list for extension type_name
+	1,  // [1:1] is the sub-list for extension extendee
+	0,  // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_storage_v1_types_proto_init() }
@@ -918,7 +846,7 @@ func file_storage_v1_types_proto_init() {
 			}
 		}
 		file_storage_v1_types_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetUploadsRequest); i {
+			switch v := v.(*UploadTrackRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -930,7 +858,7 @@ func file_storage_v1_types_proto_init() {
 			}
 		}
 		file_storage_v1_types_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetUploadsResponse); i {
+			switch v := v.(*UploadTrackResponse); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -942,7 +870,7 @@ func file_storage_v1_types_proto_init() {
 			}
 		}
 		file_storage_v1_types_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetUploadRequest); i {
+			switch v := v.(*UploadImageRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -954,7 +882,7 @@ func file_storage_v1_types_proto_init() {
 			}
 		}
 		file_storage_v1_types_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetUploadResponse); i {
+			switch v := v.(*UploadImageResponse); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -966,7 +894,7 @@ func file_storage_v1_types_proto_init() {
 			}
 		}
 		file_storage_v1_types_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*StreamTrackRequest); i {
+			switch v := v.(*GetUploadRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -978,7 +906,7 @@ func file_storage_v1_types_proto_init() {
 			}
 		}
 		file_storage_v1_types_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*StreamTrackResponse); i {
+			switch v := v.(*GetUploadResponse); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -990,7 +918,7 @@ func file_storage_v1_types_proto_init() {
 			}
 		}
 		file_storage_v1_types_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*StreamImageRequest); i {
+			switch v := v.(*StreamTrackRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1002,7 +930,7 @@ func file_storage_v1_types_proto_init() {
 			}
 		}
 		file_storage_v1_types_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*StreamImageResponse); i {
+			switch v := v.(*StreamTrackResponse); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1014,7 +942,7 @@ func file_storage_v1_types_proto_init() {
 			}
 		}
 		file_storage_v1_types_proto_msgTypes[12].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Pagination); i {
+			switch v := v.(*StreamImageRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1026,6 +954,18 @@ func file_storage_v1_types_proto_init() {
 			}
 		}
 		file_storage_v1_types_proto_msgTypes[13].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*StreamImageResponse); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_storage_v1_types_proto_msgTypes[14].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Upload); i {
 			case 0:
 				return &v.state
@@ -1043,14 +983,13 @@ func file_storage_v1_types_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_storage_v1_types_proto_rawDesc,
-			NumEnums:      1,
-			NumMessages:   14,
+			NumEnums:      0,
+			NumMessages:   15,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_storage_v1_types_proto_goTypes,
 		DependencyIndexes: file_storage_v1_types_proto_depIdxs,
-		EnumInfos:         file_storage_v1_types_proto_enumTypes,
 		MessageInfos:      file_storage_v1_types_proto_msgTypes,
 	}.Build()
 	File_storage_v1_types_proto = out.File

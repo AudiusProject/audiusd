@@ -14,14 +14,13 @@ message GetHealthRequest {}
 
 message GetHealthResponse {}
 
-message GetUploadsRequest {
-  Pagination pagination = 1;
-  Order order = 2;
-}
+message UploadTrackRequest {}
 
-message GetUploadsResponse {
-  repeated Upload uploads = 1;
-}
+message UploadTrackResponse {}
+
+message UploadImageRequest {}
+
+message UploadImageResponse {}
 
 message GetUploadRequest {
   string id = 1;
@@ -45,17 +44,6 @@ message StreamImageRequest {
 
 message StreamImageResponse {
   bytes data = 1;
-}
-
-message Pagination {
-  int64 limit = 1;
-  int64 offset = 2;
-}
-
-enum Order {
-  ORDER_UNSPECIFIED = 0;
-  ORDER_ASC = 1;
-  ORDER_DESC = 2;
 }
 
 message Upload {

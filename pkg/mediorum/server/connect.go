@@ -32,11 +32,6 @@ func (s *StorageService) GetUpload(context.Context, *connect.Request[v1.GetUploa
 	panic("unimplemented")
 }
 
-// GetUploads implements v1connect.StorageServiceHandler.
-func (s *StorageService) GetUploads(context.Context, *connect.Request[v1.GetUploadsRequest]) (*connect.Response[v1.GetUploadsResponse], error) {
-	panic("unimplemented")
-}
-
 // Ping implements v1connect.StorageServiceHandler.
 func (s *StorageService) Ping(context.Context, *connect.Request[v1.PingRequest]) (*connect.Response[v1.PingResponse], error) {
 	return connect.NewResponse(&v1.PingResponse{Message: "pong"}), nil
@@ -52,6 +47,12 @@ func (s *StorageService) StreamTrack(context.Context, *connect.Request[v1.Stream
 	panic("unimplemented")
 }
 
-func NewMediorumService(mediorum *MediorumServer) *StorageService {
-	return &StorageService{mediorum: mediorum}
+// UploadImage implements v1connect.StorageServiceHandler.
+func (s *StorageService) UploadImage(context.Context, *connect.Request[v1.UploadImageRequest]) (*connect.Response[v1.UploadImageResponse], error) {
+	panic("unimplemented")
+}
+
+// UploadTrack implements v1connect.StorageServiceHandler.
+func (s *StorageService) UploadTrack(context.Context, *connect.Request[v1.UploadTrackRequest]) (*connect.Response[v1.UploadTrackResponse], error) {
+	panic("unimplemented")
 }
