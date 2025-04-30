@@ -95,6 +95,8 @@ select * from sla_rollups where time = $1;
 -- name: GetSlaRollupWithId :one
 select * from sla_rollups where id = $1;
 
+-- name: GetSlaRollupsForRound :many
+select * from sla_rollups where funding_round = $1;
 
 -- name: GetPreviousSlaRollupFromId :one
 select * from sla_rollups

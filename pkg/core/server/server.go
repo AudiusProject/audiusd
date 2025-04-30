@@ -59,6 +59,9 @@ type Server struct {
 	missingEthNodes   []string
 	ethNodeMU         sync.RWMutex
 
+	fundingRound        int
+	fundingRoundPending bool
+
 	awaitHttpServerReady chan struct{}
 	awaitRpcReady        chan struct{}
 	awaitEthNodesReady   chan struct{}
@@ -135,6 +138,7 @@ func (s *Server) Start(ctx context.Context) error {
 	g.Go(s.startSyncTasks)
 	g.Go(s.startPeerManager)
 	g.Go(s.startEthNodeManager)
+	g.Go(s.startFundingRoundManager)
 	g.Go(s.startCache)
 	g.Go(s.startDataCompanion)
 	g.Go(s.syncLogs)
