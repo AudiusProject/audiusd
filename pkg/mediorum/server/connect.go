@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"io"
 	"time"
 
 	"connectrpc.com/connect"
@@ -97,14 +98,76 @@ func (s *StorageService) Ping(context.Context, *connect.Request[v1.PingRequest])
 	return connect.NewResponse(&v1.PingResponse{Message: "pong"}), nil
 }
 
-// StreamImage implements v1connect.StorageServiceHandler.
-func (s *StorageService) StreamImage(context.Context, *connect.Request[v1.StreamImageRequest], *connect.ServerStream[v1.StreamImageResponse]) error {
-	panic("unimplemented")
+// StreamTrack implements v1connect.StorageServiceHandler.
+func (s *StorageService) StreamTrack(ctx context.Context, req *connect.Request[v1.StreamTrackRequest], stream *connect.ServerStream[v1.StreamTrackResponse]) error {
+	// Get the blob from storage
+	blob, err := s.mediorum.bucket.NewReader(ctx, req.Msg.Id, nil)
+	if err != nil {
+		return err
+	}
+	defer blob.Close()
+
+	// Track metrics in separate thread
+	go s.mediorum.recordMetric(StreamTrack)
+
+	// Stream the audio file in chunks
+	buf := make([]byte, 32*1024) // 32KB chunks
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+			n, err := blob.Read(buf)
+			if err != nil {
+				if err == io.EOF {
+					return nil
+				}
+				return err
+			}
+
+			if err := stream.Send(&v1.StreamTrackResponse{
+				Data: buf[:n],
+			}); err != nil {
+				return err
+			}
+		}
+	}
 }
 
-// StreamTrack implements v1connect.StorageServiceHandler.
-func (s *StorageService) StreamTrack(context.Context, *connect.Request[v1.StreamTrackRequest], *connect.ServerStream[v1.StreamTrackResponse]) error {
-	panic("unimplemented")
+// StreamImage implements v1connect.StorageServiceHandler.
+func (s *StorageService) StreamImage(ctx context.Context, req *connect.Request[v1.StreamImageRequest], stream *connect.ServerStream[v1.StreamImageResponse]) error {
+	// Get the blob from storage
+	blob, err := s.mediorum.bucket.NewReader(ctx, req.Msg.Id, nil)
+	if err != nil {
+		return err
+	}
+	defer blob.Close()
+
+	// Track metrics in separate thread
+	go s.mediorum.recordMetric(ServeImage)
+
+	// Stream the image file in chunks
+	buf := make([]byte, 32*1024) // 32KB chunks
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+			n, err := blob.Read(buf)
+			if err != nil {
+				if err == io.EOF {
+					return nil
+				}
+				return err
+			}
+
+			if err := stream.Send(&v1.StreamImageResponse{
+				Data: buf[:n],
+			}); err != nil {
+				return err
+			}
+		}
+	}
 }
 
 func NewMediorumService(mediorum *MediorumServer) *StorageService {
