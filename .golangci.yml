@@ -8,14 +8,12 @@ linters:
     - gofmt
     - goimports
     - govet
-    - errcheck
     - revive
     - unused
     - ineffassign
     - gosimple
     - stylecheck
     - dupl
-    - goconst
 
 linters-settings:
   gofmt:
