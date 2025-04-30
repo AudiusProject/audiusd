@@ -2,6 +2,7 @@ package server
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -22,33 +23,55 @@ import (
 
 var (
 	filesFormFieldName = "files"
+
+	errNotFoundError      = errors.New("not found")
+	errUnprocessableError = errors.New("unprocessable")
 )
 
 func (ss *MediorumServer) serveUploadDetail(c echo.Context) error {
-	var upload *Upload
-	err := ss.crud.DB.First(&upload, "id = ?", c.Param("id")).Error
+	id := c.Param("id")
+	fix := c.QueryParam("fix") == "true"
+	analyze := c.QueryParam("analyze") == "true"
+
+	upload, err := ss.serveUpload(id, fix, analyze)
 	if err != nil {
-		return echo.NewHTTPError(404, err.Error())
-	}
-	if upload.Status == JobStatusError {
-		return c.JSON(422, upload)
-	}
-
-	if fix, _ := strconv.ParseBool(c.QueryParam("fix")); fix && upload.Status != JobStatusDone {
-		err = ss.transcode(upload)
-		if err != nil {
-			return err
+		if errors.Is(err, errNotFoundError) {
+			return c.JSON(404, err.Error())
 		}
-	}
-
-	if analyze, _ := strconv.ParseBool(c.QueryParam("analyze")); analyze && upload.AudioAnalysisStatus != "done" {
-		err = ss.analyzeAudio(upload, time.Minute*10)
-		if err != nil {
-			return err
+		if errors.Is(err, errUnprocessableError) {
+			return c.JSON(422, upload)
 		}
+		return err
 	}
 
 	return c.JSON(200, upload)
+}
+
+func (ss *MediorumServer) serveUpload(id string, fix bool, analyze bool) (*Upload, error) {
+	var upload *Upload
+	err := ss.crud.DB.First(&upload, "id = ?", id).Error
+	if err != nil {
+		return nil, errors.Join(errNotFoundError, err)
+	}
+	if upload.Status == JobStatusError {
+		return upload, errors.Join(errUnprocessableError, err)
+	}
+
+	if fix && upload.Status != JobStatusDone {
+		err = ss.transcode(upload)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if analyze && upload.AudioAnalysisStatus != "done" {
+		err = ss.analyzeAudio(upload, time.Minute*10)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return upload, nil
 }
 
 func (ss *MediorumServer) serveUploadList(c echo.Context) error {
