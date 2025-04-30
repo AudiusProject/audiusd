@@ -1,9 +1,28 @@
 version: 2.1
 
 orbs:
-  gh: circleci/github-cli@2.7.0
+  gh: circleci/github-cli@2.4.0
 
 commands:
+  setup-audius-ctl:
+    description: Checkout and install audius-ctl built in previous job
+    steps:
+      - checkout
+      - attach_workspace:
+          at: ./
+      - run:
+          name: Uninstall any existing audius-ctl binary
+          command: |
+            make uninstall
+      - run:
+          name: Install audius-ctl
+          command: |
+            make install
+      - run:
+          name: 'Install self-signed ssl certificate for devnet.audius-d'
+          command: |
+            sudo cp dev-tools/tls/devnet-cert.pem /usr/local/share/ca-certificates/devnet.audius-d.crt
+            sudo update-ca-certificates
   docker-login:
     steps:
       - run:
@@ -52,24 +71,6 @@ commands:
 
 
 jobs:
-  install-deps:
-    docker:
-      - image: cimg/go:1.23
-    steps:
-      - checkout
-      - run:
-          name: Install dependencies
-          command: make install-deps
-
-  lint:
-    docker:
-      - image: cimg/go:1.23
-    steps:
-      - checkout
-      - run:
-          name: Run linter
-          command: make lint || true
-
   build-audiusd-bin:
     docker:
       - image: cimg/go:1.23
@@ -83,6 +84,15 @@ jobs:
       - checkout
       - install-buf
       - push-buf
+      - run:
+          name: Install build dependencies
+          command: |
+            make install-go-deps
+            go mod download
+      - run:
+          name: Lint
+          command: |
+            make lint || true
       - run:
           name: Build audiusd binaries
           command: |
@@ -244,14 +254,7 @@ jobs:
 workflows:
   audiusd:
     jobs:
-      - install-deps
-      - lint:
-          requires:
-            - install-deps
-      - build-audiusd-bin:
-          requires:
-            - install-deps
-            - lint
+      - build-audiusd-bin
       - build-and-test-audiusd-amd64:
           context: DockerHub
           requires:
