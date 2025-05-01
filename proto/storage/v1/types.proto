@@ -16,13 +16,23 @@ message GetHealthRequest {}
 
 message GetHealthResponse {}
 
-message UploadTrackRequest {}
+message UploadFilesRequest {
+  string signature = 1;
+  string user_wallet = 2;
+  string template = 3;
+  string preview_start = 4;
+  repeated string placement_hosts = 5;
+  repeated File files = 6;
+}
 
-message UploadTrackResponse {}
+message File {
+  string filename = 1;
+  bytes data = 2;
+}
 
-message UploadImageRequest {}
-
-message UploadImageResponse {}
+message UploadFilesResponse {
+  repeated Upload uploads = 1;
+}
 
 message GetUploadRequest {
   string id = 1;
