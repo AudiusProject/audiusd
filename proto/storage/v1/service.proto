@@ -10,6 +10,7 @@ service StorageService {
   rpc Ping(PingRequest) returns (PingResponse) {}
   rpc GetHealth(GetHealthRequest) returns (GetHealthResponse) {}
   rpc UploadFiles(UploadFilesRequest) returns (UploadFilesResponse) {}
+  rpc GetUpload(GetUploadRequest) returns (GetUploadResponse) {}
   rpc StreamTrack(StreamTrackRequest) returns (stream StreamTrackResponse) {}
   rpc StreamImage(StreamImageRequest) returns (stream StreamImageResponse) {}
 }

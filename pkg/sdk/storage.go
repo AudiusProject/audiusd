@@ -149,7 +149,7 @@ func (s *StorageSDK) UploadAudio(filePath string) ([]*server.Upload, error) {
 
 func (s *StorageSDK) DownloadTrack(trackId, outputPath string) error {
 	if s.privKey == nil {
-		return errors.New("No private key set, cannot download track")
+		return errors.New("no private key set, cannot download track")
 	}
 
 	dataObj := map[string]interface{}{

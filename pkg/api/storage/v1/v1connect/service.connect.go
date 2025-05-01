@@ -41,6 +41,9 @@ const (
 	// StorageServiceUploadFilesProcedure is the fully-qualified name of the StorageService's
 	// UploadFiles RPC.
 	StorageServiceUploadFilesProcedure = "/storage.v1.StorageService/UploadFiles"
+	// StorageServiceGetUploadProcedure is the fully-qualified name of the StorageService's GetUpload
+	// RPC.
+	StorageServiceGetUploadProcedure = "/storage.v1.StorageService/GetUpload"
 	// StorageServiceStreamTrackProcedure is the fully-qualified name of the StorageService's
 	// StreamTrack RPC.
 	StorageServiceStreamTrackProcedure = "/storage.v1.StorageService/StreamTrack"
@@ -54,6 +57,7 @@ type StorageServiceClient interface {
 	Ping(context.Context, *connect.Request[v1.PingRequest]) (*connect.Response[v1.PingResponse], error)
 	GetHealth(context.Context, *connect.Request[v1.GetHealthRequest]) (*connect.Response[v1.GetHealthResponse], error)
 	UploadFiles(context.Context, *connect.Request[v1.UploadFilesRequest]) (*connect.Response[v1.UploadFilesResponse], error)
+	GetUpload(context.Context, *connect.Request[v1.GetUploadRequest]) (*connect.Response[v1.GetUploadResponse], error)
 	StreamTrack(context.Context, *connect.Request[v1.StreamTrackRequest]) (*connect.ServerStreamForClient[v1.StreamTrackResponse], error)
 	StreamImage(context.Context, *connect.Request[v1.StreamImageRequest]) (*connect.ServerStreamForClient[v1.StreamImageResponse], error)
 }
@@ -87,6 +91,12 @@ func NewStorageServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(storageServiceMethods.ByName("UploadFiles")),
 			connect.WithClientOptions(opts...),
 		),
+		getUpload: connect.NewClient[v1.GetUploadRequest, v1.GetUploadResponse](
+			httpClient,
+			baseURL+StorageServiceGetUploadProcedure,
+			connect.WithSchema(storageServiceMethods.ByName("GetUpload")),
+			connect.WithClientOptions(opts...),
+		),
 		streamTrack: connect.NewClient[v1.StreamTrackRequest, v1.StreamTrackResponse](
 			httpClient,
 			baseURL+StorageServiceStreamTrackProcedure,
@@ -107,6 +117,7 @@ type storageServiceClient struct {
 	ping        *connect.Client[v1.PingRequest, v1.PingResponse]
 	getHealth   *connect.Client[v1.GetHealthRequest, v1.GetHealthResponse]
 	uploadFiles *connect.Client[v1.UploadFilesRequest, v1.UploadFilesResponse]
+	getUpload   *connect.Client[v1.GetUploadRequest, v1.GetUploadResponse]
 	streamTrack *connect.Client[v1.StreamTrackRequest, v1.StreamTrackResponse]
 	streamImage *connect.Client[v1.StreamImageRequest, v1.StreamImageResponse]
 }
@@ -126,6 +137,11 @@ func (c *storageServiceClient) UploadFiles(ctx context.Context, req *connect.Req
 	return c.uploadFiles.CallUnary(ctx, req)
 }
 
+// GetUpload calls storage.v1.StorageService.GetUpload.
+func (c *storageServiceClient) GetUpload(ctx context.Context, req *connect.Request[v1.GetUploadRequest]) (*connect.Response[v1.GetUploadResponse], error) {
+	return c.getUpload.CallUnary(ctx, req)
+}
+
 // StreamTrack calls storage.v1.StorageService.StreamTrack.
 func (c *storageServiceClient) StreamTrack(ctx context.Context, req *connect.Request[v1.StreamTrackRequest]) (*connect.ServerStreamForClient[v1.StreamTrackResponse], error) {
 	return c.streamTrack.CallServerStream(ctx, req)
@@ -141,6 +157,7 @@ type StorageServiceHandler interface {
 	Ping(context.Context, *connect.Request[v1.PingRequest]) (*connect.Response[v1.PingResponse], error)
 	GetHealth(context.Context, *connect.Request[v1.GetHealthRequest]) (*connect.Response[v1.GetHealthResponse], error)
 	UploadFiles(context.Context, *connect.Request[v1.UploadFilesRequest]) (*connect.Response[v1.UploadFilesResponse], error)
+	GetUpload(context.Context, *connect.Request[v1.GetUploadRequest]) (*connect.Response[v1.GetUploadResponse], error)
 	StreamTrack(context.Context, *connect.Request[v1.StreamTrackRequest], *connect.ServerStream[v1.StreamTrackResponse]) error
 	StreamImage(context.Context, *connect.Request[v1.StreamImageRequest], *connect.ServerStream[v1.StreamImageResponse]) error
 }
@@ -170,6 +187,12 @@ func NewStorageServiceHandler(svc StorageServiceHandler, opts ...connect.Handler
 		connect.WithSchema(storageServiceMethods.ByName("UploadFiles")),
 		connect.WithHandlerOptions(opts...),
 	)
+	storageServiceGetUploadHandler := connect.NewUnaryHandler(
+		StorageServiceGetUploadProcedure,
+		svc.GetUpload,
+		connect.WithSchema(storageServiceMethods.ByName("GetUpload")),
+		connect.WithHandlerOptions(opts...),
+	)
 	storageServiceStreamTrackHandler := connect.NewServerStreamHandler(
 		StorageServiceStreamTrackProcedure,
 		svc.StreamTrack,
@@ -190,6 +213,8 @@ func NewStorageServiceHandler(svc StorageServiceHandler, opts ...connect.Handler
 			storageServiceGetHealthHandler.ServeHTTP(w, r)
 		case StorageServiceUploadFilesProcedure:
 			storageServiceUploadFilesHandler.ServeHTTP(w, r)
+		case StorageServiceGetUploadProcedure:
+			storageServiceGetUploadHandler.ServeHTTP(w, r)
 		case StorageServiceStreamTrackProcedure:
 			storageServiceStreamTrackHandler.ServeHTTP(w, r)
 		case StorageServiceStreamImageProcedure:
@@ -213,6 +238,10 @@ func (UnimplementedStorageServiceHandler) GetHealth(context.Context, *connect.Re
 
 func (UnimplementedStorageServiceHandler) UploadFiles(context.Context, *connect.Request[v1.UploadFilesRequest]) (*connect.Response[v1.UploadFilesResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("storage.v1.StorageService.UploadFiles is not implemented"))
+}
+
+func (UnimplementedStorageServiceHandler) GetUpload(context.Context, *connect.Request[v1.GetUploadRequest]) (*connect.Response[v1.GetUploadResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("storage.v1.StorageService.GetUpload is not implemented"))
 }
 
 func (UnimplementedStorageServiceHandler) StreamTrack(context.Context, *connect.Request[v1.StreamTrackRequest], *connect.ServerStream[v1.StreamTrackResponse]) error {
