@@ -44,20 +44,17 @@ message GetUploadResponse {
   Upload upload = 1;
 }
 
-message StreamTrackRequest {
-  string id = 1;
+message StreamFileRequest {
+  string cid = 1;
+  string signature = 2;
+  int64 chunk_size = 3;
 }
 
-message StreamTrackResponse {
+message StreamFileResponse {
   bytes data = 1;
-}
-
-message StreamImageRequest {
-  string id = 1;
-}
-
-message StreamImageResponse {
-  bytes data = 1;
+  string content_type = 2;
+  string filename = 3;
+  string tx_hash = 4;
 }
 
 message Upload {

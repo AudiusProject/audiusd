@@ -51,6 +51,10 @@ func (s *AudiusdSDK) Address() string {
 	return crypto.PubkeyToAddress(s.privKey.PublicKey).Hex()
 }
 
+func (s *AudiusdSDK) PrivKey() *ecdsa.PrivateKey {
+	return s.privKey
+}
+
 func (s *AudiusdSDK) Pubkey() *ecdsa.PublicKey {
 	if s.privKey == nil {
 		return nil

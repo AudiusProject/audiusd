@@ -4,6 +4,7 @@ import (
 	"net/url"
 	"testing"
 
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -16,4 +17,38 @@ func TestSignature(t *testing.T) {
 	assert.NoError(t, err)
 	// fmt.Printf("%+v \n", data)
 	assert.Equal(t, data.SignerWallet, "0x5E98cBEEAA2aCEDEc0833AC3D1634E2A7aE0f3c2")
+}
+
+func TestGenerateAndParseSignature(t *testing.T) {
+	// Create test data
+	data := SignatureData{
+		TrackId:     1485,
+		Cid:         "QmdGpDEBq6v6Kv9H61HbeVqyiPo7iBe12tVtkhNig6ipWp",
+		Timestamp:   1681484247930,
+		UserID:      50419,
+		ShouldCache: 1,
+	}
+
+	// Generate a new private key for testing
+	privateKey, err := crypto.GenerateKey()
+	assert.NoError(t, err)
+
+	// Generate the signature
+	envelope, err := GenerateSignature(data, privateKey)
+	assert.NoError(t, err)
+
+	// Parse the signature back
+	parsed, err := ParseFromQueryString(envelope)
+	assert.NoError(t, err)
+
+	// Verify the parsed data matches the original
+	assert.Equal(t, data.TrackId, parsed.Data.TrackId)
+	assert.Equal(t, data.Cid, parsed.Data.Cid)
+	assert.Equal(t, data.Timestamp, parsed.Data.Timestamp)
+	assert.Equal(t, data.UserID, parsed.Data.UserID)
+	assert.Equal(t, data.ShouldCache, parsed.Data.ShouldCache)
+
+	// Verify the signer's address matches the private key we used
+	expectedAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
+	assert.Equal(t, expectedAddress.String(), parsed.SignerWallet)
 }

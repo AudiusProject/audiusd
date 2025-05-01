@@ -1,15 +1,20 @@
 package integrationtests
 
 import (
+	"bytes"
 	"context"
 	_ "embed"
 	"io"
+	"log"
 	"os"
 	"testing"
+	"time"
 
 	"connectrpc.com/connect"
 	v1storage "github.com/AudiusProject/audiusd/pkg/api/storage/v1"
+	"github.com/AudiusProject/audiusd/pkg/mediorum/server/signature"
 	"github.com/AudiusProject/audiusd/pkg/sdk"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/stretchr/testify/require"
 )
 
@@ -19,8 +24,6 @@ func TestTrackReleaseWorkflow(t *testing.T) {
 	serverAddr := "node3.audiusd.devnet"
 	privKeyPath := "./assets/demo_key.txt"
 	//privKeyPath2 := "./assets/demo_key2.txt"
-	title := "Anxiety Upgrade"
-	genre := "Electronic"
 	//downloadPath := fmt.Sprintf("%s/test_audio_download.mp3", os.TempDir())
 
 	sdk := sdk.NewAudiusdSDK(serverAddr)
@@ -52,6 +55,7 @@ func TestTrackReleaseWorkflow(t *testing.T) {
 
 	upload := uploadFileRes.Msg.Uploads[0]
 
+	// get the upload info
 	uploadRes, err := sdk.Storage.GetUpload(ctx, &connect.Request[v1storage.GetUploadRequest]{
 		Msg: &v1storage.GetUploadRequest{
 			Id: upload.Id,
@@ -63,8 +67,59 @@ func TestTrackReleaseWorkflow(t *testing.T) {
 	require.EqualValues(t, upload.OrigFileCid, uploadRes.Msg.Upload.OrigFileCid, "failed to get upload")
 	require.EqualValues(t, upload.OrigFilename, uploadRes.Msg.Upload.OrigFilename, "failed to get upload")
 
+	// release the track
+	title := "Anxiety Upgrade"
+	genre := "Electronic"
 	_, err = sdk.ReleaseTrack(ctx, upload.OrigFileCid, title, genre)
 	require.Nil(t, err, "failed to release track")
+
+	// TODO: get the release info
+
+	// create stream signature
+	sigData := signature.SignatureData{
+		UploadID:    upload.Id,
+		Cid:         upload.OrigFileCid,
+		ShouldCache: 1,
+		Timestamp:   time.Now().Unix(),
+		TrackId:     1,
+		UserID:      1,
+	}
+
+	streamSignature, err := signature.GenerateSignature(sigData, sdk.PrivKey())
+	require.Nil(t, err, "failed to generate stream signature")
+
+	// stream the file
+	stream, err := sdk.Storage.StreamFile(ctx, &connect.Request[v1storage.StreamFileRequest]{
+		Msg: &v1storage.StreamFileRequest{
+			Cid:       upload.OrigFileCid,
+			Signature: streamSignature,
+		},
+	})
+	require.Nil(t, err, "failed to stream file")
+
+	var fileData bytes.Buffer
+	var contentType, filename, txHash string
+
+	for stream.Receive() {
+		res := stream.Msg()
+		if len(res.Data) > 0 {
+			fileData.Write(res.Data)
+		}
+		if res.ContentType != "" {
+			contentType = res.ContentType
+		}
+		if res.Filename != "" {
+			filename = res.Filename
+		}
+		if res.TxHash != "" {
+			txHash = res.TxHash
+		}
+	}
+	if err := stream.Err(); err != nil {
+		log.Fatalf("stream error: %v", err)
+	}
+
+	spew.Dump(contentType, filename, txHash)
 
 	// Now try to access the file
 	// err = storageSdk.DownloadTrack(releaseRes.TrackID, downloadPath)

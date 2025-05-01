@@ -11,6 +11,5 @@ service StorageService {
   rpc GetHealth(GetHealthRequest) returns (GetHealthResponse) {}
   rpc UploadFiles(UploadFilesRequest) returns (UploadFilesResponse) {}
   rpc GetUpload(GetUploadRequest) returns (GetUploadResponse) {}
-  rpc StreamTrack(StreamTrackRequest) returns (stream StreamTrackResponse) {}
-  rpc StreamImage(StreamImageRequest) returns (stream StreamImageResponse) {}
+  rpc StreamFile(StreamFileRequest) returns (stream StreamFileResponse) {}
 }

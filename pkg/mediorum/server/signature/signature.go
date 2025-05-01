@@ -12,7 +12,6 @@ import (
 	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/gowebpki/jcs"
-	"github.com/storyicon/sigverify"
 	"google.golang.org/protobuf/proto"
 	protob "google.golang.org/protobuf/proto"
 )
@@ -141,12 +140,6 @@ func SignBytes(input []byte, privateKey *ecdsa.PrivateKey) ([]byte, error) {
 	return signature, nil
 }
 
-// From https://github.com/AudiusProject/sig/blob/main/go/index.go
-func recoverSigner(input string, signature []byte) (ethcommon.Address, error) {
-	hash := crypto.Keccak256Hash([]byte(input))
-	return sigverify.EcRecoverEx(hash.Bytes(), signature)
-}
-
 func SignCoreBytes(input proto.Message, privateKey *ecdsa.PrivateKey) (string, error) {
 	eventBodyBytes, err := protob.Marshal(input)
 	if err != nil {
@@ -159,4 +152,38 @@ func SignCoreBytes(input proto.Message, privateKey *ecdsa.PrivateKey) (string, e
 	}
 
 	return hex.EncodeToString(signedBody), nil
+}
+
+func GenerateSignature(data SignatureData, privateKey *ecdsa.PrivateKey) (string, error) {
+	// Marshal the data to JSON
+	dataBytes, err := json.Marshal(data)
+	if err != nil {
+		return "", err
+	}
+
+	// Ensure JSON keys are sorted using JCS
+	normalizedData, err := jcs.Transform(dataBytes)
+	if err != nil {
+		return "", err
+	}
+
+	// Sign the normalized data
+	signature, err := SignBytes(normalizedData, privateKey)
+	if err != nil {
+		return "", err
+	}
+
+	// Create the signature envelope
+	envelope := &SignatureEnvelope{
+		Data:      string(dataBytes),
+		Signature: "0x" + hex.EncodeToString(signature),
+	}
+
+	// Marshal the envelope to JSON
+	envelopeBytes, err := json.Marshal(envelope)
+	if err != nil {
+		return "", err
+	}
+
+	return string(envelopeBytes), nil
 }
