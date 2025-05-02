@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"strconv"
@@ -25,6 +26,10 @@ const (
 )
 
 func (s *MediorumServer) serveBlobGRPC(ctx context.Context, req *v1storage.StreamFileRequest, stream *connect.ServerStream[v1storage.StreamFileResponse]) error {
+	if s.Config.Env != "dev" {
+		return connect.NewError(connect.CodeNotFound, errors.New("not found"))
+	}
+
 	key := cidutil.ShardCID(req.Cid)
 
 	blob, err := s.bucket.NewReader(ctx, key, nil)
