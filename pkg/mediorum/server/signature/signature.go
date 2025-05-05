@@ -153,37 +153,3 @@ func SignCoreBytes(input proto.Message, privateKey *ecdsa.PrivateKey) (string, e
 
 	return hex.EncodeToString(signedBody), nil
 }
-
-func GenerateSignature(data SignatureData, privateKey *ecdsa.PrivateKey) (string, error) {
-	// Marshal the data to JSON
-	dataBytes, err := json.Marshal(data)
-	if err != nil {
-		return "", err
-	}
-
-	// Ensure JSON keys are sorted using JCS
-	normalizedData, err := jcs.Transform(dataBytes)
-	if err != nil {
-		return "", err
-	}
-
-	// Sign the normalized data
-	signature, err := SignBytes(normalizedData, privateKey)
-	if err != nil {
-		return "", err
-	}
-
-	// Create the signature envelope
-	envelope := &SignatureEnvelope{
-		Data:      string(dataBytes),
-		Signature: "0x" + hex.EncodeToString(signature),
-	}
-
-	// Marshal the envelope to JSON
-	envelopeBytes, err := json.Marshal(envelope)
-	if err != nil {
-		return "", err
-	}
-
-	return string(envelopeBytes), nil
-}
