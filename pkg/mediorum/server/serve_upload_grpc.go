@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -15,17 +14,12 @@ import (
 	"github.com/AudiusProject/audiusd/pkg/mediorum/cidutil"
 	"github.com/AudiusProject/audiusd/pkg/mediorum/server/signature"
 
-	"mime/multipart"
-
-	"github.com/labstack/echo/v4"
 	"github.com/oklog/ulid/v2"
 	"golang.org/x/exp/slices"
 	"golang.org/x/sync/errgroup"
 )
 
 var (
-	filesFormFieldName = "files"
-
 	errNotFoundError      = errors.New("not found")
 	errUnprocessableError = errors.New("unprocessable")
 
@@ -36,25 +30,6 @@ var (
 	ErrInvalidPreviewStartSeconds               = errors.New("invalid preview start seconds")
 	ErrUploadProcessFailed                      = errors.New("upload process failed")
 )
-
-func (ss *MediorumServer) serveUploadDetail(c echo.Context) error {
-	id := c.Param("id")
-	fix := c.QueryParam("fix") == "true"
-	analyze := c.QueryParam("analyze") == "true"
-
-	upload, err := ss.serveUpload(id, fix, analyze)
-	if err != nil {
-		if errors.Is(err, errNotFoundError) {
-			return c.JSON(404, err.Error())
-		}
-		if errors.Is(err, errUnprocessableError) {
-			return c.JSON(422, upload)
-		}
-		return err
-	}
-
-	return c.JSON(200, upload)
-}
 
 func (ss *MediorumServer) serveUpload(id string, fix bool, analyze bool) (*Upload, error) {
 	var upload *Upload
@@ -81,152 +56,6 @@ func (ss *MediorumServer) serveUpload(id string, fix bool, analyze bool) (*Uploa
 	}
 
 	return upload, nil
-}
-
-func (ss *MediorumServer) serveUploadList(c echo.Context) error {
-	afterCursor, _ := time.Parse(time.RFC3339Nano, c.QueryParam("after"))
-	var uploads []Upload
-	err := ss.crud.DB.
-		Where("created_at > ?", afterCursor).
-		Order(`created_at`).Limit(2000).Find(&uploads).Error
-	if err != nil {
-		return err
-	}
-	return c.JSON(200, uploads)
-}
-
-type UpdateUploadBody struct {
-	PreviewStartSeconds string `json:"previewStartSeconds"`
-}
-
-// generatePreview endpoint will create a new 30s preview mp3
-// save the cid to the audio_previews table
-// and return to the client.
-func (ss *MediorumServer) generatePreview(c echo.Context) error {
-	ctx := c.Request().Context()
-	fileHash := c.Param("cid")
-	previewStartSeconds := c.Param("previewStartSeconds")
-
-	audioPreview, err := ss.generateAudioPreview(ctx, fileHash, previewStartSeconds)
-	if err != nil {
-		return err
-	}
-
-	return c.JSON(200, audioPreview)
-}
-
-// this endpoint should be replaced by generate_preview
-// when client is fully using generate_preview
-// this can be removed.
-func (ss *MediorumServer) updateUpload(c echo.Context) error {
-	if !ss.diskHasSpace() {
-		return c.String(http.StatusServiceUnavailable, "disk is too full to accept new uploads")
-	}
-
-	var upload *Upload
-	err := ss.crud.DB.First(&upload, "id = ?", c.Param("id")).Error
-	if err != nil {
-		return err
-	}
-
-	// Validate signer wallet matches uploader's wallet
-	signerWallet, ok := c.Get("signer-wallet").(string)
-	if !ok || signerWallet == "" {
-		return c.String(http.StatusBadRequest, "error recovering wallet from signature")
-	}
-	if !upload.UserWallet.Valid {
-		return c.String(http.StatusBadRequest, "upload cannot be updated because it does not have an associated user wallet")
-	}
-	if !strings.EqualFold(signerWallet, upload.UserWallet.String) {
-		return c.String(http.StatusUnauthorized, "request signer's wallet does not match uploader's wallet")
-	}
-
-	body := new(UpdateUploadBody)
-	if err := c.Bind(body); err != nil {
-		return c.String(http.StatusBadRequest, err.Error())
-	}
-
-	selectedPreview := sql.NullString{Valid: false}
-	if body.PreviewStartSeconds != "" {
-		previewStartSeconds, err := strconv.ParseFloat(body.PreviewStartSeconds, 64)
-		if err != nil {
-			return c.String(http.StatusBadRequest, "error parsing previewStartSeconds: "+err.Error())
-		}
-		selectedPreviewString := fmt.Sprintf("320_preview|%g", previewStartSeconds)
-		selectedPreview = sql.NullString{
-			Valid:  true,
-			String: selectedPreviewString,
-		}
-	}
-
-	// Update supported editable fields
-	// Do not support deleting previews
-	if selectedPreview.Valid && selectedPreview != upload.SelectedPreview {
-		upload.SelectedPreview = selectedPreview
-		err := ss.generateAudioPreviewForUpload(upload)
-		if err != nil {
-			return err
-		}
-	}
-
-	return c.JSON(200, upload)
-}
-
-type multipartFileReader struct {
-	file *multipart.FileHeader
-}
-
-func (f *multipartFileReader) Filename() string {
-	return f.file.Filename
-}
-
-func (f *multipartFileReader) Open() (io.ReadCloser, error) {
-	return f.file.Open()
-}
-
-func (ss *MediorumServer) postUpload(c echo.Context) error {
-	qsig := c.QueryParam("signature")
-	userWalletHeader := c.Request().Header.Get("X-User-Wallet-Addr")
-	ftemplate := c.FormValue("template")
-	previewStart := c.FormValue("previewStartSeconds")
-	fPlacementHosts := c.FormValue("placement_hosts")
-
-	form, err := c.MultipartForm()
-	if err != nil {
-		return c.String(http.StatusBadRequest, err.Error())
-	}
-
-	formFiles := form.File[filesFormFieldName]
-	files := make([]FileReader, len(formFiles))
-	for i, file := range formFiles {
-		files[i] = &multipartFileReader{file: file}
-	}
-	defer form.RemoveAll()
-
-	uploads, err := ss.uploadFile(c.Request().Context(), qsig, userWalletHeader, ftemplate, previewStart, fPlacementHosts, files)
-	if err != nil {
-		if errors.Is(err, ErrDiskFull) {
-			return c.String(http.StatusServiceUnavailable, "disk is too full to accept new uploads")
-		}
-		if errors.Is(err, ErrInvalidTemplate) {
-			return c.String(http.StatusBadRequest, "invalid template")
-		}
-		if errors.Is(err, ErrUploadToPlacementHosts) {
-			return c.String(http.StatusBadRequest, "if placement_hosts is specified, you must upload to one of the placement_hosts")
-		}
-		if errors.Is(err, ErrAllPlacementHostsMustBeRegisteredSigners) {
-			return c.String(http.StatusBadRequest, "all placement_hosts must be registered signers")
-		}
-		if errors.Is(err, ErrInvalidPreviewStartSeconds) {
-			return c.String(http.StatusBadRequest, "invalid preview start seconds")
-		}
-		if errors.Is(err, ErrUploadProcessFailed) {
-			return c.String(422, "upload process failed")
-		}
-		return err
-	}
-
-	return c.JSON(200, uploads)
 }
 
 type FileReader interface {
@@ -333,7 +162,7 @@ func (ss *MediorumServer) uploadFile(ctx context.Context, qsig string, userWalle
 			}
 			uploads[idx] = upload
 
-			tmpFile, err := copyUploadToTempFile(formFile)
+			tmpFile, err := copyTempFile(formFile)
 			if err != nil {
 				upload.Error = err.Error()
 				return err
@@ -391,7 +220,7 @@ func (ss *MediorumServer) uploadFile(ctx context.Context, qsig string, userWalle
 	return uploads, nil
 }
 
-func copyUploadToTempFile(file FileReader) (*os.File, error) {
+func copyTempFile(file FileReader) (*os.File, error) {
 	temp, err := os.CreateTemp("", "mediorumUpload")
 	if err != nil {
 		return nil, err
