@@ -187,8 +187,7 @@ func (s *StorageService) UploadFiles(ctx context.Context, req *connect.Request[v
 	return connect.NewResponse(&v1.UploadFilesResponse{Uploads: res}), nil
 }
 
-// StreamFile implements v1connect.StorageServiceHandler.
-func (s *StorageService) StreamFile(ctx context.Context, req *connect.Request[v1.StreamFileRequest], stream *connect.ServerStream[v1.StreamFileResponse]) error {
-	s.mediorum.logger.Info("StreamFile", "req", req.Msg)
-	return s.mediorum.serveBlobGRPC(ctx, req.Msg, stream)
+// StreamTrack implements v1connect.StorageServiceHandler.
+func (s *StorageService) StreamTrack(ctx context.Context, req *connect.Request[v1.StreamTrackRequest], stream *connect.ServerStream[v1.StreamTrackResponse]) error {
+	return s.mediorum.streamTrackGRPC(ctx, req.Msg, stream)
 }

@@ -3,9 +3,7 @@ package server
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
-	"strconv"
 	"time"
 
 	"connectrpc.com/connect"
@@ -25,7 +23,7 @@ const (
 	maxChunkSize = 1024 * 1024
 )
 
-func (s *MediorumServer) serveBlobGRPC(ctx context.Context, req *v1storage.StreamFileRequest, stream *connect.ServerStream[v1storage.StreamFileResponse]) error {
+func (s *MediorumServer) streamTrackGRPC(ctx context.Context, req *v1storage.StreamTrackRequest, stream *connect.ServerStream[v1storage.StreamTrackResponse]) error {
 	if s.Config.Env != "dev" {
 		return connect.NewError(connect.CodeNotFound, errors.New("not found"))
 	}
@@ -33,19 +31,13 @@ func (s *MediorumServer) serveBlobGRPC(ctx context.Context, req *v1storage.Strea
 	// if signature is present, it is a track stream
 	isAudioFile := true
 	contentType := "audio/mpeg"
-	sig, err := signature.ParseFromQueryString(req.Signature)
+	reqSig := req.Signature
+	_, ethAddress, err := common.RecoverPlaySignature(reqSig.Signature, reqSig.Data)
 	if err != nil {
-		s.logger.Warn("unable to parse signature for request", "signature", req.Signature, "err", err)
-		isAudioFile = false
-		contentType = "image/jpeg"
+		return connect.NewError(connect.CodePermissionDenied, errors.New("invalid signature"))
 	}
 
-	trackId := sig.Data.TrackId
-
-	// // check it is for this upload
-	// if sig.Data.UploadID != trackId {
-	// 	return connect.NewError(connect.CodePermissionDenied, errors.New("signature contains incorrect track ID"))
-	// }
+	trackId := reqSig.Data.TrackId
 
 	var cid string
 	s.crud.DB.Raw("SELECT cid FROM sound_recordings WHERE track_id = ?", trackId).Scan(&cid)
@@ -54,19 +46,19 @@ func (s *MediorumServer) serveBlobGRPC(ctx context.Context, req *v1storage.Strea
 	}
 
 	var count int
-	s.crud.DB.Raw("SELECT COUNT(*) FROM management_keys WHERE track_id = ? AND address = ?", trackId, sig.SignerWallet).Scan(&count)
+	s.crud.DB.Raw("SELECT COUNT(*) FROM management_keys WHERE track_id = ? AND address = ?", trackId, ethAddress).Scan(&count)
 	if count == 0 {
-		s.logger.Debug("sig no match", "signed by", sig.SignerWallet)
+		s.logger.Debug("sig no match", "signed by", ethAddress)
 		return connect.NewError(connect.CodePermissionDenied, errors.New("signer not authorized to access"))
 	}
 
-	key := cidutil.ShardCID(req.Cid)
+	key := cidutil.ShardCID(cid)
 
 	blob, err := s.bucket.NewReader(ctx, key, nil)
 	if err != nil {
 		if gcerrors.Code(err) == gcerrors.NotFound {
 			// If we don't have the file, find a different node
-			host := s.findNodeToServeBlob(ctx, req.Cid)
+			host := s.findNodeToServeBlob(ctx, cid)
 			if host == "" {
 				return err
 			}
@@ -82,48 +74,37 @@ func (s *MediorumServer) serveBlobGRPC(ctx context.Context, req *v1storage.Strea
 	}()
 
 	s.logger.Info("serveBlobGRPC", "contentType", contentType, "isAudioFile", isAudioFile)
-	if isAudioFile {
-		go func() {
-			sig := sig
-			// as per CN `userId: req.userId ?? delegateOwnerWallet`
-			userId := s.Config.Self.Wallet
-			if sig.Data.UserID != 0 {
-				userId = strconv.Itoa(sig.Data.UserID)
-			}
+	go func() {
+		// record play event to chain
+		signatureData, err := signature.GenerateListenTimestampAndSignature(s.Config.privateKey)
+		if err != nil {
+			s.logger.Error("unable to build request", "err", err)
+			return
+		}
 
-			// record play event to chain
-			signatureData, err := signature.GenerateListenTimestampAndSignature(s.Config.privateKey)
-			if err != nil {
-				s.logger.Error("unable to build request", "err", err)
-				return
-			}
+		ip := common.GetClientIP(ctx)
+		geoData, err := s.getGeoFromIP(ip)
+		if err != nil {
+			s.logger.Error("core plays bad ip: %v", err)
+			return
+		}
 
-			parsedTime, err := time.Parse(time.RFC3339, signatureData.Timestamp)
-			if err != nil {
-				s.logger.Error("core error parsing time:", "err", err)
-				return
-			}
+		parsedTime, err := time.Parse(time.RFC3339, signatureData.Timestamp)
+		if err != nil {
+			s.logger.Error("core error parsing time:", "err", err)
+			return
+		}
 
-			ip := common.GetClientIP(ctx)
-			geoData, err := s.getGeoFromIP(ip)
-			if err != nil {
-				s.logger.Error("core plays bad ip: %v", err)
-				return
-			}
-
-			trackID := fmt.Sprint(sig.Data.TrackId)
-
-			s.playEventQueue.pushPlayEvent(&PlayEvent{
-				UserID:    userId,
-				TrackID:   trackID,
-				PlayTime:  parsedTime,
-				Signature: signatureData.Signature,
-				City:      geoData.City,
-				Country:   geoData.Country,
-				Region:    geoData.Region,
-			})
-		}()
-	}
+		s.playEventQueue.pushPlayEvent(&PlayEvent{
+			UserID:    ethAddress,
+			TrackID:   reqSig.Data.TrackId,
+			PlayTime:  parsedTime,
+			Signature: signatureData.Signature,
+			City:      geoData.City,
+			Country:   geoData.Country,
+			Region:    geoData.Region,
+		})
+	}()
 
 	// Determine chunk size
 	chunkSize := defaultChunkSize
@@ -150,7 +131,7 @@ func (s *MediorumServer) serveBlobGRPC(ctx context.Context, req *v1storage.Strea
 			return err
 		}
 
-		if err := stream.Send(&v1storage.StreamFileResponse{
+		if err := stream.Send(&v1storage.StreamTrackResponse{
 			Data: buffer[:n],
 		}); err != nil {
 			return err

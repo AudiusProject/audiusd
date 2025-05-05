@@ -44,12 +44,12 @@ message GetUploadResponse {
   Upload upload = 1;
 }
 
-message StreamFileRequest {
+message StreamTrackRequest {
   StreamTrackSignature signature = 1;
   int64 chunk_size = 2;
 }
 
-message StreamFileResponse {
+message StreamTrackResponse {
   bytes data = 1;
 }
 

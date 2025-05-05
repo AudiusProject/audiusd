@@ -12,7 +12,7 @@ import (
 
 	"connectrpc.com/connect"
 	v1storage "github.com/AudiusProject/audiusd/pkg/api/storage/v1"
-	"github.com/AudiusProject/audiusd/pkg/mediorum/server/signature"
+	"github.com/AudiusProject/audiusd/pkg/common"
 	"github.com/AudiusProject/audiusd/pkg/sdk"
 	"github.com/stretchr/testify/require"
 )
@@ -69,30 +69,28 @@ func TestTrackReleaseWorkflow(t *testing.T) {
 	// release the track
 	title := "Anxiety Upgrade"
 	genre := "Electronic"
+
 	releaseRes, err := sdk.ReleaseTrack(ctx, upload.OrigFileCid, title, genre)
 	require.Nil(t, err, "failed to release track")
+
 	trackID := releaseRes.TrackID
 
-	// TODO: get the release info
-
 	// create stream signature
-	sigData := signature.SignatureData{
-		UploadID:    upload.Id,
-		Cid:         upload.OrigFileCid,
-		ShouldCache: 1,
-		Timestamp:   time.Now().Unix(),
-		TrackId:     trackID,
-		UserID:      1,
+	data := &v1storage.StreamTrackSignatureData{
+		TrackId:   trackID,
+		Timestamp: time.Now().Unix(),
 	}
-
-	streamSignature, err := signature.GenerateSignature(sigData, sdk.PrivKey())
+	sig, sigData, err := common.GeneratePlaySignature(sdk.PrivKey(), data)
 	require.Nil(t, err, "failed to generate stream signature")
 
 	// stream the file
-	stream, err := sdk.Storage.StreamFile(ctx, &connect.Request[v1storage.StreamFileRequest]{
-		Msg: &v1storage.StreamFileRequest{
-			Cid:       upload.OrigFileCid,
-			Signature: streamSignature,
+	stream, err := sdk.Storage.StreamTrack(ctx, &connect.Request[v1storage.StreamTrackRequest]{
+		Msg: &v1storage.StreamTrackRequest{
+			Signature: &v1storage.StreamTrackSignature{
+				Signature: sig,
+				DataHash:  sigData,
+				Data:      data,
+			},
 		},
 	})
 	require.Nil(t, err, "failed to stream file")
