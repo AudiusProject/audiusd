@@ -30,6 +30,36 @@ func (s *MediorumServer) serveBlobGRPC(ctx context.Context, req *v1storage.Strea
 		return connect.NewError(connect.CodeNotFound, errors.New("not found"))
 	}
 
+	// if signature is present, it is a track stream
+	isAudioFile := true
+	contentType := "audio/mpeg"
+	sig, err := signature.ParseFromQueryString(req.Signature)
+	if err != nil {
+		s.logger.Warn("unable to parse signature for request", "signature", req.Signature, "err", err)
+		isAudioFile = false
+		contentType = "image/jpeg"
+	}
+
+	trackId := sig.Data.TrackId
+
+	// // check it is for this upload
+	// if sig.Data.UploadID != trackId {
+	// 	return connect.NewError(connect.CodePermissionDenied, errors.New("signature contains incorrect track ID"))
+	// }
+
+	var cid string
+	s.crud.DB.Raw("SELECT cid FROM sound_recordings WHERE track_id = ?", trackId).Scan(&cid)
+	if cid == "" {
+		return connect.NewError(connect.CodeNotFound, errors.New("track not found"))
+	}
+
+	var count int
+	s.crud.DB.Raw("SELECT COUNT(*) FROM management_keys WHERE track_id = ? AND address = ?", trackId, sig.SignerWallet).Scan(&count)
+	if count == 0 {
+		s.logger.Debug("sig no match", "signed by", sig.SignerWallet)
+		return connect.NewError(connect.CodePermissionDenied, errors.New("signer not authorized to access"))
+	}
+
 	key := cidutil.ShardCID(req.Cid)
 
 	blob, err := s.bucket.NewReader(ctx, key, nil)
@@ -51,15 +81,6 @@ func (s *MediorumServer) serveBlobGRPC(ctx context.Context, req *v1storage.Strea
 		}
 	}()
 
-	// if signature is present, it is a track stream
-	isAudioFile := true
-	contentType := "audio/mpeg"
-	sig, err := signature.ParseFromQueryString(req.Signature)
-	if err != nil {
-		s.logger.Warn("unable to parse signature for request", "signature", req.Signature, "err", err)
-		isAudioFile = false
-		contentType = "image/jpeg"
-	}
 	s.logger.Info("serveBlobGRPC", "contentType", contentType, "isAudioFile", isAudioFile)
 	if isAudioFile {
 		go func() {
@@ -116,14 +137,6 @@ func (s *MediorumServer) serveBlobGRPC(ctx context.Context, req *v1storage.Strea
 		} else {
 			chunkSize = int(reqChunkSize)
 		}
-	}
-
-	// Send initial response with content type and filename
-	if err := stream.Send(&v1storage.StreamFileResponse{
-		ContentType: contentType,
-		Filename:    req.Cid,
-	}); err != nil {
-		return err
 	}
 
 	// Stream the file in chunks

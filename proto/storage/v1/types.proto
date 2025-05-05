@@ -45,16 +45,25 @@ message GetUploadResponse {
 }
 
 message StreamFileRequest {
-  string cid = 1;
-  string signature = 2;
-  int64 chunk_size = 3;
+  StreamTrackSignature signature = 1;
+  int64 chunk_size = 2;
 }
 
 message StreamFileResponse {
   bytes data = 1;
-  string content_type = 2;
-  string filename = 3;
-  string tx_hash = 4;
+}
+
+message StreamTrackSignatureData {
+  string track_id = 1;
+  int64 timestamp = 2;
+}
+
+message StreamTrackSignature {
+  // hex encoded signature of the data_hash
+  string signature = 1;
+  // sha256 hash of the data
+  bytes data_hash = 2;
+  StreamTrackSignatureData data = 3;
 }
 
 message Upload {

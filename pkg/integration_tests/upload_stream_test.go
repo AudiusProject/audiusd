@@ -14,7 +14,6 @@ import (
 	v1storage "github.com/AudiusProject/audiusd/pkg/api/storage/v1"
 	"github.com/AudiusProject/audiusd/pkg/mediorum/server/signature"
 	"github.com/AudiusProject/audiusd/pkg/sdk"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/stretchr/testify/require"
 )
 
@@ -70,8 +69,9 @@ func TestTrackReleaseWorkflow(t *testing.T) {
 	// release the track
 	title := "Anxiety Upgrade"
 	genre := "Electronic"
-	_, err = sdk.ReleaseTrack(ctx, upload.OrigFileCid, title, genre)
+	releaseRes, err := sdk.ReleaseTrack(ctx, upload.OrigFileCid, title, genre)
 	require.Nil(t, err, "failed to release track")
+	trackID := releaseRes.TrackID
 
 	// TODO: get the release info
 
@@ -81,7 +81,7 @@ func TestTrackReleaseWorkflow(t *testing.T) {
 		Cid:         upload.OrigFileCid,
 		ShouldCache: 1,
 		Timestamp:   time.Now().Unix(),
-		TrackId:     1,
+		TrackId:     trackID,
 		UserID:      1,
 	}
 
@@ -98,37 +98,13 @@ func TestTrackReleaseWorkflow(t *testing.T) {
 	require.Nil(t, err, "failed to stream file")
 
 	var fileData bytes.Buffer
-	var contentType, filename, txHash string
-
 	for stream.Receive() {
 		res := stream.Msg()
 		if len(res.Data) > 0 {
 			fileData.Write(res.Data)
 		}
-		if res.ContentType != "" {
-			contentType = res.ContentType
-		}
-		if res.Filename != "" {
-			filename = res.Filename
-		}
-		if res.TxHash != "" {
-			txHash = res.TxHash
-		}
 	}
 	if err := stream.Err(); err != nil {
 		log.Fatalf("stream error: %v", err)
 	}
-
-	spew.Dump(contentType, filename, txHash)
-
-	// Now try to access the file
-	// err = storageSdk.DownloadTrack(releaseRes.TrackID, downloadPath)
-	// require.Nil(t, err, "failed to download track")
-
-	// // Try to access the file with a different key
-	// err = storageSdk.LoadPrivateKey(privKeyPath2)
-	// require.Nil(t, err, "failed to set privKey2 on storage sdk")
-	// err = storageSdk.DownloadTrack(releaseRes.TrackID, downloadPath)
-	// require.NotNil(t, err, "expected error when downloading track with wrong key")
-	// require.ErrorContains(t, err, "signer not authorized")
 }
