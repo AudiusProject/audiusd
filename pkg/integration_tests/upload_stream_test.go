@@ -13,7 +13,7 @@ import (
 	"connectrpc.com/connect"
 	v1storage "github.com/AudiusProject/audiusd/pkg/api/storage/v1"
 	"github.com/AudiusProject/audiusd/pkg/common"
-	"github.com/AudiusProject/audiusd/pkg/sdk"
+	auds "github.com/AudiusProject/audiusd/pkg/sdk"
 	"github.com/stretchr/testify/require"
 )
 
@@ -22,10 +22,9 @@ func TestTrackReleaseWorkflow(t *testing.T) {
 
 	serverAddr := "node3.audiusd.devnet"
 	privKeyPath := "./assets/demo_key.txt"
-	//privKeyPath2 := "./assets/demo_key2.txt"
-	//downloadPath := fmt.Sprintf("%s/test_audio_download.mp3", os.TempDir())
+	privKeyPath2 := "./assets/demo_key2.txt"
 
-	sdk := sdk.NewAudiusdSDK(serverAddr)
+	sdk := auds.NewAudiusdSDK(serverAddr)
 	if err := sdk.ReadPrivKey(privKeyPath); err != nil {
 		require.Nil(t, err, "failed to read private key: %w", err)
 	}
@@ -105,4 +104,30 @@ func TestTrackReleaseWorkflow(t *testing.T) {
 	if err := stream.Err(); err != nil {
 		log.Fatalf("stream error: %v", err)
 	}
+
+	// verify another user can't stream the file
+	sdk2 := auds.NewAudiusdSDK(serverAddr)
+	if err := sdk2.ReadPrivKey(privKeyPath2); err != nil {
+		require.Nil(t, err, "failed to read private key: %w", err)
+	}
+
+	// use same data as first user
+	sig2, sigData2, err := common.GeneratePlaySignature(sdk2.PrivKey(), data)
+	require.Nil(t, err, "failed to generate stream signature")
+
+	stream2, err := sdk2.Storage.StreamTrack(ctx, &connect.Request[v1storage.StreamTrackRequest]{
+		Msg: &v1storage.StreamTrackRequest{
+			Signature: &v1storage.StreamTrackSignature{
+				Signature: sig2,
+				DataHash:  sigData2,
+				Data:      data,
+			},
+		},
+	})
+
+	// consume the stream
+	for stream2.Receive() {
+	}
+	require.Nil(t, err)
+	require.NotNil(t, stream2.Err(), "could not stream file")
 }

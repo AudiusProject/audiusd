@@ -28,9 +28,6 @@ func (s *MediorumServer) streamTrackGRPC(ctx context.Context, req *v1storage.Str
 		return connect.NewError(connect.CodeNotFound, errors.New("not found"))
 	}
 
-	// if signature is present, it is a track stream
-	isAudioFile := true
-	contentType := "audio/mpeg"
 	reqSig := req.Signature
 	_, ethAddress, err := common.RecoverPlaySignature(reqSig.Signature, reqSig.Data)
 	if err != nil {
@@ -51,6 +48,8 @@ func (s *MediorumServer) streamTrackGRPC(ctx context.Context, req *v1storage.Str
 		s.logger.Debug("sig no match", "signed by", ethAddress)
 		return connect.NewError(connect.CodePermissionDenied, errors.New("signer not authorized to access"))
 	}
+
+	s.logger.Info("streamTrackGRPC", "ethAddress", ethAddress, "count", count, "trackId", trackId, "cid", cid)
 
 	key := cidutil.ShardCID(cid)
 
@@ -73,7 +72,6 @@ func (s *MediorumServer) streamTrackGRPC(ctx context.Context, req *v1storage.Str
 		}
 	}()
 
-	s.logger.Info("serveBlobGRPC", "contentType", contentType, "isAudioFile", isAudioFile)
 	go func() {
 		// record play event to chain
 		signatureData, err := signature.GenerateListenTimestampAndSignature(s.Config.privateKey)
