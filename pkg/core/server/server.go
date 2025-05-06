@@ -6,15 +6,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/AudiusProject/audiusd/pkg/core/common"
+	corev1connect "github.com/AudiusProject/audiusd/pkg/api/core/v1/v1connect"
+	"github.com/AudiusProject/audiusd/pkg/common"
 	"github.com/AudiusProject/audiusd/pkg/core/config"
 	"github.com/AudiusProject/audiusd/pkg/core/contracts"
 	"github.com/AudiusProject/audiusd/pkg/core/db"
-	"github.com/AudiusProject/audiusd/pkg/core/gen/core_proto"
-	"github.com/AudiusProject/audiusd/pkg/core/rewards"
-	"github.com/AudiusProject/audiusd/pkg/core/sdk"
 	aLogger "github.com/AudiusProject/audiusd/pkg/logger"
 	"github.com/AudiusProject/audiusd/pkg/pos"
+	"github.com/AudiusProject/audiusd/pkg/rewards"
 	cconfig "github.com/cometbft/cometbft/config"
 	nm "github.com/cometbft/cometbft/node"
 	"github.com/cometbft/cometbft/rpc/client/local"
@@ -31,6 +30,7 @@ type Server struct {
 	cometbftConfig *cconfig.Config
 	logger         *common.Logger
 	z              *zap.Logger
+	self           corev1connect.CoreServiceClient
 
 	httpServer         *echo.Echo
 	grpcServer         *grpc.Server
@@ -44,7 +44,7 @@ type Server struct {
 	rpc   *local.Local
 	mempl *Mempool
 
-	peers   map[string]*sdk.Sdk
+	peers   map[string]corev1connect.CoreServiceClient
 	peersMU sync.RWMutex
 
 	txPubsub *TransactionHashPubsub
@@ -52,9 +52,7 @@ type Server struct {
 	cache     *Cache
 	abciState *ABCIState
 
-	rewards *rewards.RewardService
-
-	core_proto.UnimplementedProtocolServer
+	rewards *rewards.RewardAttester
 
 	ethNodes          []*contracts.Node
 	duplicateEthNodes []*contracts.Node
@@ -62,7 +60,6 @@ type Server struct {
 	ethNodeMU         sync.RWMutex
 
 	awaitHttpServerReady chan struct{}
-	awaitGrpcServerReady chan struct{}
 	awaitRpcReady        chan struct{}
 	awaitEthNodesReady   chan struct{}
 }
@@ -107,7 +104,7 @@ func NewServer(config *config.Config, cconfig *cconfig.Config, logger *common.Lo
 		db:        db.New(pool),
 		eth:       eth,
 		mempl:     mempl,
-		peers:     make(map[string]*sdk.Sdk),
+		peers:     make(map[string]corev1connect.CoreServiceClient),
 		txPubsub:  txPubsub,
 		cache:     NewCache(),
 		abciState: NewABCIState(config.RetainHeight),
@@ -119,10 +116,9 @@ func NewServer(config *config.Config, cconfig *cconfig.Config, logger *common.Lo
 		duplicateEthNodes: duplicateEthNodes,
 		missingEthNodes:   []string{},
 
-		rewards: rewards.NewRewardService(config),
+		rewards: rewards.NewRewardAttester(config.EthereumKey, config.Rewards),
 
 		awaitHttpServerReady: make(chan struct{}),
-		awaitGrpcServerReady: make(chan struct{}),
 		awaitRpcReady:        make(chan struct{}),
 		awaitEthNodesReady:   make(chan struct{}),
 	}
@@ -134,7 +130,6 @@ func (s *Server) Start(ctx context.Context) error {
 	g, _ := errgroup.WithContext(ctx)
 
 	g.Go(s.startABCI)
-	g.Go(s.startGRPC)
 	g.Go(s.startRegistryBridge)
 	g.Go(s.startEchoServer)
 	g.Go(s.startSyncTasks)
@@ -147,6 +142,10 @@ func (s *Server) Start(ctx context.Context) error {
 	s.z.Info("routines started")
 
 	return g.Wait()
+}
+
+func (s *Server) setSelf(self corev1connect.CoreServiceClient) {
+	s.self = self
 }
 
 func (s *Server) syncLogs() error {

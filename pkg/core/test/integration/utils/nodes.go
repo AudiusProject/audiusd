@@ -1,34 +1,30 @@
 package utils
 
 import (
-	"log"
 	"os"
+	"strings"
 
-	"github.com/AudiusProject/audiusd/pkg/core/sdk"
+	"github.com/AudiusProject/audiusd/pkg/sdk"
 )
 
 var (
-	discoveryOneGrpc = getEnvWithDefault("discoveryOneGRPC", "")
-	discoveryOneJrpc = getEnvWithDefault("discoveryOneJRPC", "")
-	discoveryOneOapi = getEnvWithDefault("discoveryOneOAPI", "")
+	DiscoveryOneRPC = getEnvWithDefault("discoveryOneRPC", "node1.audiusd.devnet")
+	ContentOneRPC   = getEnvWithDefault("contentOneRPC", "node2.audiusd.devnet")
+	ContentTwoRPC   = getEnvWithDefault("contentTwoRPC", "node3.audiusd.devnet")
+	ContentThreeRPC = getEnvWithDefault("contentThreeRPC", "node4.audiusd.devnet")
 
-	contentOneGrpc = getEnvWithDefault("contentOneGRPC", "")
-	contentOneJrpc = getEnvWithDefault("contentOneJRPC", "")
-	contentOneOapi = getEnvWithDefault("contentOneOAPI", "")
-
-	contentTwoGrpc = getEnvWithDefault("contentTwoGRPC", "")
-	contentTwoJrpc = getEnvWithDefault("contentTwoJRPC", "")
-	contentTwoOapi = getEnvWithDefault("contentTwoOAPI", "")
-
-	contentThreeGrpc = getEnvWithDefault("contentThreeGRPC", "")
-	contentThreeJrpc = getEnvWithDefault("contentThreeJRPC", "")
-	contentThreeOapi = getEnvWithDefault("contentThreeOAPI", "")
-
-	DiscoveryOne = newTestSdk(discoveryOneGrpc, discoveryOneJrpc, discoveryOneOapi)
-	ContentOne   = newTestSdk(contentOneGrpc, contentOneJrpc, contentOneOapi)
-	ContentTwo   = newTestSdk(contentTwoGrpc, contentTwoJrpc, contentTwoOapi)
-	ContentThree = newTestSdk(contentThreeGrpc, contentThreeJrpc, contentThreeOapi)
+	DiscoveryOne *sdk.AudiusdSDK
+	ContentOne   *sdk.AudiusdSDK
+	ContentTwo   *sdk.AudiusdSDK
+	ContentThree *sdk.AudiusdSDK
 )
+
+func init() {
+	DiscoveryOne = sdk.NewAudiusdSDK(DiscoveryOneRPC)
+	ContentOne = sdk.NewAudiusdSDK(ContentOneRPC)
+	ContentTwo = sdk.NewAudiusdSDK(ContentTwoRPC)
+	ContentThree = sdk.NewAudiusdSDK(ContentThreeRPC)
+}
 
 func getEnvWithDefault(key, defaultValue string) string {
 	value := os.Getenv(key)
@@ -38,13 +34,9 @@ func getEnvWithDefault(key, defaultValue string) string {
 	return value
 }
 
-func newTestSdk(grpc, jrpc, oapi string) *sdk.Sdk {
-	if grpc == "" || jrpc == "" || oapi == "" {
-		return nil
+func EnsureProtocol(endpoint string) string {
+	if !strings.HasPrefix(endpoint, "http://") && !strings.HasPrefix(endpoint, "https://") {
+		return "http://" + endpoint
 	}
-	node, err := sdk.NewSdk(sdk.WithGrpcendpoint(grpc), sdk.WithJrpcendpoint(jrpc), sdk.WithOapiendpoint(oapi))
-	if err != nil {
-		log.Panicf("node init error %s %s: %v", grpc, jrpc, err)
-	}
-	return node
+	return endpoint
 }

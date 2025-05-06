@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/hex"
@@ -26,8 +27,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/AudiusProject/audiusd/pkg/common"
 	"github.com/AudiusProject/audiusd/pkg/core"
-	"github.com/AudiusProject/audiusd/pkg/core/common"
 	"github.com/AudiusProject/audiusd/pkg/core/console"
 	coreServer "github.com/AudiusProject/audiusd/pkg/core/server"
 	"github.com/AudiusProject/audiusd/pkg/etl"
@@ -104,7 +105,7 @@ func main() {
 		},
 		{
 			"mediorum",
-			func() error { return mediorum.Run(ctx, logger, posChannel, storageService) },
+			func() error { return mediorum.Run(ctx, logger, posChannel, storageService, coreService) },
 			isStorageEnabled(),
 		},
 		{
@@ -278,7 +279,7 @@ func getEchoServerConfig(hostUrl *url.URL) serverConfig {
 func startEchoProxy(hostUrl *url.URL, logger *common.Logger, coreService *coreServer.CoreService, storageService *server.StorageService, etlService *etl.ETLService, systemService *system.SystemService) error {
 	e := echo.New()
 	e.HideBanner = true
-	e.Use(middleware.Logger(), middleware.Recover())
+	e.Use(middleware.Logger(), middleware.Recover(), common.InjectRealIP())
 
 	rpcGroup := e.Group("")
 	corePath, coreHandler := corev1connect.NewCoreServiceHandler(coreService)
@@ -293,67 +294,29 @@ func startEchoProxy(hostUrl *url.URL, logger *common.Logger, coreService *coreSe
 	systemPath, systemHandler := systemv1connect.NewSystemServiceHandler(systemService)
 	rpcGroup.Any(systemPath+"*", echo.WrapHandler(systemHandler))
 
+	go func() {
+		grpcServer := echo.New()
+		grpcServerGroup := grpcServer.Group("")
+		grpcServerGroup.Any(corePath+"*", echo.WrapHandler(coreHandler))
+		grpcServerGroup.Any(storagePath+"*", echo.WrapHandler(storageHandler))
+		grpcServerGroup.Any(etlPath+"*", echo.WrapHandler(etlHandler))
+		grpcServerGroup.Any(systemPath+"*", echo.WrapHandler(systemHandler))
+
+		// Create h2c-compatible server
+		h2cServer := &http.Server{
+			Addr:    ":50051",
+			Handler: h2c.NewHandler(grpcServer, &http2.Server{}),
+		}
+
+		if err := h2cServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Errorf("grpcServer on 50051 failed: %v", err)
+			return
+		}
+	}()
+
 	e.GET("/", func(c echo.Context) error {
 		return c.JSON(http.StatusOK, map[string]int{"a": 440})
 	})
-
-	// TODO: acdc backward compatibility - remove me
-	e.POST("/chain", func(c echo.Context) error {
-		var request struct {
-			JsonRPC string        `json:"jsonrpc"`
-			ID      interface{}   `json:"id"`
-			Method  string        `json:"method"`
-			Params  []interface{} `json:"params,omitempty"`
-		}
-
-		if err := c.Bind(&request); err != nil {
-			return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request"})
-		}
-
-		switch request.Method {
-		case "eth_blockNumber":
-			return c.JSON(http.StatusOK, map[string]interface{}{
-				"jsonrpc": "2.0",
-				"result":  "0x3bd6580",
-				"id":      request.ID,
-			})
-
-		case "eth_getBlockByNumber":
-			timestamp := fmt.Sprintf("0x%x", time.Now().Unix())
-
-			return c.JSON(http.StatusOK, map[string]interface{}{
-				"jsonrpc": "2.0",
-				"result": map[string]interface{}{
-					"author":           "0x2cd66a3931c36596efb037b06753476dce6b4e86",
-					"difficulty":       "0x2",
-					"extraData":        "0x4e65746865726d696e6420312e31342e332d302d3730373436313239332d3230a8868520252ddcb7f234cb92b3a0d293032b2be4415daf67a58523cfcf5e25457920834c196060569bba0551b7d4bf6c01d019b652b54d08f0318a19ae2cd66301",
-					"gasLimit":         "0xa00000",
-					"gasUsed":          "0x0",
-					"hash":             "0x0ea06edc49e6724167c9f898ca6798c6ed9843b30fb440fc99a70c4454c7136d",
-					"logsBloom":        "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
-					"miner":            "0x0000000000000000000000000000000000000000",
-					"mixHash":          "0x0000000000000000000000000000000000000000000000000000000000000000",
-					"nonce":            "0x0000000000000000",
-					"number":           "0x3bd6580",
-					"parentHash":       "0x8a036b5657ccd2ee6493e31968a67736b7efe4798820e9354b7d3971c3962980",
-					"receiptsRoot":     "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
-					"sha3Uncles":       "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
-					"size":             "0x262",
-					"stateRoot":        "0x8d990c12eb0aaca6a7aa280e28bd8f8d1c8a2bdd70e4e0ce7c74eb9da645abd0",
-					"totalDifficulty":  "0x757a43f",
-					"timestamp":        timestamp,
-					"transactions":     []interface{}{},
-					"transactionsRoot": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
-					"uncles":           []interface{}{},
-				},
-				"id": request.ID,
-			})
-
-		default:
-			return c.JSON(http.StatusBadRequest, map[string]string{"error": "unsupported method"})
-		}
-	})
-	// end: acdc backward compatibility
 
 	e.GET("/health-check", func(c echo.Context) error {
 		return c.JSON(http.StatusOK, getHealthCheckResponse(hostUrl))
@@ -371,7 +334,6 @@ func startEchoProxy(hostUrl *url.URL, logger *common.Logger, coreService *coreSe
 
 	proxies := []proxyConfig{
 		{"/console/*", "http://localhost:26659"},
-		{"/core/*", "http://localhost:26659"},
 	}
 
 	// dashboard compatibility - country flags + version info
@@ -483,8 +445,30 @@ func startWithTLS(e *echo.Echo, httpPort, httpsPort string, hostUrl *url.URL, lo
 		}
 
 		logger.Infof("Starting HTTPS server on port %s", httpsPort)
+
+		tlsCert, err := tls.X509KeyPair(cert, key)
+		if err != nil {
+			logger.Errorf("Failed to load X509 key pair: %v", err)
+			return fmt.Errorf("failed to load X509 key pair: %v", err)
+		}
 		go func() {
-			if err := e.StartTLS(":"+httpsPort, certFile, keyFile); err != nil && err != http.ErrServerClosed {
+			tlsConfig := &tls.Config{
+				NextProtos: []string{"h2"},
+			}
+			tlsConfig.Certificates = []tls.Certificate{
+				tlsCert,
+			}
+
+			h2Server := &http2.Server{}
+			server := &http.Server{
+				Addr:      ":" + httpsPort,
+				Handler:   e,
+				TLSConfig: tlsConfig,
+			}
+
+			http2.ConfigureServer(server, h2Server)
+
+			if err := server.ListenAndServeTLS(certFile, keyFile); err != nil && err != http.ErrServerClosed {
 				logger.Errorf("Failed to start HTTPS server: %v", err)
 			}
 		}()

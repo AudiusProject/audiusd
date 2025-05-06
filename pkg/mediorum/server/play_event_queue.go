@@ -2,10 +2,12 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
-	"github.com/AudiusProject/audiusd/pkg/core/gen/core_proto"
+	"connectrpc.com/connect"
+	v1 "github.com/AudiusProject/audiusd/pkg/api/core/v1"
 	"github.com/AudiusProject/audiusd/pkg/mediorum/server/signature"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -54,10 +56,6 @@ type PlayEvent struct {
 }
 
 func (ss *MediorumServer) startPlayEventQueue() {
-	ss.logger.Info("plays queue waiting for core sdk")
-	<-ss.coreSdkReady
-	ss.logger.Info("core sdk initialized")
-
 	ticker := time.NewTicker(playQueueInterval)
 	defer ticker.Stop()
 
@@ -79,10 +77,10 @@ func (ss *MediorumServer) processPlayRecordBatch() error {
 		return nil
 	}
 
-	uniquePlays := make(map[string]*core_proto.TrackPlay)
+	uniquePlays := make(map[string]*v1.TrackPlay)
 	for _, play := range plays {
 		// use play signature to deduplicate plays
-		uniquePlays[play.Signature] = &core_proto.TrackPlay{
+		uniquePlays[play.Signature] = &v1.TrackPlay{
 			UserId:    play.UserID,
 			TrackId:   play.TrackID,
 			Timestamp: timestamppb.New(play.PlayTime),
@@ -94,12 +92,12 @@ func (ss *MediorumServer) processPlayRecordBatch() error {
 	}
 
 	// Convert map values back to array
-	corePlays := make([]*core_proto.TrackPlay, 0, len(uniquePlays))
+	corePlays := make([]*v1.TrackPlay, 0, len(uniquePlays))
 	for _, play := range uniquePlays {
 		corePlays = append(corePlays, play)
 	}
 
-	playsTx := &core_proto.TrackPlays{
+	playsTx := &v1.TrackPlays{
 		Plays: corePlays,
 	}
 
@@ -111,23 +109,36 @@ func (ss *MediorumServer) processPlayRecordBatch() error {
 	}
 
 	// construct proto listen signedTx alongside signature of plays signedTx
-	signedTx := &core_proto.SignedTransaction{
+	signedTx := &v1.SignedTransaction{
 		Signature: signedPlaysEvent,
-		Transaction: &core_proto.SignedTransaction_Plays{
+		Transaction: &v1.SignedTransaction_Plays{
 			Plays: playsTx,
 		},
 	}
 
 	// submit to configured core node
-	res, err := ss.coreSdk.SendTransaction(ctx, &core_proto.SendTransactionRequest{
-		Transaction: signedTx,
-	})
+	var res *connect.Response[v1.SendTransactionResponse]
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				ss.logger.Error("panic recovered in SendTransaction", "recover", r)
+				err = fmt.Errorf("panic in SendTransaction: %v", r)
+			}
+		}()
+		res, err = ss.core.SendTransaction(ctx, connect.NewRequest(&v1.SendTransactionRequest{
+			Transaction: signedTx,
+		}))
+
+		if err != nil {
+			ss.logger.Error("core error submitting plays event", "err", err)
+		}
+	}()
 
 	if err != nil {
 		ss.logger.Error("core error submitting plays event", "err", err)
 		return err
 	}
 
-	ss.logger.Info("core %d plays recorded", "tx", len(corePlays), res.Txhash)
+	ss.logger.Info("core %d plays recorded", "tx", len(corePlays), res.Msg.Transaction.Hash)
 	return nil
 }

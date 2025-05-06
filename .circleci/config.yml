@@ -67,7 +67,7 @@ commands:
           name: Push Buf
           command: |
             echo ${BUF_TOKEN} | buf registry login --token-stdin
-            cd pkg/core && buf push --create --git-metadata
+            buf push --create --git-metadata
 
 
 jobs:
@@ -89,6 +89,10 @@ jobs:
           command: |
             make install-go-deps
             go mod download
+      - run:
+          name: Lint
+          command: |
+            make lint || true
       - run:
           name: Build audiusd binaries
           command: |

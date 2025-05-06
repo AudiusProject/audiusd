@@ -6,15 +6,15 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/AudiusProject/audiusd/pkg/core/common"
+	v1 "github.com/AudiusProject/audiusd/pkg/api/core/v1"
+	"github.com/AudiusProject/audiusd/pkg/common"
 	"github.com/AudiusProject/audiusd/pkg/core/db"
-	"github.com/AudiusProject/audiusd/pkg/core/gen/core_proto"
 	"github.com/jackc/pgx/v5"
 	"google.golang.org/protobuf/proto"
 )
 
 // persists the register node request should it pass validation
-func (s *Server) finalizeLegacyRegisterNode(ctx context.Context, tx *core_proto.SignedTransaction, blockHeight int64) (*core_proto.ValidatorRegistrationLegacy, error) {
+func (s *Server) finalizeLegacyRegisterNode(ctx context.Context, tx *v1.SignedTransaction, blockHeight int64) (*v1.ValidatorRegistrationLegacy, error) {
 	qtx := s.getDb()
 
 	vr := tx.GetValidatorRegistration()
@@ -29,11 +29,7 @@ func (s *Server) finalizeLegacyRegisterNode(ctx context.Context, tx *core_proto.
 		return nil, fmt.Errorf("could not recover signer: %v", err)
 	}
 
-	serializedPubKey, err := common.SerializePublicKey(pubKey)
-	if err != nil {
-		return nil, fmt.Errorf("could not serialize pubkey: %v", err)
-	}
-
+	serializedPubKey := common.SerializePublicKeyHex(pubKey)
 	registerNode := tx.GetValidatorRegistration()
 
 	// Do not reinsert duplicate registrations
