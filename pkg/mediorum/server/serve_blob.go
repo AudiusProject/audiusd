@@ -147,6 +147,8 @@ func (ss *MediorumServer) serveBlob(c echo.Context) error {
 		return c.NoContent(200)
 	}
 
+	ss.logger.Info("serving blob", "cid", cid, "content_type", blob.ContentType())
+
 	isAudioFile := strings.HasPrefix(blob.ContentType(), "audio")
 
 	if isAudioFile {
@@ -333,11 +335,16 @@ func (s *MediorumServer) requireRegisteredSignature(next echo.HandlerFunc) echo.
 			isRegistered := slices.ContainsFunc(s.Config.Signers, func(peer Peer) bool {
 				return strings.EqualFold(peer.Wallet, sig.SignerWallet)
 			})
+			wallets := make([]string, len(s.Config.Signers))
+			for i, peer := range s.Config.Signers {
+				wallets[i] = peer.Wallet
+			}
 			if !isRegistered {
 				s.logger.Debug("sig no match", "signed by", sig.SignerWallet)
 				return c.JSON(401, map[string]string{
-					"error":  "signer not in list of registered nodes",
-					"detail": "signed by: " + sig.SignerWallet,
+					"error":         "signer not in list of registered nodes",
+					"detail":        "signed by: " + sig.SignerWallet,
+					"valid_signers": strings.Join(wallets, ","),
 				})
 			}
 

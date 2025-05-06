@@ -14,6 +14,7 @@ import (
 	v1storage "github.com/AudiusProject/audiusd/pkg/api/storage/v1"
 	"github.com/AudiusProject/audiusd/pkg/common"
 	auds "github.com/AudiusProject/audiusd/pkg/sdk"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/stretchr/testify/require"
 )
 
@@ -130,4 +131,16 @@ func TestTrackReleaseWorkflow(t *testing.T) {
 	}
 	require.Nil(t, err)
 	require.NotNil(t, stream2.Err(), "could not stream file")
+
+	// get stream url
+	streamURLRes, err := sdk.Storage.GetStreamURL(ctx, &connect.Request[v1storage.GetStreamURLRequest]{
+		Msg: &v1storage.GetStreamURLRequest{
+			Cid:         upload.OrigFileCid,
+			ShouldCache: 1,
+			TrackId:     1,
+			UserId:      1,
+		},
+	})
+	require.Nil(t, err, "failed to get stream url")
+	spew.Dump(streamURLRes.Msg.Urls)
 }
