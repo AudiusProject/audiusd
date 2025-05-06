@@ -45,14 +45,15 @@ func (p *PlayEventQueue) popPlayEventBatch() []*PlayEvent {
 var playQueueInterval = 20 * time.Second
 
 type PlayEvent struct {
-	RowID     int
-	UserID    string
-	TrackID   string
-	PlayTime  time.Time
-	Signature string
-	City      string
-	Region    string
-	Country   string
+	RowID            int
+	UserID           string
+	TrackID          string
+	PlayTime         time.Time
+	Signature        string
+	City             string
+	Region           string
+	Country          string
+	RequestSignature string
 }
 
 func (ss *MediorumServer) startPlayEventQueue() {

@@ -302,13 +302,14 @@ func (ss *MediorumServer) logTrackListen(c echo.Context) {
 	trackID := fmt.Sprint(sig.Data.TrackId)
 
 	ss.playEventQueue.pushPlayEvent(&PlayEvent{
-		UserID:    userId,
-		TrackID:   trackID,
-		PlayTime:  parsedTime,
-		Signature: signatureData.Signature,
-		City:      geoData.City,
-		Country:   geoData.Country,
-		Region:    geoData.Region,
+		UserID:           userId,
+		TrackID:          trackID,
+		PlayTime:         parsedTime,
+		Signature:        signatureData.Signature,
+		City:             geoData.City,
+		Country:          geoData.Country,
+		Region:           geoData.Region,
+		RequestSignature: c.QueryParam("signature"),
 	})
 
 	ss.z.Info("play logged", zap.String("user_id", userId), zap.String("track_id", trackID))
