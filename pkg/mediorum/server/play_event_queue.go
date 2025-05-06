@@ -80,8 +80,8 @@ func (ss *MediorumServer) processPlayRecordBatch() error {
 
 	uniquePlays := make(map[string]*v1.TrackPlay)
 	for _, play := range plays {
-		// use play signature to deduplicate plays
-		uniquePlays[play.Signature] = &v1.TrackPlay{
+		// use incoming request signature to deduplicate plays
+		uniquePlays[play.RequestSignature] = &v1.TrackPlay{
 			UserId:    play.UserID,
 			TrackId:   play.TrackID,
 			Timestamp: timestamppb.New(play.PlayTime),
