@@ -13,7 +13,7 @@ insert into etl_plays (
     $1, $2, $3, $4, $5, $6, $7, $8
 ) returning *;
 
--- insert multiple play records
+-- insert multiple play records with batch size control
 -- name: InsertPlays :many
 insert into etl_plays (
     address,
@@ -33,7 +33,9 @@ insert into etl_plays (
     unnest($6::timestamp[]),
     unnest($7::bigint[]),
     unnest($8::text[])
-) returning *;
+)
+on conflict do nothing
+returning *;
 
 -- update latest indexed block
 -- name: UpdateLatestIndexedBlock :one

@@ -25,11 +25,11 @@ order by
     case 
         when $5 = 'played_at' and $6 = 'asc' then played_at
         when $5 = 'block_height' and $6 = 'asc' then block_height
-    end asc,
+    end asc nulls last,
     case 
         when $5 = 'played_at' and $6 = 'desc' then played_at
         when $5 = 'block_height' and $6 = 'desc' then block_height
-    end desc
+    end desc nulls last
 limit $7 offset $8;
 
 -- get total count of plays with filtering

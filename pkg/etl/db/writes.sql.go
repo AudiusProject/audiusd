@@ -101,7 +101,9 @@ insert into etl_plays (
     unnest($6::timestamp[]),
     unnest($7::bigint[]),
     unnest($8::text[])
-) returning id, address, track_id, city, region, country, played_at, block_height, tx_hash, created_at, updated_at
+)
+on conflict do nothing
+returning id, address, track_id, city, region, country, played_at, block_height, tx_hash, created_at, updated_at
 `
 
 type InsertPlaysParams struct {
@@ -115,7 +117,7 @@ type InsertPlaysParams struct {
 	Column8 []string
 }
 
-// insert multiple play records
+// insert multiple play records with batch size control
 func (q *Queries) InsertPlays(ctx context.Context, arg InsertPlaysParams) ([]EtlPlay, error) {
 	rows, err := q.db.Query(ctx, insertPlays,
 		arg.Column1,
