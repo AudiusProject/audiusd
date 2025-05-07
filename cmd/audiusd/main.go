@@ -83,7 +83,7 @@ func main() {
 
 	coreService := coreServer.NewCoreService()
 	storageService := server.NewStorageService()
-	etlService := etl.NewETLService()
+	etlService := etl.NewETLService(nil)
 	systemService := system.NewSystemService(coreService, storageService, etlService)
 
 	services := []struct {

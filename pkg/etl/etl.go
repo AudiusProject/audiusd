@@ -14,8 +14,8 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-type Etl struct {
-	//db *db.Queries
+func (etl *ETLService) Run(ctx context.Context, logger *common.Logger) error {
+
 }
 
 func Run(ctx context.Context, logger *common.Logger) error {
