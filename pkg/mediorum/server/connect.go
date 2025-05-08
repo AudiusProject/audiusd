@@ -1,11 +1,10 @@
 package server
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
-	"io"
+	"mime/multipart"
 	"net/url"
 	"strings"
 	"time"
@@ -106,32 +105,22 @@ func (s *StorageService) GetUpload(ctx context.Context, req *connect.Request[v1.
 	}), nil
 }
 
-type fileReader struct {
-	filename string
-	data     []byte
-}
-
-func (f *fileReader) Filename() string {
-	return f.filename
-}
-
-func (f *fileReader) Open() (io.ReadCloser, error) {
-	return io.NopCloser(bytes.NewReader(f.data)), nil
-}
-
 // UploadFiles implements v1connect.StorageServiceHandler.
 func (s *StorageService) UploadFiles(ctx context.Context, req *connect.Request[v1.UploadFilesRequest]) (*connect.Response[v1.UploadFilesResponse], error) {
 	placeHosts := strings.Join(req.Msg.PlacementHosts, ",")
-	files := make([]FileReader, len(req.Msg.Files))
+	files := make([]*multipart.FileHeader, len(req.Msg.Files))
 	for i, file := range req.Msg.Files {
-		files[i] = &fileReader{
-			filename: file.Filename,
-			data:     file.Data,
+		formFile, err := s.mediorum.createMultipartFileHeader(file.Filename, file.Data)
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("failed to prepare file %s: %w", file.Filename, err))
 		}
+		files[i] = formFile
+		s.mediorum.logger.Info("file", formFile.Filename, formFile.Size)
 	}
+
 	uploads, err := s.mediorum.uploadFile(ctx, req.Msg.Signature, req.Msg.UserWallet, req.Msg.Template, req.Msg.PreviewStart, placeHosts, files)
 	if err != nil {
-		return nil, err
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to upload file: %w", err))
 	}
 
 	res := make([]*v1.Upload, len(uploads))
