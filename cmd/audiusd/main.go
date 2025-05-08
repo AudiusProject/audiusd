@@ -83,7 +83,7 @@ func main() {
 
 	coreService := coreServer.NewCoreService()
 	storageService := server.NewStorageService()
-	etlService := etl.NewETLService(nil)
+	etlService := etl.NewETLService(coreService, logger)
 	systemService := system.NewSystemService(coreService, storageService, etlService)
 
 	services := []struct {
@@ -115,7 +115,7 @@ func main() {
 		},
 		{
 			"etl",
-			func() error { return etl.Run(ctx, logger) },
+			func() error { return etlService.Run() },
 			os.Getenv("AUDIUSD_ETL_ENABLED") == "true",
 		},
 	}

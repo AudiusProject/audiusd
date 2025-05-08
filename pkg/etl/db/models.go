@@ -8,6 +8,14 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type EtlBlock struct {
+	ID        int32
+	Height    int64
+	Time      pgtype.Timestamp
+	CreatedAt pgtype.Timestamp
+	UpdatedAt pgtype.Timestamp
+}
+
 type EtlLatestIndexedBlock struct {
 	ID          int32
 	BlockHeight int64

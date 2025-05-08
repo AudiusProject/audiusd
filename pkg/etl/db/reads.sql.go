@@ -11,6 +11,31 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const getBlockRangeByTime = `-- name: GetBlockRangeByTime :one
+select
+  min(height) as start_block,
+  max(height) as end_block
+from etl_blocks
+where time between $1 and $2
+`
+
+type GetBlockRangeByTimeParams struct {
+	Time   pgtype.Timestamp
+	Time_2 pgtype.Timestamp
+}
+
+type GetBlockRangeByTimeRow struct {
+	StartBlock interface{}
+	EndBlock   interface{}
+}
+
+func (q *Queries) GetBlockRangeByTime(ctx context.Context, arg GetBlockRangeByTimeParams) (GetBlockRangeByTimeRow, error) {
+	row := q.db.QueryRow(ctx, getBlockRangeByTime, arg.Time, arg.Time_2)
+	var i GetBlockRangeByTimeRow
+	err := row.Scan(&i.StartBlock, &i.EndBlock)
+	return i, err
+}
+
 const getLatestIndexedBlock = `-- name: GetLatestIndexedBlock :one
 select block_height 
 from etl_latest_indexed_block 
@@ -66,30 +91,16 @@ select
     tx_hash
 from etl_plays
 where 
-    ($1::text is null or address = $1)
-    and ($2::text is null or track_id = $2)
-    and ($3::timestamp is null or $4::timestamp is null or played_at between $3 and $4)
-order by 
-    case 
-        when $5 = 'played_at' and $6 = 'asc' then played_at
-        when $5 = 'block_height' and $6 = 'asc' then block_height
-    end asc nulls last,
-    case 
-        when $5 = 'played_at' and $6 = 'desc' then played_at
-        when $5 = 'block_height' and $6 = 'desc' then block_height
-    end desc nulls last
-limit $7 offset $8
+    block_height between $1 and $2
+order by played_at desc
+limit $3 offset $4
 `
 
 type GetPlaysParams struct {
-	Column1 string
-	Column2 string
-	Column3 pgtype.Timestamp
-	Column4 pgtype.Timestamp
-	Column5 interface{}
-	Column6 interface{}
-	Limit   int32
-	Offset  int32
+	BlockHeight   int64
+	BlockHeight_2 int64
+	Limit         int32
+	Offset        int32
 }
 
 type GetPlaysRow struct {
@@ -103,15 +114,10 @@ type GetPlaysRow struct {
 	TxHash      string
 }
 
-// get plays with filtering, pagination, and ordering
 func (q *Queries) GetPlays(ctx context.Context, arg GetPlaysParams) ([]GetPlaysRow, error) {
 	rows, err := q.db.Query(ctx, getPlays,
-		arg.Column1,
-		arg.Column2,
-		arg.Column3,
-		arg.Column4,
-		arg.Column5,
-		arg.Column6,
+		arg.BlockHeight,
+		arg.BlockHeight_2,
 		arg.Limit,
 		arg.Offset,
 	)
@@ -122,6 +128,150 @@ func (q *Queries) GetPlays(ctx context.Context, arg GetPlaysParams) ([]GetPlaysR
 	var items []GetPlaysRow
 	for rows.Next() {
 		var i GetPlaysRow
+		if err := rows.Scan(
+			&i.Address,
+			&i.TrackID,
+			&i.Timestamp,
+			&i.City,
+			&i.Country,
+			&i.Region,
+			&i.BlockHeight,
+			&i.TxHash,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getPlaysByAddress = `-- name: GetPlaysByAddress :many
+select 
+    address,
+    track_id,
+    extract(epoch from played_at)::bigint as timestamp,
+    city,
+    country,
+    region,
+    block_height,
+    tx_hash
+from etl_plays
+where 
+    address = $1
+    and block_height between $2 and $3
+order by played_at desc
+limit $4 offset $5
+`
+
+type GetPlaysByAddressParams struct {
+	Address       string
+	BlockHeight   int64
+	BlockHeight_2 int64
+	Limit         int32
+	Offset        int32
+}
+
+type GetPlaysByAddressRow struct {
+	Address     string
+	TrackID     string
+	Timestamp   int64
+	City        string
+	Country     string
+	Region      string
+	BlockHeight int64
+	TxHash      string
+}
+
+func (q *Queries) GetPlaysByAddress(ctx context.Context, arg GetPlaysByAddressParams) ([]GetPlaysByAddressRow, error) {
+	rows, err := q.db.Query(ctx, getPlaysByAddress,
+		arg.Address,
+		arg.BlockHeight,
+		arg.BlockHeight_2,
+		arg.Limit,
+		arg.Offset,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetPlaysByAddressRow
+	for rows.Next() {
+		var i GetPlaysByAddressRow
+		if err := rows.Scan(
+			&i.Address,
+			&i.TrackID,
+			&i.Timestamp,
+			&i.City,
+			&i.Country,
+			&i.Region,
+			&i.BlockHeight,
+			&i.TxHash,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getPlaysByTrack = `-- name: GetPlaysByTrack :many
+select 
+    address,
+    track_id,
+    extract(epoch from played_at)::bigint as timestamp,
+    city,
+    country,
+    region,
+    block_height,
+    tx_hash
+from etl_plays
+where 
+    track_id = $1
+    and block_height between $2 and $3
+order by played_at desc
+limit $4 offset $5
+`
+
+type GetPlaysByTrackParams struct {
+	TrackID       string
+	BlockHeight   int64
+	BlockHeight_2 int64
+	Limit         int32
+	Offset        int32
+}
+
+type GetPlaysByTrackRow struct {
+	Address     string
+	TrackID     string
+	Timestamp   int64
+	City        string
+	Country     string
+	Region      string
+	BlockHeight int64
+	TxHash      string
+}
+
+func (q *Queries) GetPlaysByTrack(ctx context.Context, arg GetPlaysByTrackParams) ([]GetPlaysByTrackRow, error) {
+	rows, err := q.db.Query(ctx, getPlaysByTrack,
+		arg.TrackID,
+		arg.BlockHeight,
+		arg.BlockHeight_2,
+		arg.Limit,
+		arg.Offset,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetPlaysByTrackRow
+	for rows.Next() {
+		var i GetPlaysByTrackRow
 		if err := rows.Scan(
 			&i.Address,
 			&i.TrackID,

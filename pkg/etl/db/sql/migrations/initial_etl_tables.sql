@@ -28,6 +28,19 @@ create table if not exists etl_latest_indexed_block(
 
 create index if not exists etl_latest_indexed_block_block_height_idx on etl_latest_indexed_block(block_height);
 
+create table if not exists etl_blocks(
+  id serial primary key,
+  height bigint not null,
+  time timestamp not null,
+  created_at timestamp default current_timestamp,
+  updated_at timestamp default current_timestamp
+);
+
+create index if not exists etl_blocks_height_idx on etl_blocks(height);
+create index if not exists etl_blocks_time_idx on etl_blocks(time);
+
+
+
 -- +migrate Down
 drop index if exists etl_latest_indexed_block_block_height_idx;
 drop table if exists etl_latest_indexed_block;
