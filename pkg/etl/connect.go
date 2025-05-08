@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"connectrpc.com/connect"
+	corev1connect "github.com/AudiusProject/audiusd/pkg/api/core/v1/v1connect"
 	v1 "github.com/AudiusProject/audiusd/pkg/api/etl/v1"
 	"github.com/AudiusProject/audiusd/pkg/api/etl/v1/v1connect"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -14,12 +15,13 @@ import (
 var _ v1connect.ETLServiceHandler = (*ETLService)(nil)
 
 type ETLService struct {
-	db ETLDatabase
+	core corev1connect.CoreServiceClient
+	db   ETLDatabase
 }
 
-func NewETLService(writer ETLDatabase) *ETLService {
+func NewETLService(core corev1connect.CoreServiceClient, db ETLDatabase) *ETLService {
 	return &ETLService{
-		db: writer,
+		db: db,
 	}
 }
 
