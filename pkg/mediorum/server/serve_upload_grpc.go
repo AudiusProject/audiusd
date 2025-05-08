@@ -281,8 +281,6 @@ func (ss *MediorumServer) createMultipartFileHeader(filename string, data []byte
 		return nil, fmt.Errorf("no file found in multipart form")
 	}
 
-	ss.logger.Info("fileHeaders", "fileHeaders", fileHeaders, "ct", ct, "ContentType", req.Header.Get("Content-Type"))
-
 	// Set content-type in the header explicitly since multipart doesn't infer it
 	fileHeaders[0].Header.Set("Content-Type", ct)
 

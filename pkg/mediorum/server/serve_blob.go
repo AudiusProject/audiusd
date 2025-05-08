@@ -147,8 +147,6 @@ func (ss *MediorumServer) serveBlob(c echo.Context) error {
 		return c.NoContent(200)
 	}
 
-	ss.logger.Info("serving blob", "cid", cid, "content_type", blob.ContentType())
-
 	isAudioFile := strings.HasPrefix(blob.ContentType(), "audio")
 
 	if isAudioFile {
