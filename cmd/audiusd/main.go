@@ -73,7 +73,6 @@ type serverConfig struct {
 
 func main() {
 	startTime = time.Now().UTC()
-	startTime = time.Now().UTC()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 

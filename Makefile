@@ -25,7 +25,7 @@ VERSION_LDFLAG := -X github.com/AudiusProject/audius-protocol/core/config.Versio
 
 JSON_SRCS := $(wildcard pkg/core/config/genesis/*.json)
 JS_SRCS := $(shell find pkg/core -type f -name '*.js')
-GO_SRCS := $(shell find cmd -type f -name '*.go')
+GO_SRCS := $(shell find pkg cmd -type f -name '*.go')
 
 BUILD_SRCS := $(GO_SRCS) $(JS_SRCS) $(JSON_SRCS) go.mod go.sum
 
