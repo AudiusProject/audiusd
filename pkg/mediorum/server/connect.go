@@ -115,7 +115,6 @@ func (s *StorageService) UploadFiles(ctx context.Context, req *connect.Request[v
 			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("failed to prepare file %s: %w", file.Filename, err))
 		}
 		files[i] = formFile
-		s.mediorum.logger.Info("file", formFile.Filename, formFile.Size)
 	}
 
 	uploads, err := s.mediorum.uploadFile(ctx, req.Msg.Signature, req.Msg.UserWallet, req.Msg.Template, req.Msg.PreviewStart, placeHosts, files)
