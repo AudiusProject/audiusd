@@ -2,14 +2,15 @@ package etl
 
 import (
 	"context"
-	"database/sql"
+	"errors"
 	"fmt"
 	"os"
-	"time"
 
 	"connectrpc.com/connect"
 	v1 "github.com/AudiusProject/audiusd/pkg/api/core/v1"
 	"github.com/AudiusProject/audiusd/pkg/etl/db"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -34,9 +35,17 @@ func (etl *ETLService) Run() error {
 		return fmt.Errorf("error creating database pool: %v", err)
 	}
 
+	etl.pool = pool
 	etl.db = db.New(pool)
 
-	return etl.indexBlocks()
+	etl.logger.Infof("starting etl service")
+
+	err = etl.indexBlocks()
+	if err != nil {
+		return fmt.Errorf("indexer crashed: %v", err)
+	}
+
+	return nil
 }
 
 func (etl *ETLService) indexBlocks() error {
@@ -45,9 +54,10 @@ func (etl *ETLService) indexBlocks() error {
 		latestHeight, err := etl.db.GetLatestIndexedBlock(context.Background())
 		if err != nil {
 			// If no records exist, start from block 1
-			if err == sql.ErrNoRows {
+			if errors.Is(err, pgx.ErrNoRows) {
 				latestHeight = 0 // Start from block 1 (nextHeight will be 1)
 			} else {
+				etl.logger.Errorf("error getting latest indexed block: %v", err)
 				continue
 			}
 		}
@@ -62,16 +72,16 @@ func (etl *ETLService) indexBlocks() error {
 			continue
 		}
 
-		// If block doesn't exist yet (height = -1), wait and try again
-		if block.Msg.Block.Height == -1 {
-			time.Sleep(time.Second)
+		if block.Msg.Block.Height < 0 {
 			continue
 		}
 
-		// Store the block in etl_blocks
-		_, err = etl.db.UpdateLatestIndexedBlock(context.Background(), nextHeight)
+		_, err = etl.db.InsertBlock(context.Background(), db.InsertBlockParams{
+			BlockHeight: block.Msg.Block.Height,
+			BlockTime:   pgtype.Timestamp{Time: block.Msg.Block.Timestamp.AsTime(), Valid: true},
+		})
 		if err != nil {
-			etl.logger.Errorf("error updating latest indexed block: %v", err)
+			etl.logger.Errorf("error inserting block %d: %v", nextHeight, err)
 			continue
 		}
 

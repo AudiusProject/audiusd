@@ -9,19 +9,21 @@ import (
 	"github.com/AudiusProject/audiusd/pkg/api/etl/v1/v1connect"
 	"github.com/AudiusProject/audiusd/pkg/common"
 	"github.com/AudiusProject/audiusd/pkg/etl/db"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 var _ v1connect.ETLServiceHandler = (*ETLService)(nil)
 
 type ETLService struct {
 	core   corev1connect.CoreServiceClient
+	pool   *pgxpool.Pool
 	db     *db.Queries
 	logger *common.Logger
 }
 
 func NewETLService(core corev1connect.CoreServiceClient, logger *common.Logger) *ETLService {
 	return &ETLService{
-		logger: logger,
+		logger: logger.Child("etl"),
 		core:   core,
 	}
 }

@@ -9,16 +9,9 @@ import (
 )
 
 type EtlBlock struct {
-	ID        int32
-	Height    int64
-	Time      pgtype.Timestamp
-	CreatedAt pgtype.Timestamp
-	UpdatedAt pgtype.Timestamp
-}
-
-type EtlLatestIndexedBlock struct {
 	ID          int32
 	BlockHeight int64
+	BlockTime   pgtype.Timestamp
 	CreatedAt   pgtype.Timestamp
 	UpdatedAt   pgtype.Timestamp
 }

@@ -1,16 +1,16 @@
 -- get latest indexed block height
 -- name: GetLatestIndexedBlock :one
 select block_height 
-from etl_latest_indexed_block 
+from etl_blocks 
 order by id desc 
 limit 1;
 
 -- name: GetBlockRangeByTime :one
 select
-  min(height) as start_block,
-  max(height) as end_block
+  min(block_height) as start_block,
+  max(block_height) as end_block
 from etl_blocks
-where time between $1 and $2;
+where block_time between $1 and $2;
 
 
 -- name: GetPlaysByAddress :many

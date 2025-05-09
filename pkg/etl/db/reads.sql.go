@@ -13,15 +13,15 @@ import (
 
 const getBlockRangeByTime = `-- name: GetBlockRangeByTime :one
 select
-  min(height) as start_block,
-  max(height) as end_block
+  min(block_height) as start_block,
+  max(block_height) as end_block
 from etl_blocks
-where time between $1 and $2
+where block_time between $1 and $2
 `
 
 type GetBlockRangeByTimeParams struct {
-	Time   pgtype.Timestamp
-	Time_2 pgtype.Timestamp
+	BlockTime   pgtype.Timestamp
+	BlockTime_2 pgtype.Timestamp
 }
 
 type GetBlockRangeByTimeRow struct {
@@ -30,7 +30,7 @@ type GetBlockRangeByTimeRow struct {
 }
 
 func (q *Queries) GetBlockRangeByTime(ctx context.Context, arg GetBlockRangeByTimeParams) (GetBlockRangeByTimeRow, error) {
-	row := q.db.QueryRow(ctx, getBlockRangeByTime, arg.Time, arg.Time_2)
+	row := q.db.QueryRow(ctx, getBlockRangeByTime, arg.BlockTime, arg.BlockTime_2)
 	var i GetBlockRangeByTimeRow
 	err := row.Scan(&i.StartBlock, &i.EndBlock)
 	return i, err
@@ -38,7 +38,7 @@ func (q *Queries) GetBlockRangeByTime(ctx context.Context, arg GetBlockRangeByTi
 
 const getLatestIndexedBlock = `-- name: GetLatestIndexedBlock :one
 select block_height 
-from etl_latest_indexed_block 
+from etl_blocks 
 order by id desc 
 limit 1
 `

@@ -37,10 +37,10 @@ insert into etl_plays (
 on conflict do nothing
 returning *;
 
--- update latest indexed block
--- name: UpdateLatestIndexedBlock :one
-insert into etl_latest_indexed_block (block_height)
-values ($1)
+-- insert a new block record
+-- name: InsertBlock :one
+insert into etl_blocks (block_height, block_time)
+values ($1, $2)
 returning *;
 
 -- delete plays by block height range (useful for reindexing)

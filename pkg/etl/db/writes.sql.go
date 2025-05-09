@@ -27,6 +27,31 @@ func (q *Queries) DeletePlaysByBlockRange(ctx context.Context, arg DeletePlaysBy
 	return err
 }
 
+const insertBlock = `-- name: InsertBlock :one
+insert into etl_blocks (block_height, block_time)
+values ($1, $2)
+returning id, block_height, block_time, created_at, updated_at
+`
+
+type InsertBlockParams struct {
+	BlockHeight int64
+	BlockTime   pgtype.Timestamp
+}
+
+// insert a new block record
+func (q *Queries) InsertBlock(ctx context.Context, arg InsertBlockParams) (EtlBlock, error) {
+	row := q.db.QueryRow(ctx, insertBlock, arg.BlockHeight, arg.BlockTime)
+	var i EtlBlock
+	err := row.Scan(
+		&i.ID,
+		&i.BlockHeight,
+		&i.BlockTime,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const insertPlay = `-- name: InsertPlay :one
 insert into etl_plays (
     address,
@@ -157,23 +182,4 @@ func (q *Queries) InsertPlays(ctx context.Context, arg InsertPlaysParams) ([]Etl
 		return nil, err
 	}
 	return items, nil
-}
-
-const updateLatestIndexedBlock = `-- name: UpdateLatestIndexedBlock :one
-insert into etl_latest_indexed_block (block_height)
-values ($1)
-returning id, block_height, created_at, updated_at
-`
-
-// update latest indexed block
-func (q *Queries) UpdateLatestIndexedBlock(ctx context.Context, blockHeight int64) (EtlLatestIndexedBlock, error) {
-	row := q.db.QueryRow(ctx, updateLatestIndexedBlock, blockHeight)
-	var i EtlLatestIndexedBlock
-	err := row.Scan(
-		&i.ID,
-		&i.BlockHeight,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
 }
