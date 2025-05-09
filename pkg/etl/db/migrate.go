@@ -2,14 +2,15 @@ package db
 
 import (
 	"database/sql"
+	"embed"
 	"errors"
 	"fmt"
 	"time"
 
-	"embed"
-
 	"github.com/AudiusProject/audiusd/pkg/common"
-	migrate "github.com/rubenv/sql-migrate"
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/postgres"
+	"github.com/golang-migrate/migrate/v4/source/iofs"
 )
 
 //go:embed sql/migrations/*
@@ -17,62 +18,60 @@ var migrationsFS embed.FS
 
 func RunMigrations(logger *common.Logger, pgConnectionString string, downFirst bool) error {
 	tries := 10
-	db, err := sql.Open("postgres", pgConnectionString)
-	if err != nil {
-		return fmt.Errorf("error opening sql db %v", err)
-	}
-	defer db.Close()
+	var db *sql.DB
+	var err error
+
 	for {
 		if tries < 0 {
 			return errors.New("ran out of retries for migrations")
 		}
-		err = db.Ping()
+		db, err = sql.Open("postgres", pgConnectionString)
 		if err != nil {
-			logger.Errorf("could not ping postgres %v", err)
-			tries = tries - 1
+			logger.Errorf("error opening sql db: %v", err)
+			tries--
 			time.Sleep(2 * time.Second)
 			continue
 		}
-		err := runMigrations(logger, db, downFirst)
-		if err != nil {
-			logger.Error("issue running migrations", "error", err, "tries_left", tries)
-			return fmt.Errorf("can't run migrations %v", err)
+		if err = db.Ping(); err != nil {
+			logger.Errorf("could not ping postgres: %v", err)
+			tries--
+			time.Sleep(2 * time.Second)
+			continue
 		}
-		return nil
+		break
 	}
+	defer db.Close()
+
+	return runMigrations(logger, db, downFirst)
 }
 
 func runMigrations(logger *common.Logger, db *sql.DB, downFirst bool) error {
-	// Debug: List all embedded files
-	entries, err := migrationsFS.ReadDir("sql/migrations")
+	driver, err := postgres.WithInstance(db, &postgres.Config{})
 	if err != nil {
-		return fmt.Errorf("error reading migrations dir: %v", err)
-	}
-	logger.Infof("ETL embedded migrations:")
-	for _, entry := range entries {
-		logger.Infof("  - %s", entry.Name())
+		return fmt.Errorf("error creating postgres driver: %w", err)
 	}
 
-	migrations := migrate.EmbedFileSystemMigrationSource{
-		FileSystem: migrationsFS,
-		Root:       "sql/migrations",
+	source, err := iofs.New(migrationsFS, "sql/migrations")
+	if err != nil {
+		return fmt.Errorf("error creating iofs source: %w", err)
 	}
 
-	migrate.SetTable("etl_db_migrations")
+	m, err := migrate.NewWithInstance("iofs", source, "postgres", driver)
+	if err != nil {
+		return fmt.Errorf("error initializing migrate: %w", err)
+	}
+	defer m.Close()
 
 	if downFirst {
-		_, err := migrate.Exec(db, "postgres", migrations, migrate.Down)
-		if err != nil {
-			return fmt.Errorf("error running down migrations %v", err)
+		if err := m.Down(); err != nil && err != migrate.ErrNoChange {
+			return fmt.Errorf("error running down migrations: %w", err)
 		}
 	}
 
-	n, err := migrate.Exec(db, "postgres", migrations, migrate.Up)
-	if err != nil {
-		return fmt.Errorf("error running migrations %v", err)
+	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
+		return fmt.Errorf("error running up migrations: %w", err)
 	}
 
-	logger.Infof("Applied %d successful migrations!", n)
-
+	logger.Infof("Migrations applied successfully")
 	return nil
 }
