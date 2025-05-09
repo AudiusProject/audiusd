@@ -48,7 +48,6 @@ func (etl *ETLService) indexBlocks() error {
 			if err == sql.ErrNoRows {
 				latestHeight = 0 // Start from block 1 (nextHeight will be 1)
 			} else {
-				etl.logger.Errorf("error getting latest indexed block: %v", err)
 				continue
 			}
 		}

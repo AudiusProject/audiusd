@@ -14,7 +14,9 @@ message PingResponse {
 
 message GetHealthRequest {}
 
-message GetHealthResponse {}
+message GetHealthResponse {
+  bool is_ready = 1;
+}
 
 message UploadFilesRequest {
   string signature = 1;
