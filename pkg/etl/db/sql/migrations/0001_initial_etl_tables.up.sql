@@ -1,4 +1,3 @@
--- +migrate Up
 create table if not exists etl_plays(
   id serial primary key,
   address text not null,
@@ -38,16 +37,3 @@ create table if not exists etl_blocks(
 
 create index if not exists etl_blocks_height_idx on etl_blocks(height);
 create index if not exists etl_blocks_time_idx on etl_blocks(time);
-
-
-
--- +migrate Down
-drop index if exists etl_latest_indexed_block_block_height_idx;
-drop table if exists etl_latest_indexed_block;
-
-drop index if exists etl_plays_block_height_idx;
-drop index if exists etl_plays_played_at_idx;
-drop index if exists etl_plays_track_id_idx;
-drop index if exists etl_plays_address_idx;
-drop table if exists etl_plays;
-

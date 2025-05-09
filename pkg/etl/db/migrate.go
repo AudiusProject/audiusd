@@ -46,7 +46,9 @@ func RunMigrations(logger *common.Logger, pgConnectionString string, downFirst b
 }
 
 func runMigrations(logger *common.Logger, db *sql.DB, downFirst bool) error {
-	driver, err := postgres.WithInstance(db, &postgres.Config{})
+	driver, err := postgres.WithInstance(db, &postgres.Config{
+		MigrationsTable: "etl_db_migrations",
+	})
 	if err != nil {
 		return fmt.Errorf("error creating postgres driver: %w", err)
 	}
