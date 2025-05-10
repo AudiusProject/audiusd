@@ -15,9 +15,7 @@ message PingResponse {
 
 message GetHealthRequest {}
 
-message GetHealthResponse {
-  bool is_ready = 1;
-}
+message GetHealthResponse {}
 
 message GetNodeInfoRequest {}
 
