@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 
 	"connectrpc.com/connect"
 	v1 "github.com/AudiusProject/audiusd/pkg/api/core/v1"
@@ -15,7 +14,7 @@ import (
 )
 
 func (etl *ETLService) Run() error {
-	dbUrl := os.Getenv("dbUrl")
+	dbUrl := etl.dbURL
 	if dbUrl == "" {
 		return fmt.Errorf("dbUrl environment variable not set")
 	}
@@ -85,6 +84,23 @@ func (etl *ETLService) indexBlocks() error {
 			continue
 		}
 
-		etl.logger.Infof("indexed block %d", nextHeight)
+		txs := block.Msg.Block.Transactions
+		for _, tx := range txs {
+			switch signedTx := tx.Transaction.Transaction.(type) {
+			case *v1.SignedTransaction_Plays:
+				for _, play := range signedTx.Plays.GetPlays() {
+					etl.db.InsertPlay(context.Background(), db.InsertPlayParams{
+						Address:     play.UserId,
+						TrackID:     play.TrackId,
+						City:        play.City,
+						Region:      play.Region,
+						Country:     play.Country,
+						PlayedAt:    pgtype.Timestamp{Time: play.Timestamp.AsTime(), Valid: true},
+						BlockHeight: block.Msg.Block.Height,
+						TxHash:      tx.Hash,
+					})
+				}
+			}
+		}
 	}
 }

@@ -115,7 +115,10 @@ func main() {
 		},
 		{
 			"etl",
-			func() error { return etlService.Run() },
+			func() error {
+				etlService.SetDBURL(os.Getenv("dbUrl"))
+				return etlService.Run()
+			},
 			os.Getenv("AUDIUSD_ETL_ENABLED") == "true",
 		},
 	}

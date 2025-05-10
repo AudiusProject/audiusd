@@ -15,6 +15,7 @@ import (
 var _ v1connect.ETLServiceHandler = (*ETLService)(nil)
 
 type ETLService struct {
+	dbURL  string
 	core   corev1connect.CoreServiceClient
 	pool   *pgxpool.Pool
 	db     *db.Queries
@@ -26,6 +27,10 @@ func NewETLService(core corev1connect.CoreServiceClient, logger *common.Logger) 
 		logger: logger.Child("etl"),
 		core:   core,
 	}
+}
+
+func (e *ETLService) SetDBURL(dbURL string) {
+	e.dbURL = dbURL
 }
 
 // GetHealth implements v1connect.ETLServiceHandler.
