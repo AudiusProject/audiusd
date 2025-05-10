@@ -16,6 +16,22 @@ type EtlBlock struct {
 	UpdatedAt   pgtype.Timestamp
 }
 
+type EtlManageEntity struct {
+	ID          int32
+	Address     string
+	EntityType  string
+	EntityID    int64
+	Action      string
+	Metadata    pgtype.Text
+	Signature   string
+	Signer      string
+	Nonce       string
+	BlockHeight int64
+	TxHash      string
+	CreatedAt   pgtype.Timestamp
+	UpdatedAt   pgtype.Timestamp
+}
+
 type EtlPlay struct {
 	ID          int32
 	Address     string

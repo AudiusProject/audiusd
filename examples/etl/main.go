@@ -25,17 +25,21 @@ func main() {
 
 	logger.Info("pgURL", "url", dbURL)
 
-	auds := sdk.NewAudiusdSDK("creatornode11.staging.audius.co")
+	// create auds instance
+	auds := sdk.NewAudiusdSDK("audius-content-12.cultur3stake.com")
 
+	// pass core client to etl service
 	etl := etl.NewETLService(auds.Core, logger)
 	etl.SetDBURL(dbURL)
 
 	e := echo.New()
 	e.HideBanner = true
 
+	// register etl routes to echo server
 	path, handler := etlv1connect.NewETLServiceHandler(etl)
 	e.Group("").Any(path+"*", echo.WrapHandler(handler))
 
+	// run echo server and etl service in parallel
 	g, _ := errgroup.WithContext(context.Background())
 
 	g.Go(func() error {
@@ -59,7 +63,7 @@ func startPostgres(ctx context.Context) (string, error) {
 	req := testcontainers.ContainerRequest{
 		Image:        "postgres:15",
 		Name:         "postgres-etl",
-		ExposedPorts: []string{"5432/tcp"},
+		ExposedPorts: []string{"5432:5432/tcp"},
 		Env: map[string]string{
 			"POSTGRES_USER":     pguser,
 			"POSTGRES_PASSWORD": pgpass,

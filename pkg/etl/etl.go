@@ -100,6 +100,20 @@ func (etl *ETLService) indexBlocks() error {
 						TxHash:      tx.Hash,
 					})
 				}
+			case *v1.SignedTransaction_ManageEntity:
+				me := signedTx.ManageEntity
+				etl.db.InsertManageEntity(context.Background(), db.InsertManageEntityParams{
+					Address:     me.GetSigner(),
+					EntityType:  me.GetEntityType(),
+					EntityID:    me.GetEntityId(),
+					Action:      me.GetAction(),
+					Metadata:    pgtype.Text{String: me.GetMetadata(), Valid: true},
+					Signature:   me.GetSignature(),
+					Signer:      me.GetSigner(),
+					Nonce:       me.GetNonce(),
+					BlockHeight: block.Msg.Block.Height,
+					TxHash:      tx.Hash,
+				})
 			}
 		}
 	}

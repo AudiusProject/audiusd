@@ -11,6 +11,22 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const deleteManageEntitiesByBlockRange = `-- name: DeleteManageEntitiesByBlockRange :exec
+delete from etl_manage_entities
+where block_height between $1 and $2
+`
+
+type DeleteManageEntitiesByBlockRangeParams struct {
+	BlockHeight   int64
+	BlockHeight_2 int64
+}
+
+// delete manage entities by block height range (useful for reindexing)
+func (q *Queries) DeleteManageEntitiesByBlockRange(ctx context.Context, arg DeleteManageEntitiesByBlockRangeParams) error {
+	_, err := q.db.Exec(ctx, deleteManageEntitiesByBlockRange, arg.BlockHeight, arg.BlockHeight_2)
+	return err
+}
+
 const deletePlaysByBlockRange = `-- name: DeletePlaysByBlockRange :exec
 delete from etl_plays
 where block_height between $1 and $2
@@ -46,6 +62,156 @@ func (q *Queries) InsertBlock(ctx context.Context, arg InsertBlockParams) (EtlBl
 		&i.ID,
 		&i.BlockHeight,
 		&i.BlockTime,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const insertManageEntities = `-- name: InsertManageEntities :many
+insert into etl_manage_entities (
+    address,
+    entity_type,
+    entity_id,
+    action,
+    metadata,
+    signature,
+    signer,
+    nonce,
+    block_height,
+    tx_hash
+) values (
+    unnest($1::text[]),
+    unnest($2::text[]),
+    unnest($3::bigint[]),
+    unnest($4::text[]),
+    unnest($5::text[]),
+    unnest($6::text[]),
+    unnest($7::text[]),
+    unnest($8::text[]),
+    unnest($9::bigint[]),
+    unnest($10::text[])
+)
+on conflict do nothing
+returning id, address, entity_type, entity_id, action, metadata, signature, signer, nonce, block_height, tx_hash, created_at, updated_at
+`
+
+type InsertManageEntitiesParams struct {
+	Column1  []string
+	Column2  []string
+	Column3  []int64
+	Column4  []string
+	Column5  []string
+	Column6  []string
+	Column7  []string
+	Column8  []string
+	Column9  []int64
+	Column10 []string
+}
+
+// insert multiple manage entity records with batch size control
+func (q *Queries) InsertManageEntities(ctx context.Context, arg InsertManageEntitiesParams) ([]EtlManageEntity, error) {
+	rows, err := q.db.Query(ctx, insertManageEntities,
+		arg.Column1,
+		arg.Column2,
+		arg.Column3,
+		arg.Column4,
+		arg.Column5,
+		arg.Column6,
+		arg.Column7,
+		arg.Column8,
+		arg.Column9,
+		arg.Column10,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []EtlManageEntity
+	for rows.Next() {
+		var i EtlManageEntity
+		if err := rows.Scan(
+			&i.ID,
+			&i.Address,
+			&i.EntityType,
+			&i.EntityID,
+			&i.Action,
+			&i.Metadata,
+			&i.Signature,
+			&i.Signer,
+			&i.Nonce,
+			&i.BlockHeight,
+			&i.TxHash,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const insertManageEntity = `-- name: InsertManageEntity :one
+insert into etl_manage_entities (
+    address,
+    entity_type,
+    entity_id,
+    action,
+    metadata,
+    signature,
+    signer,
+    nonce,
+    block_height,
+    tx_hash
+) values (
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+) returning id, address, entity_type, entity_id, action, metadata, signature, signer, nonce, block_height, tx_hash, created_at, updated_at
+`
+
+type InsertManageEntityParams struct {
+	Address     string
+	EntityType  string
+	EntityID    int64
+	Action      string
+	Metadata    pgtype.Text
+	Signature   string
+	Signer      string
+	Nonce       string
+	BlockHeight int64
+	TxHash      string
+}
+
+// insert a new manage entity record
+func (q *Queries) InsertManageEntity(ctx context.Context, arg InsertManageEntityParams) (EtlManageEntity, error) {
+	row := q.db.QueryRow(ctx, insertManageEntity,
+		arg.Address,
+		arg.EntityType,
+		arg.EntityID,
+		arg.Action,
+		arg.Metadata,
+		arg.Signature,
+		arg.Signer,
+		arg.Nonce,
+		arg.BlockHeight,
+		arg.TxHash,
+	)
+	var i EtlManageEntity
+	err := row.Scan(
+		&i.ID,
+		&i.Address,
+		&i.EntityType,
+		&i.EntityID,
+		&i.Action,
+		&i.Metadata,
+		&i.Signature,
+		&i.Signer,
+		&i.Nonce,
+		&i.BlockHeight,
+		&i.TxHash,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
