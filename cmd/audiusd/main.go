@@ -117,6 +117,7 @@ func main() {
 			"etl",
 			func() error {
 				etlService.SetDBURL(os.Getenv("dbUrl"))
+				etlService.SetRunDownMigrations(os.Getenv("AUDIUSD_ETL_RUN_DOWN_MIGRATIONS") == "true")
 				return etlService.Run()
 			},
 			os.Getenv("AUDIUSD_ETL_ENABLED") == "true",

@@ -85,3 +85,26 @@ where track_id = $1;
 select count(*) as play_count 
 from etl_plays 
 where address = $1;
+
+-- get validator registrations
+-- name: GetValidatorRegistrations :many
+select 
+    address,
+    comet_address,
+    comet_pubkey,
+    eth_block,
+    node_type,
+    spid,
+    voting_power,
+    block_height,
+    tx_hash
+from etl_validator_registrations;
+
+-- get validator deregistrations
+-- name: GetValidatorDeregistrations :many
+select 
+    comet_address,
+    comet_pubkey,
+    block_height,
+    tx_hash
+from etl_validator_deregistrations;

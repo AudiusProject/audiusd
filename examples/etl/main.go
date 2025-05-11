@@ -31,6 +31,9 @@ func main() {
 	// pass core client to etl service
 	etl := etl.NewETLService(auds.Core, logger)
 	etl.SetDBURL(dbURL)
+	etl.SetRunDownMigrations(true)
+	// index 500 blocks
+	etl.SetEndingBlockHeight(500)
 
 	e := echo.New()
 	e.HideBanner = true

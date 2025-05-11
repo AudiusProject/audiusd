@@ -39,8 +39,12 @@ returning *;
 
 -- insert a new block record
 -- name: InsertBlock :one
-insert into etl_blocks (block_height, block_time)
-values ($1, $2)
+insert into etl_blocks (
+    proposer_address,
+    block_height,
+    block_time
+)
+values ($1, $2, $3)
 returning *;
 
 -- delete plays by block height range (useful for reindexing)
@@ -97,3 +101,31 @@ returning *;
 -- name: DeleteManageEntitiesByBlockRange :exec
 delete from etl_manage_entities
 where block_height between $1 and $2;
+
+-- insert a new validator registration record
+-- name: InsertValidatorRegistration :one
+insert into etl_validator_registrations (
+    address,
+    endpoint,
+    comet_address,
+    eth_block,
+    node_type,
+    spid,
+    comet_pubkey,
+    voting_power,
+    block_height,
+    tx_hash
+) values (
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+) returning *;
+
+-- insert a new validator deregistration record
+-- name: InsertValidatorDeregistration :one
+insert into etl_validator_deregistrations (
+    comet_address,
+    comet_pubkey,
+    block_height,
+    tx_hash
+) values (
+    $1, $2, $3, $4
+) returning *;

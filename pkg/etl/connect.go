@@ -15,7 +15,11 @@ import (
 var _ v1connect.ETLServiceHandler = (*ETLService)(nil)
 
 type ETLService struct {
-	dbURL  string
+	dbURL               string
+	runDownMigrations   bool
+	startingBlockHeight int64
+	endingBlockHeight   int64
+
 	core   corev1connect.CoreServiceClient
 	pool   *pgxpool.Pool
 	db     *db.Queries
@@ -31,6 +35,18 @@ func NewETLService(core corev1connect.CoreServiceClient, logger *common.Logger) 
 
 func (e *ETLService) SetDBURL(dbURL string) {
 	e.dbURL = dbURL
+}
+
+func (e *ETLService) SetStartingBlockHeight(startingBlockHeight int64) {
+	e.startingBlockHeight = startingBlockHeight
+}
+
+func (e *ETLService) SetEndingBlockHeight(endingBlockHeight int64) {
+	e.endingBlockHeight = endingBlockHeight
+}
+
+func (e *ETLService) SetRunDownMigrations(runDownMigrations bool) {
+	e.runDownMigrations = runDownMigrations
 }
 
 // GetHealth implements v1connect.ETLServiceHandler.

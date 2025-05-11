@@ -17,8 +17,8 @@ where block_height between $1 and $2
 `
 
 type DeleteManageEntitiesByBlockRangeParams struct {
-	BlockHeight   int64
-	BlockHeight_2 int64
+	BlockHeight   int64 `json:"block_height"`
+	BlockHeight_2 int64 `json:"block_height_2"`
 }
 
 // delete manage entities by block height range (useful for reindexing)
@@ -33,8 +33,8 @@ where block_height between $1 and $2
 `
 
 type DeletePlaysByBlockRangeParams struct {
-	BlockHeight   int64
-	BlockHeight_2 int64
+	BlockHeight   int64 `json:"block_height"`
+	BlockHeight_2 int64 `json:"block_height_2"`
 }
 
 // delete plays by block height range (useful for reindexing)
@@ -44,22 +44,28 @@ func (q *Queries) DeletePlaysByBlockRange(ctx context.Context, arg DeletePlaysBy
 }
 
 const insertBlock = `-- name: InsertBlock :one
-insert into etl_blocks (block_height, block_time)
-values ($1, $2)
-returning id, block_height, block_time, created_at, updated_at
+insert into etl_blocks (
+    proposer_address,
+    block_height,
+    block_time
+)
+values ($1, $2, $3)
+returning id, proposer_address, block_height, block_time, created_at, updated_at
 `
 
 type InsertBlockParams struct {
-	BlockHeight int64
-	BlockTime   pgtype.Timestamp
+	ProposerAddress string           `json:"proposer_address"`
+	BlockHeight     int64            `json:"block_height"`
+	BlockTime       pgtype.Timestamp `json:"block_time"`
 }
 
 // insert a new block record
 func (q *Queries) InsertBlock(ctx context.Context, arg InsertBlockParams) (EtlBlock, error) {
-	row := q.db.QueryRow(ctx, insertBlock, arg.BlockHeight, arg.BlockTime)
+	row := q.db.QueryRow(ctx, insertBlock, arg.ProposerAddress, arg.BlockHeight, arg.BlockTime)
 	var i EtlBlock
 	err := row.Scan(
 		&i.ID,
+		&i.ProposerAddress,
 		&i.BlockHeight,
 		&i.BlockTime,
 		&i.CreatedAt,
@@ -97,16 +103,16 @@ returning id, address, entity_type, entity_id, action, metadata, signature, sign
 `
 
 type InsertManageEntitiesParams struct {
-	Column1  []string
-	Column2  []string
-	Column3  []int64
-	Column4  []string
-	Column5  []string
-	Column6  []string
-	Column7  []string
-	Column8  []string
-	Column9  []int64
-	Column10 []string
+	Column1  []string `json:"column_1"`
+	Column2  []string `json:"column_2"`
+	Column3  []int64  `json:"column_3"`
+	Column4  []string `json:"column_4"`
+	Column5  []string `json:"column_5"`
+	Column6  []string `json:"column_6"`
+	Column7  []string `json:"column_7"`
+	Column8  []string `json:"column_8"`
+	Column9  []int64  `json:"column_9"`
+	Column10 []string `json:"column_10"`
 }
 
 // insert multiple manage entity records with batch size control
@@ -173,16 +179,16 @@ insert into etl_manage_entities (
 `
 
 type InsertManageEntityParams struct {
-	Address     string
-	EntityType  string
-	EntityID    int64
-	Action      string
-	Metadata    pgtype.Text
-	Signature   string
-	Signer      string
-	Nonce       string
-	BlockHeight int64
-	TxHash      string
+	Address     string      `json:"address"`
+	EntityType  string      `json:"entity_type"`
+	EntityID    int64       `json:"entity_id"`
+	Action      string      `json:"action"`
+	Metadata    pgtype.Text `json:"metadata"`
+	Signature   string      `json:"signature"`
+	Signer      string      `json:"signer"`
+	Nonce       string      `json:"nonce"`
+	BlockHeight int64       `json:"block_height"`
+	TxHash      string      `json:"tx_hash"`
 }
 
 // insert a new manage entity record
@@ -234,14 +240,14 @@ insert into etl_plays (
 `
 
 type InsertPlayParams struct {
-	Address     string
-	TrackID     string
-	City        string
-	Region      string
-	Country     string
-	PlayedAt    pgtype.Timestamp
-	BlockHeight int64
-	TxHash      string
+	Address     string           `json:"address"`
+	TrackID     string           `json:"track_id"`
+	City        string           `json:"city"`
+	Region      string           `json:"region"`
+	Country     string           `json:"country"`
+	PlayedAt    pgtype.Timestamp `json:"played_at"`
+	BlockHeight int64            `json:"block_height"`
+	TxHash      string           `json:"tx_hash"`
 }
 
 // insert a new play record
@@ -298,14 +304,14 @@ returning id, address, track_id, city, region, country, played_at, block_height,
 `
 
 type InsertPlaysParams struct {
-	Column1 []string
-	Column2 []string
-	Column3 []string
-	Column4 []string
-	Column5 []string
-	Column6 []pgtype.Timestamp
-	Column7 []int64
-	Column8 []string
+	Column1 []string           `json:"column_1"`
+	Column2 []string           `json:"column_2"`
+	Column3 []string           `json:"column_3"`
+	Column4 []string           `json:"column_4"`
+	Column5 []string           `json:"column_5"`
+	Column6 []pgtype.Timestamp `json:"column_6"`
+	Column7 []int64            `json:"column_7"`
+	Column8 []string           `json:"column_8"`
 }
 
 // insert multiple play records with batch size control
@@ -348,4 +354,106 @@ func (q *Queries) InsertPlays(ctx context.Context, arg InsertPlaysParams) ([]Etl
 		return nil, err
 	}
 	return items, nil
+}
+
+const insertValidatorDeregistration = `-- name: InsertValidatorDeregistration :one
+insert into etl_validator_deregistrations (
+    comet_address,
+    comet_pubkey,
+    block_height,
+    tx_hash
+) values (
+    $1, $2, $3, $4
+) returning id, comet_address, comet_pubkey, block_height, tx_hash, created_at, updated_at
+`
+
+type InsertValidatorDeregistrationParams struct {
+	CometAddress string `json:"comet_address"`
+	CometPubkey  []byte `json:"comet_pubkey"`
+	BlockHeight  int64  `json:"block_height"`
+	TxHash       string `json:"tx_hash"`
+}
+
+// insert a new validator deregistration record
+func (q *Queries) InsertValidatorDeregistration(ctx context.Context, arg InsertValidatorDeregistrationParams) (EtlValidatorDeregistration, error) {
+	row := q.db.QueryRow(ctx, insertValidatorDeregistration,
+		arg.CometAddress,
+		arg.CometPubkey,
+		arg.BlockHeight,
+		arg.TxHash,
+	)
+	var i EtlValidatorDeregistration
+	err := row.Scan(
+		&i.ID,
+		&i.CometAddress,
+		&i.CometPubkey,
+		&i.BlockHeight,
+		&i.TxHash,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const insertValidatorRegistration = `-- name: InsertValidatorRegistration :one
+insert into etl_validator_registrations (
+    address,
+    endpoint,
+    comet_address,
+    eth_block,
+    node_type,
+    spid,
+    comet_pubkey,
+    voting_power,
+    block_height,
+    tx_hash
+) values (
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+) returning id, address, endpoint, comet_address, eth_block, node_type, spid, comet_pubkey, voting_power, block_height, tx_hash, created_at, updated_at
+`
+
+type InsertValidatorRegistrationParams struct {
+	Address      string `json:"address"`
+	Endpoint     string `json:"endpoint"`
+	CometAddress string `json:"comet_address"`
+	EthBlock     string `json:"eth_block"`
+	NodeType     string `json:"node_type"`
+	Spid         string `json:"spid"`
+	CometPubkey  []byte `json:"comet_pubkey"`
+	VotingPower  int64  `json:"voting_power"`
+	BlockHeight  int64  `json:"block_height"`
+	TxHash       string `json:"tx_hash"`
+}
+
+// insert a new validator registration record
+func (q *Queries) InsertValidatorRegistration(ctx context.Context, arg InsertValidatorRegistrationParams) (EtlValidatorRegistration, error) {
+	row := q.db.QueryRow(ctx, insertValidatorRegistration,
+		arg.Address,
+		arg.Endpoint,
+		arg.CometAddress,
+		arg.EthBlock,
+		arg.NodeType,
+		arg.Spid,
+		arg.CometPubkey,
+		arg.VotingPower,
+		arg.BlockHeight,
+		arg.TxHash,
+	)
+	var i EtlValidatorRegistration
+	err := row.Scan(
+		&i.ID,
+		&i.Address,
+		&i.Endpoint,
+		&i.CometAddress,
+		&i.EthBlock,
+		&i.NodeType,
+		&i.Spid,
+		&i.CometPubkey,
+		&i.VotingPower,
+		&i.BlockHeight,
+		&i.TxHash,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }

@@ -20,13 +20,13 @@ where block_time between $1 and $2
 `
 
 type GetBlockRangeByTimeParams struct {
-	BlockTime   pgtype.Timestamp
-	BlockTime_2 pgtype.Timestamp
+	BlockTime   pgtype.Timestamp `json:"block_time"`
+	BlockTime_2 pgtype.Timestamp `json:"block_time_2"`
 }
 
 type GetBlockRangeByTimeRow struct {
-	StartBlock interface{}
-	EndBlock   interface{}
+	StartBlock interface{} `json:"start_block"`
+	EndBlock   interface{} `json:"end_block"`
 }
 
 func (q *Queries) GetBlockRangeByTime(ctx context.Context, arg GetBlockRangeByTimeParams) (GetBlockRangeByTimeRow, error) {
@@ -97,21 +97,21 @@ limit $3 offset $4
 `
 
 type GetPlaysParams struct {
-	BlockHeight   int64
-	BlockHeight_2 int64
-	Limit         int32
-	Offset        int32
+	BlockHeight   int64 `json:"block_height"`
+	BlockHeight_2 int64 `json:"block_height_2"`
+	Limit         int32 `json:"limit"`
+	Offset        int32 `json:"offset"`
 }
 
 type GetPlaysRow struct {
-	Address     string
-	TrackID     string
-	Timestamp   int64
-	City        string
-	Country     string
-	Region      string
-	BlockHeight int64
-	TxHash      string
+	Address     string `json:"address"`
+	TrackID     string `json:"track_id"`
+	Timestamp   int64  `json:"timestamp"`
+	City        string `json:"city"`
+	Country     string `json:"country"`
+	Region      string `json:"region"`
+	BlockHeight int64  `json:"block_height"`
+	TxHash      string `json:"tx_hash"`
 }
 
 func (q *Queries) GetPlays(ctx context.Context, arg GetPlaysParams) ([]GetPlaysRow, error) {
@@ -167,22 +167,22 @@ limit $4 offset $5
 `
 
 type GetPlaysByAddressParams struct {
-	Address       string
-	BlockHeight   int64
-	BlockHeight_2 int64
-	Limit         int32
-	Offset        int32
+	Address       string `json:"address"`
+	BlockHeight   int64  `json:"block_height"`
+	BlockHeight_2 int64  `json:"block_height_2"`
+	Limit         int32  `json:"limit"`
+	Offset        int32  `json:"offset"`
 }
 
 type GetPlaysByAddressRow struct {
-	Address     string
-	TrackID     string
-	Timestamp   int64
-	City        string
-	Country     string
-	Region      string
-	BlockHeight int64
-	TxHash      string
+	Address     string `json:"address"`
+	TrackID     string `json:"track_id"`
+	Timestamp   int64  `json:"timestamp"`
+	City        string `json:"city"`
+	Country     string `json:"country"`
+	Region      string `json:"region"`
+	BlockHeight int64  `json:"block_height"`
+	TxHash      string `json:"tx_hash"`
 }
 
 func (q *Queries) GetPlaysByAddress(ctx context.Context, arg GetPlaysByAddressParams) ([]GetPlaysByAddressRow, error) {
@@ -239,22 +239,22 @@ limit $4 offset $5
 `
 
 type GetPlaysByTrackParams struct {
-	TrackID       string
-	BlockHeight   int64
-	BlockHeight_2 int64
-	Limit         int32
-	Offset        int32
+	TrackID       string `json:"track_id"`
+	BlockHeight   int64  `json:"block_height"`
+	BlockHeight_2 int64  `json:"block_height_2"`
+	Limit         int32  `json:"limit"`
+	Offset        int32  `json:"offset"`
 }
 
 type GetPlaysByTrackRow struct {
-	Address     string
-	TrackID     string
-	Timestamp   int64
-	City        string
-	Country     string
-	Region      string
-	BlockHeight int64
-	TxHash      string
+	Address     string `json:"address"`
+	TrackID     string `json:"track_id"`
+	Timestamp   int64  `json:"timestamp"`
+	City        string `json:"city"`
+	Country     string `json:"country"`
+	Region      string `json:"region"`
+	BlockHeight int64  `json:"block_height"`
+	TxHash      string `json:"tx_hash"`
 }
 
 func (q *Queries) GetPlaysByTrack(ctx context.Context, arg GetPlaysByTrackParams) ([]GetPlaysByTrackRow, error) {
@@ -302,10 +302,10 @@ where
 `
 
 type GetPlaysCountParams struct {
-	Column1 string
-	Column2 string
-	Column3 pgtype.Timestamp
-	Column4 pgtype.Timestamp
+	Column1 string           `json:"column_1"`
+	Column2 string           `json:"column_2"`
+	Column3 pgtype.Timestamp `json:"column_3"`
+	Column4 pgtype.Timestamp `json:"column_4"`
 }
 
 // get total count of plays with filtering
@@ -319,4 +319,103 @@ func (q *Queries) GetPlaysCount(ctx context.Context, arg GetPlaysCountParams) (i
 	var total int64
 	err := row.Scan(&total)
 	return total, err
+}
+
+const getValidatorDeregistrations = `-- name: GetValidatorDeregistrations :many
+select 
+    comet_address,
+    comet_pubkey,
+    block_height,
+    tx_hash
+from etl_validator_deregistrations
+`
+
+type GetValidatorDeregistrationsRow struct {
+	CometAddress string `json:"comet_address"`
+	CometPubkey  []byte `json:"comet_pubkey"`
+	BlockHeight  int64  `json:"block_height"`
+	TxHash       string `json:"tx_hash"`
+}
+
+// get validator deregistrations
+func (q *Queries) GetValidatorDeregistrations(ctx context.Context) ([]GetValidatorDeregistrationsRow, error) {
+	rows, err := q.db.Query(ctx, getValidatorDeregistrations)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetValidatorDeregistrationsRow
+	for rows.Next() {
+		var i GetValidatorDeregistrationsRow
+		if err := rows.Scan(
+			&i.CometAddress,
+			&i.CometPubkey,
+			&i.BlockHeight,
+			&i.TxHash,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getValidatorRegistrations = `-- name: GetValidatorRegistrations :many
+select 
+    address,
+    comet_address,
+    comet_pubkey,
+    eth_block,
+    node_type,
+    spid,
+    voting_power,
+    block_height,
+    tx_hash
+from etl_validator_registrations
+`
+
+type GetValidatorRegistrationsRow struct {
+	Address      string `json:"address"`
+	CometAddress string `json:"comet_address"`
+	CometPubkey  []byte `json:"comet_pubkey"`
+	EthBlock     string `json:"eth_block"`
+	NodeType     string `json:"node_type"`
+	Spid         string `json:"spid"`
+	VotingPower  int64  `json:"voting_power"`
+	BlockHeight  int64  `json:"block_height"`
+	TxHash       string `json:"tx_hash"`
+}
+
+// get validator registrations
+func (q *Queries) GetValidatorRegistrations(ctx context.Context) ([]GetValidatorRegistrationsRow, error) {
+	rows, err := q.db.Query(ctx, getValidatorRegistrations)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetValidatorRegistrationsRow
+	for rows.Next() {
+		var i GetValidatorRegistrationsRow
+		if err := rows.Scan(
+			&i.Address,
+			&i.CometAddress,
+			&i.CometPubkey,
+			&i.EthBlock,
+			&i.NodeType,
+			&i.Spid,
+			&i.VotingPower,
+			&i.BlockHeight,
+			&i.TxHash,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

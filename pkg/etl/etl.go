@@ -19,7 +19,7 @@ func (etl *ETLService) Run() error {
 		return fmt.Errorf("dbUrl environment variable not set")
 	}
 
-	err := db.RunMigrations(etl.logger, dbUrl, true)
+	err := db.RunMigrations(etl.logger, dbUrl, etl.runDownMigrations)
 	if err != nil {
 		return fmt.Errorf("error running migrations: %v", err)
 	}
@@ -54,7 +54,13 @@ func (etl *ETLService) indexBlocks() error {
 		if err != nil {
 			// If no records exist, start from block 1
 			if errors.Is(err, pgx.ErrNoRows) {
-				latestHeight = 0 // Start from block 1 (nextHeight will be 1)
+				if etl.startingBlockHeight > 0 {
+					// Start from block 1 (nextHeight will be 1)
+					latestHeight = etl.startingBlockHeight - 1
+				} else {
+					// Start from block 1 (nextHeight will be 1)
+					latestHeight = 0
+				}
 			} else {
 				etl.logger.Errorf("error getting latest indexed block: %v", err)
 				continue
@@ -76,8 +82,9 @@ func (etl *ETLService) indexBlocks() error {
 		}
 
 		_, err = etl.db.InsertBlock(context.Background(), db.InsertBlockParams{
-			BlockHeight: block.Msg.Block.Height,
-			BlockTime:   pgtype.Timestamp{Time: block.Msg.Block.Timestamp.AsTime(), Valid: true},
+			ProposerAddress: block.Msg.Block.Proposer,
+			BlockHeight:     block.Msg.Block.Height,
+			BlockTime:       pgtype.Timestamp{Time: block.Msg.Block.Timestamp.AsTime(), Valid: true},
 		})
 		if err != nil {
 			etl.logger.Errorf("error inserting block %d: %v", nextHeight, err)
@@ -114,7 +121,38 @@ func (etl *ETLService) indexBlocks() error {
 					BlockHeight: block.Msg.Block.Height,
 					TxHash:      tx.Hash,
 				})
+			case *v1.SignedTransaction_Attestation:
+				at := signedTx.Attestation
+				if at.GetValidatorRegistration() != nil {
+					vr := at.GetValidatorRegistration()
+					etl.db.InsertValidatorRegistration(context.Background(), db.InsertValidatorRegistrationParams{
+						Address:      block.Msg.Block.Proposer,
+						Endpoint:     vr.Endpoint,
+						CometAddress: vr.CometAddress,
+						EthBlock:     fmt.Sprintf("%d", vr.EthBlock),
+						NodeType:     vr.NodeType,
+						Spid:         vr.SpId,
+						CometPubkey:  vr.PubKey,
+						VotingPower:  vr.Power,
+						BlockHeight:  block.Msg.Block.Height,
+						TxHash:       tx.Hash,
+					})
+				}
+				if at.GetValidatorDeregistration() != nil {
+					vd := at.GetValidatorDeregistration()
+					etl.db.InsertValidatorDeregistration(context.Background(), db.InsertValidatorDeregistrationParams{
+						CometAddress: vd.CometAddress,
+						CometPubkey:  vd.PubKey,
+						BlockHeight:  block.Msg.Block.Height,
+						TxHash:       tx.Hash,
+					})
+				}
 			}
+		}
+
+		if etl.endingBlockHeight > 0 && block.Msg.Block.Height >= etl.endingBlockHeight {
+			etl.logger.Infof("ending block height reached, stopping etl service")
+			return nil
 		}
 	}
 }
