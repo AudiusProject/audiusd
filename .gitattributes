@@ -1,0 +1,19 @@
+# Protobuf-generated Go code
+pkg/api/**/*.pb.go linguist-generated
+pkg/api/**/*_grpc.pb.go linguist-generated
+
+# ConnectRPC-generated code
+pkg/api/**/*.connect.go linguist-generated
+
+# sqlc-generated code
+pkg/core/db/**/*.sql.go linguist-generated
+pkg/core/db/sql/**/*.go linguist-generated
+
+# Ethereum contract bindings
+pkg/contracts/gen/**/*.go linguist-generated
+
+# Catch-all for common gen dirs
+**/gen/** linguist-generated
+**/generated/** linguist-generated
+
+# You can add more specific patterns for clarity and maintainability
