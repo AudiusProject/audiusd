@@ -15,6 +15,7 @@ message PingResponse {
   core.v1.PingResponse core_ping = 2;
   storage.v1.PingResponse storage_ping = 3;
   etl.v1.PingResponse etl_ping = 4;
+  string version = 5;
 }
 
 message GetHealthRequest {}
