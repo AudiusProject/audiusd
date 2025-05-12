@@ -39,6 +39,9 @@ const (
 	ETLServiceGetHealthProcedure = "/etl.v1.ETLService/GetHealth"
 	// ETLServiceGetPlaysProcedure is the fully-qualified name of the ETLService's GetPlays RPC.
 	ETLServiceGetPlaysProcedure = "/etl.v1.ETLService/GetPlays"
+	// ETLServiceGetManageEntitiesProcedure is the fully-qualified name of the ETLService's
+	// GetManageEntities RPC.
+	ETLServiceGetManageEntitiesProcedure = "/etl.v1.ETLService/GetManageEntities"
 )
 
 // ETLServiceClient is a client for the etl.v1.ETLService service.
@@ -46,6 +49,7 @@ type ETLServiceClient interface {
 	Ping(context.Context, *connect.Request[v1.PingRequest]) (*connect.Response[v1.PingResponse], error)
 	GetHealth(context.Context, *connect.Request[v1.GetHealthRequest]) (*connect.Response[v1.GetHealthResponse], error)
 	GetPlays(context.Context, *connect.Request[v1.GetPlaysRequest]) (*connect.Response[v1.GetPlaysResponse], error)
+	GetManageEntities(context.Context, *connect.Request[v1.GetManageEntitiesRequest]) (*connect.Response[v1.GetManageEntitiesResponse], error)
 }
 
 // NewETLServiceClient constructs a client for the etl.v1.ETLService service. By default, it uses
@@ -77,14 +81,21 @@ func NewETLServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			connect.WithSchema(eTLServiceMethods.ByName("GetPlays")),
 			connect.WithClientOptions(opts...),
 		),
+		getManageEntities: connect.NewClient[v1.GetManageEntitiesRequest, v1.GetManageEntitiesResponse](
+			httpClient,
+			baseURL+ETLServiceGetManageEntitiesProcedure,
+			connect.WithSchema(eTLServiceMethods.ByName("GetManageEntities")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // eTLServiceClient implements ETLServiceClient.
 type eTLServiceClient struct {
-	ping      *connect.Client[v1.PingRequest, v1.PingResponse]
-	getHealth *connect.Client[v1.GetHealthRequest, v1.GetHealthResponse]
-	getPlays  *connect.Client[v1.GetPlaysRequest, v1.GetPlaysResponse]
+	ping              *connect.Client[v1.PingRequest, v1.PingResponse]
+	getHealth         *connect.Client[v1.GetHealthRequest, v1.GetHealthResponse]
+	getPlays          *connect.Client[v1.GetPlaysRequest, v1.GetPlaysResponse]
+	getManageEntities *connect.Client[v1.GetManageEntitiesRequest, v1.GetManageEntitiesResponse]
 }
 
 // Ping calls etl.v1.ETLService.Ping.
@@ -102,11 +113,17 @@ func (c *eTLServiceClient) GetPlays(ctx context.Context, req *connect.Request[v1
 	return c.getPlays.CallUnary(ctx, req)
 }
 
+// GetManageEntities calls etl.v1.ETLService.GetManageEntities.
+func (c *eTLServiceClient) GetManageEntities(ctx context.Context, req *connect.Request[v1.GetManageEntitiesRequest]) (*connect.Response[v1.GetManageEntitiesResponse], error) {
+	return c.getManageEntities.CallUnary(ctx, req)
+}
+
 // ETLServiceHandler is an implementation of the etl.v1.ETLService service.
 type ETLServiceHandler interface {
 	Ping(context.Context, *connect.Request[v1.PingRequest]) (*connect.Response[v1.PingResponse], error)
 	GetHealth(context.Context, *connect.Request[v1.GetHealthRequest]) (*connect.Response[v1.GetHealthResponse], error)
 	GetPlays(context.Context, *connect.Request[v1.GetPlaysRequest]) (*connect.Response[v1.GetPlaysResponse], error)
+	GetManageEntities(context.Context, *connect.Request[v1.GetManageEntitiesRequest]) (*connect.Response[v1.GetManageEntitiesResponse], error)
 }
 
 // NewETLServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -134,6 +151,12 @@ func NewETLServiceHandler(svc ETLServiceHandler, opts ...connect.HandlerOption) 
 		connect.WithSchema(eTLServiceMethods.ByName("GetPlays")),
 		connect.WithHandlerOptions(opts...),
 	)
+	eTLServiceGetManageEntitiesHandler := connect.NewUnaryHandler(
+		ETLServiceGetManageEntitiesProcedure,
+		svc.GetManageEntities,
+		connect.WithSchema(eTLServiceMethods.ByName("GetManageEntities")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/etl.v1.ETLService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case ETLServicePingProcedure:
@@ -142,6 +165,8 @@ func NewETLServiceHandler(svc ETLServiceHandler, opts ...connect.HandlerOption) 
 			eTLServiceGetHealthHandler.ServeHTTP(w, r)
 		case ETLServiceGetPlaysProcedure:
 			eTLServiceGetPlaysHandler.ServeHTTP(w, r)
+		case ETLServiceGetManageEntitiesProcedure:
+			eTLServiceGetManageEntitiesHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -161,4 +186,8 @@ func (UnimplementedETLServiceHandler) GetHealth(context.Context, *connect.Reques
 
 func (UnimplementedETLServiceHandler) GetPlays(context.Context, *connect.Request[v1.GetPlaysRequest]) (*connect.Response[v1.GetPlaysResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("etl.v1.ETLService.GetPlays is not implemented"))
+}
+
+func (UnimplementedETLServiceHandler) GetManageEntities(context.Context, *connect.Request[v1.GetManageEntitiesRequest]) (*connect.Response[v1.GetManageEntitiesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("etl.v1.ETLService.GetManageEntities is not implemented"))
 }
