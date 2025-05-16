@@ -195,6 +195,37 @@ templ staticStyles() {
 templ (c *Pages) UptimePageHTML(props *UptimePageView) {
 	@c.layout.SiteFrame() {
         @staticStyles()
+        <div class="flex">
+            <span class="p-4 bg-slate-100">&lt;</span>
+            <h1 class="text-xl text-center w-full">Funding Round 232</h1>
+            <span class="p-4 bg-slate-100">&gt;</span>
+        </div>
+        <div class="flex flex-row text-center p-2">
+            <div class="basis-1/5 rounded-md bg-slate-100 py-8 mx-1">
+                <dt class="text-4xl">In Progress</dt>
+                <dd class="text-sm">Round status</dd>
+            </div>
+
+            <div class="basis-1/5 rounded-md bg-slate-100 py-8 mx-1">
+                <dt class="text-4xl">17</dt>
+                <dd class="text-sm">Total Rollups</dd>
+            </div>
+
+            <div class="basis-1/5 rounded-md bg-slate-100 py-8 mx-1">
+                <dt class="text-4xl">16</dt>
+                <dd class="text-sm">SLAs Met</dd>
+            </div>
+
+            <div class="basis-1/5 rounded-md bg-slate-100 py-8 mx-1">
+                <dt class="text-4xl">10</dt>
+                <dd class="text-sm">Challenges Received</dd>
+            </div>
+
+            <div class="basis-1/5 rounded-md bg-slate-100 py-8 mx-1">
+                <dt class="text-4xl">2</dt>
+                <dd class="text-sm">Challenges Failed</dd>
+            </div>
+        </div>
         <ul class="m-2">
             for _, r := range props.ActiveNodeUptime.ReportHistory {
                 <li class={ templ.KV("selectedUptimeBar", props.ActiveNodeUptime.ActiveReport.SlaRollupId == r.SlaRollupId), uptimeBar(r, !props.ActiveNodeUptime.IsValidator) }>
@@ -208,7 +239,7 @@ templ (c *Pages) UptimePageHTML(props *UptimePageView) {
             <h1 class="text-xl"> No SLA Rollup with requested ID. </h1>
         } else {
             <h1 class="text-xl">
-                SLA Rollup #{ fmt.Sprintf("%d", props.ActiveNodeUptime.ActiveReport.SlaRollupId) } For Blocks { fmt.Sprintf("%d - %d", props.ActiveNodeUptime.ActiveReport.BlockStart, props.ActiveNodeUptime.ActiveReport.BlockEnd) }
+                SLA Rollup for Blocks { fmt.Sprintf("%d - %d", props.ActiveNodeUptime.ActiveReport.BlockStart, props.ActiveNodeUptime.ActiveReport.BlockEnd) }
             </h1>
             <h3 class="text-sm">
                 TX: <a href={ templ.URL(fmt.Sprintf("/console/tx/%s", props.ActiveNodeUptime.ActiveReport.TxHash)) }>{ props.ActiveNodeUptime.ActiveReport.TxHash }</a>

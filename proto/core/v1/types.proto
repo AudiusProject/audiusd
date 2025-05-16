@@ -107,6 +107,7 @@ message SignedTransaction {
     StorageProofVerification storage_proof_verification = 1006;
     Attestation attestation = 1007;
     ddex.v1beta1.NewReleaseMessage release = 1008;
+    FundingRoundUpdate funding_round_update = 1009;
   }
 }
 
@@ -199,4 +200,19 @@ message ValidatorDeregistration {
   string comet_address = 1;
   bytes pub_key = 2;
   int64 deadline = 3;
+}
+
+message FundingRoundUpdate {
+  int64 new_round_num = 1;
+  repeated FundingRoundSLAResult results = 2;
+}
+
+message FundingRoundSLAResult {
+  string eth_address = 1;
+  string comet_address = 2;
+  int32 total_rollups = 3;
+  int32 sla_misses = 4;
+  int32 total_challenges = 5;
+  int32 failed_challengs = 6;
+  float reward_proportion = 7;
 }

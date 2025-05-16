@@ -780,7 +780,7 @@ func (q *Queries) GetLatestDecodedTxs(ctx context.Context, limit int32) ([]CoreE
 }
 
 const getLatestSlaRollup = `-- name: GetLatestSlaRollup :one
-select id, tx_hash, block_start, block_end, time from sla_rollups order by time desc limit 1
+select id, tx_hash, block_start, block_end, time, funding_round from sla_rollups order by time desc limit 1
 `
 
 func (q *Queries) GetLatestSlaRollup(ctx context.Context) (SlaRollup, error) {
@@ -792,6 +792,7 @@ func (q *Queries) GetLatestSlaRollup(ctx context.Context) (SlaRollup, error) {
 		&i.BlockStart,
 		&i.BlockEnd,
 		&i.Time,
+		&i.FundingRound,
 	)
 	return i, err
 }
@@ -857,7 +858,7 @@ func (q *Queries) GetNodesByEndpoints(ctx context.Context, dollar_1 []string) ([
 }
 
 const getPreviousSlaRollupFromId = `-- name: GetPreviousSlaRollupFromId :one
-select id, tx_hash, block_start, block_end, time from sla_rollups
+select id, tx_hash, block_start, block_end, time, funding_round from sla_rollups
 where time < (
     select time from sla_rollups sr where sr.id = $1
 )
@@ -874,6 +875,7 @@ func (q *Queries) GetPreviousSlaRollupFromId(ctx context.Context, id int32) (Sla
 		&i.BlockStart,
 		&i.BlockEnd,
 		&i.Time,
+		&i.FundingRound,
 	)
 	return i, err
 }
@@ -911,7 +913,7 @@ func (q *Queries) GetRecentBlocks(ctx context.Context, limit int32) ([]CoreBlock
 
 const getRecentRollupsForAllNodes = `-- name: GetRecentRollupsForAllNodes :many
 with recent_rollups as (
-    select id, tx_hash, block_start, block_end, time
+    select id, tx_hash, block_start, block_end, time, funding_round
     from sla_rollups
     where sla_rollups.id <= $1
     order by time desc
@@ -976,7 +978,7 @@ func (q *Queries) GetRecentRollupsForAllNodes(ctx context.Context, arg GetRecent
 
 const getRecentRollupsForNode = `-- name: GetRecentRollupsForNode :many
 with recent_rollups as (
-    select id, tx_hash, block_start, block_end, time
+    select id, tx_hash, block_start, block_end, time, funding_round
     from sla_rollups
     order by time desc
     limit 30
@@ -1226,7 +1228,7 @@ func (q *Queries) GetRollupReportsForId(ctx context.Context, slaRollupID pgtype.
 }
 
 const getSlaRollupWithId = `-- name: GetSlaRollupWithId :one
-select id, tx_hash, block_start, block_end, time from sla_rollups where id = $1
+select id, tx_hash, block_start, block_end, time, funding_round from sla_rollups where id = $1
 `
 
 func (q *Queries) GetSlaRollupWithId(ctx context.Context, id int32) (SlaRollup, error) {
@@ -1238,12 +1240,13 @@ func (q *Queries) GetSlaRollupWithId(ctx context.Context, id int32) (SlaRollup, 
 		&i.BlockStart,
 		&i.BlockEnd,
 		&i.Time,
+		&i.FundingRound,
 	)
 	return i, err
 }
 
 const getSlaRollupWithTimestamp = `-- name: GetSlaRollupWithTimestamp :one
-select id, tx_hash, block_start, block_end, time from sla_rollups where time = $1
+select id, tx_hash, block_start, block_end, time, funding_round from sla_rollups where time = $1
 `
 
 func (q *Queries) GetSlaRollupWithTimestamp(ctx context.Context, time pgtype.Timestamp) (SlaRollup, error) {
@@ -1255,8 +1258,40 @@ func (q *Queries) GetSlaRollupWithTimestamp(ctx context.Context, time pgtype.Tim
 		&i.BlockStart,
 		&i.BlockEnd,
 		&i.Time,
+		&i.FundingRound,
 	)
 	return i, err
+}
+
+const getSlaRollupsForRound = `-- name: GetSlaRollupsForRound :many
+select id, tx_hash, block_start, block_end, time, funding_round from sla_rollups where funding_round = $1
+`
+
+func (q *Queries) GetSlaRollupsForRound(ctx context.Context, fundingRound pgtype.Int4) ([]SlaRollup, error) {
+	rows, err := q.db.Query(ctx, getSlaRollupsForRound, fundingRound)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []SlaRollup
+	for rows.Next() {
+		var i SlaRollup
+		if err := rows.Scan(
+			&i.ID,
+			&i.TxHash,
+			&i.BlockStart,
+			&i.BlockEnd,
+			&i.Time,
+			&i.FundingRound,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getStorageProof = `-- name: GetStorageProof :one

@@ -198,6 +198,20 @@ type CoreValidator struct {
 	CometPubKey  string
 }
 
+type FundingRoundSlaResult struct {
+	ID               int32
+	FundingRound     int32
+	BlockNumber      int32
+	CometAddress     string
+	EthAddress       string
+	TotalSlaRollups  int32
+	SlaMisses        int32
+	TotalChallenges  int32
+	FailedChallengs  int32
+	RewardProportion float64
+	Finalized        bool
+}
+
 type ManagementKey struct {
 	ID      int32
 	TrackID string
@@ -212,11 +226,12 @@ type SlaNodeReport struct {
 }
 
 type SlaRollup struct {
-	ID         int32
-	TxHash     string
-	BlockStart int64
-	BlockEnd   int64
-	Time       pgtype.Timestamp
+	ID           int32
+	TxHash       string
+	BlockStart   int64
+	BlockEnd     int64
+	Time         pgtype.Timestamp
+	FundingRound pgtype.Int4
 }
 
 type SoundRecording struct {
