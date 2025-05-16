@@ -16,13 +16,35 @@ message GetHealthRequest {}
 
 message GetHealthResponse {}
 
+message GetBlocksRequest {}
+
+message GetBlocksResponse {}
+
+message GetTransactionsRequest {}
+
+message GetTransactionsResponse {}
+
 message GetPlaysRequest {
-  Pagination pagination = 1;
-  OrderBy order_by = 2;
-  TimeRange time_range = 3;
-  string address = 4;
-  string track_id = 5;
+  oneof query {
+    GetPlays get_plays = 1;
+    GetPlaysByAddress get_plays_by_address = 2;
+    GetPlaysByUser get_plays_by_user = 3;
+    GetPlaysByTimeRange get_plays_by_time_range = 4;
+    GetPlaysByLocation get_plays_by_location = 5;
+  }
 }
+
+message GetPlays {}
+
+message GetPlaysByAddress {}
+
+message GetPlaysByUser {}
+
+message GetPlaysByTrack {}
+
+message GetPlaysByTimeRange {}
+
+message GetPlaysByLocation {}
 
 message GetPlaysResponse {
   repeated GetPlayResponse plays = 1;
@@ -40,7 +62,6 @@ message GetPlayResponse {
 }
 
 message GetManageEntitiesRequest {
-
 }
 
 message GetManageEntitiesResponse {
@@ -48,25 +69,51 @@ message GetManageEntitiesResponse {
 }
 
 message GetManageEntityResponse {
-
+  string address = 1;
+  string entity_type = 2;
+  int64 entity_id = 3;
+  string action = 4;
+  string metadata = 5;
+  string signature = 6;
+  string signer = 7;
+  string nonce = 8;
+  int64 block = 9;
+  string tx_hash = 10;
 }
 
-message Pagination {
-  int64 limit = 1;
-  int64 offset = 2;
-}
-
-message OrderBy {
-  string field = 1;
-  enum Order {
-    ORDER_UNSPECIFIED = 0;
-    ORDER_ASC = 1;
-    ORDER_DESC = 2;
+message GetValidatorsRequest {
+  oneof query {
+    GetRegisteredValidators get_registered_validators = 1;
+    GetValidatorRegistrations get_validator_registrations = 2;
+    GetValidatorDeregistrations get_validator_deregistrations = 3;
   }
-  Order order = 2;
 }
 
-message TimeRange {
-  google.protobuf.Timestamp start = 1;
-  google.protobuf.Timestamp end = 2;
+message GetRegisteredValidators {}
+message GetValidatorRegistrations {}
+message GetValidatorDeregistrations {}
+
+message GetValidatorsResponse {}
+
+message GetValidatorResponse {
+  string address = 1;
+  string validator_address = 2;
+  int64 block_height = 3;
+  string tx_hash = 4;
+  google.protobuf.Timestamp timestamp = 5;
+}
+
+message GetLocationRequest {
+  oneof query {
+    GetAvailableCities get_available_cities = 1;
+    GetAvailableRegions get_available_regions = 2;
+    GetAvailableCountries get_available_countries = 3;
+  }
+}
+
+message GetAvailableCities {}
+message GetAvailableRegions {}
+message GetAvailableCountries {}
+
+message GetLocationResponse {
 }

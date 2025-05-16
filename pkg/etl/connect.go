@@ -60,5 +60,25 @@ func (e *ETLService) Ping(context.Context, *connect.Request[v1.PingRequest]) (*c
 }
 
 func (e *ETLService) GetPlays(ctx context.Context, req *connect.Request[v1.GetPlaysRequest]) (*connect.Response[v1.GetPlaysResponse], error) {
-	return connect.NewResponse(&v1.GetPlaysResponse{}), nil
+	panic("unimplemented")
+}
+
+// GetBlocks implements v1connect.ETLServiceHandler.
+func (e *ETLService) GetBlocks(context.Context, *connect.Request[v1.GetBlocksRequest]) (*connect.Response[v1.GetBlocksResponse], error) {
+	panic("unimplemented")
+}
+
+// GetTransactions implements v1connect.ETLServiceHandler.
+func (e *ETLService) GetTransactions(context.Context, *connect.Request[v1.GetTransactionsRequest]) (*connect.Response[v1.GetTransactionsResponse], error) {
+	panic("unimplemented")
+}
+
+// GetValidators implements v1connect.ETLServiceHandler.
+func (e *ETLService) GetValidators(context.Context, *connect.Request[v1.GetValidatorsRequest]) (*connect.Response[v1.GetValidatorsResponse], error) {
+	panic("unimplemented")
+}
+
+// GetManageEntities implements v1connect.ETLServiceHandler.
+func (e *ETLService) GetManageEntities(context.Context, *connect.Request[v1.GetManageEntitiesRequest]) (*connect.Response[v1.GetManageEntitiesResponse], error) {
+	panic("unimplemented")
 }
