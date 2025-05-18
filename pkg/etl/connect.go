@@ -26,6 +26,11 @@ type ETLService struct {
 	logger *common.Logger
 }
 
+// GetLocation implements v1connect.ETLServiceHandler.
+func (e *ETLService) GetLocation(context.Context, *connect.Request[v1.GetLocationRequest]) (*connect.Response[v1.GetLocationResponse], error) {
+	panic("unimplemented")
+}
+
 func NewETLService(core corev1connect.CoreServiceClient, logger *common.Logger) *ETLService {
 	return &ETLService{
 		logger: logger.Child("etl"),
