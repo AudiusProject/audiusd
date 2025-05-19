@@ -108,3 +108,40 @@ select
     block_height,
     tx_hash
 from etl_validator_deregistrations;
+
+-- name: GetPlaysByLocation :many
+select tx_hash, address, track_id, played_at, city, region, country, created_at
+from etl_plays
+where 
+    (nullif($1, '')::text is null or lower(city) = lower($1)) and
+    (nullif($2, '')::text is null or lower(region) = lower($2)) and
+    (nullif($3, '')::text is null or lower(country) = lower($3))
+order by played_at desc
+limit $4;
+
+-- name: GetAvailableCities :many
+select city, region, country, count(*) as play_count
+from etl_plays
+where city is not null
+  and (nullif($1, '')::text is null or lower(country) = lower($1))
+  and (nullif($2, '')::text is null or lower(region) = lower($2))
+group by city, region, country
+order by count(*) desc
+limit $3;
+
+-- name: GetAvailableRegions :many
+select region, country, count(*) as play_count
+from etl_plays
+where region is not null
+  and (nullif($1, '')::text is null or lower(country) = lower($1))
+group by region, country
+order by count(*) desc
+limit $2;
+
+-- name: GetAvailableCountries :many
+select country, count(*) as play_count
+from etl_plays
+where country is not null
+group by country
+order by count(*) desc
+limit $1;

@@ -11,6 +11,130 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const getAvailableCities = `-- name: GetAvailableCities :many
+select city, region, country, count(*) as play_count
+from etl_plays
+where city is not null
+  and (nullif($1, '')::text is null or lower(country) = lower($1))
+  and (nullif($2, '')::text is null or lower(region) = lower($2))
+group by city, region, country
+order by count(*) desc
+limit $3
+`
+
+type GetAvailableCitiesParams struct {
+	Column1 interface{} `json:"column_1"`
+	Column2 interface{} `json:"column_2"`
+	Limit   int32       `json:"limit"`
+}
+
+type GetAvailableCitiesRow struct {
+	City      string `json:"city"`
+	Region    string `json:"region"`
+	Country   string `json:"country"`
+	PlayCount int64  `json:"play_count"`
+}
+
+func (q *Queries) GetAvailableCities(ctx context.Context, arg GetAvailableCitiesParams) ([]GetAvailableCitiesRow, error) {
+	rows, err := q.db.Query(ctx, getAvailableCities, arg.Column1, arg.Column2, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAvailableCitiesRow
+	for rows.Next() {
+		var i GetAvailableCitiesRow
+		if err := rows.Scan(
+			&i.City,
+			&i.Region,
+			&i.Country,
+			&i.PlayCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getAvailableCountries = `-- name: GetAvailableCountries :many
+select country, count(*) as play_count
+from etl_plays
+where country is not null
+group by country
+order by count(*) desc
+limit $1
+`
+
+type GetAvailableCountriesRow struct {
+	Country   string `json:"country"`
+	PlayCount int64  `json:"play_count"`
+}
+
+func (q *Queries) GetAvailableCountries(ctx context.Context, limit int32) ([]GetAvailableCountriesRow, error) {
+	rows, err := q.db.Query(ctx, getAvailableCountries, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAvailableCountriesRow
+	for rows.Next() {
+		var i GetAvailableCountriesRow
+		if err := rows.Scan(&i.Country, &i.PlayCount); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getAvailableRegions = `-- name: GetAvailableRegions :many
+select region, country, count(*) as play_count
+from etl_plays
+where region is not null
+  and (nullif($1, '')::text is null or lower(country) = lower($1))
+group by region, country
+order by count(*) desc
+limit $2
+`
+
+type GetAvailableRegionsParams struct {
+	Column1 interface{} `json:"column_1"`
+	Limit   int32       `json:"limit"`
+}
+
+type GetAvailableRegionsRow struct {
+	Region    string `json:"region"`
+	Country   string `json:"country"`
+	PlayCount int64  `json:"play_count"`
+}
+
+func (q *Queries) GetAvailableRegions(ctx context.Context, arg GetAvailableRegionsParams) ([]GetAvailableRegionsRow, error) {
+	rows, err := q.db.Query(ctx, getAvailableRegions, arg.Column1, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAvailableRegionsRow
+	for rows.Next() {
+		var i GetAvailableRegionsRow
+		if err := rows.Scan(&i.Region, &i.Country, &i.PlayCount); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getBlockRangeByTime = `-- name: GetBlockRangeByTime :one
 select
   min(block_height) as start_block,
@@ -209,6 +333,69 @@ func (q *Queries) GetPlaysByAddress(ctx context.Context, arg GetPlaysByAddressPa
 			&i.Region,
 			&i.BlockHeight,
 			&i.TxHash,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getPlaysByLocation = `-- name: GetPlaysByLocation :many
+select tx_hash, address, track_id, played_at, city, region, country, created_at
+from etl_plays
+where 
+    (nullif($1, '')::text is null or lower(city) = lower($1)) and
+    (nullif($2, '')::text is null or lower(region) = lower($2)) and
+    (nullif($3, '')::text is null or lower(country) = lower($3))
+order by played_at desc
+limit $4
+`
+
+type GetPlaysByLocationParams struct {
+	Column1 interface{} `json:"column_1"`
+	Column2 interface{} `json:"column_2"`
+	Column3 interface{} `json:"column_3"`
+	Limit   int32       `json:"limit"`
+}
+
+type GetPlaysByLocationRow struct {
+	TxHash    string           `json:"tx_hash"`
+	Address   string           `json:"address"`
+	TrackID   string           `json:"track_id"`
+	PlayedAt  pgtype.Timestamp `json:"played_at"`
+	City      string           `json:"city"`
+	Region    string           `json:"region"`
+	Country   string           `json:"country"`
+	CreatedAt pgtype.Timestamp `json:"created_at"`
+}
+
+func (q *Queries) GetPlaysByLocation(ctx context.Context, arg GetPlaysByLocationParams) ([]GetPlaysByLocationRow, error) {
+	rows, err := q.db.Query(ctx, getPlaysByLocation,
+		arg.Column1,
+		arg.Column2,
+		arg.Column3,
+		arg.Limit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetPlaysByLocationRow
+	for rows.Next() {
+		var i GetPlaysByLocationRow
+		if err := rows.Scan(
+			&i.TxHash,
+			&i.Address,
+			&i.TrackID,
+			&i.PlayedAt,
+			&i.City,
+			&i.Region,
+			&i.Country,
+			&i.CreatedAt,
 		); err != nil {
 			return nil, err
 		}
