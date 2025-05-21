@@ -33,6 +33,8 @@ func (s *Server) startEchoServer() error {
 
 	// kind of weird pattern
 	s.createEthRPC()
+	s.registerCometRPC()
+
 	g.GET("/sdk", echo.WrapHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		sandbox.ServeSandbox(s.config, w, r)
 	})))
