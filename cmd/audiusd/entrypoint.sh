@@ -10,7 +10,6 @@ if [ ! -f "$ENV_FILE" ]; then
     exit 1
 fi
 
-# Source environment variables and allow overwriting
 source_env_file() {
     local file=$1
     if [ ! -f "$file" ]; then
@@ -24,7 +23,7 @@ source_env_file() {
         [[ -z "$key" ]] && continue
         val="${value%\"}"
         val="${val#\"}"
-        export "$key"="$val"
+        [ -z "${!key}" ] && export "$key"="$val"
     done < "$file"
 }
 
