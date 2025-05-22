@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"compress/gzip"
 	"context"
 	"encoding/json"
@@ -11,6 +12,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"sort"
+	"strings"
 
 	"github.com/AudiusProject/audiusd/pkg/common"
 	v1 "github.com/cometbft/cometbft/api/cometbft/abci/v1"
@@ -318,4 +320,192 @@ func (s *Server) getStoredSnapshots() ([]v1.Snapshot, error) {
 	})
 
 	return snapshots, nil
+}
+
+// GetChunkByHeight retrieves a specific chunk for a given block height
+func (s *Server) GetChunkByHeight(height int64, chunk int) ([]byte, error) {
+	snapshotDir := filepath.Join(s.config.RootDir, fmt.Sprintf("snapshots_%s", s.config.GenesisFile.ChainID))
+	latestSnapshotDirName := fmt.Sprintf("height_%010d", height)
+	latestSnapshotDir := filepath.Join(snapshotDir, latestSnapshotDirName)
+
+	// Check if snapshot directory exists
+	if _, err := os.Stat(latestSnapshotDir); os.IsNotExist(err) {
+		return nil, fmt.Errorf("no snapshot found for height %d", height)
+	}
+
+	// Read metadata to get chunk count
+	metadataPath := filepath.Join(latestSnapshotDir, "metadata.json")
+	metadataBytes, err := os.ReadFile(metadataPath)
+	if err != nil {
+		return nil, fmt.Errorf("error reading metadata file: %v", err)
+	}
+
+	var meta v1.Snapshot
+	if err := json.Unmarshal(metadataBytes, &meta); err != nil {
+		return nil, fmt.Errorf("error unmarshalling metadata: %v", err)
+	}
+
+	// Read the first chunk (chunk_0000.gz)
+	chunkPath := filepath.Join(latestSnapshotDir, fmt.Sprintf("chunk_%04d.gz", chunk))
+	chunkData, err := os.ReadFile(chunkPath)
+	if err != nil {
+		return nil, fmt.Errorf("error reading chunk file: %v", err)
+	}
+
+	return chunkData, nil
+}
+
+func (s *Server) StoreOfferedSnapshot(snapshot *v1.Snapshot) error {
+	snapshotDir := filepath.Join(s.config.RootDir, "tmp_reconstruction")
+	if err := os.MkdirAll(snapshotDir, 0755); err != nil {
+		return fmt.Errorf("failed to create snapshot directory: %v", err)
+	}
+
+	metadataPath := filepath.Join(snapshotDir, "metadata.json")
+	metadataBytes, err := json.Marshal(snapshot)
+	if err != nil {
+		return fmt.Errorf("failed to marshal snapshot: %v", err)
+	}
+
+	if err := os.WriteFile(metadataPath, metadataBytes, 0644); err != nil {
+		return fmt.Errorf("failed to write metadata file: %v", err)
+	}
+
+	return nil
+}
+
+func (s *Server) GetOfferedSnapshot() (*v1.Snapshot, error) {
+	snapshotDir := filepath.Join(s.config.RootDir, "tmp_reconstruction")
+	metadataPath := filepath.Join(snapshotDir, "metadata.json")
+	metadataBytes, err := os.ReadFile(metadataPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read metadata file: %v", err)
+	}
+
+	var meta v1.Snapshot
+	if err := json.Unmarshal(metadataBytes, &meta); err != nil {
+		return nil, fmt.Errorf("error unmarshalling metadata: %v", err)
+	}
+
+	return &meta, nil
+}
+
+// StoreChunkForReconstruction stores a single chunk in a temporary directory for later reconstruction
+func (s *Server) StoreChunkForReconstruction(height int64, chunkIndex int, chunkData []byte) error {
+	// Create a temporary directory for reconstruction if it doesn't exist
+	tmpDir := filepath.Join(s.config.RootDir, "tmp_reconstruction")
+	if err := os.MkdirAll(tmpDir, 0755); err != nil {
+		return fmt.Errorf("failed to create temporary directory: %v", err)
+	}
+
+	// Create a directory for this specific height if it doesn't exist
+	heightDir := filepath.Join(tmpDir, fmt.Sprintf("height_%010d", height))
+	if err := os.MkdirAll(heightDir, 0755); err != nil {
+		return fmt.Errorf("failed to create height directory: %v", err)
+	}
+
+	// Write the chunk to a file
+	chunkPath := filepath.Join(heightDir, fmt.Sprintf("chunk_%04d.gz", chunkIndex))
+	if err := os.WriteFile(chunkPath, chunkData, 0644); err != nil {
+		return fmt.Errorf("failed to write chunk file: %v", err)
+	}
+
+	return nil
+}
+
+func (s *Server) haveAllChunks(height uint64, total int) bool {
+	heightDir := filepath.Join(s.config.RootDir, "tmp_reconstruction", fmt.Sprintf("height_%010d", height))
+
+	files, err := os.ReadDir(heightDir)
+	if err != nil {
+		s.logger.Warn("failed to read chunk directory", "err", err)
+		return false
+	}
+
+	chunkCount := 0
+	for _, f := range files {
+		if strings.HasPrefix(f.Name(), "chunk_") && strings.HasSuffix(f.Name(), ".gz") {
+			chunkCount++
+		}
+	}
+
+	return chunkCount == total
+}
+
+// ReassemblePgDump decompresses and reassembles chunks into a complete pg_dump file
+func (s *Server) ReassemblePgDump(height int64) error {
+	tmpDir := filepath.Join(s.config.RootDir, "tmp_reconstruction")
+	heightDir := filepath.Join(tmpDir, fmt.Sprintf("height_%010d", height))
+
+	// Create the output pg_dump file
+	outputPath := filepath.Join(heightDir, "pg_dump.sql")
+	outputFile, err := os.Create(outputPath)
+	if err != nil {
+		return fmt.Errorf("failed to create output file: %v", err)
+	}
+	defer outputFile.Close()
+
+	// Read all chunk files in order
+	files, err := os.ReadDir(heightDir)
+	if err != nil {
+		return fmt.Errorf("failed to read directory: %v", err)
+	}
+
+	// Sort files to ensure correct order
+	sort.Slice(files, func(i, j int) bool {
+		return files[i].Name() < files[j].Name()
+	})
+
+	for _, file := range files {
+		if !strings.HasSuffix(file.Name(), ".gz") {
+			continue
+		}
+
+		chunkPath := filepath.Join(heightDir, file.Name())
+		chunkData, err := os.ReadFile(chunkPath)
+		if err != nil {
+			return fmt.Errorf("failed to read chunk file %s: %v", file.Name(), err)
+		}
+
+		// Decompress the chunk
+		reader := bytes.NewReader(chunkData)
+		gzReader, err := gzip.NewReader(reader)
+		if err != nil {
+			return fmt.Errorf("failed to create gzip reader: %v", err)
+		}
+
+		// Write decompressed data to output file
+		if _, err := io.Copy(outputFile, gzReader); err != nil {
+			gzReader.Close()
+			return fmt.Errorf("failed to write decompressed data: %v", err)
+		}
+		gzReader.Close()
+	}
+
+	return nil
+}
+
+// RestoreDatabase restores the PostgreSQL database using the reassembled pg_dump file
+func (s *Server) RestoreDatabase(height int64) error {
+	// Get the path to the reassembled pg_dump file
+	tmpDir := filepath.Join(s.config.RootDir, "tmp_reconstruction")
+	heightDir := filepath.Join(tmpDir, fmt.Sprintf("height_%010d", height))
+	dumpPath := filepath.Join(heightDir, "pg_dump.sql")
+
+	// Construct psql command using dbname parameter
+	cmd := exec.Command("psql",
+		"--dbname="+s.config.PSQLConn,
+		"-f", dumpPath)
+
+	// Execute the command
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("error restoring database: %v", err)
+	}
+
+	// Clean up temporary files
+	if err := os.RemoveAll(heightDir); err != nil {
+		return fmt.Errorf("error cleaning up temporary files: %v", err)
+	}
+
+	return nil
 }

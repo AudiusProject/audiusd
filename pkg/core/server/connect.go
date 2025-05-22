@@ -399,7 +399,10 @@ func (c *CoreService) getBlockRpcFallback(ctx context.Context, height int64) (*c
 func (c *CoreService) GetStoredSnapshots(context.Context, *connect.Request[v1.GetStoredSnapshotsRequest]) (*connect.Response[v1.GetStoredSnapshotsResponse], error) {
 	snapshots, err := c.core.getStoredSnapshots()
 	if err != nil {
-		return nil, err
+		c.core.logger.Errorf("error getting stored snapshots: %v", err)
+		return connect.NewResponse(&v1.GetStoredSnapshotsResponse{
+			Snapshots: []*v1.SnapshotMetadata{},
+		}), nil
 	}
 
 	snapshotResponses := make([]*v1.SnapshotMetadata, 0, len(snapshots))
