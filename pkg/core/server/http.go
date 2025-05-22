@@ -39,10 +39,6 @@ func (s *Server) startEchoServer() error {
 		sandbox.ServeSandbox(s.config, w, r)
 	})))
 
-	if s.config.CometModule {
-		g.Any("/debug/comet*", s.proxyCometRequest)
-	}
-
 	if s.config.DebugModule {
 		g.GET("/debug/mempl", s.getMempl)
 	}
