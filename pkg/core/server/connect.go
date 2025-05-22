@@ -393,3 +393,28 @@ func (c *CoreService) getBlockRpcFallback(ctx context.Context, height int64) (*c
 
 	return connect.NewResponse(res), nil
 }
+
+// GetStoredSnapshots implements v1connect.CoreServiceHandler.
+func (c *CoreService) GetStoredSnapshots(context.Context, *connect.Request[v1.GetStoredSnapshotsRequest]) (*connect.Response[v1.GetStoredSnapshotsResponse], error) {
+	snapshots, err := c.core.getStoredSnapshots()
+	if err != nil {
+		return nil, err
+	}
+
+	snapshotResponses := make([]*v1.SnapshotMetadata, 0, len(snapshots))
+	for _, snapshot := range snapshots {
+		snapshotResponses = append(snapshotResponses, &v1.SnapshotMetadata{
+			Height:     snapshot.Height,
+			Hash:       snapshot.Hash,
+			Timestamp:  timestamppb.New(snapshot.Time),
+			ChunkCount: int64(snapshot.ChunkCount),
+			ChainId:    snapshot.ChainID,
+		})
+	}
+
+	res := &v1.GetStoredSnapshotsResponse{
+		Snapshots: snapshotResponses,
+	}
+
+	return connect.NewResponse(res), nil
+}
