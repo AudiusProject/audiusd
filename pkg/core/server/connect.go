@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/big"
@@ -404,11 +405,10 @@ func (c *CoreService) GetStoredSnapshots(context.Context, *connect.Request[v1.Ge
 	snapshotResponses := make([]*v1.SnapshotMetadata, 0, len(snapshots))
 	for _, snapshot := range snapshots {
 		snapshotResponses = append(snapshotResponses, &v1.SnapshotMetadata{
-			Height:     snapshot.Height,
-			Hash:       snapshot.Hash,
-			Timestamp:  timestamppb.New(snapshot.Time),
-			ChunkCount: int64(snapshot.ChunkCount),
-			ChainId:    snapshot.ChainID,
+			Height:     int64(snapshot.Height),
+			Hash:       hex.EncodeToString(snapshot.Hash),
+			ChunkCount: int64(snapshot.Chunks),
+			ChainId:    string(snapshot.Metadata),
 		})
 	}
 

@@ -11,19 +11,11 @@ import (
 	"os/exec"
 	"path/filepath"
 	"sort"
-	"time"
 
 	"github.com/AudiusProject/audiusd/pkg/common"
+	v1 "github.com/cometbft/cometbft/api/cometbft/abci/v1"
 	"github.com/cometbft/cometbft/types"
 )
-
-type SnapshotMetadata struct {
-	Height     int64     `json:"height"`
-	Hash       string    `json:"hash"`
-	Time       time.Time `json:"time"`
-	ChunkCount int       `json:"chunk_count"`
-	ChainID    string    `json:"chain_id"`
-}
 
 func (s *Server) startStateSync() error {
 	<-s.awaitRpcReady
@@ -105,8 +97,7 @@ func (s *Server) createSnapshot(logger *common.Logger, height int64) error {
 	logger.Info("Creating snapshot", "height", height)
 
 	blockHeight := height
-	blockHash := block.BlockID.Hash.String()
-	blockTime := block.Block.Time
+	blockHash := block.BlockID.Hash
 
 	latestSnapshotDirName := fmt.Sprintf("height_%010d", blockHeight)
 	latestSnapshotDir := filepath.Join(snapshotDir, latestSnapshotDirName)
@@ -135,12 +126,12 @@ func (s *Server) createSnapshot(logger *common.Logger, height int64) error {
 
 	logger.Info("Writing snapshot metadata", "height", blockHeight)
 
-	snapshotMetadata := SnapshotMetadata{
-		Height:     blockHeight,
-		Hash:       blockHash,
-		Time:       blockTime,
-		ChunkCount: chunkCount,
-		ChainID:    s.config.GenesisFile.ChainID,
+	snapshotMetadata := v1.Snapshot{
+		Height:   uint64(blockHeight),
+		Format:   1,
+		Chunks:   uint32(chunkCount),
+		Hash:     blockHash,
+		Metadata: []byte(s.config.GenesisFile.ChainID),
 	}
 
 	snapshotMetadataFile := filepath.Join(latestSnapshotDir, "metadata.json")
@@ -288,7 +279,7 @@ func (s *Server) pruneSnapshots(logger *common.Logger) error {
 	return nil
 }
 
-func (s *Server) getStoredSnapshots() ([]SnapshotMetadata, error) {
+func (s *Server) getStoredSnapshots() ([]v1.Snapshot, error) {
 	snapshotDir := filepath.Join(s.config.RootDir, fmt.Sprintf("snapshots_%s", s.config.GenesisFile.ChainID))
 
 	dirs, err := os.ReadDir(snapshotDir)
@@ -296,7 +287,7 @@ func (s *Server) getStoredSnapshots() ([]SnapshotMetadata, error) {
 		return nil, fmt.Errorf("error reading snapshot directory: %w", err)
 	}
 
-	snapshots := make([]SnapshotMetadata, 0)
+	snapshots := make([]v1.Snapshot, 0)
 	for _, entry := range dirs {
 		if !entry.IsDir() {
 			continue
@@ -313,7 +304,7 @@ func (s *Server) getStoredSnapshots() ([]SnapshotMetadata, error) {
 			return nil, fmt.Errorf("error reading metadata file at %s: %w", metadataPath, err)
 		}
 
-		var meta SnapshotMetadata
+		var meta v1.Snapshot
 		if err := json.Unmarshal(data, &meta); err != nil {
 			return nil, fmt.Errorf("error unmarshalling metadata at %s: %w", metadataPath, err)
 		}

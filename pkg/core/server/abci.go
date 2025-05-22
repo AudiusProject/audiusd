@@ -382,7 +382,20 @@ func (s *Server) Commit(ctx context.Context, commit *abcitypes.CommitRequest) (*
 }
 
 func (s *Server) ListSnapshots(_ context.Context, snapshots *abcitypes.ListSnapshotsRequest) (*abcitypes.ListSnapshotsResponse, error) {
-	return &abcitypes.ListSnapshotsResponse{}, nil
+	storedSnapshots, err := s.getStoredSnapshots()
+	if err != nil {
+		return nil, err
+	}
+
+	availableSnapshots := make([]*abcitypes.Snapshot, len(storedSnapshots))
+	for i, snapshot := range storedSnapshots {
+		availableSnapshots[i] = &abcitypes.Snapshot{
+			Height: snapshot.Height,
+			Hash:   snapshot.Hash,
+		}
+	}
+
+	return &abcitypes.ListSnapshotsResponse{Snapshots: availableSnapshots}, nil
 }
 
 func (s *Server) OfferSnapshot(_ context.Context, snapshot *abcitypes.OfferSnapshotRequest) (*abcitypes.OfferSnapshotResponse, error) {

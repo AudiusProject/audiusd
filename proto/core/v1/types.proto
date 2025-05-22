@@ -210,7 +210,6 @@ message GetStoredSnapshotsResponse {
 message SnapshotMetadata {
   int64 height = 1;
   string hash = 2;
-  google.protobuf.Timestamp timestamp = 3;
-  int64 chunk_count = 4;
-  string chain_id = 5;
+  int64 chunk_count = 3;
+  string chain_id = 4;
 }
