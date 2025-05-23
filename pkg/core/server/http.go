@@ -30,10 +30,10 @@ func (s *Server) startEchoServer() error {
 	g.GET("/nodes/content", s.getRegisteredNodes)
 	g.GET("/nodes/content/verbose", s.getRegisteredNodes)
 	g.GET("/nodes/eth", s.getEthNodesHandler)
+	g.Any("/crpc*", s.proxyCometRequest)
 
 	// kind of weird pattern
 	s.createEthRPC()
-	s.registerCometRPC()
 
 	g.GET("/sdk", echo.WrapHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		sandbox.ServeSandbox(s.config, w, r)

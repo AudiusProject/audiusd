@@ -432,13 +432,13 @@ func (s *Server) haveAllChunks(height uint64, total int) bool {
 	return chunkCount == total
 }
 
-// ReassemblePgDump decompresses and reassembles chunks into a complete pg_dump file
+// ReassemblePgDump reconstructs and decompresses a binary pg_dump file from multiple gzipped chunks
 func (s *Server) ReassemblePgDump(height int64) error {
 	tmpDir := filepath.Join(s.config.RootDir, "tmp_reconstruction")
 	heightDir := filepath.Join(tmpDir, fmt.Sprintf("height_%010d", height))
 
-	// Create the output pg_dump file
-	outputPath := filepath.Join(heightDir, "pg_dump.sql")
+	// Create the output pg_dump file in binary format
+	outputPath := filepath.Join(heightDir, "pg_dump.dump")
 	outputFile, err := os.Create(outputPath)
 	if err != nil {
 		return fmt.Errorf("failed to create output file: %v", err)
@@ -467,14 +467,12 @@ func (s *Server) ReassemblePgDump(height int64) error {
 			return fmt.Errorf("failed to read chunk file %s: %v", file.Name(), err)
 		}
 
-		// Decompress the chunk
 		reader := bytes.NewReader(chunkData)
 		gzReader, err := gzip.NewReader(reader)
 		if err != nil {
 			return fmt.Errorf("failed to create gzip reader: %v", err)
 		}
 
-		// Write decompressed data to output file
 		if _, err := io.Copy(outputFile, gzReader); err != nil {
 			gzReader.Close()
 			return fmt.Errorf("failed to write decompressed data: %v", err)
@@ -485,26 +483,34 @@ func (s *Server) ReassemblePgDump(height int64) error {
 	return nil
 }
 
-// RestoreDatabase restores the PostgreSQL database using the reassembled pg_dump file
+// RestoreDatabase restores the PostgreSQL database using the reassembled pg_dump binary file
 func (s *Server) RestoreDatabase(height int64) error {
-	// Get the path to the reassembled pg_dump file
 	tmpDir := filepath.Join(s.config.RootDir, "tmp_reconstruction")
 	heightDir := filepath.Join(tmpDir, fmt.Sprintf("height_%010d", height))
-	dumpPath := filepath.Join(heightDir, "pg_dump.sql")
+	dumpPath := filepath.Join(heightDir, "pg_dump.dump")
 
-	// Construct psql command using dbname parameter
-	cmd := exec.Command("psql",
+	cmd := exec.Command("pg_restore",
 		"--dbname="+s.config.PSQLConn,
-		"-f", dumpPath)
+		"--clean",
+		"--if-exists",
+		dumpPath)
 
-	// Execute the command
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("error restoring database: %v", err)
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	err := cmd.Run()
+	if err != nil {
+		s.logger.Error("pg_restore failed",
+			"err", err,
+			"stderr", stderr.String(),
+			"stdout", stdout.String(),
+		)
+		return fmt.Errorf("error restoring database: %w", err)
 	}
 
-	// Clean up temporary files
 	if err := os.RemoveAll(heightDir); err != nil {
-		return fmt.Errorf("error cleaning up temporary files: %v", err)
+		return fmt.Errorf("error cleaning up temporary files: %w", err)
 	}
 
 	return nil

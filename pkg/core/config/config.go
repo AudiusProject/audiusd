@@ -137,9 +137,9 @@ type StateSyncConfig struct {
 	// will periodically save pg_dumps to disk and serve them to other nodes
 	ServeSnapshots bool
 	// will download pg_dumps from other nodes on initial sync
-	UseStateSync bool
+	Enable bool
 	// list of rpc endpoints to download pg_dumps from
-	Rpcs []string
+	RPCServers []string
 	// number of snapshots to keep on disk
 	Keep int
 	// interval to save snapshots in blocks
@@ -179,11 +179,11 @@ func ReadConfig(logger *common.Logger) (*Config, error) {
 	cfg.LogLevel = GetEnvWithDefault("AUDIUSD_LOG_LEVEL", "info")
 
 	cfg.StateSync = &StateSyncConfig{
-		ServeSnapshots: GetEnvWithDefault("serveSnapshots", "false") == "true",
-		UseStateSync:   GetEnvWithDefault("useStateSync", "false") == "true",
-		Rpcs:           strings.Split(GetEnvWithDefault("stateSyncRpcs", ""), ","),
+		ServeSnapshots: GetEnvWithDefault("stateSyncServeSnapshots", "false") == "true",
+		Enable:         GetEnvWithDefault("stateSyncEnable", "false") == "true",
 		Keep:           getEnvIntWithDefault("stateSyncKeep", 6),
 		BlockInterval:  int64(getEnvIntWithDefault("stateSyncBlockInterval", 100)),
+		RPCServers:     strings.Split(GetEnvWithDefault("stateSyncRPCServers", ""), ","),
 	}
 
 	// check if discovery specific key is set
