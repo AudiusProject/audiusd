@@ -402,8 +402,10 @@ func (s *Server) ListSnapshots(_ context.Context, snapshots *abcitypes.ListSnaps
 }
 
 func (s *Server) LoadSnapshotChunk(_ context.Context, chunk *abcitypes.LoadSnapshotChunkRequest) (*abcitypes.LoadSnapshotChunkResponse, error) {
+	s.logger.Info("loading snapshot chunk", "height", chunk.Height, "chunk", chunk.Chunk)
 	chunkData, err := s.GetChunkByHeight(int64(chunk.Height), int(chunk.Chunk))
 	if err != nil {
+		s.logger.Error("failed to get chunk", "height", chunk.Height, "chunk", chunk.Chunk, "err", err)
 		return nil, err
 	}
 
