@@ -324,34 +324,57 @@ func (s *Server) getStoredSnapshots() ([]v1.Snapshot, error) {
 
 // GetChunkByHeight retrieves a specific chunk for a given block height
 func (s *Server) GetChunkByHeight(height int64, chunk int) ([]byte, error) {
+	logTag := "GetChunkByHeight"
+
+	s.logger.Info("starting", "component", logTag, "height", height, "chunkIndex", chunk)
+
 	snapshotDir := filepath.Join(s.config.RootDir, fmt.Sprintf("snapshots_%s", s.config.GenesisFile.ChainID))
+	s.logger.Info("resolved snapshot base directory", "component", logTag, "path", snapshotDir)
+
 	latestSnapshotDirName := fmt.Sprintf("height_%010d", height)
 	latestSnapshotDir := filepath.Join(snapshotDir, latestSnapshotDirName)
+	s.logger.Info("resolved snapshot height directory", "component", logTag, "path", latestSnapshotDir)
 
 	// Check if snapshot directory exists
 	if _, err := os.Stat(latestSnapshotDir); os.IsNotExist(err) {
+		s.logger.Error("snapshot directory does not exist", "component", logTag, "path", latestSnapshotDir)
 		return nil, fmt.Errorf("no snapshot found for height %d", height)
 	}
 
 	// Read metadata to get chunk count
 	metadataPath := filepath.Join(latestSnapshotDir, "metadata.json")
+	s.logger.Info("reading metadata", "component", logTag, "path", metadataPath)
 	metadataBytes, err := os.ReadFile(metadataPath)
 	if err != nil {
+		s.logger.Error("failed to read metadata file", "component", logTag, "path", metadataPath, "err", err)
 		return nil, fmt.Errorf("error reading metadata file: %v", err)
 	}
 
 	var meta v1.Snapshot
 	if err := json.Unmarshal(metadataBytes, &meta); err != nil {
+		s.logger.Error("failed to parse metadata", "component", logTag, "path", metadataPath, "err", err)
 		return nil, fmt.Errorf("error unmarshalling metadata: %v", err)
 	}
+	s.logger.Info("parsed metadata", "component", logTag, "totalChunks", meta.Chunks, "hash", meta.Hash)
 
-	// Read the first chunk (chunk_0000.gz)
+	// Read the chunk file
 	chunkPath := filepath.Join(latestSnapshotDir, fmt.Sprintf("chunk_%04d.gz", chunk))
+	s.logger.Info("attempting to read chunk", "component", logTag, "chunkPath", chunkPath)
+
+	info, err := os.Stat(chunkPath)
+	if err != nil {
+		s.logger.Error("chunk file stat failed", "component", logTag, "chunkPath", chunkPath, "err", err)
+	} else {
+		s.logger.Info("chunk file found", "component", logTag, "chunkPath", chunkPath, "sizeBytes", info.Size())
+	}
+
 	chunkData, err := os.ReadFile(chunkPath)
 	if err != nil {
+		s.logger.Error("failed to read chunk file", "component", logTag, "chunkPath", chunkPath, "err", err)
 		return nil, fmt.Errorf("error reading chunk file: %v", err)
 	}
 
+	s.logger.Info("successfully loaded chunk", "component", logTag, "height", height, "chunkIndex", chunk, "byteLength", len(chunkData))
 	return chunkData, nil
 }
 
