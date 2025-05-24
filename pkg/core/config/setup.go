@@ -18,6 +18,7 @@ import (
 )
 
 const PrivilegedServiceSocket = "/tmp/cometbft.privileged.sock"
+const trustBuffer = 10 // number of blocks to step back
 
 func ensureSocketNotExists(socketPath string) error {
 	if _, err := os.Stat(socketPath); err == nil {
@@ -239,23 +240,33 @@ func moduloPersistentPeers(nodeAddress string, persistentPeers string, groupSize
 	return strings.Join(assignedPeers, ",")
 }
 
-func stateSyncLatestBlock(logger *common.Logger, rpcServers []string) (latestBlockHeight int64, latestBlockHash string, err error) {
+func stateSyncLatestBlock(logger *common.Logger, rpcServers []string) (trustHeight int64, trustHash string, err error) {
 	for _, rpcServer := range rpcServers {
 		client, err := http.New(rpcServer)
 		if err != nil {
 			logger.Error("error creating rpc client", "rpcServer", rpcServer, "err", err)
 			continue
 		}
+
 		latestBlock, err := client.Block(context.Background(), nil)
 		if err != nil {
 			logger.Error("error getting latest block", "rpcServer", rpcServer, "err", err)
 			continue
 		}
 
-		latestBlockHeight = latestBlock.Block.Height
-		latestBlockHash = latestBlock.Block.Hash().String()
-		return latestBlockHeight, latestBlockHash, nil
+		safeHeight := latestBlock.Block.Height - trustBuffer
+		if safeHeight <= 0 {
+			continue
+		}
+
+		safeBlock, err := client.Block(context.Background(), &safeHeight)
+		if err != nil {
+			logger.Error("error getting safe block", "rpcServer", rpcServer, "height", safeHeight, "err", err)
+			continue
+		}
+
+		return safeHeight, safeBlock.Block.Hash().String(), nil
 	}
 
-	return 0, "", fmt.Errorf("no rpc servers available")
+	return 0, "", fmt.Errorf("no usable block found for state sync")
 }
