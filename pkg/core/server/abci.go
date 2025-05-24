@@ -402,8 +402,10 @@ func (s *Server) ListSnapshots(_ context.Context, snapshots *abcitypes.ListSnaps
 }
 
 func (s *Server) LoadSnapshotChunk(_ context.Context, chunk *abcitypes.LoadSnapshotChunkRequest) (*abcitypes.LoadSnapshotChunkResponse, error) {
+	s.logger.Info("loading snapshot chunk", "height", chunk.Height, "chunk", chunk.Chunk)
 	chunkData, err := s.GetChunkByHeight(int64(chunk.Height), int(chunk.Chunk))
 	if err != nil {
+		s.logger.Error("failed to get chunk", "height", chunk.Height, "chunk", chunk.Chunk, "err", err)
 		return nil, err
 	}
 
@@ -444,6 +446,8 @@ func (s *Server) ApplySnapshotChunk(_ context.Context, req *abcitypes.ApplySnaps
 			Result: abcitypes.APPLY_SNAPSHOT_CHUNK_RESULT_RETRY,
 		}, nil
 	}
+
+	s.logger.Info("storing snapshot chunk", "height", height, "chunkIndex", chunkIndex)
 
 	// Check if all chunks are now present on disk
 	if s.haveAllChunks(uint64(height), totalChunks) {

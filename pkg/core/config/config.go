@@ -236,7 +236,7 @@ func ReadConfig(logger *common.Logger) (*Config, error) {
 		cfg.ERNAccessControlEnabled = false
 
 	case "stage", "staging", "testnet":
-		cfg.PersistentPeers = GetEnvWithDefault("persistentPeers", moduloPersistentPeers(ethAddress, StagePersistentPeers, 3))
+		cfg.PersistentPeers = GetEnvWithDefault("persistentPeers", StagePersistentPeers)
 		cfg.EthRegistryAddress = StageRegistryAddress
 		if cfg.EthRPCUrl == "" {
 			cfg.EthRPCUrl = StageEthRpc
