@@ -447,6 +447,8 @@ func (s *Server) ApplySnapshotChunk(_ context.Context, req *abcitypes.ApplySnaps
 		}, nil
 	}
 
+	s.logger.Info("storing snapshot chunk", "height", height, "chunkIndex", chunkIndex)
+
 	// Check if all chunks are now present on disk
 	if s.haveAllChunks(uint64(height), totalChunks) {
 		s.logger.Info("all snapshot chunks received, beginning reassembly and restore", "height", height)

@@ -410,26 +410,22 @@ func (s *Server) StoreChunkForReconstruction(height int64, chunkIndex int, chunk
 		return fmt.Errorf("failed to write chunk file: %v", err)
 	}
 
+	s.logger.Info("stored snapshot chunk", "height", height, "chunkIndex", chunkIndex, "path", chunkPath)
+
 	return nil
 }
 
 func (s *Server) haveAllChunks(height uint64, total int) bool {
 	heightDir := filepath.Join(s.config.RootDir, "tmp_reconstruction", fmt.Sprintf("height_%010d", height))
 
-	files, err := os.ReadDir(heightDir)
-	if err != nil {
-		s.logger.Warn("failed to read chunk directory", "err", err)
-		return false
-	}
-
-	chunkCount := 0
-	for _, f := range files {
-		if strings.HasPrefix(f.Name(), "chunk_") && strings.HasSuffix(f.Name(), ".gz") {
-			chunkCount++
+	for i := 0; i < total; i++ {
+		chunkPath := filepath.Join(heightDir, fmt.Sprintf("chunk_%04d.gz", i))
+		if _, err := os.Stat(chunkPath); err != nil {
+			s.logger.Warn("missing chunk", "index", i, "path", chunkPath)
+			return false
 		}
 	}
-
-	return chunkCount == total
+	return true
 }
 
 // ReassemblePgDump reconstructs and decompresses a binary pg_dump file from multiple gzipped chunks
