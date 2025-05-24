@@ -21,7 +21,6 @@ import (
 )
 
 const PrivilegedServiceSocket = "/tmp/cometbft.privileged.sock"
-const trustBuffer = 10 // number of blocks to step back
 
 func ensureSocketNotExists(socketPath string) error {
 	if _, err := os.Stat(socketPath); err == nil {
@@ -255,7 +254,8 @@ func stateSyncLatestBlock(logger *common.Logger, rpcServers []string) (trustHeig
 
 		// get last snapshot in list, this is the latest snapshot
 		lastSnapshot := snapshots.Msg.Snapshots[len(snapshots.Msg.Snapshots)-1]
-		safeHeight := lastSnapshot.Height - trustBuffer
+		trustBuffer := 10 // number of blocks to step back
+		safeHeight := lastSnapshot.Height - int64(trustBuffer)
 
 		client, err := http.New(rpcServer)
 		if err != nil {
