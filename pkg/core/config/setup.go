@@ -9,8 +9,11 @@ import (
 	"strings"
 	"time"
 
+	"connectrpc.com/connect"
+	v1 "github.com/AudiusProject/audiusd/pkg/api/core/v1"
 	"github.com/AudiusProject/audiusd/pkg/common"
 	"github.com/AudiusProject/audiusd/pkg/core/config/genesis"
+	"github.com/AudiusProject/audiusd/pkg/sdk"
 	cconfig "github.com/cometbft/cometbft/config"
 	"github.com/cometbft/cometbft/p2p"
 	"github.com/cometbft/cometbft/privval"
@@ -242,30 +245,34 @@ func moduloPersistentPeers(nodeAddress string, persistentPeers string, groupSize
 
 func stateSyncLatestBlock(logger *common.Logger, rpcServers []string) (trustHeight int64, trustHash string, err error) {
 	for _, rpcServer := range rpcServers {
+		audsRpc := strings.TrimSuffix(rpcServer, "/core/crpc")
+		auds := sdk.NewAudiusdSDK(audsRpc)
+		snapshots, err := auds.Core.GetStoredSnapshots(context.Background(), connect.NewRequest(&v1.GetStoredSnapshotsRequest{}))
+		if err != nil {
+			logger.Error("error getting stored snapshots", "rpcServer", rpcServer, "err", err)
+			continue
+		}
+
+		// get last snapshot in list, this is the latest snapshot
+		lastSnapshot := snapshots.Msg.Snapshots[len(snapshots.Msg.Snapshots)-1]
+		safeHeight := lastSnapshot.Height - trustBuffer
+
 		client, err := http.New(rpcServer)
 		if err != nil {
 			logger.Error("error creating rpc client", "rpcServer", rpcServer, "err", err)
 			continue
 		}
 
-		latestBlock, err := client.Block(context.Background(), nil)
+		block, err := client.Block(context.Background(), &safeHeight)
 		if err != nil {
 			logger.Error("error getting latest block", "rpcServer", rpcServer, "err", err)
 			continue
 		}
 
-		safeHeight := latestBlock.Block.Height - trustBuffer
-		if safeHeight <= 0 {
-			continue
-		}
+		trustHeight = block.Block.Height
+		trustHash = block.Block.Hash().String()
 
-		safeBlock, err := client.Block(context.Background(), &safeHeight)
-		if err != nil {
-			logger.Error("error getting safe block", "rpcServer", rpcServer, "height", safeHeight, "err", err)
-			continue
-		}
-
-		return safeHeight, safeBlock.Block.Hash().String(), nil
+		return trustHeight, trustHash, nil
 	}
 
 	return 0, "", fmt.Errorf("no usable block found for state sync")
