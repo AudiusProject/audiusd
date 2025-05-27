@@ -196,7 +196,7 @@ func (s *Server) createPgDump(logger *common.Logger, latestSnapshotDir string) e
 
 // chunkPgDump splits the pg_dump into 16MB gzip-compressed chunks and returns the number of chunks created
 func (s *Server) chunkPgDump(logger *common.Logger, latestSnapshotDir string) (int, error) {
-	const chunkSize = 16 * 1024 * 1024 // 16MB
+	const chunkSize = 12 * 1024 * 1024 // 12MB
 	dumpPath := filepath.Join(latestSnapshotDir, "data.dump")
 
 	dumpFile, err := os.Open(dumpPath)

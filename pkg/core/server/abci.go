@@ -409,6 +409,8 @@ func (s *Server) LoadSnapshotChunk(_ context.Context, chunk *abcitypes.LoadSnaps
 		return nil, err
 	}
 
+	s.logger.Info("loaded snapshot chunk", "height", chunk.Height, "chunkData", len(chunkData))
+
 	return &abcitypes.LoadSnapshotChunkResponse{Chunk: chunkData}, nil
 }
 
