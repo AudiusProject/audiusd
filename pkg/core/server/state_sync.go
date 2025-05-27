@@ -324,8 +324,6 @@ func (s *Server) getStoredSnapshots() ([]v1.Snapshot, error) {
 
 // GetChunkByHeight retrieves a specific chunk for a given block height
 func (s *Server) GetChunkByHeight(height int64, chunk int) ([]byte, error) {
-	logTag := "GetChunkByHeight"
-
 	snapshotDir := filepath.Join(s.config.RootDir, fmt.Sprintf("snapshots_%s", s.config.GenesisFile.ChainID))
 
 	latestSnapshotDirName := fmt.Sprintf("height_%010d", height)
@@ -333,7 +331,6 @@ func (s *Server) GetChunkByHeight(height int64, chunk int) ([]byte, error) {
 
 	// Check if snapshot directory exists
 	if _, err := os.Stat(latestSnapshotDir); os.IsNotExist(err) {
-		s.logger.Error("snapshot directory does not exist", "component", logTag, "path", latestSnapshotDir)
 		return nil, fmt.Errorf("no snapshot found for height %d", height)
 	}
 
@@ -341,29 +338,19 @@ func (s *Server) GetChunkByHeight(height int64, chunk int) ([]byte, error) {
 	metadataPath := filepath.Join(latestSnapshotDir, "metadata.json")
 	metadataBytes, err := os.ReadFile(metadataPath)
 	if err != nil {
-		s.logger.Error("failed to read metadata file", "component", logTag, "path", metadataPath, "err", err)
 		return nil, fmt.Errorf("error reading metadata file: %v", err)
 	}
 
 	var meta v1.Snapshot
 	if err := json.Unmarshal(metadataBytes, &meta); err != nil {
-		s.logger.Error("failed to parse metadata", "component", logTag, "path", metadataPath, "err", err)
 		return nil, fmt.Errorf("error unmarshalling metadata: %v", err)
 	}
 
 	// Read the chunk file
 	chunkPath := filepath.Join(latestSnapshotDir, fmt.Sprintf("chunk_%04d.gz", chunk))
 
-	info, err := os.Stat(chunkPath)
-	if err != nil {
-		s.logger.Error("chunk file stat failed", "component", logTag, "chunkPath", chunkPath, "err", err)
-	} else {
-		s.logger.Info("chunk file found", "component", logTag, "chunkPath", chunkPath, "sizeBytes", info.Size())
-	}
-
 	chunkData, err := os.ReadFile(chunkPath)
 	if err != nil {
-		s.logger.Error("failed to read chunk file", "component", logTag, "chunkPath", chunkPath, "err", err)
 		return nil, fmt.Errorf("error reading chunk file: %v", err)
 	}
 
@@ -424,8 +411,6 @@ func (s *Server) StoreChunkForReconstruction(height int64, chunkIndex int, chunk
 	if err := os.WriteFile(chunkPath, chunkData, 0644); err != nil {
 		return fmt.Errorf("failed to write chunk file: %v", err)
 	}
-
-	s.logger.Info("stored snapshot chunk", "height", height, "chunkIndex", chunkIndex, "path", chunkPath)
 
 	return nil
 }
