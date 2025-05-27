@@ -326,14 +326,10 @@ func (s *Server) getStoredSnapshots() ([]v1.Snapshot, error) {
 func (s *Server) GetChunkByHeight(height int64, chunk int) ([]byte, error) {
 	logTag := "GetChunkByHeight"
 
-	s.logger.Info("starting", "component", logTag, "height", height, "chunkIndex", chunk)
-
 	snapshotDir := filepath.Join(s.config.RootDir, fmt.Sprintf("snapshots_%s", s.config.GenesisFile.ChainID))
-	s.logger.Info("snapshot base directory", "component", logTag, "path", snapshotDir)
 
 	latestSnapshotDirName := fmt.Sprintf("height_%010d", height)
 	latestSnapshotDir := filepath.Join(snapshotDir, latestSnapshotDirName)
-	s.logger.Info("resolved snapshot height directory", "component", logTag, "path", latestSnapshotDir)
 
 	// Check if snapshot directory exists
 	if _, err := os.Stat(latestSnapshotDir); os.IsNotExist(err) {
@@ -343,7 +339,6 @@ func (s *Server) GetChunkByHeight(height int64, chunk int) ([]byte, error) {
 
 	// Read metadata to get chunk count
 	metadataPath := filepath.Join(latestSnapshotDir, "metadata.json")
-	s.logger.Info("reading metadata", "component", logTag, "path", metadataPath)
 	metadataBytes, err := os.ReadFile(metadataPath)
 	if err != nil {
 		s.logger.Error("failed to read metadata file", "component", logTag, "path", metadataPath, "err", err)
@@ -355,11 +350,9 @@ func (s *Server) GetChunkByHeight(height int64, chunk int) ([]byte, error) {
 		s.logger.Error("failed to parse metadata", "component", logTag, "path", metadataPath, "err", err)
 		return nil, fmt.Errorf("error unmarshalling metadata: %v", err)
 	}
-	s.logger.Info("parsed metadata", "component", logTag, "totalChunks", meta.Chunks, "hash", meta.Hash)
 
 	// Read the chunk file
 	chunkPath := filepath.Join(latestSnapshotDir, fmt.Sprintf("chunk_%04d.gz", chunk))
-	s.logger.Info("attempting to read chunk", "component", logTag, "chunkPath", chunkPath)
 
 	info, err := os.Stat(chunkPath)
 	if err != nil {
@@ -374,7 +367,6 @@ func (s *Server) GetChunkByHeight(height int64, chunk int) ([]byte, error) {
 		return nil, fmt.Errorf("error reading chunk file: %v", err)
 	}
 
-	s.logger.Info("successfully loaded chunk", "component", logTag, "height", height, "chunkIndex", chunk, "byteLength", len(chunkData))
 	return chunkData, nil
 }
 
@@ -439,21 +431,14 @@ func (s *Server) StoreChunkForReconstruction(height int64, chunkIndex int, chunk
 }
 
 func (s *Server) haveAllChunks(height uint64, total int) bool {
-	logTag := "haveAllChunks"
 	heightDir := filepath.Join(s.config.RootDir, "tmp_reconstruction", fmt.Sprintf("height_%010d", height))
 
-	s.logger.Info("checking chunk completeness", "component", logTag, "height", height, "expectedChunks", total, "path", heightDir)
-
-	for i := 0; i < total; i++ {
+	for i := range total {
 		chunkPath := filepath.Join(heightDir, fmt.Sprintf("chunk_%04d.gz", i))
 		if _, err := os.Stat(chunkPath); err != nil {
-			s.logger.Warn("missing chunk", "component", logTag, "index", i, "path", chunkPath, "err", err)
 			return false
 		}
-		s.logger.Info("found chunk", "component", logTag, "index", i, "path", chunkPath)
 	}
-
-	s.logger.Info("all chunks present", "component", logTag, "height", height, "totalChunks", total)
 	return true
 }
 
