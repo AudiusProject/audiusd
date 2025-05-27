@@ -469,6 +469,11 @@ func (s *Server) ApplySnapshotChunk(_ context.Context, req *abcitypes.ApplySnaps
 			}, nil
 		}
 
+		if err := s.CleanupStateSync(); err != nil {
+			// don't need to fail the snapshot chunk if cleanup fails
+			s.logger.Warn("failed to cleanup state sync", "err", err)
+		}
+
 		return &abcitypes.ApplySnapshotChunkResponse{
 			Result: abcitypes.APPLY_SNAPSHOT_CHUNK_RESULT_ACCEPT,
 		}, nil

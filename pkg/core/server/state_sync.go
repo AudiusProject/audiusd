@@ -534,9 +534,13 @@ func (s *Server) RestoreDatabase(height int64) error {
 		return fmt.Errorf("error restoring database: %w", err)
 	}
 
-	if err := os.RemoveAll(heightDir); err != nil {
+	return nil
+}
+
+func (s *Server) CleanupStateSync() error {
+	snapshotDir := filepath.Join(s.config.RootDir, "tmp_reconstruction")
+	if err := os.RemoveAll(snapshotDir); err != nil {
 		return fmt.Errorf("error cleaning up temporary files: %w", err)
 	}
-
 	return nil
 }
