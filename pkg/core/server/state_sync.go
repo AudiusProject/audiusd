@@ -329,7 +329,7 @@ func (s *Server) GetChunkByHeight(height int64, chunk int) ([]byte, error) {
 	s.logger.Info("starting", "component", logTag, "height", height, "chunkIndex", chunk)
 
 	snapshotDir := filepath.Join(s.config.RootDir, fmt.Sprintf("snapshots_%s", s.config.GenesisFile.ChainID))
-	s.logger.Info("resolved snapshot base directory", "component", logTag, "path", snapshotDir)
+	s.logger.Info("snapshot base directory", "component", logTag, "path", snapshotDir)
 
 	latestSnapshotDirName := fmt.Sprintf("height_%010d", height)
 	latestSnapshotDir := filepath.Join(snapshotDir, latestSnapshotDirName)
