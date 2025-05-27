@@ -466,6 +466,10 @@ func (s *Server) ApplySnapshotChunk(_ context.Context, req *abcitypes.ApplySnaps
 				Result: abcitypes.APPLY_SNAPSHOT_CHUNK_RESULT_RETRY,
 			}, nil
 		}
+
+		return &abcitypes.ApplySnapshotChunkResponse{
+			Result: abcitypes.APPLY_SNAPSHOT_CHUNK_RESULT_ACCEPT,
+		}, nil
 	}
 
 	return &abcitypes.ApplySnapshotChunkResponse{

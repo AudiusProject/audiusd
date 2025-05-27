@@ -439,15 +439,21 @@ func (s *Server) StoreChunkForReconstruction(height int64, chunkIndex int, chunk
 }
 
 func (s *Server) haveAllChunks(height uint64, total int) bool {
+	logTag := "haveAllChunks"
 	heightDir := filepath.Join(s.config.RootDir, "tmp_reconstruction", fmt.Sprintf("height_%010d", height))
+
+	s.logger.Info("checking chunk completeness", "component", logTag, "height", height, "expectedChunks", total, "path", heightDir)
 
 	for i := 0; i < total; i++ {
 		chunkPath := filepath.Join(heightDir, fmt.Sprintf("chunk_%04d.gz", i))
 		if _, err := os.Stat(chunkPath); err != nil {
-			s.logger.Warn("missing chunk", "index", i, "path", chunkPath)
+			s.logger.Warn("missing chunk", "component", logTag, "index", i, "path", chunkPath, "err", err)
 			return false
 		}
+		s.logger.Info("found chunk", "component", logTag, "index", i, "path", chunkPath)
 	}
+
+	s.logger.Info("all chunks present", "component", logTag, "height", height, "totalChunks", total)
 	return true
 }
 
