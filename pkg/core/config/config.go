@@ -225,6 +225,7 @@ func ReadConfig(logger *common.Logger) (*Config, error) {
 
 	cfg.AddrBookStrict = true
 	cfg.UseHttpsForSdk = GetEnvWithDefault("useHttpsForSdk", "true") == "true"
+	cfg.ExternalAddress = os.Getenv("externalAddress")
 	switch cfg.Environment {
 	case "prod", "production", "mainnet":
 		cfg.PersistentPeers = GetEnvWithDefault("persistentPeers", ProdPersistentPeers)
@@ -251,7 +252,6 @@ func ReadConfig(logger *common.Logger) (*Config, error) {
 
 	case "dev", "development", "devnet", "local", "sandbox":
 		cfg.PersistentPeers = GetEnvWithDefault("persistentPeers", DevPersistentPeers)
-		cfg.ExternalAddress = os.Getenv("externalAddress")
 		cfg.AddrBookStrict = false
 		if cfg.EthRPCUrl == "" {
 			cfg.EthRPCUrl = DevEthRpc
