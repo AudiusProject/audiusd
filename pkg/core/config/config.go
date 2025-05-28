@@ -144,6 +144,8 @@ type StateSyncConfig struct {
 	Keep int
 	// interval to save snapshots in blocks
 	BlockInterval int64
+	// number of chunk fetchers to use
+	ChunkFetchers int32
 }
 
 func ReadConfig(logger *common.Logger) (*Config, error) {
@@ -183,6 +185,7 @@ func ReadConfig(logger *common.Logger) (*Config, error) {
 		Enable:         GetEnvWithDefault("stateSyncEnable", "false") == "true",
 		Keep:           getEnvIntWithDefault("stateSyncKeep", 6),
 		BlockInterval:  int64(getEnvIntWithDefault("stateSyncBlockInterval", 100)),
+		ChunkFetchers:  int32(getEnvIntWithDefault("stateSyncChunkFetchers", 10)),
 		RPCServers:     strings.Split(GetEnvWithDefault("stateSyncRPCServers", ""), ","),
 	}
 

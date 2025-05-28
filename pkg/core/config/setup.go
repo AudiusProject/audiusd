@@ -152,6 +152,7 @@ func SetupNode(logger *common.Logger) (*Config, *cconfig.Config, error) {
 		}
 		cometConfig.StateSync.TrustHeight = latestBlockHeight
 		cometConfig.StateSync.TrustHash = latestBlockHash
+		cometConfig.StateSync.ChunkFetchers = envConfig.StateSync.ChunkFetchers
 	}
 
 	// consensus

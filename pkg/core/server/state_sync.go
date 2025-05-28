@@ -464,13 +464,32 @@ func (s *Server) StoreChunkForReconstruction(height int64, chunkIndex int, chunk
 func (s *Server) haveAllChunks(height uint64, total int) bool {
 	heightDir := getHeightDir(filepath.Join(s.config.RootDir, tmpReconstructionDir), int64(height))
 
-	for i := range total {
-		chunkPath := getChunkPath(heightDir, i)
-		if _, err := os.Stat(chunkPath); err != nil {
-			return false
+	// Use a map to track which chunks we have
+	chunks := make(map[int]bool, total)
+
+	// Read directory once
+	files, err := os.ReadDir(heightDir)
+	if err != nil {
+		return false
+	}
+
+	// Track chunks by their index
+	for _, file := range files {
+		if !strings.HasSuffix(file.Name(), ".gz") {
+			continue
+		}
+		// Extract chunk number from filename (e.g., "chunk_000001.gz" -> 1)
+		var chunkNum int
+		if _, err := fmt.Sscanf(file.Name(), "chunk_%d.gz", &chunkNum); err != nil {
+			continue
+		}
+		if chunkNum >= 0 && chunkNum < total {
+			chunks[chunkNum] = true
 		}
 	}
-	return true
+
+	// Check if we have exactly the right number of chunks
+	return len(chunks) == total
 }
 
 // ReassemblePgDump reconstructs and decompresses a binary pg_dump file from multiple gzipped chunks
