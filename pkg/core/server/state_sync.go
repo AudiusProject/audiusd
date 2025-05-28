@@ -20,12 +20,31 @@ import (
 )
 
 var (
-	// Filepath patterns for state sync
-	snapshotDirPattern   = "snapshots_%s"
-	heightDirPattern     = "height_%010d"
-	chunkFilePattern     = "chunk_%04d.gz"
-	metadataFileName     = "metadata.json"
-	pgDumpFileName       = "data.dump"
+	// snapshotDirPattern is the format string for creating snapshot directory names.
+	// It takes a chain ID as a parameter and creates a directory like "snapshots_<chainID>".
+	snapshotDirPattern = "snapshots_%s"
+
+	// heightDirPattern is the format string for creating height-specific directory names.
+	// It takes a block height as a parameter and creates a directory like "height_0000000123".
+	// The %010d format ensures the height is padded with zeros to 10 digits.
+	heightDirPattern = "height_%010d"
+
+	// chunkFilePattern is the format string for creating chunk file names.
+	// It takes a chunk index as a parameter and creates a file like "chunk_000001.gz".
+	// The %06d format ensures the chunk index is padded with zeros to 6 digits,
+	// allowing for up to 1 million chunks (11.7TB with 12MB chunks).
+	chunkFilePattern = "chunk_%06d.gz"
+
+	// metadataFileName is the name of the metadata JSON file that contains snapshot information.
+	// This file is stored in each snapshot directory and contains details about the snapshot.
+	metadataFileName = "metadata.json"
+
+	// pgDumpFileName is the name of the PostgreSQL dump file.
+	// This is the binary format dump file created by pg_dump and used for database restoration.
+	pgDumpFileName = "data.dump"
+
+	// tmpReconstructionDir is the name of the temporary directory used during snapshot reconstruction.
+	// This directory is used to store chunks and metadata while reconstructing a snapshot.
 	tmpReconstructionDir = "tmp_reconstruction"
 )
 
