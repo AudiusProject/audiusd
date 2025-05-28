@@ -17,6 +17,105 @@ message GetHealthRequest {}
 
 message GetHealthResponse {}
 
+message GetStatusRequest {}
+
+message GetStatusResponse {
+  bool live = 1;
+  bool ready = 2;
+
+  message NodeInfo {
+    string endpoint = 1;
+    string comet_address = 2;
+    string eth_address = 3;
+    string node_type = 4;
+  }
+
+  message ChainInfo {
+    string chain_id = 1;
+    int64 current_height = 2;
+    string current_block_hash = 3;
+  }
+
+  message SyncInfo {
+    bool synced = 1;
+    oneof sync_mode {
+      StateSyncInfo state_sync = 2;
+      BlockSyncInfo block_sync = 3;
+    }
+
+    message StateSyncInfo {
+      enum Phase {
+        PHASE_UNSPECIFIED = 0;
+        PHASE_DOWNLOADING_CHUNKS = 1;
+        PHASE_RECONSTRUCTING_CHUNKS = 2;
+        PHASE_RESTORING_PG_DUMP = 3;
+        PHASE_BLOCK_SYNC = 4;
+        PHASE_COMPLETED = 5;
+      }
+
+      Phase phase = 1;
+      SnapshotMetadata snapshot = 2;
+      int64 downloaded_chunks = 3;
+      int64 chunk_fetchers = 4;
+      google.protobuf.Timestamp started_at = 5;
+      google.protobuf.Timestamp completed_at = 6;
+    }
+
+    message BlockSyncInfo {
+      int64 block_diff = 1;
+      NodeInfo head_source = 2;
+      int64 head_height = 3;
+      int64 sync_height = 4;
+      google.protobuf.Timestamp started_at = 5;
+      google.protobuf.Timestamp completed_at = 6;
+    }
+  }
+
+  message PruningInfo {
+    bool enabled = 1;
+    int64 prune_amount = 2;
+    int64 earliest_height = 3;
+  }
+
+  message ResourceInfo {
+    int64 db_size = 1;
+    int64 chain_size = 2;
+    int64 mem_size = 3;
+    int64 cpu_usage = 4;
+    int64 mem_usage = 5;
+    int64 disk_usage = 6;
+    int64 disk_free = 7;
+  }
+
+  message ValidatorInfo {
+    bool active = 1;
+    int64 power = 2;
+    bytes pub_key = 3;
+  }
+
+  message MempoolInfo {
+    int64 tx_count = 1;
+    int64 tx_size = 2;
+    int64 max_tx_count = 3;
+    int64 max_tx_size = 4;
+  }
+
+  message SnapshotInfo {
+    bool enabled = 1;
+    repeated SnapshotMetadata snapshots = 2;
+  }
+
+  NodeInfo node_info = 3;
+  repeated NodeInfo peers = 4;
+  ChainInfo chain_info = 5;
+  SyncInfo sync_info = 6;
+  PruningInfo pruning_info = 7;
+  ResourceInfo resource_info = 8;
+  ValidatorInfo validator_info = 9;
+  MempoolInfo mempool_info = 10;
+  SnapshotInfo snapshot_info = 11;
+}
+
 message GetNodeInfoRequest {}
 
 message GetNodeInfoResponse {
