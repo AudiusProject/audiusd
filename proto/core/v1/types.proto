@@ -23,6 +23,37 @@ message GetStatusResponse {
   bool live = 1;
   bool ready = 2;
 
+  message ProcessInfo {
+    enum ProcessState {
+      PROCESS_STATE_UNSPECIFIED = 0;
+      PROCESS_STATE_STARTING = 1;
+      PROCESS_STATE_RUNNING = 2;
+      PROCESS_STATE_STOPPED = 4;
+      PROCESS_STATE_ERROR = 5;
+    }
+
+    message ProcessStateInfo {
+      ProcessState state = 1;
+      google.protobuf.Timestamp started_at = 2;
+      google.protobuf.Timestamp completed_at = 3;
+      string error = 4;
+    }
+
+    ProcessStateInfo rpc_ready = 1;
+
+    ProcessState db_ready = 2;
+    bool eth_nodes_ready = 3;
+    bool http_server_ready = 4;
+
+    bool abci_started = 5;
+    bool registry_bridge_started = 6;
+    bool echo_server_started = 7;
+    bool sync_tasks_started = 8;
+    bool peer_manager_started = 9;
+    bool eth_node_manager_started = 10;
+    bool cache_started = 11;
+  }
+
   message NodeInfo {
     string endpoint = 1;
     string comet_address = 2;
