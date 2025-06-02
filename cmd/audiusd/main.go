@@ -38,6 +38,9 @@ import (
 	"github.com/AudiusProject/audiusd/pkg/pos"
 	"github.com/AudiusProject/audiusd/pkg/system"
 	"github.com/AudiusProject/audiusd/pkg/uptime"
+	"go.akshayshah.org/connectproto"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 
 	corev1connect "github.com/AudiusProject/audiusd/pkg/api/core/v1/v1connect"
 	etlv1connect "github.com/AudiusProject/audiusd/pkg/api/etl/v1/v1connect"
@@ -59,6 +62,15 @@ const (
 )
 
 var startTime time.Time
+
+// Common global options
+var (
+	marshalOpts   = protojson.MarshalOptions{EmitUnpopulated: true}
+	unmarshalOpts = protojson.UnmarshalOptions{DiscardUnknown: true}
+
+	// Compose them into the Connect handler option
+	connectJSONOpt = connectproto.WithJSON(marshalOpts, unmarshalOpts)
+)
 
 type proxyConfig struct {
 	path   string
@@ -329,7 +341,18 @@ func connectGET[Req any, Res any](
 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		}
 
-		return c.JSON(http.StatusOK, resp.Msg)
+		msg, ok := any(resp.Msg).(proto.Message)
+		if !ok {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "response is not proto.Message"})
+		}
+
+		jsonBytes, err := marshalOpts.Marshal(msg)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to marshal response"})
+		}
+
+		return c.JSONBlob(http.StatusOK, jsonBytes)
+
 	}
 }
 
@@ -339,16 +362,16 @@ func startEchoProxy(hostUrl *url.URL, logger *common.Logger, coreService *coreSe
 	e.Use(middleware.Logger(), middleware.Recover(), common.InjectRealIP())
 
 	rpcGroup := e.Group("")
-	corePath, coreHandler := corev1connect.NewCoreServiceHandler(coreService)
+	corePath, coreHandler := corev1connect.NewCoreServiceHandler(coreService, connectJSONOpt)
 	rpcGroup.POST(corePath+"*", echo.WrapHandler(coreHandler))
 
-	storagePath, storageHandler := storagev1connect.NewStorageServiceHandler(storageService)
+	storagePath, storageHandler := storagev1connect.NewStorageServiceHandler(storageService, connectJSONOpt)
 	rpcGroup.POST(storagePath+"*", echo.WrapHandler(storageHandler))
 
-	etlPath, etlHandler := etlv1connect.NewETLServiceHandler(etlService)
+	etlPath, etlHandler := etlv1connect.NewETLServiceHandler(etlService, connectJSONOpt)
 	rpcGroup.POST(etlPath+"*", echo.WrapHandler(etlHandler))
 
-	systemPath, systemHandler := systemv1connect.NewSystemServiceHandler(systemService)
+	systemPath, systemHandler := systemv1connect.NewSystemServiceHandler(systemService, connectJSONOpt)
 	rpcGroup.POST(systemPath+"*", echo.WrapHandler(systemHandler))
 
 	// register GET routes

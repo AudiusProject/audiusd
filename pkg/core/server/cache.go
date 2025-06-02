@@ -5,11 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"sync/atomic"
+	"time"
 
 	v1 "github.com/AudiusProject/audiusd/pkg/api/core/v1"
 	"github.com/cometbft/cometbft/types"
 	"github.com/maypok86/otter"
 	"golang.org/x/sync/errgroup"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 const (
@@ -74,6 +76,10 @@ func (c *Cache) initCaches() error {
 			return fmt.Errorf("failed to create abci state cache: %v", err)
 		}
 		c.abciState = abciState
+		c.abciState.Set(ProcessStateABCI, &v1.GetStatusResponse_ProcessInfo_ProcessStateInfo{
+			State:     v1.GetStatusResponse_ProcessInfo_PROCESS_STATE_STARTING,
+			StartedAt: timestamppb.New(time.Now()),
+		})
 		return nil
 	})
 
@@ -83,6 +89,10 @@ func (c *Cache) initCaches() error {
 			return fmt.Errorf("failed to create registry bridge state cache: %v", err)
 		}
 		c.registryBridgeState = registryBridgeState
+		c.registryBridgeState.Set(ProcessStateRegistryBridge, &v1.GetStatusResponse_ProcessInfo_ProcessStateInfo{
+			State:     v1.GetStatusResponse_ProcessInfo_PROCESS_STATE_STARTING,
+			StartedAt: timestamppb.New(time.Now()),
+		})
 		return nil
 	})
 
@@ -92,6 +102,10 @@ func (c *Cache) initCaches() error {
 			return fmt.Errorf("failed to create echo server state cache: %v", err)
 		}
 		c.echoServerState = echoServerState
+		c.echoServerState.Set(ProcessStateEchoServer, &v1.GetStatusResponse_ProcessInfo_ProcessStateInfo{
+			State:     v1.GetStatusResponse_ProcessInfo_PROCESS_STATE_STARTING,
+			StartedAt: timestamppb.New(time.Now()),
+		})
 		return nil
 	})
 
@@ -101,6 +115,10 @@ func (c *Cache) initCaches() error {
 			return fmt.Errorf("failed to create sync tasks state cache: %v", err)
 		}
 		c.syncTasksState = syncTasksState
+		c.syncTasksState.Set(ProcessStateSyncTasks, &v1.GetStatusResponse_ProcessInfo_ProcessStateInfo{
+			State:     v1.GetStatusResponse_ProcessInfo_PROCESS_STATE_STARTING,
+			StartedAt: timestamppb.New(time.Now()),
+		})
 		return nil
 	})
 
@@ -110,6 +128,10 @@ func (c *Cache) initCaches() error {
 			return fmt.Errorf("failed to create peer manager state cache: %v", err)
 		}
 		c.peerManagerState = peerManagerState
+		c.peerManagerState.Set(ProcessStatePeerManager, &v1.GetStatusResponse_ProcessInfo_ProcessStateInfo{
+			State:     v1.GetStatusResponse_ProcessInfo_PROCESS_STATE_STARTING,
+			StartedAt: timestamppb.New(time.Now()),
+		})
 		return nil
 	})
 
@@ -119,6 +141,10 @@ func (c *Cache) initCaches() error {
 			return fmt.Errorf("failed to create eth node manager state cache: %v", err)
 		}
 		c.ethNodeManagerState = ethNodeManagerState
+		c.ethNodeManagerState.Set(ProcessStateEthNodeManager, &v1.GetStatusResponse_ProcessInfo_ProcessStateInfo{
+			State:     v1.GetStatusResponse_ProcessInfo_PROCESS_STATE_STARTING,
+			StartedAt: timestamppb.New(time.Now()),
+		})
 		return nil
 	})
 
@@ -128,6 +154,10 @@ func (c *Cache) initCaches() error {
 			return fmt.Errorf("failed to create cache state cache: %v", err)
 		}
 		c.cacheState = cacheState
+		c.cacheState.Set(ProcessStateCache, &v1.GetStatusResponse_ProcessInfo_ProcessStateInfo{
+			State:     v1.GetStatusResponse_ProcessInfo_PROCESS_STATE_STARTING,
+			StartedAt: timestamppb.New(time.Now()),
+		})
 		return nil
 	})
 

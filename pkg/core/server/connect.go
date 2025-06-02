@@ -424,5 +424,8 @@ func (c *CoreService) GetStoredSnapshots(context.Context, *connect.Request[v1.Ge
 
 // GetStatus implements v1connect.CoreServiceHandler.
 func (c *CoreService) GetStatus(context.Context, *connect.Request[v1.GetStatusRequest]) (*connect.Response[v1.GetStatusResponse], error) {
-	return connect.NewResponse(&v1.GetStatusResponse{}), nil
+	return connect.NewResponse(&v1.GetStatusResponse{
+		Live:  true,
+		Ready: true,
+	}), nil
 }
