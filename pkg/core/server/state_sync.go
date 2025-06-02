@@ -375,7 +375,13 @@ func (s *Server) getStoredSnapshots() ([]v1.Snapshot, error) {
 		}
 
 		// get height from directory name, parse out leading zeros
-		height, err := strconv.ParseInt(entry.Name(), 10, 64)
+		nameParts := strings.SplitN(entry.Name(), "_", 2)
+		if len(nameParts) != 2 {
+			continue
+		}
+		heightStr := nameParts[1]
+
+		height, err := strconv.ParseInt(heightStr, 10, 64)
 		if err != nil {
 			continue
 		}
