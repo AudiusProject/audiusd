@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/AudiusProject/audiusd/pkg/common"
@@ -352,43 +353,69 @@ func (s *Server) getStoredSnapshots() ([]v1.Snapshot, error) {
 
 	snapshots := make([]v1.Snapshot, 0)
 	for _, entry := range dirs {
+		// // if metadata file exists, read and check if valid, if not, fix and restore metadata
+		// metadataPath := getMetadataPath(filepath.Join(snapshotDir, entry.Name()))
+		// if _, err := os.Stat(metadataPath); err == nil {
+		// 	metadataBytes, err := os.ReadFile(metadataPath)
+		// 	if err != nil {
+		// 		continue
+		// 	}
+
+		// 	var meta v1.Snapshot
+		// 	if err := json.Unmarshal(metadataBytes, &meta); err != nil {
+		// 		continue
+		// 	}
+
+		// 	snapshots = append(snapshots, meta)
+		// 	continue
+		// }
+
 		if !entry.IsDir() {
 			continue
 		}
 
-		metadataPath := getMetadataPath(filepath.Join(snapshotDir, entry.Name()))
-		info, err := os.Stat(metadataPath)
-		if err != nil || info.IsDir() {
+		// get height from directory name, parse out leading zeros
+		height, err := strconv.ParseInt(entry.Name(), 10, 64)
+		if err != nil {
 			continue
 		}
 
-		data, err := os.ReadFile(metadataPath)
+		// count chunks in directory
+		chunks, err := os.ReadDir(filepath.Join(snapshotDir, entry.Name()))
 		if err != nil {
-			return nil, fmt.Errorf("error reading metadata file at %s: %w", metadataPath, err)
+			continue
+		}
+		chunkCount := len(chunks) - 1
+
+		block, err := s.rpc.Block(context.Background(), &height)
+		if err != nil {
+			continue
 		}
 
-		var meta v1.Snapshot
-		if err := json.Unmarshal(data, &meta); err != nil {
-			return nil, fmt.Errorf("error unmarshalling metadata at %s: %w", metadataPath, err)
+		blockHash := block.BlockID.Hash
+
+		innerMetadata := &Metadata{
+			Sender:  strings.ToLower(s.config.ProposerAddress),
+			ChainID: s.config.GenesisFile.ChainID,
 		}
 
-		// check if metadata is valid, if not, fix and restore metadata
-		var innerMetadata Metadata
-		if err := json.Unmarshal(meta.Metadata, &innerMetadata); err != nil {
-			// resave metadata with correct metadata
-			newMetadata := &Metadata{
-				Sender:  s.config.ProposerAddress,
-				ChainID: s.config.GenesisFile.ChainID,
-			}
+		b, err := json.Marshal(innerMetadata)
+		if err != nil {
+			continue
+		}
 
-			meta.Metadata, err = json.Marshal(newMetadata)
-			if err != nil {
-				return nil, fmt.Errorf("error marshalling metadata at %s: %w", metadataPath, err)
-			}
+		meta := v1.Snapshot{
+			Height:   uint64(height),
+			Format:   1,
+			Chunks:   uint32(chunkCount),
+			Hash:     blockHash,
+			Metadata: b,
+		}
 
-			if err := os.WriteFile(metadataPath, meta.Metadata, 0644); err != nil {
-				return nil, fmt.Errorf("error writing metadata file at %s: %w", metadataPath, err)
-			}
+		// write metadata to file
+		snapshotMetadataFile := getMetadataPath(filepath.Join(snapshotDir, entry.Name()))
+		if err := os.WriteFile(snapshotMetadataFile, b, 0644); err != nil {
+			return nil, fmt.Errorf("error writing metadata file at %s: %w", snapshotMetadataFile, err)
 		}
 
 		snapshots = append(snapshots, meta)
