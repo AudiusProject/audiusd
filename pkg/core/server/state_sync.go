@@ -48,6 +48,11 @@ var (
 	tmpReconstructionDir = "tmp_reconstruction"
 )
 
+type Metadata struct {
+	Sender  string `json:"sender"`
+	ChainID string `json:"chain_id"`
+}
+
 // Helper functions for common filepath patterns
 func getSnapshotDir(rootDir, chainID string) string {
 	return filepath.Join(rootDir, fmt.Sprintf(snapshotDirPattern, chainID))
@@ -177,12 +182,20 @@ func (s *Server) createSnapshot(logger *common.Logger, height int64) error {
 
 	logger.Info("Writing snapshot metadata", "height", blockHeight)
 
+	b, err := json.Marshal(Metadata{
+		Sender:  s.config.ProposerAddress,
+		ChainID: s.config.GenesisFile.ChainID,
+	})
+	if err != nil {
+		return fmt.Errorf("error marshalling metadata: %v", err)
+	}
+
 	snapshotMetadata := v1.Snapshot{
 		Height:   uint64(blockHeight),
 		Format:   1,
 		Chunks:   uint32(chunkCount),
 		Hash:     blockHash,
-		Metadata: []byte(s.config.GenesisFile.ChainID),
+		Metadata: b,
 	}
 
 	snapshotMetadataFile := getMetadataPath(latestSnapshotDir)
@@ -357,6 +370,25 @@ func (s *Server) getStoredSnapshots() ([]v1.Snapshot, error) {
 		var meta v1.Snapshot
 		if err := json.Unmarshal(data, &meta); err != nil {
 			return nil, fmt.Errorf("error unmarshalling metadata at %s: %w", metadataPath, err)
+		}
+
+		// check if metadata is valid, if not, fix and restore metadata
+		var innerMetadata Metadata
+		if err := json.Unmarshal(meta.Metadata, &innerMetadata); err != nil {
+			// resave metadata with correct metadata
+			newMetadata := &Metadata{
+				Sender:  s.config.ProposerAddress,
+				ChainID: s.config.GenesisFile.ChainID,
+			}
+
+			meta.Metadata, err = json.Marshal(newMetadata)
+			if err != nil {
+				return nil, fmt.Errorf("error marshalling metadata at %s: %w", metadataPath, err)
+			}
+
+			if err := os.WriteFile(metadataPath, meta.Metadata, 0644); err != nil {
+				return nil, fmt.Errorf("error writing metadata file at %s: %w", metadataPath, err)
+			}
 		}
 
 		snapshots = append(snapshots, meta)
