@@ -372,6 +372,10 @@ func (s *Server) getStoredSnapshots() ([]v1.Snapshot, error) {
 			return nil, fmt.Errorf("error unmarshalling metadata at %s: %w", metadataPath, err)
 		}
 
+		if meta.Height == 0 {
+			continue
+		}
+
 		snapshots = append(snapshots, meta)
 	}
 
