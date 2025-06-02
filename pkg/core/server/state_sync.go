@@ -570,6 +570,8 @@ func (s *Server) RestoreDatabase(height int64) error {
 		"--dbname="+s.config.PSQLConn,
 		"--clean",
 		"--if-exists",
+		"--no-owner",
+		"--no-privileges",
 		dumpPath)
 
 	var stdout, stderr bytes.Buffer
