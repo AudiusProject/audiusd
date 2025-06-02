@@ -418,9 +418,14 @@ func (s *Server) getStoredSnapshots() ([]v1.Snapshot, error) {
 			Metadata: b,
 		}
 
+		metaBytes, err := json.Marshal(meta)
+		if err != nil {
+			continue
+		}
+
 		// write metadata to file
 		snapshotMetadataFile := getMetadataPath(filepath.Join(snapshotDir, entry.Name()))
-		if err := os.WriteFile(snapshotMetadataFile, b, 0644); err != nil {
+		if err := os.WriteFile(snapshotMetadataFile, metaBytes, 0644); err != nil {
 			return nil, fmt.Errorf("error writing metadata file at %s: %w", snapshotMetadataFile, err)
 		}
 
