@@ -437,13 +437,13 @@ func (s *Server) ApplySnapshotChunk(_ context.Context, req *abcitypes.ApplySnaps
 	offeredMetadata := &Metadata{}
 	if err := json.Unmarshal(offeredSnapshot.Metadata, offeredMetadata); err != nil {
 		return &abcitypes.ApplySnapshotChunkResponse{
-			Result: abcitypes.APPLY_SNAPSHOT_CHUNK_RESULT_RETRY,
+			Result: abcitypes.APPLY_SNAPSHOT_CHUNK_RESULT_REJECT_SNAPSHOT,
 		}, nil
 	}
 
 	if offeredMetadata.ChainID != s.config.GenesisFile.ChainID {
 		return &abcitypes.ApplySnapshotChunkResponse{
-			Result: abcitypes.APPLY_SNAPSHOT_CHUNK_RESULT_RETRY,
+			Result: abcitypes.APPLY_SNAPSHOT_CHUNK_RESULT_REJECT_SNAPSHOT,
 		}, nil
 	}
 
