@@ -4,13 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
 	v1 "github.com/AudiusProject/audiusd/pkg/api/core/v1"
+	"github.com/AudiusProject/audiusd/pkg/core/config"
 	"github.com/cometbft/cometbft/types"
 	"github.com/maypok86/otter"
-	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -24,6 +26,7 @@ const (
 	ProcessStateCache          = "cache"
 
 	NodeInfoKey      = "nodeInfo"
+	PeersKey         = "peers"
 	ChainInfoKey     = "chainInfo"
 	SyncInfoKey      = "syncInfo"
 	PruningInfoKey   = "pruningInfo"
@@ -50,199 +53,127 @@ type Cache struct {
 	cacheState          otter.Cache[string, *v1.GetStatusResponse_ProcessInfo_ProcessStateInfo]
 
 	// info
-	nodeInfo      otter.Cache[string, *v1.GetStatusResponse_NodeInfo]
-	chainInfo     otter.Cache[string, *v1.GetStatusResponse_ChainInfo]
-	syncInfo      otter.Cache[string, *v1.GetStatusResponse_SyncInfo]
-	pruningInfo   otter.Cache[string, *v1.GetStatusResponse_PruningInfo]
-	resourceInfo  otter.Cache[string, *v1.GetStatusResponse_ResourceInfo]
-	validatorInfo otter.Cache[string, *v1.GetStatusResponse_ValidatorInfo]
-	mempoolInfo   otter.Cache[string, *v1.GetStatusResponse_MempoolInfo]
-	snapshotInfo  otter.Cache[string, *v1.GetStatusResponse_SnapshotInfo]
+	nodeInfo     otter.Cache[string, *v1.GetStatusResponse_NodeInfo]
+	peers        otter.Cache[string, *v1.GetStatusResponse_PeerInfo]
+	chainInfo    otter.Cache[string, *v1.GetStatusResponse_ChainInfo]
+	syncInfo     otter.Cache[string, *v1.GetStatusResponse_SyncInfo]
+	pruningInfo  otter.Cache[string, *v1.GetStatusResponse_PruningInfo]
+	resourceInfo otter.Cache[string, *v1.GetStatusResponse_ResourceInfo]
+	mempoolInfo  otter.Cache[string, *v1.GetStatusResponse_MempoolInfo]
+	snapshotInfo otter.Cache[string, *v1.GetStatusResponse_SnapshotInfo]
 }
 
-func NewCache() *Cache {
+func NewCache(config *config.Config) *Cache {
 	c := &Cache{}
 	c.currentHeight.Store(0)
 	c.catchingUp.Store(true) // assume syncing on startup
+
+	if err := c.initCaches(config); err != nil {
+		panic(err)
+	}
+
 	return c
 }
 
-func (c *Cache) initCaches() error {
-	g := errgroup.Group{}
+func initCache[T any](key string, initialValue T) otter.Cache[string, T] {
+	builder := otter.MustBuilder[string, T](10_000)
+	builder.Cost(func(key string, value T) uint32 {
+		return 1
+	})
+	cache, err := builder.Build()
+	if err != nil {
+		panic(err)
+	}
+	set := cache.Set(key, initialValue)
+	if !set {
+		panic(fmt.Errorf("failed to set %s cache", key))
+	}
+	return cache
+}
 
-	g.Go(func() error {
-		abciState, err := otter.MustBuilder[string, *v1.GetStatusResponse_ProcessInfo_ProcessStateInfo](1).Build()
-		if err != nil {
-			return fmt.Errorf("failed to create abci state cache: %v", err)
-		}
-		c.abciState = abciState
-		c.abciState.Set(ProcessStateABCI, &v1.GetStatusResponse_ProcessInfo_ProcessStateInfo{
-			State:     v1.GetStatusResponse_ProcessInfo_PROCESS_STATE_STARTING,
-			StartedAt: timestamppb.New(time.Now()),
-		})
-		return nil
+func upsertCache[T any](cache otter.Cache[string, T], key string, fn func(T) T) error {
+	value, ok := cache.Get(key)
+	if !ok {
+		return fmt.Errorf("cache %s not found", key)
+	}
+	value = fn(value)
+	set := cache.Set(key, value)
+	if !set {
+		return fmt.Errorf("failed to set %s cache", key)
+	}
+	return nil
+}
+
+func (c *Cache) initCaches(config *config.Config) error {
+	// Initialize ABCI state cache
+	c.abciState = initCache(ProcessStateABCI, &v1.GetStatusResponse_ProcessInfo_ProcessStateInfo{
+		State:     v1.GetStatusResponse_ProcessInfo_PROCESS_STATE_STARTING,
+		StartedAt: timestamppb.New(time.Now()),
 	})
 
-	g.Go(func() error {
-		registryBridgeState, err := otter.MustBuilder[string, *v1.GetStatusResponse_ProcessInfo_ProcessStateInfo](1).Build()
-		if err != nil {
-			return fmt.Errorf("failed to create registry bridge state cache: %v", err)
-		}
-		c.registryBridgeState = registryBridgeState
-		c.registryBridgeState.Set(ProcessStateRegistryBridge, &v1.GetStatusResponse_ProcessInfo_ProcessStateInfo{
-			State:     v1.GetStatusResponse_ProcessInfo_PROCESS_STATE_STARTING,
-			StartedAt: timestamppb.New(time.Now()),
-		})
-		return nil
+	c.registryBridgeState = initCache(ProcessStateRegistryBridge, &v1.GetStatusResponse_ProcessInfo_ProcessStateInfo{
+		State:     v1.GetStatusResponse_ProcessInfo_PROCESS_STATE_STARTING,
+		StartedAt: timestamppb.New(time.Now()),
 	})
 
-	g.Go(func() error {
-		echoServerState, err := otter.MustBuilder[string, *v1.GetStatusResponse_ProcessInfo_ProcessStateInfo](1).Build()
-		if err != nil {
-			return fmt.Errorf("failed to create echo server state cache: %v", err)
-		}
-		c.echoServerState = echoServerState
-		c.echoServerState.Set(ProcessStateEchoServer, &v1.GetStatusResponse_ProcessInfo_ProcessStateInfo{
-			State:     v1.GetStatusResponse_ProcessInfo_PROCESS_STATE_STARTING,
-			StartedAt: timestamppb.New(time.Now()),
-		})
-		return nil
+	c.echoServerState = initCache(ProcessStateEchoServer, &v1.GetStatusResponse_ProcessInfo_ProcessStateInfo{
+		State:     v1.GetStatusResponse_ProcessInfo_PROCESS_STATE_STARTING,
+		StartedAt: timestamppb.New(time.Now()),
 	})
 
-	g.Go(func() error {
-		syncTasksState, err := otter.MustBuilder[string, *v1.GetStatusResponse_ProcessInfo_ProcessStateInfo](1).Build()
-		if err != nil {
-			return fmt.Errorf("failed to create sync tasks state cache: %v", err)
-		}
-		c.syncTasksState = syncTasksState
-		c.syncTasksState.Set(ProcessStateSyncTasks, &v1.GetStatusResponse_ProcessInfo_ProcessStateInfo{
-			State:     v1.GetStatusResponse_ProcessInfo_PROCESS_STATE_STARTING,
-			StartedAt: timestamppb.New(time.Now()),
-		})
-		return nil
+	c.syncTasksState = initCache(ProcessStateSyncTasks, &v1.GetStatusResponse_ProcessInfo_ProcessStateInfo{
+		State:     v1.GetStatusResponse_ProcessInfo_PROCESS_STATE_STARTING,
+		StartedAt: timestamppb.New(time.Now()),
 	})
 
-	g.Go(func() error {
-		peerManagerState, err := otter.MustBuilder[string, *v1.GetStatusResponse_ProcessInfo_ProcessStateInfo](1).Build()
-		if err != nil {
-			return fmt.Errorf("failed to create peer manager state cache: %v", err)
-		}
-		c.peerManagerState = peerManagerState
-		c.peerManagerState.Set(ProcessStatePeerManager, &v1.GetStatusResponse_ProcessInfo_ProcessStateInfo{
-			State:     v1.GetStatusResponse_ProcessInfo_PROCESS_STATE_STARTING,
-			StartedAt: timestamppb.New(time.Now()),
-		})
-		return nil
+	c.peerManagerState = initCache(ProcessStatePeerManager, &v1.GetStatusResponse_ProcessInfo_ProcessStateInfo{
+		State:     v1.GetStatusResponse_ProcessInfo_PROCESS_STATE_STARTING,
+		StartedAt: timestamppb.New(time.Now()),
 	})
 
-	g.Go(func() error {
-		ethNodeManagerState, err := otter.MustBuilder[string, *v1.GetStatusResponse_ProcessInfo_ProcessStateInfo](1).Build()
-		if err != nil {
-			return fmt.Errorf("failed to create eth node manager state cache: %v", err)
-		}
-		c.ethNodeManagerState = ethNodeManagerState
-		c.ethNodeManagerState.Set(ProcessStateEthNodeManager, &v1.GetStatusResponse_ProcessInfo_ProcessStateInfo{
-			State:     v1.GetStatusResponse_ProcessInfo_PROCESS_STATE_STARTING,
-			StartedAt: timestamppb.New(time.Now()),
-		})
-		return nil
+	c.ethNodeManagerState = initCache(ProcessStateEthNodeManager, &v1.GetStatusResponse_ProcessInfo_ProcessStateInfo{
+		State:     v1.GetStatusResponse_ProcessInfo_PROCESS_STATE_STARTING,
+		StartedAt: timestamppb.New(time.Now()),
 	})
 
-	g.Go(func() error {
-		cacheState, err := otter.MustBuilder[string, *v1.GetStatusResponse_ProcessInfo_ProcessStateInfo](1).Build()
-		if err != nil {
-			return fmt.Errorf("failed to create cache state cache: %v", err)
-		}
-		c.cacheState = cacheState
-		c.cacheState.Set(ProcessStateCache, &v1.GetStatusResponse_ProcessInfo_ProcessStateInfo{
-			State:     v1.GetStatusResponse_ProcessInfo_PROCESS_STATE_STARTING,
-			StartedAt: timestamppb.New(time.Now()),
-		})
-		return nil
+	c.cacheState = initCache(ProcessStateCache, &v1.GetStatusResponse_ProcessInfo_ProcessStateInfo{
+		State:     v1.GetStatusResponse_ProcessInfo_PROCESS_STATE_STARTING,
+		StartedAt: timestamppb.New(time.Now()),
 	})
 
-	g.Go(func() error {
-
-		nodeInfo, err := otter.MustBuilder[string, *v1.GetStatusResponse_NodeInfo](1).Build()
-		if err != nil {
-			return fmt.Errorf("failed to create node info cache: %v", err)
-		}
-		c.nodeInfo = nodeInfo
-		return nil
+	c.nodeInfo = initCache(NodeInfoKey, &v1.GetStatusResponse_NodeInfo{
+		Endpoint:     config.NodeEndpoint,
+		CometAddress: strings.ToLower(config.ProposerAddress),
+		EthAddress:   strings.ToLower(config.WalletAddress),
+		NodeType:     "validator",
 	})
 
-	g.Go(func() error {
-		chainInfo, err := otter.MustBuilder[string, *v1.GetStatusResponse_ChainInfo](1).Build()
-		if err != nil {
-			return fmt.Errorf("failed to create chain info cache: %v", err)
-		}
-		c.chainInfo = chainInfo
-		return nil
+	c.peers = initCache(PeersKey, &v1.GetStatusResponse_PeerInfo{})
+
+	c.chainInfo = initCache(ChainInfoKey, &v1.GetStatusResponse_ChainInfo{
+		ChainId: config.GenesisFile.ChainID,
 	})
 
-	g.Go(func() error {
-		syncInfo, err := otter.MustBuilder[string, *v1.GetStatusResponse_SyncInfo](1).Build()
-		if err != nil {
-			return fmt.Errorf("failed to create sync info cache: %v", err)
-		}
-		c.syncInfo = syncInfo
-		return nil
-	})
+	defaultSyncInfo := &v1.GetStatusResponse_SyncInfo{
+		Synced: false,
+	}
+	c.syncInfo = initCache(SyncInfoKey, defaultSyncInfo)
 
-	g.Go(func() error {
-		pruningInfo, err := otter.MustBuilder[string, *v1.GetStatusResponse_PruningInfo](1).Build()
-		if err != nil {
-			return fmt.Errorf("failed to create pruning info cache: %v", err)
-		}
-		c.pruningInfo = pruningInfo
-		return nil
-	})
+	c.pruningInfo = initCache(PruningInfoKey, &v1.GetStatusResponse_PruningInfo{})
 
-	g.Go(func() error {
-		resourceInfo, err := otter.MustBuilder[string, *v1.GetStatusResponse_ResourceInfo](1).Build()
-		if err != nil {
-			return fmt.Errorf("failed to create resource info cache: %v", err)
-		}
-		c.resourceInfo = resourceInfo
-		return nil
-	})
+	c.resourceInfo = initCache(ResourceInfoKey, &v1.GetStatusResponse_ResourceInfo{})
 
-	g.Go(func() error {
-		validatorInfo, err := otter.MustBuilder[string, *v1.GetStatusResponse_ValidatorInfo](1).Build()
-		if err != nil {
-			return fmt.Errorf("failed to create validator info cache: %v", err)
-		}
-		c.validatorInfo = validatorInfo
-		return nil
-	})
+	c.mempoolInfo = initCache(MempoolInfoKey, &v1.GetStatusResponse_MempoolInfo{})
 
-	g.Go(func() error {
-		mempoolInfo, err := otter.MustBuilder[string, *v1.GetStatusResponse_MempoolInfo](1).Build()
-		if err != nil {
-			return fmt.Errorf("failed to create mempool info cache: %v", err)
-		}
-		c.mempoolInfo = mempoolInfo
-		return nil
-	})
+	c.snapshotInfo = initCache(SnapshotInfoKey, &v1.GetStatusResponse_SnapshotInfo{})
 
-	g.Go(func() error {
-		snapshotInfo, err := otter.MustBuilder[string, *v1.GetStatusResponse_SnapshotInfo](1).Build()
-		if err != nil {
-			return fmt.Errorf("failed to create snapshot info cache: %v", err)
-		}
-		c.snapshotInfo = snapshotInfo
-		return nil
-	})
-
-	return g.Wait()
+	return nil
 }
 
 // maybe put a separate errgroup in here for things that
 // continuously hydrate the cache
 func (s *Server) startCache() error {
-	if err := s.cache.initCaches(); err != nil {
-		return fmt.Errorf("failed to initialize caches: %v", err)
-	}
+	s.logger.Info("caches initialized")
 
 	<-s.awaitRpcReady
 
@@ -270,18 +201,91 @@ func (s *Server) startCache() error {
 		return fmt.Errorf("failed to subscribe to NewBlock events: %v", err)
 	}
 
-	for {
-		select {
-		case <-ctx.Done():
-			s.logger.Info("Stopping block event subscription")
-			return nil
-		case msg := <-subscription.Out():
-			blockEvent := msg.Data().(types.EventDataNewBlock)
-			blockHeight := blockEvent.Block.Height
-			s.cache.currentHeight.Store(blockHeight)
-		case err := <-subscription.Canceled():
-			s.logger.Errorf("Subscription cancelled: %v", err)
+	wg := sync.WaitGroup{}
+	wg.Add(3)
+
+	go func() {
+		defer wg.Done()
+		s.startCacheRefresh()
+	}()
+
+	go func() {
+		defer wg.Done()
+		s.refreshSyncStatus()
+	}()
+
+	go func() {
+		defer wg.Done()
+		for {
+			select {
+			case <-ctx.Done():
+				s.logger.Info("Stopping block event subscription")
+				return
+			case msg := <-subscription.Out():
+				blockEvent := msg.Data().(types.EventDataNewBlock)
+				blockHeight := blockEvent.Block.Height
+				s.cache.currentHeight.Store(blockHeight)
+
+				upsertCache(s.cache.chainInfo, ChainInfoKey, func(chainInfo *v1.GetStatusResponse_ChainInfo) *v1.GetStatusResponse_ChainInfo {
+					chainInfo.CurrentHeight = blockHeight
+					chainInfo.CurrentBlockHash = strings.ToLower(blockEvent.Block.Hash().String())
+					return chainInfo
+				})
+
+			case err := <-subscription.Canceled():
+				s.logger.Errorf("Subscription cancelled: %v", err)
+				return
+			}
+		}
+	}()
+
+	wg.Wait()
+
+	return nil
+}
+
+func (s *Server) startCacheRefresh() error {
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+
+	for range ticker.C {
+		wg := sync.WaitGroup{}
+		wg.Add(3)
+		go func() {
+			defer wg.Done()
+			if err := s.refreshResourceStatus(); err != nil {
+				s.logger.Errorf("error refreshing resource status: %v", err)
+			}
+		}()
+		go func() {
+			defer wg.Done()
+			if err := s.cacheSnapshots(); err != nil {
+				s.logger.Errorf("error caching snapshots: %v", err)
+			}
+		}()
+		wg.Wait()
+	}
+	return nil
+}
+
+func (s *Server) refreshSyncStatus() error {
+	ticker := time.NewTicker(1 * time.Second)
+	defer ticker.Stop()
+
+	for range ticker.C {
+		if s.rpc == nil {
 			return nil
 		}
+
+		status, err := s.rpc.Status(context.Background())
+		if err != nil {
+			return fmt.Errorf("could not get status: %v", err)
+		}
+
+		upsertCache(s.cache.syncInfo, SyncInfoKey, func(syncInfo *v1.GetStatusResponse_SyncInfo) *v1.GetStatusResponse_SyncInfo {
+			syncInfo.Synced = !status.SyncInfo.CatchingUp
+			return syncInfo
+		})
 	}
+	return nil
 }

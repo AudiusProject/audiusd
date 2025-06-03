@@ -6,7 +6,6 @@ import (
 	"sync"
 	"time"
 
-	v1 "github.com/AudiusProject/audiusd/pkg/api/core/v1"
 	corev1connect "github.com/AudiusProject/audiusd/pkg/api/core/v1/v1connect"
 	"github.com/AudiusProject/audiusd/pkg/common"
 	"github.com/AudiusProject/audiusd/pkg/core/config"
@@ -21,7 +20,6 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/labstack/echo/v4"
-	"github.com/maypok86/otter"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
@@ -61,9 +59,6 @@ type Server struct {
 	missingEthNodes   []string
 	ethNodeMU         sync.RWMutex
 
-	// caches
-	statusCache *otter.Cache[string, *v1.GetStatusResponse]
-
 	awaitHttpServerReady chan struct{}
 	awaitRpcReady        chan struct{}
 	awaitEthNodesReady   chan struct{}
@@ -96,11 +91,6 @@ func NewServer(config *config.Config, cconfig *cconfig.Config, logger *common.Lo
 	z := baseLogger.With(zap.String("service", "core"), zap.String("node", config.NodeEndpoint))
 	z.Info("core server starting")
 
-	statusCache, err := otter.MustBuilder[string, *v1.GetStatusResponse](1).Build()
-	if err != nil {
-		return nil, fmt.Errorf("failed to create status cache: %v", err)
-	}
-
 	s := &Server{
 		config:         config,
 		cometbftConfig: cconfig,
@@ -116,7 +106,7 @@ func NewServer(config *config.Config, cconfig *cconfig.Config, logger *common.Lo
 		mempl:     mempl,
 		peers:     make(map[string]corev1connect.CoreServiceClient),
 		txPubsub:  txPubsub,
-		cache:     NewCache(),
+		cache:     NewCache(config),
 		abciState: NewABCIState(config.RetainHeight),
 
 		httpServer: httpServer,
@@ -127,8 +117,6 @@ func NewServer(config *config.Config, cconfig *cconfig.Config, logger *common.Lo
 		missingEthNodes:   []string{},
 
 		rewards: rewards.NewRewardAttester(config.EthereumKey, config.Rewards),
-
-		statusCache: &statusCache,
 
 		awaitHttpServerReady: make(chan struct{}),
 		awaitRpcReady:        make(chan struct{}),

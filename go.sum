@@ -626,6 +626,8 @@ github.com/yuin/goldmark v1.2.1/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9dec
 github.com/yuin/goldmark v1.4.13/go.mod h1:6yULJ656Px+3vBD8DxQVa3kxgyrAnzto9xy5taEt/CY=
 github.com/yusufpapurcu/wmi v1.2.4 h1:zFUKzehAFReQwLys1b/iSMl+JQGSCSjtVqQn9bBrPo0=
 github.com/yusufpapurcu/wmi v1.2.4/go.mod h1:SBZ9tNy3G9/m5Oi98Zks0QjeHVDvuK0qfxQmPyzfmi0=
+go.akshayshah.org/attest v1.0.0 h1:f66BDlh/xo2KjIfmtqOFlj5cpn6mvGrP1LXY3Tex4L0=
+go.akshayshah.org/attest v1.0.0/go.mod h1:PnWzcW5j9dkyGwTlBmUsYpPnHG0AUPrs1RQ+HrldWO0=
 go.akshayshah.org/connectproto v0.6.0 h1:tqmysQF2AfvUeYS03mRAAZTFpiQeXqhGIDnH1GO2D2U=
 go.akshayshah.org/connectproto v0.6.0/go.mod h1:uA9TR/6MhBlLn0fh8VXRyL26EKTJlimWao4jbz7JHbA=
 go.etcd.io/bbolt v1.4.0-alpha.0.0.20240404170359-43604f3112c5 h1:qxen9oVGzDdIRP6ejyAJc760RwW4SnVDiTYTzwnXuxo=

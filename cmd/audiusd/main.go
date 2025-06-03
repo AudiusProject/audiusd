@@ -348,7 +348,7 @@ func connectGET[Req any, Res any](
 
 		jsonBytes, err := marshalOpts.Marshal(msg)
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to marshal response"})
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("failed to marshal response: %v", err.Error())})
 		}
 
 		return c.JSONBlob(http.StatusOK, jsonBytes)
