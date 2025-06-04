@@ -250,7 +250,7 @@ func (s *Server) startCacheRefresh() error {
 
 	for range ticker.C {
 		wg := sync.WaitGroup{}
-		wg.Add(3)
+		wg.Add(2)
 		go func() {
 			defer wg.Done()
 			if err := s.refreshResourceStatus(); err != nil {
