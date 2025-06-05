@@ -28,7 +28,7 @@ require (
 	github.com/orandin/slog-gorm v1.1.0
 	github.com/speps/go-hashids/v2 v2.0.1
 	github.com/spf13/cast v1.7.0
-	github.com/spf13/cobra v1.8.1
+	github.com/spf13/cobra v1.9.1
 	github.com/storyicon/sigverify v1.1.0
 	github.com/stretchr/testify v1.10.0
 	go.etcd.io/bbolt v1.4.0-alpha.0.0.20240404170359-43604f3112c5
