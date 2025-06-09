@@ -169,27 +169,40 @@ function searchBar() {
             return headers[type] || type.charAt(0).toUpperCase() + type.slice(1) + 's';
         },
 
+        getNavigationPath(suggestion) {
+            if (suggestion.isHeader) return '';
+            
+            switch(suggestion.type) {
+                case 'block':
+                    const blockNum = suggestion.title.match(/#(\d+)/)?.[1];
+                    return blockNum ? `/block/${blockNum}` : '';
+                case 'account':
+                    return `/accounts/${suggestion.title}`;
+                case 'transaction':
+                    return `/transactions/${suggestion.title}`;
+                case 'track':
+                    return `/tracks/${suggestion.id}`;
+                case 'username':
+                    return `/users/${suggestion.title}`;
+                case 'playlist':
+                    return `/playlists/${suggestion.id}`;
+                case 'album':
+                    return `/albums/${suggestion.id}`;
+                default:
+                    return '';
+            }
+        },
+
         selectSuggestion(suggestion) {
             if (suggestion.isHeader) return;
-            this.query = suggestion.title;
-            // Re-run pattern matching for the selected suggestion
-            if (suggestion.type === 'account') {
-                this.searchType = 'Account';
-                this.suggestions = this.mockData.accounts;
-            } else if (suggestion.type === 'transaction') {
-                this.searchType = 'Transaction';
-                this.suggestions = this.mockData.transactions;
-            } else if (suggestion.type === 'block') {
-                this.searchType = 'Block';
-                this.suggestions = this.mockData.blocks;
-            } else {
-                this.searchType = 'Content';
-                this.suggestions = this.mockData.content;
+            
+            const path = this.getNavigationPath(suggestion);
+            if (path) {
+                this.$dispatch('navigate', { path });
             }
-            // Keep suggestions visible after selection
-            this.showSuggestions = true;
-            // Here you would typically navigate to the appropriate page
-            console.log('Selected:', suggestion);
+            
+            this.query = suggestion.title;
+            this.showSuggestions = false;
         }
     }
 }
