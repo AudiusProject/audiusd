@@ -44,7 +44,7 @@ func Base(pageTitle string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</title><head><link rel=\"icon\" type=\"image/svg+xml\" href=\"/assets/images/Glyph_Black.svg\"><link rel=\"stylesheet\" href=\"/assets/css/output.css\"></head><body class=\"bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</title><head><link rel=\"icon\" type=\"image/svg+xml\" href=\"/assets/images/Glyph_Black.svg\"><link rel=\"stylesheet\" href=\"/assets/css/output.css\"><script defer src=\"https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js\"></script><script src=\"/assets/js/search.js?v=1\"></script></head><body class=\"bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
