@@ -3,6 +3,7 @@ package console
 import (
 	"context"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/AudiusProject/audiusd/pkg/console/templates/pages"
@@ -64,7 +65,7 @@ func (con *Console) SetupRoutes() {
 	e.GET("/validator/:address", con.stubRoute)
 
 	e.GET("/blocks", con.Blocks)
-	e.GET("/block/:height", con.stubRoute)
+	e.GET("/block/:height", con.Block)
 
 	e.GET("/transactions", con.Transactions)
 	e.GET("/transaction/:hash", con.stubRoute)
@@ -137,6 +138,15 @@ func (con *Console) Transactions(c echo.Context) error {
 
 func (con *Console) Content(c echo.Context) error {
 	p := pages.Content()
+	return p.Render(c.Request().Context(), c.Response().Writer)
+}
+
+func (con *Console) Block(c echo.Context) error {
+	height, err := strconv.ParseInt(c.Param("height"), 10, 64)
+	if err != nil {
+		return c.String(http.StatusBadRequest, "Invalid block height")
+	}
+	p := pages.Block(uint64(height))
 	return p.Render(c.Request().Context(), c.Response().Writer)
 }
 

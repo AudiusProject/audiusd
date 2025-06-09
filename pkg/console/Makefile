@@ -15,7 +15,7 @@ templ-watch:
 	templ generate --watch
 
 go-watch:
-	wgo run ./cmd/main.go
+	wgo -file=.css -file=.js -file=.go go run ./cmd/main.go
 
 tailwind-install:
 	curl -sLO https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-macos-arm64
