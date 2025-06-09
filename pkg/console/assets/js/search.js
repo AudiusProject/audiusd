@@ -5,7 +5,6 @@ function searchBar() {
         searchType: '',
         suggestions: [],
         
-        // Mock data for suggestions
         mockData: {
             blocks: [
                 { id: 1, title: 'Block #12345', subtitle: 'Added 2 hours ago', type: 'block' },
@@ -34,7 +33,7 @@ function searchBar() {
             // Show all suggestions when focused
             this.$watch('showSuggestions', (value) => {
                 console.log('showSuggestions changed:', value);
-                if (value && !this.query) {
+                if (value) {
                     console.log('Showing all suggestions');
                     this.showAllSuggestions();
                 }
@@ -53,6 +52,7 @@ function searchBar() {
             console.log('All suggestions:', this.suggestions);
             this.suggestions = this.groupSuggestionsByType(this.suggestions);
             console.log('Grouped suggestions:', this.suggestions);
+            this.showSuggestions = true;
         },
 
         handleInput() {
@@ -63,16 +63,18 @@ function searchBar() {
                 return;
             }
 
-            // For partial matches, don't show any suggestions
+            // For 0x inputs, show filtered suggestions
             if (this.query.startsWith('0x')) {
                 console.log('Starts with 0x');
-                if (this.query.length < 42) { // 0x + 40 chars
-                    console.log('Partial address');
-                    this.searchType = '';
-                    this.suggestions = [];
-                    this.showSuggestions = false;
-                    return;
-                }
+                // Show both accounts and transactions for any 0x input
+                this.suggestions = [
+                    ...this.mockData.accounts,
+                    ...this.mockData.transactions
+                ].filter(suggestion => 
+                    suggestion.title.toLowerCase().includes(this.query.toLowerCase())
+                );
+                
+                // Set search type based on length and format
                 if (this.query.match(/^0x[a-fA-F0-9]{40}$/)) {
                     console.log('Full address match');
                     this.searchType = 'Account';
@@ -81,12 +83,12 @@ function searchBar() {
                     console.log('Full transaction match');
                     this.searchType = 'Transaction';
                     this.suggestions = this.mockData.transactions;
+                } else if (this.query.length <= 42) {
+                    console.log('Partial address - showing filtered suggestions');
+                    this.searchType = 'Account';
                 } else {
-                    console.log('Invalid 0x format');
-                    this.searchType = '';
-                    this.suggestions = [];
-                    this.showSuggestions = false;
-                    return;
+                    console.log('Partial transaction - showing filtered suggestions');
+                    this.searchType = 'Transaction';
                 }
             } else if (this.query.match(/^[0-9]+$/)) {
                 console.log('Block number match');
@@ -103,12 +105,6 @@ function searchBar() {
                 this.showSuggestions = false;
                 return;
             }
-
-            // Filter suggestions based on query
-            this.suggestions = this.suggestions.filter(suggestion => 
-                suggestion.title.toLowerCase().includes(this.query.toLowerCase()) ||
-                suggestion.subtitle.toLowerCase().includes(this.query.toLowerCase())
-            );
 
             // Group suggestions by type
             this.suggestions = this.groupSuggestionsByType(this.suggestions);

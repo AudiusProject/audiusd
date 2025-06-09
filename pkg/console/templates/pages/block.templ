@@ -1,0 +1,14 @@
+package pages
+
+import (
+	"fmt"
+	"github.com/AudiusProject/audiusd/pkg/console/templates/layouts"
+)
+
+templ Block(block uint64) {
+	@layouts.Base(fmt.Sprintf("Block %d", block)) {
+		<div>
+			<div>Block { fmt.Sprintf("%d", block) }</div>
+		</div>
+	}
+}
