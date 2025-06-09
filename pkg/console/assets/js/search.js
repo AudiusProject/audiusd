@@ -4,6 +4,7 @@ function searchBar() {
         showSuggestions: false,
         searchType: '',
         suggestions: [],
+        isLoading: false,
         
         mockData: {
             blocks: [
@@ -30,88 +31,104 @@ function searchBar() {
 
         init() {
             console.log('Search component initialized');
-            // Show all suggestions when focused
             this.$watch('showSuggestions', (value) => {
                 console.log('showSuggestions changed:', value);
                 if (value) {
                     console.log('Showing all suggestions');
-                    this.showAllSuggestions();
+                    this.fetchAllSuggestions();
                 }
             });
         },
 
-        showAllSuggestions() {
-            console.log('Showing all suggestions');
-            this.searchType = 'All';
-            this.suggestions = [
-                ...this.mockData.blocks,
-                ...this.mockData.accounts,
-                ...this.mockData.transactions,
-                ...this.mockData.content
-            ];
-            console.log('All suggestions:', this.suggestions);
-            this.suggestions = this.groupSuggestionsByType(this.suggestions);
-            console.log('Grouped suggestions:', this.suggestions);
-            this.showSuggestions = true;
+        async fetchAllSuggestions() {
+            this.isLoading = true;
+            try {
+                // Simulate API delay
+                await new Promise(resolve => setTimeout(resolve, 300));
+                
+                const allSuggestions = [
+                    ...this.mockData.blocks,
+                    ...this.mockData.accounts,
+                    ...this.mockData.transactions,
+                    ...this.mockData.content
+                ];
+                
+                this.searchType = 'All';
+                this.suggestions = this.groupSuggestionsByType(allSuggestions);
+                this.showSuggestions = true;
+            } catch (error) {
+                console.error('Error fetching suggestions:', error);
+            } finally {
+                this.isLoading = false;
+            }
         },
 
-        handleInput() {
+        async handleInput() {
             console.log('Input changed:', this.query);
+            
             // Clear type and suggestions if query is empty
             if (!this.query.trim()) {
-                this.showAllSuggestions();
+                await this.fetchAllSuggestions();
                 return;
             }
 
-            // For 0x inputs, show filtered suggestions
-            if (this.query.startsWith('0x')) {
-                console.log('Starts with 0x');
-                // Show both accounts and transactions for any 0x input
-                this.suggestions = [
-                    ...this.mockData.accounts,
-                    ...this.mockData.transactions
-                ].filter(suggestion => 
-                    suggestion.title.toLowerCase().includes(this.query.toLowerCase())
-                );
+            this.isLoading = true;
+            try {
+                // Simulate API delay
+                await new Promise(resolve => setTimeout(resolve, 300));
+
+                let results = [];
                 
-                // Set search type based on length and format
-                if (this.query.match(/^0x[a-fA-F0-9]{40}$/)) {
-                    console.log('Full address match');
-                    this.searchType = 'Account';
-                    this.suggestions = this.mockData.accounts;
-                } else if (this.query.match(/^0x[a-fA-F0-9]{64}$/)) {
-                    console.log('Full transaction match');
-                    this.searchType = 'Transaction';
-                    this.suggestions = this.mockData.transactions;
-                } else if (this.query.length <= 42) {
-                    console.log('Partial address - showing filtered suggestions');
-                    this.searchType = 'Account';
+                // For 0x inputs, show filtered suggestions
+                if (this.query.startsWith('0x')) {
+                    console.log('Starts with 0x');
+                    results = [
+                        ...this.mockData.accounts,
+                        ...this.mockData.transactions
+                    ].filter(suggestion => 
+                        suggestion.title.toLowerCase().includes(this.query.toLowerCase())
+                    );
+                    
+                    // Set search type based on length and format
+                    if (this.query.match(/^0x[a-fA-F0-9]{40}$/)) {
+                        console.log('Full address match');
+                        this.searchType = 'Account';
+                        results = this.mockData.accounts;
+                    } else if (this.query.match(/^0x[a-fA-F0-9]{64}$/)) {
+                        console.log('Full transaction match');
+                        this.searchType = 'Transaction';
+                        results = this.mockData.transactions;
+                    } else if (this.query.length <= 42) {
+                        console.log('Partial address - showing filtered suggestions');
+                        this.searchType = 'Account';
+                    } else {
+                        console.log('Partial transaction - showing filtered suggestions');
+                        this.searchType = 'Transaction';
+                    }
+                } else if (this.query.match(/^[0-9]+$/)) {
+                    console.log('Block number match');
+                    this.searchType = 'Block';
+                    results = this.mockData.blocks;
+                } else if (this.query.match(/^[a-zA-Z0-9_\- ]+$/)) {
+                    console.log('Content match');
+                    this.searchType = 'Content';
+                    results = this.mockData.content;
                 } else {
-                    console.log('Partial transaction - showing filtered suggestions');
-                    this.searchType = 'Transaction';
+                    console.log('No match');
+                    this.searchType = '';
+                    this.suggestions = [];
+                    this.showSuggestions = false;
+                    return;
                 }
-            } else if (this.query.match(/^[0-9]+$/)) {
-                console.log('Block number match');
-                this.searchType = 'Block';
-                this.suggestions = this.mockData.blocks;
-            } else if (this.query.match(/^[a-zA-Z0-9_\- ]+$/)) {
-                console.log('Content match');
-                this.searchType = 'Content';
-                this.suggestions = this.mockData.content;
-            } else {
-                console.log('No match');
-                this.searchType = '';
-                this.suggestions = [];
-                this.showSuggestions = false;
-                return;
+
+                // Group suggestions by type
+                this.suggestions = this.groupSuggestionsByType(results);
+                this.showSuggestions = true;
+            } catch (error) {
+                console.error('Error handling input:', error);
+            } finally {
+                this.isLoading = false;
             }
-
-            // Group suggestions by type
-            this.suggestions = this.groupSuggestionsByType(this.suggestions);
-
-            // Always show suggestions if we have them
-            this.showSuggestions = true;
-            console.log('Final suggestions:', this.suggestions);
         },
 
         groupSuggestionsByType(suggestions) {
