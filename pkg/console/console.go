@@ -19,6 +19,9 @@ var cssFS embed.FS
 //go:embed assets/images
 var imagesFS embed.FS
 
+//go:embed assets/js
+var jsFS embed.FS
+
 type Console struct {
 	e   *echo.Echo
 	etl *etl.ETLService
@@ -46,8 +49,10 @@ func (con *Console) SetupRoutes() {
 
 	cssHandler := echo.MustSubFS(cssFS, "assets/css")
 	imagesHandler := echo.MustSubFS(imagesFS, "assets/images")
+	jsHandler := echo.MustSubFS(jsFS, "assets/js")
 	e.StaticFS("/assets/css", cssHandler)
 	e.StaticFS("/assets/images", imagesHandler)
+	e.StaticFS("/assets/js", jsHandler)
 
 	// Apply cache control middleware to static asset routes
 	e.Use(cacheControl)

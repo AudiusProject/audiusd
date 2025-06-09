@@ -29,7 +29,7 @@ func Frame(pageTitle string) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div><div class=\"flex justify-between m-3\"><div class=\"flex justify-center items-center gap-2\"><img src=\"/assets/images/Glyph_Black.svg\" alt=\"Audius Logo\" class=\"h-10 w-10 dark:invert\"><div class=\"text-2xl font-bold\">Console</div></div></div><div class=\"px-36\"><div class=\"flex justify-between py-3\"><div><a href=\"/\">Dashboard</a></div><div><a href=\"/validators\">Validators</a></div><div><a href=\"/transactions\">Transactions</a></div><div><a href=\"/blocks\">Blocks</a></div><div><a href=\"/content\">Content</a></div></div><div class=\"flex flex-col gap-3\"><div class=\"flex w-full\"><div class=\"w-1/3 text-2xl font-bold\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"px-30\"><div class=\"flex justify-between py-3\"><div class=\"flex justify-center items-center gap-2\"><img src=\"/assets/images/Glyph_Black.svg\" alt=\"Audius Logo\" class=\"h-10 w-10 dark:invert\"><div class=\"text-2xl font-bold\">Console</div></div></div><div class=\"\"><div class=\"flex justify-between py-3\"><div><a href=\"/\">Dashboard</a></div><div><a href=\"/validators\">Validators</a></div><div><a href=\"/transactions\">Transactions</a></div><div><a href=\"/blocks\">Blocks</a></div><div><a href=\"/content\">Content</a></div></div><div class=\"flex flex-col gap-3\"><div class=\"flex w-full\"><div class=\"w-1/3 text-2xl font-bold\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -42,7 +42,7 @@ func Frame(pageTitle string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</div><div class=\"w-2/3\"><input type=\"text\" placeholder=\"Search\" class=\"w-full rounded-md border-2 border-gray-300 p-2 dark:bg-gray-800 dark:text-gray-100\"></div></div><div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</div><div class=\"w-2/3\"><div class=\"relative\" x-data=\"searchBar()\" x-init=\"init()\"><input type=\"text\" placeholder=\"Search by block number, address, tx hash, track title, or username...\" class=\"w-full rounded-md border-2 border-gray-300 p-2 dark:bg-gray-800 dark:text-gray-100\" x-model=\"query\" @input=\"handleInput\" @focus=\"showSuggestions = true\"><div class=\"absolute right-2 top-1/2 -translate-y-1/2 text-sm text-gray-500 dark:text-gray-400\" x-text=\"searchType\"></div><div class=\"absolute w-full mt-1 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700\" x-show=\"showSuggestions && suggestions.length > 0\" @click.away=\"showSuggestions = false\"><div class=\"py-1\"><template x-for=\"suggestion in suggestions\" :key=\"suggestion.id\"><div class=\"px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer\" :class=\"{ 'bg-gray-50 dark:bg-gray-700 font-medium': suggestion.isHeader }\" @click=\"selectSuggestion(suggestion)\"><div class=\"text-sm\" :class=\"suggestion.isHeader ? 'text-gray-500 dark:text-gray-400' : 'text-gray-900 dark:text-gray-100'\" x-text=\"suggestion.title\"></div><div x-show=\"!suggestion.isHeader\" class=\"text-xs text-gray-500 dark:text-gray-400\" x-text=\"suggestion.subtitle\"></div></div></template></div></div></div></div></div><div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -50,7 +50,7 @@ func Frame(pageTitle string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</div></div></div><div class=\"flex justify-between\"><div>made by alec</div><div>copyright 2025</div></div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</div></div></div><div class=\"mt-8 border-t border-gray-200 dark:border-gray-700 pt-4\"><div class=\"flex justify-between items-center text-sm text-gray-500 dark:text-gray-400\"><div class=\"flex items-center gap-4\"><a href=\"https://github.com/audiusproject\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"hover:text-gray-700 dark:hover:text-gray-300\">GitHub</a> <a href=\"https://docs.audius.org\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"hover:text-gray-700 dark:hover:text-gray-300\">Docs</a> <a href=\"https://api.audius.org\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"hover:text-gray-700 dark:hover:text-gray-300\">API</a></div><div class=\"flex items-center gap-4\"><span>Made with ⚡️ by the Protocol Team | © 2025 Audius</span></div></div></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
