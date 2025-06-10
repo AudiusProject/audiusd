@@ -14,6 +14,13 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+const (
+	TxTypePlay                    = "play"
+	TxTypeManageEntity            = "manage_entity"
+	TxTypeValidatorRegistration   = "validator_registration"
+	TxTypeValidatorDeregistration = "validator_deregistration"
+)
+
 func (etl *ETLService) Run() error {
 	dbUrl := etl.dbURL
 	if dbUrl == "" {
@@ -124,9 +131,12 @@ func (etl *ETLService) indexBlocks() error {
 		}
 
 		txs := block.Msg.Block.Transactions
-		for _, tx := range txs {
+		for index, tx := range txs {
+			txType := ""
+
 			switch signedTx := tx.Transaction.Transaction.(type) {
 			case *v1.SignedTransaction_Plays:
+				txType = TxTypePlay
 				for _, play := range signedTx.Plays.GetPlays() {
 					etl.db.InsertPlay(context.Background(), db.InsertPlayParams{
 						Address:     play.UserId,
@@ -140,6 +150,7 @@ func (etl *ETLService) indexBlocks() error {
 					})
 				}
 			case *v1.SignedTransaction_ManageEntity:
+				txType = TxTypeManageEntity
 				me := signedTx.ManageEntity
 				etl.db.InsertManageEntity(context.Background(), db.InsertManageEntityParams{
 					Address:     me.GetSigner(),
@@ -154,6 +165,7 @@ func (etl *ETLService) indexBlocks() error {
 					TxHash:      tx.Hash,
 				})
 			case *v1.SignedTransaction_Attestation:
+				txType = TxTypeValidatorRegistration
 				at := signedTx.Attestation
 				if at.GetValidatorRegistration() != nil {
 					vr := at.GetValidatorRegistration()
@@ -171,6 +183,7 @@ func (etl *ETLService) indexBlocks() error {
 					})
 				}
 				if at.GetValidatorDeregistration() != nil {
+					txType = TxTypeValidatorDeregistration
 					vd := at.GetValidatorDeregistration()
 					etl.db.InsertValidatorDeregistration(context.Background(), db.InsertValidatorDeregistrationParams{
 						CometAddress: vd.CometAddress,
@@ -180,6 +193,13 @@ func (etl *ETLService) indexBlocks() error {
 					})
 				}
 			}
+
+			etl.db.InsertTransaction(context.Background(), db.InsertTransactionParams{
+				TxHash:      tx.Hash,
+				BlockHeight: block.Msg.Block.Height,
+				Index:       int64(index),
+				TxType:      txType,
+			})
 		}
 
 		if etl.endingBlockHeight > 0 && block.Msg.Block.Height >= etl.endingBlockHeight {

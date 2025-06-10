@@ -130,22 +130,13 @@ insert into etl_validator_deregistrations (
 values ($1, $2, $3, $4)
 returning *;
 
--- upsert a new account record
--- name: UpsertAccount :one
-insert into etl_accounts (address, pubkey)
-values ($1, $2) on conflict (address) do
-update
-set pubkey = excluded.pubkey
-returning *;
-
 -- insert a new transaction record
 -- name: InsertTransaction :one
 insert into etl_transactions (
         tx_hash,
         block_height,
         index,
-        tx_type,
-        tx_data
+        tx_type
     )
-values ($1, $2, $3, $4, $5)
+values ($1, $2, $3, $4)
 returning *;

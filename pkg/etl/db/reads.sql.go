@@ -702,3 +702,119 @@ func (q *Queries) GetValidatorRegistrations(ctx context.Context) ([]GetValidator
 	}
 	return items, nil
 }
+
+const searchAddress = `-- name: SearchAddress :many
+select address
+from etl_manage_entities
+where address % $1
+    and similarity(address, $1) > 0.4
+    and address like $1 || '%'
+order by similarity(address, $1) desc
+`
+
+func (q *Queries) SearchAddress(ctx context.Context, address string) ([]string, error) {
+	rows, err := q.db.Query(ctx, searchAddress, address)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var address string
+		if err := rows.Scan(&address); err != nil {
+			return nil, err
+		}
+		items = append(items, address)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const searchBlockHeight = `-- name: SearchBlockHeight :many
+select block_height
+from etl_blocks
+where block_height::text % $1
+    and similarity(block_height::text, $1) > 0.4
+    and block_height::text like $1 || '%'
+order by similarity(block_height::text, $1) desc
+`
+
+func (q *Queries) SearchBlockHeight(ctx context.Context, blockHeight int64) ([]int64, error) {
+	rows, err := q.db.Query(ctx, searchBlockHeight, blockHeight)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []int64
+	for rows.Next() {
+		var block_height int64
+		if err := rows.Scan(&block_height); err != nil {
+			return nil, err
+		}
+		items = append(items, block_height)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const searchTxHash = `-- name: SearchTxHash :many
+select tx_hash
+from etl_transactions
+where tx_hash % $1
+    and similarity(tx_hash, $1) > 0.4
+    and tx_hash like $1 || '%'
+order by similarity(tx_hash, $1) desc
+`
+
+func (q *Queries) SearchTxHash(ctx context.Context, txHash string) ([]string, error) {
+	rows, err := q.db.Query(ctx, searchTxHash, txHash)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var tx_hash string
+		if err := rows.Scan(&tx_hash); err != nil {
+			return nil, err
+		}
+		items = append(items, tx_hash)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const searchValidatorRegistration = `-- name: SearchValidatorRegistration :many
+select address
+from etl_validator_registrations
+where address % $1
+    and similarity(address, $1) > 0.4
+    and address like $1 || '%'
+order by similarity(address, $1) desc
+`
+
+func (q *Queries) SearchValidatorRegistration(ctx context.Context, address string) ([]string, error) {
+	rows, err := q.db.Query(ctx, searchValidatorRegistration, address)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var address string
+		if err := rows.Scan(&address); err != nil {
+			return nil, err
+		}
+		items = append(items, address)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
