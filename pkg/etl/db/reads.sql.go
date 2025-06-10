@@ -12,12 +12,23 @@ import (
 )
 
 const getAvailableCities = `-- name: GetAvailableCities :many
-select city, region, country, count(*) as play_count
+select city,
+    region,
+    country,
+    count(*) as play_count
 from etl_plays
 where city is not null
-  and (nullif($1, '')::text is null or lower(country) = lower($1))
-  and (nullif($2, '')::text is null or lower(region) = lower($2))
-group by city, region, country
+    and (
+        nullif($1, '')::text is null
+        or lower(country) = lower($1)
+    )
+    and (
+        nullif($2, '')::text is null
+        or lower(region) = lower($2)
+    )
+group by city,
+    region,
+    country
 order by count(*) desc
 limit $3
 `
@@ -61,7 +72,8 @@ func (q *Queries) GetAvailableCities(ctx context.Context, arg GetAvailableCities
 }
 
 const getAvailableCountries = `-- name: GetAvailableCountries :many
-select country, count(*) as play_count
+select country,
+    count(*) as play_count
 from etl_plays
 where country is not null
 group by country
@@ -95,11 +107,17 @@ func (q *Queries) GetAvailableCountries(ctx context.Context, limit int32) ([]Get
 }
 
 const getAvailableRegions = `-- name: GetAvailableRegions :many
-select region, country, count(*) as play_count
+select region,
+    country,
+    count(*) as play_count
 from etl_plays
 where region is not null
-  and (nullif($1, '')::text is null or lower(country) = lower($1))
-group by region, country
+    and (
+        nullif($1, '')::text is null
+        or lower(country) = lower($1)
+    )
+group by region,
+    country
 order by count(*) desc
 limit $2
 `
@@ -136,9 +154,8 @@ func (q *Queries) GetAvailableRegions(ctx context.Context, arg GetAvailableRegio
 }
 
 const getBlockRangeByTime = `-- name: GetBlockRangeByTime :one
-select
-  min(block_height) as start_block,
-  max(block_height) as end_block
+select min(block_height) as start_block,
+    max(block_height) as end_block
 from etl_blocks
 where block_time between $1 and $2
 `
@@ -160,10 +177,64 @@ func (q *Queries) GetBlockRangeByTime(ctx context.Context, arg GetBlockRangeByTi
 	return i, err
 }
 
+const getBlockTransactionHashes = `-- name: GetBlockTransactionHashes :many
+select etl_plays.tx_hash
+from etl_plays
+where etl_plays.block_height = $1
+union all
+select etl_validator_registrations.tx_hash
+from etl_validator_registrations
+where etl_validator_registrations.block_height = $1
+union all
+select etl_validator_deregistrations.tx_hash
+from etl_validator_deregistrations
+where etl_validator_deregistrations.block_height = $1
+`
+
+func (q *Queries) GetBlockTransactionHashes(ctx context.Context, blockHeight int64) ([]string, error) {
+	rows, err := q.db.Query(ctx, getBlockTransactionHashes, blockHeight)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var tx_hash string
+		if err := rows.Scan(&tx_hash); err != nil {
+			return nil, err
+		}
+		items = append(items, tx_hash)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getIndexedBlock = `-- name: GetIndexedBlock :one
+select id, proposer_address, block_height, block_time, created_at, updated_at
+from etl_blocks
+where block_height = $1
+`
+
+func (q *Queries) GetIndexedBlock(ctx context.Context, blockHeight int64) (EtlBlock, error) {
+	row := q.db.QueryRow(ctx, getIndexedBlock, blockHeight)
+	var i EtlBlock
+	err := row.Scan(
+		&i.ID,
+		&i.ProposerAddress,
+		&i.BlockHeight,
+		&i.BlockTime,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getLatestIndexedBlock = `-- name: GetLatestIndexedBlock :one
-select block_height 
-from etl_blocks 
-order by id desc 
+select block_height
+from etl_blocks
+order by id desc
 limit 1
 `
 
@@ -176,8 +247,8 @@ func (q *Queries) GetLatestIndexedBlock(ctx context.Context) (int64, error) {
 }
 
 const getPlayCountByAddress = `-- name: GetPlayCountByAddress :one
-select count(*) as play_count 
-from etl_plays 
+select count(*) as play_count
+from etl_plays
 where address = $1
 `
 
@@ -190,8 +261,8 @@ func (q *Queries) GetPlayCountByAddress(ctx context.Context, address string) (in
 }
 
 const getPlayCountByTrack = `-- name: GetPlayCountByTrack :one
-select count(*) as play_count 
-from etl_plays 
+select count(*) as play_count
+from etl_plays
 where track_id = $1
 `
 
@@ -204,18 +275,19 @@ func (q *Queries) GetPlayCountByTrack(ctx context.Context, trackID string) (int6
 }
 
 const getPlays = `-- name: GetPlays :many
-select 
-    address,
+select address,
     track_id,
-    extract(epoch from played_at)::bigint as timestamp,
+    extract(
+        epoch
+        from played_at
+    )::bigint as timestamp,
     city,
     country,
     region,
     block_height,
     tx_hash
 from etl_plays
-where 
-    block_height between $1 and $2
+where block_height between $1 and $2
 order by played_at desc
 limit $3 offset $4
 `
@@ -273,18 +345,19 @@ func (q *Queries) GetPlays(ctx context.Context, arg GetPlaysParams) ([]GetPlaysR
 }
 
 const getPlaysByAddress = `-- name: GetPlaysByAddress :many
-select 
-    address,
+select address,
     track_id,
-    extract(epoch from played_at)::bigint as timestamp,
+    extract(
+        epoch
+        from played_at
+    )::bigint as timestamp,
     city,
     country,
     region,
     block_height,
     tx_hash
 from etl_plays
-where 
-    address = $1
+where address = $1
     and block_height between $2 and $3
 order by played_at desc
 limit $4 offset $5
@@ -345,12 +418,27 @@ func (q *Queries) GetPlaysByAddress(ctx context.Context, arg GetPlaysByAddressPa
 }
 
 const getPlaysByLocation = `-- name: GetPlaysByLocation :many
-select tx_hash, address, track_id, played_at, city, region, country, created_at
+select tx_hash,
+    address,
+    track_id,
+    played_at,
+    city,
+    region,
+    country,
+    created_at
 from etl_plays
-where 
-    (nullif($1, '')::text is null or lower(city) = lower($1)) and
-    (nullif($2, '')::text is null or lower(region) = lower($2)) and
-    (nullif($3, '')::text is null or lower(country) = lower($3))
+where (
+        nullif($1, '')::text is null
+        or lower(city) = lower($1)
+    )
+    and (
+        nullif($2, '')::text is null
+        or lower(region) = lower($2)
+    )
+    and (
+        nullif($3, '')::text is null
+        or lower(country) = lower($3)
+    )
 order by played_at desc
 limit $4
 `
@@ -408,18 +496,19 @@ func (q *Queries) GetPlaysByLocation(ctx context.Context, arg GetPlaysByLocation
 }
 
 const getPlaysByTrack = `-- name: GetPlaysByTrack :many
-select 
-    address,
+select address,
     track_id,
-    extract(epoch from played_at)::bigint as timestamp,
+    extract(
+        epoch
+        from played_at
+    )::bigint as timestamp,
     city,
     country,
     region,
     block_height,
     tx_hash
 from etl_plays
-where 
-    track_id = $1
+where track_id = $1
     and block_height between $2 and $3
 order by played_at desc
 limit $4 offset $5
@@ -482,10 +571,19 @@ func (q *Queries) GetPlaysByTrack(ctx context.Context, arg GetPlaysByTrackParams
 const getPlaysCount = `-- name: GetPlaysCount :one
 select count(*) as total
 from etl_plays
-where 
-    ($1::text is null or address = $1)
-    and ($2::text is null or track_id = $2)
-    and ($3::timestamp is null or $4::timestamp is null or played_at between $3 and $4)
+where (
+        $1::text is null
+        or address = $1
+    )
+    and (
+        $2::text is null
+        or track_id = $2
+    )
+    and (
+        $3::timestamp is null
+        or $4::timestamp is null
+        or played_at between $3 and $4
+    )
 `
 
 type GetPlaysCountParams struct {
@@ -509,8 +607,7 @@ func (q *Queries) GetPlaysCount(ctx context.Context, arg GetPlaysCountParams) (i
 }
 
 const getValidatorDeregistrations = `-- name: GetValidatorDeregistrations :many
-select 
-    comet_address,
+select comet_address,
     comet_pubkey,
     block_height,
     tx_hash
@@ -551,8 +648,7 @@ func (q *Queries) GetValidatorDeregistrations(ctx context.Context) ([]GetValidat
 }
 
 const getValidatorRegistrations = `-- name: GetValidatorRegistrations :many
-select 
-    address,
+select address,
     comet_address,
     comet_pubkey,
     eth_block,

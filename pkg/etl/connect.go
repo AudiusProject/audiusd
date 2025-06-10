@@ -10,6 +10,7 @@ import (
 	"github.com/AudiusProject/audiusd/pkg/common"
 	"github.com/AudiusProject/audiusd/pkg/etl/db"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 var _ v1connect.ETLServiceHandler = (*ETLService)(nil)
@@ -24,13 +25,6 @@ type ETLService struct {
 	pool   *pgxpool.Pool
 	db     *db.Queries
 	logger *common.Logger
-}
-
-func NewETLService(core corev1connect.CoreServiceClient, logger *common.Logger) *ETLService {
-	return &ETLService{
-		logger: logger.Child("etl"),
-		core:   core,
-	}
 }
 
 func (e *ETLService) SetDBURL(dbURL string) {
@@ -108,4 +102,61 @@ func (e *ETLService) GetManageEntities(context.Context, *connect.Request[v1.GetM
 func (e *ETLService) GetLocation(context.Context, *connect.Request[v1.GetLocationRequest]) (*connect.Response[v1.GetLocationResponse], error) {
 	res := new(v1.GetLocationResponse)
 	return connect.NewResponse(res), nil
+}
+
+// GetBlock implements v1connect.ETLServiceHandler.
+func (e *ETLService) GetBlock(ctx context.Context, req *connect.Request[v1.GetBlockRequest]) (*connect.Response[v1.GetBlockResponse], error) {
+	if req.Msg.Height <= 0 {
+		height, err := e.db.GetLatestIndexedBlock(ctx)
+		if err != nil {
+			return nil, err
+		}
+		req.Msg.Height = height
+	}
+
+	block, err := e.db.GetIndexedBlock(ctx, req.Msg.Height)
+	if err != nil {
+		return nil, err
+	}
+
+	txHashes, err := e.db.GetBlockTransactionHashes(ctx, req.Msg.Height)
+	if err != nil {
+		return nil, err
+	}
+
+	return connect.NewResponse(&v1.GetBlockResponse{
+		Block: &v1.Block{
+			Height:       block.BlockHeight,
+			Proposer:     block.ProposerAddress,
+			Timestamp:    timestamppb.New(block.BlockTime.Time),
+			Transactions: txHashes,
+		},
+	}), nil
+}
+
+// StreamBlocks implements v1connect.ETLServiceHandler.
+func (e *ETLService) StreamBlocks(context.Context, *connect.Request[v1.StreamBlocksRequest], *connect.ServerStream[v1.StreamBlocksResponse]) error {
+	panic("unimplemented")
+}
+
+func NewETLService(core corev1connect.CoreServiceClient, logger *common.Logger) *ETLService {
+	return &ETLService{
+		logger: logger.Child("etl"),
+		core:   core,
+	}
+}
+
+// GetTransaction implements v1connect.ETLServiceHandler.
+func (e *ETLService) GetTransaction(context.Context, *connect.Request[v1.GetTransactionRequest]) (*connect.Response[v1.GetTransactionResponse], error) {
+	panic("unimplemented")
+}
+
+// StreamTransactions implements v1connect.ETLServiceHandler.
+func (e *ETLService) StreamTransactions(context.Context, *connect.Request[v1.StreamTransactionsRequest], *connect.ServerStream[v1.StreamTransactionsResponse]) error {
+	panic("unimplemented")
+}
+
+// Search implements v1connect.ETLServiceHandler.
+func (e *ETLService) Search(context.Context, *connect.Request[v1.SearchRequest]) (*connect.Response[v1.SearchResponse], error) {
+	panic("unimplemented")
 }
