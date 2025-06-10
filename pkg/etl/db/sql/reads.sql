@@ -202,3 +202,35 @@ union all
 select etl_validator_deregistrations.tx_hash
 from etl_validator_deregistrations
 where etl_validator_deregistrations.block_height = $1;
+
+-- name: SearchBlockHeight :many
+select block_height
+from etl_blocks
+where block_height::text % $1
+    and similarity(block_height::text, $1) > 0.4
+    and block_height::text like $1 || '%'
+order by similarity(block_height::text, $1) desc;
+
+-- name: SearchTxHash :many
+select tx_hash
+from etl_transactions
+where tx_hash % $1
+    and similarity(tx_hash, $1) > 0.4
+    and tx_hash like $1 || '%'
+order by similarity(tx_hash, $1) desc;
+
+-- name: SearchAddress :many
+select address
+from etl_manage_entities
+where address % $1
+    and similarity(address, $1) > 0.4
+    and address like $1 || '%'
+order by similarity(address, $1) desc;
+
+-- name: SearchValidatorRegistration :many
+select address
+from etl_validator_registrations
+where address % $1
+    and similarity(address, $1) > 0.4
+    and address like $1 || '%'
+order by similarity(address, $1) desc;

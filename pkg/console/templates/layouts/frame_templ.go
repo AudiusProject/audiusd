@@ -29,7 +29,7 @@ func Frame(pageTitle string) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"px-30\"><div class=\"flex justify-between py-3\"><div class=\"flex justify-center items-center gap-2\"><img src=\"/assets/images/Glyph_Black.svg\" alt=\"Audius Logo\" class=\"h-10 w-10 dark:invert\"><div class=\"text-2xl font-bold\">Console</div></div></div><div class=\"\"><div class=\"flex justify-between py-3\"><div><a href=\"/\">Dashboard</a></div><div><a href=\"/validators\">Validators</a></div><div><a href=\"/transactions\">Transactions</a></div><div><a href=\"/blocks\">Blocks</a></div><div><a href=\"/content\">Content</a></div></div><div class=\"flex flex-col gap-3\"><div class=\"flex w-full\"><div class=\"w-1/3 text-2xl font-bold\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"px-30\"><div class=\"flex justify-between py-3\"><div class=\"flex justify-center items-center gap-2\"><img src=\"/assets/images/Glyph_Black.svg\" alt=\"Audius Logo\" class=\"h-10 w-10 dark:invert\"><div class=\"text-2xl font-bold\">Console</div></div></div><div class=\"flex flex-col gap-3\"><div class=\"flex justify-between py-3\"><div><a href=\"/\">Dashboard</a></div><div><a href=\"/validators\">Validators</a></div><div><a href=\"/transactions\">Transactions</a></div><div><a href=\"/blocks\">Blocks</a></div><div><a href=\"/content\">Content</a></div></div><div class=\"\"><div class=\"flex w-full\"><div class=\"w-1/3 text-2xl font-bold\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

@@ -361,11 +361,10 @@ insert into etl_transactions (
         tx_hash,
         block_height,
         index,
-        tx_type,
-        tx_data
+        tx_type
     )
-values ($1, $2, $3, $4, $5)
-returning id, tx_hash, block_height, index, tx_type, tx_data, created_at, updated_at
+values ($1, $2, $3, $4)
+returning id, tx_hash, block_height, index, tx_type, created_at, updated_at
 `
 
 type InsertTransactionParams struct {
@@ -373,7 +372,6 @@ type InsertTransactionParams struct {
 	BlockHeight int64  `json:"block_height"`
 	Index       int64  `json:"index"`
 	TxType      string `json:"tx_type"`
-	TxData      []byte `json:"tx_data"`
 }
 
 // insert a new transaction record
@@ -383,7 +381,6 @@ func (q *Queries) InsertTransaction(ctx context.Context, arg InsertTransactionPa
 		arg.BlockHeight,
 		arg.Index,
 		arg.TxType,
-		arg.TxData,
 	)
 	var i EtlTransaction
 	err := row.Scan(
@@ -392,7 +389,6 @@ func (q *Queries) InsertTransaction(ctx context.Context, arg InsertTransactionPa
 		&i.BlockHeight,
 		&i.Index,
 		&i.TxType,
-		&i.TxData,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -495,33 +491,6 @@ func (q *Queries) InsertValidatorRegistration(ctx context.Context, arg InsertVal
 		&i.VotingPower,
 		&i.BlockHeight,
 		&i.TxHash,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
-}
-
-const upsertAccount = `-- name: UpsertAccount :one
-insert into etl_accounts (address, pubkey)
-values ($1, $2) on conflict (address) do
-update
-set pubkey = excluded.pubkey
-returning id, address, pubkey, created_at, updated_at
-`
-
-type UpsertAccountParams struct {
-	Address string `json:"address"`
-	Pubkey  []byte `json:"pubkey"`
-}
-
-// upsert a new account record
-func (q *Queries) UpsertAccount(ctx context.Context, arg UpsertAccountParams) (EtlAccount, error) {
-	row := q.db.QueryRow(ctx, upsertAccount, arg.Address, arg.Pubkey)
-	var i EtlAccount
-	err := row.Scan(
-		&i.ID,
-		&i.Address,
-		&i.Pubkey,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)

@@ -89,23 +89,25 @@ create index if not exists etl_validator_deregistrations_block_height_idx on etl
 
 create index if not exists etl_validator_deregistrations_tx_hash_idx on etl_validator_deregistrations(tx_hash);
 
-create table if not exists etl_accounts(
-  id serial primary key,
-  address text not null,
-  pubkey bytea not null,
-  created_at timestamp default current_timestamp,
-  updated_at timestamp default current_timestamp
-);
-
-create index if not exists etl_accounts_address_idx on etl_accounts(address);
-
+-- indexes for search
 create extension if not exists pg_trgm;
 
-create index if not exists etl_accounts_address_trgm on etl_accounts using gin (address gin_trgm_ops);
+-- Basic trigram indexes for fuzzy text search
+create index if not exists etl_blocks_block_height_trgm on etl_blocks using gin ((block_height::text) gin_trgm_ops);
+
+create index if not exists etl_blocks_block_height_prefix on etl_blocks ((block_height::text) text_pattern_ops);
+
+create index if not exists etl_manage_entities_address_trgm on etl_manage_entities using gin (address gin_trgm_ops);
+
+create index if not exists etl_manage_entities_address_prefix on etl_manage_entities (address text_pattern_ops);
 
 create index if not exists etl_transactions_tx_hash_trgm on etl_transactions using gin (tx_hash gin_trgm_ops);
 
-create index if not exists etl_validators_address_trgm on etl_validators using gin (address gin_trgm_ops);
+create index if not exists etl_transactions_tx_hash_prefix on etl_transactions (tx_hash text_pattern_ops);
+
+create index if not exists etl_validator_registrations_address_trgm on etl_validator_registrations using gin (address gin_trgm_ops);
+
+create index if not exists etl_validator_registrations_address_prefix on etl_validator_registrations (address text_pattern_ops);
 
 create table if not exists etl_transactions(
   id serial primary key,
@@ -113,7 +115,6 @@ create table if not exists etl_transactions(
   block_height bigint not null,
   index bigint not null,
   tx_type text not null,
-  tx_data bytea not null,
   created_at timestamp default current_timestamp,
   updated_at timestamp default current_timestamp
 );
