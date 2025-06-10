@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 
+	"connectrpc.com/connect"
+	v1 "github.com/AudiusProject/audiusd/pkg/api/etl/v1"
 	"github.com/AudiusProject/audiusd/pkg/console/templates/pages"
 	"github.com/AudiusProject/audiusd/pkg/etl"
 	"github.com/labstack/echo/v4"
@@ -146,7 +148,15 @@ func (con *Console) Block(c echo.Context) error {
 	if err != nil {
 		return c.String(http.StatusBadRequest, "Invalid block height")
 	}
-	p := pages.Block(uint64(height))
+	block, err := con.etl.GetBlock(c.Request().Context(), &connect.Request[v1.GetBlockRequest]{
+		Msg: &v1.GetBlockRequest{
+			Height: int64(height),
+		},
+	})
+	if err != nil {
+		return c.String(http.StatusInternalServerError, "Failed to get block")
+	}
+	p := pages.Block(block.Msg.Block)
 	return p.Render(c.Request().Context(), c.Response().Writer)
 }
 

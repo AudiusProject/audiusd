@@ -8,6 +8,14 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type EtlAccount struct {
+	ID        int32            `json:"id"`
+	Address   string           `json:"address"`
+	Pubkey    []byte           `json:"pubkey"`
+	CreatedAt pgtype.Timestamp `json:"created_at"`
+	UpdatedAt pgtype.Timestamp `json:"updated_at"`
+}
+
 type EtlBlock struct {
 	ID              int32            `json:"id"`
 	ProposerAddress string           `json:"proposer_address"`
@@ -43,6 +51,17 @@ type EtlPlay struct {
 	PlayedAt    pgtype.Timestamp `json:"played_at"`
 	BlockHeight int64            `json:"block_height"`
 	TxHash      string           `json:"tx_hash"`
+	CreatedAt   pgtype.Timestamp `json:"created_at"`
+	UpdatedAt   pgtype.Timestamp `json:"updated_at"`
+}
+
+type EtlTransaction struct {
+	ID          int32            `json:"id"`
+	TxHash      string           `json:"tx_hash"`
+	BlockHeight int64            `json:"block_height"`
+	Index       int64            `json:"index"`
+	TxType      string           `json:"tx_type"`
+	TxData      []byte           `json:"tx_data"`
 	CreatedAt   pgtype.Timestamp `json:"created_at"`
 	UpdatedAt   pgtype.Timestamp `json:"updated_at"`
 }

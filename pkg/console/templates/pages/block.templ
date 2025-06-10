@@ -2,13 +2,21 @@ package pages
 
 import (
 	"fmt"
+	"github.com/AudiusProject/audiusd/pkg/api/etl/v1"
 	"github.com/AudiusProject/audiusd/pkg/console/templates/layouts"
+	"time"
 )
 
-templ Block(block uint64) {
-	@layouts.Base(fmt.Sprintf("Block %d", block)) {
+templ Block(block *v1.Block) {
+	@layouts.Base(fmt.Sprintf("Block %d", block.Height)) {
 		<div>
-			<div>Block { fmt.Sprintf("%d", block) }</div>
+			<div>
+				<div><a href="/validator/{ block.Proposer }">Validator: { block.Proposer }</a></div>div>
+				<div>Timestamp: { block.Timestamp.AsTime().Format(time.RFC3339) }</div>
+				<div>
+					Transactions: { fmt.Sprintf("%d", len(block.Transactions)) }
+				</div>
+			</div>
 		</div>
 	}
 }
