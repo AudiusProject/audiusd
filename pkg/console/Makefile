@@ -30,7 +30,7 @@ node:
 		--name audiusd-stage \
 		-p 3000:80 \
 		--pull=always \
-		-v $(pwd)/tmp/bolt:/data/bolt \
+		-v $(CURDIR)/tmp/bolt:/data/bolt \
 		-e NETWORK=stage \
 		-e audius_core_root_dir=/data/bolt \
 		-e stateSyncEnable=true \
