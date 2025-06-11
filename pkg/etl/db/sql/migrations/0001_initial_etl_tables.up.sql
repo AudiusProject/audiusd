@@ -92,6 +92,16 @@ create index if not exists etl_validator_deregistrations_tx_hash_idx on etl_vali
 -- indexes for search
 create extension if not exists pg_trgm;
 
+create table if not exists etl_transactions(
+  id serial primary key,
+  tx_hash text not null,
+  block_height bigint not null,
+  index bigint not null,
+  tx_type text not null,
+  created_at timestamp default current_timestamp,
+  updated_at timestamp default current_timestamp
+);
+
 -- Basic trigram indexes for fuzzy text search
 create index if not exists etl_blocks_block_height_trgm on etl_blocks using gin ((block_height::text) gin_trgm_ops);
 
@@ -108,16 +118,6 @@ create index if not exists etl_transactions_tx_hash_prefix on etl_transactions (
 create index if not exists etl_validator_registrations_address_trgm on etl_validator_registrations using gin (address gin_trgm_ops);
 
 create index if not exists etl_validator_registrations_address_prefix on etl_validator_registrations (address text_pattern_ops);
-
-create table if not exists etl_transactions(
-  id serial primary key,
-  tx_hash text not null,
-  block_height bigint not null,
-  index bigint not null,
-  tx_type text not null,
-  created_at timestamp default current_timestamp,
-  updated_at timestamp default current_timestamp
-);
 
 create index if not exists etl_transactions_tx_hash_idx on etl_transactions(tx_hash);
 

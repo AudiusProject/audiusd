@@ -12,13 +12,20 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 const (
-	TxTypePlay                    = "play"
-	TxTypeManageEntity            = "manage_entity"
-	TxTypeValidatorRegistration   = "validator_registration"
-	TxTypeValidatorDeregistration = "validator_deregistration"
+	TxTypePlay                               = "play"
+	TxTypeManageEntity                       = "manage_entity"
+	TxTypeValidatorRegistration              = "validator_registration"
+	TxTypeValidatorDeregistration            = "validator_deregistration"
+	TxTypeValidatorRegistrationLegacy        = "validator_registration_legacy"
+	TxTypeSlaRollup                          = "sla_rollup"
+	TxTypeValidatorMisbehaviorDeregistration = "validator_misbehavior_deregistration"
+	TxTypeStorageProof                       = "storage_proof"
+	TxTypeStorageProofVerification           = "storage_proof_verification"
+	TxTypeRelease                            = "release"
 )
 
 func (etl *ETLService) Run() error {
@@ -47,9 +54,11 @@ func (etl *ETLService) Run() error {
 
 	etl.logger.Infof("starting etl service")
 
-	err = etl.awaitReadiness()
-	if err != nil {
-		return fmt.Errorf("error awaiting readiness: %v", err)
+	if etl.checkReadiness {
+		err = etl.awaitReadiness()
+		if err != nil {
+			etl.logger.Errorf("error awaiting readiness: %v", err)
+		}
 	}
 
 	err = etl.indexBlocks()
@@ -164,10 +173,78 @@ func (etl *ETLService) indexBlocks() error {
 					BlockHeight: block.Msg.Block.Height,
 					TxHash:      tx.Hash,
 				})
+			case *v1.SignedTransaction_ValidatorRegistration:
+				txType = TxTypeValidatorRegistrationLegacy
+				vr := signedTx.ValidatorRegistration
+				etl.db.InsertValidatorRegistrationLegacy(context.Background(), db.InsertValidatorRegistrationLegacyParams{
+					Endpoint:     vr.Endpoint,
+					CometAddress: vr.CometAddress,
+					EthBlock:     vr.EthBlock,
+					NodeType:     vr.NodeType,
+					SpID:         vr.SpId,
+					PubKey:       vr.PubKey,
+					Power:        vr.Power,
+					BlockHeight:  block.Msg.Block.Height,
+					TxHash:       tx.Hash,
+				})
+			case *v1.SignedTransaction_SlaRollup:
+				txType = TxTypeSlaRollup
+				sr := signedTx.SlaRollup
+				slaRollup, err := etl.db.InsertSlaRollup(context.Background(), db.InsertSlaRollupParams{
+					Timestamp:   pgtype.Timestamp{Time: sr.Timestamp.AsTime(), Valid: true},
+					BlockStart:  sr.BlockStart,
+					BlockEnd:    sr.BlockEnd,
+					BlockHeight: block.Msg.Block.Height,
+					TxHash:      tx.Hash,
+				})
+				if err != nil {
+					etl.logger.Errorf("error inserting SLA rollup: %v", err)
+					continue
+				}
+				// Insert SLA node reports
+				for _, report := range sr.Reports {
+					etl.db.InsertSlaNodeReport(context.Background(), db.InsertSlaNodeReportParams{
+						SlaRollupID:       slaRollup.ID,
+						Address:           report.Address,
+						NumBlocksProposed: report.NumBlocksProposed,
+						BlockHeight:       block.Msg.Block.Height,
+						TxHash:            tx.Hash,
+					})
+				}
+			case *v1.SignedTransaction_ValidatorDeregistration:
+				txType = TxTypeValidatorMisbehaviorDeregistration
+				vd := signedTx.ValidatorDeregistration
+				etl.db.InsertValidatorMisbehaviorDeregistration(context.Background(), db.InsertValidatorMisbehaviorDeregistrationParams{
+					CometAddress: vd.CometAddress,
+					PubKey:       vd.PubKey,
+					BlockHeight:  block.Msg.Block.Height,
+					TxHash:       tx.Hash,
+				})
+			case *v1.SignedTransaction_StorageProof:
+				txType = TxTypeStorageProof
+				sp := signedTx.StorageProof
+				etl.db.InsertStorageProof(context.Background(), db.InsertStorageProofParams{
+					Height:          sp.Height,
+					Address:         sp.Address,
+					ProverAddresses: sp.ProverAddresses,
+					Cid:             sp.Cid,
+					ProofSignature:  sp.ProofSignature,
+					BlockHeight:     block.Msg.Block.Height,
+					TxHash:          tx.Hash,
+				})
+			case *v1.SignedTransaction_StorageProofVerification:
+				txType = TxTypeStorageProofVerification
+				spv := signedTx.StorageProofVerification
+				etl.db.InsertStorageProofVerification(context.Background(), db.InsertStorageProofVerificationParams{
+					Height:      spv.Height,
+					Proof:       spv.Proof,
+					BlockHeight: block.Msg.Block.Height,
+					TxHash:      tx.Hash,
+				})
 			case *v1.SignedTransaction_Attestation:
-				txType = TxTypeValidatorRegistration
 				at := signedTx.Attestation
 				if at.GetValidatorRegistration() != nil {
+					txType = TxTypeValidatorRegistration
 					vr := at.GetValidatorRegistration()
 					etl.db.InsertValidatorRegistration(context.Background(), db.InsertValidatorRegistrationParams{
 						Address:      block.Msg.Block.Proposer,
@@ -192,6 +269,19 @@ func (etl *ETLService) indexBlocks() error {
 						TxHash:       tx.Hash,
 					})
 				}
+			case *v1.SignedTransaction_Release:
+				txType = TxTypeRelease
+				// Convert the release message to JSON for storage
+				releaseData, err := protojson.Marshal(signedTx.Release)
+				if err != nil {
+					etl.logger.Errorf("error marshaling release data: %v", err)
+					continue
+				}
+				etl.db.InsertRelease(context.Background(), db.InsertReleaseParams{
+					ReleaseData: releaseData,
+					BlockHeight: block.Msg.Block.Height,
+					TxHash:      tx.Hash,
+				})
 			}
 
 			etl.db.InsertTransaction(context.Background(), db.InsertTransactionParams{

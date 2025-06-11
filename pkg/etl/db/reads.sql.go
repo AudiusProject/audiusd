@@ -177,33 +177,32 @@ func (q *Queries) GetBlockRangeByTime(ctx context.Context, arg GetBlockRangeByTi
 	return i, err
 }
 
-const getBlockTransactionHashes = `-- name: GetBlockTransactionHashes :many
-select etl_plays.tx_hash
-from etl_plays
-where etl_plays.block_height = $1
-union all
-select etl_validator_registrations.tx_hash
-from etl_validator_registrations
-where etl_validator_registrations.block_height = $1
-union all
-select etl_validator_deregistrations.tx_hash
-from etl_validator_deregistrations
-where etl_validator_deregistrations.block_height = $1
+const getBlockTransactions = `-- name: GetBlockTransactions :many
+select id, tx_hash, block_height, index, tx_type, created_at, updated_at from etl_transactions
+where block_height = $1
 `
 
-func (q *Queries) GetBlockTransactionHashes(ctx context.Context, blockHeight int64) ([]string, error) {
-	rows, err := q.db.Query(ctx, getBlockTransactionHashes, blockHeight)
+func (q *Queries) GetBlockTransactions(ctx context.Context, blockHeight int64) ([]EtlTransaction, error) {
+	rows, err := q.db.Query(ctx, getBlockTransactions, blockHeight)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []string
+	var items []EtlTransaction
 	for rows.Next() {
-		var tx_hash string
-		if err := rows.Scan(&tx_hash); err != nil {
+		var i EtlTransaction
+		if err := rows.Scan(
+			&i.ID,
+			&i.TxHash,
+			&i.BlockHeight,
+			&i.Index,
+			&i.TxType,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
 			return nil, err
 		}
-		items = append(items, tx_hash)
+		items = append(items, i)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err

@@ -47,6 +47,60 @@ type EtlPlay struct {
 	UpdatedAt   pgtype.Timestamp `json:"updated_at"`
 }
 
+type EtlRelease struct {
+	ID          int32            `json:"id"`
+	ReleaseData []byte           `json:"release_data"`
+	BlockHeight int64            `json:"block_height"`
+	TxHash      string           `json:"tx_hash"`
+	CreatedAt   pgtype.Timestamp `json:"created_at"`
+	UpdatedAt   pgtype.Timestamp `json:"updated_at"`
+}
+
+type EtlSlaNodeReport struct {
+	ID                int32            `json:"id"`
+	SlaRollupID       int32            `json:"sla_rollup_id"`
+	Address           string           `json:"address"`
+	NumBlocksProposed int32            `json:"num_blocks_proposed"`
+	BlockHeight       int64            `json:"block_height"`
+	TxHash            string           `json:"tx_hash"`
+	CreatedAt         pgtype.Timestamp `json:"created_at"`
+	UpdatedAt         pgtype.Timestamp `json:"updated_at"`
+}
+
+type EtlSlaRollup struct {
+	ID          int32            `json:"id"`
+	Timestamp   pgtype.Timestamp `json:"timestamp"`
+	BlockStart  int64            `json:"block_start"`
+	BlockEnd    int64            `json:"block_end"`
+	BlockHeight int64            `json:"block_height"`
+	TxHash      string           `json:"tx_hash"`
+	CreatedAt   pgtype.Timestamp `json:"created_at"`
+	UpdatedAt   pgtype.Timestamp `json:"updated_at"`
+}
+
+type EtlStorageProof struct {
+	ID              int32            `json:"id"`
+	Height          int64            `json:"height"`
+	Address         string           `json:"address"`
+	ProverAddresses []string         `json:"prover_addresses"`
+	Cid             string           `json:"cid"`
+	ProofSignature  []byte           `json:"proof_signature"`
+	BlockHeight     int64            `json:"block_height"`
+	TxHash          string           `json:"tx_hash"`
+	CreatedAt       pgtype.Timestamp `json:"created_at"`
+	UpdatedAt       pgtype.Timestamp `json:"updated_at"`
+}
+
+type EtlStorageProofVerification struct {
+	ID          int32            `json:"id"`
+	Height      int64            `json:"height"`
+	Proof       []byte           `json:"proof"`
+	BlockHeight int64            `json:"block_height"`
+	TxHash      string           `json:"tx_hash"`
+	CreatedAt   pgtype.Timestamp `json:"created_at"`
+	UpdatedAt   pgtype.Timestamp `json:"updated_at"`
+}
+
 type EtlTransaction struct {
 	ID          int32            `json:"id"`
 	TxHash      string           `json:"tx_hash"`
@@ -67,6 +121,16 @@ type EtlValidatorDeregistration struct {
 	UpdatedAt    pgtype.Timestamp `json:"updated_at"`
 }
 
+type EtlValidatorMisbehaviorDeregistration struct {
+	ID           int32            `json:"id"`
+	CometAddress string           `json:"comet_address"`
+	PubKey       []byte           `json:"pub_key"`
+	BlockHeight  int64            `json:"block_height"`
+	TxHash       string           `json:"tx_hash"`
+	CreatedAt    pgtype.Timestamp `json:"created_at"`
+	UpdatedAt    pgtype.Timestamp `json:"updated_at"`
+}
+
 type EtlValidatorRegistration struct {
 	ID           int32            `json:"id"`
 	Address      string           `json:"address"`
@@ -77,6 +141,21 @@ type EtlValidatorRegistration struct {
 	Spid         string           `json:"spid"`
 	CometPubkey  []byte           `json:"comet_pubkey"`
 	VotingPower  int64            `json:"voting_power"`
+	BlockHeight  int64            `json:"block_height"`
+	TxHash       string           `json:"tx_hash"`
+	CreatedAt    pgtype.Timestamp `json:"created_at"`
+	UpdatedAt    pgtype.Timestamp `json:"updated_at"`
+}
+
+type EtlValidatorRegistrationsLegacy struct {
+	ID           int32            `json:"id"`
+	Endpoint     string           `json:"endpoint"`
+	CometAddress string           `json:"comet_address"`
+	EthBlock     string           `json:"eth_block"`
+	NodeType     string           `json:"node_type"`
+	SpID         string           `json:"sp_id"`
+	PubKey       []byte           `json:"pub_key"`
+	Power        int64            `json:"power"`
 	BlockHeight  int64            `json:"block_height"`
 	TxHash       string           `json:"tx_hash"`
 	CreatedAt    pgtype.Timestamp `json:"created_at"`

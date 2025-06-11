@@ -356,6 +356,213 @@ func (q *Queries) InsertPlays(ctx context.Context, arg InsertPlaysParams) ([]Etl
 	return items, nil
 }
 
+const insertRelease = `-- name: InsertRelease :one
+insert into etl_releases (
+        release_data,
+        block_height,
+        tx_hash
+    )
+values ($1, $2, $3)
+returning id, release_data, block_height, tx_hash, created_at, updated_at
+`
+
+type InsertReleaseParams struct {
+	ReleaseData []byte `json:"release_data"`
+	BlockHeight int64  `json:"block_height"`
+	TxHash      string `json:"tx_hash"`
+}
+
+// insert a new release record
+func (q *Queries) InsertRelease(ctx context.Context, arg InsertReleaseParams) (EtlRelease, error) {
+	row := q.db.QueryRow(ctx, insertRelease, arg.ReleaseData, arg.BlockHeight, arg.TxHash)
+	var i EtlRelease
+	err := row.Scan(
+		&i.ID,
+		&i.ReleaseData,
+		&i.BlockHeight,
+		&i.TxHash,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const insertSlaNodeReport = `-- name: InsertSlaNodeReport :one
+insert into etl_sla_node_reports (
+        sla_rollup_id,
+        address,
+        num_blocks_proposed,
+        block_height,
+        tx_hash
+    )
+values ($1, $2, $3, $4, $5)
+returning id, sla_rollup_id, address, num_blocks_proposed, block_height, tx_hash, created_at, updated_at
+`
+
+type InsertSlaNodeReportParams struct {
+	SlaRollupID       int32  `json:"sla_rollup_id"`
+	Address           string `json:"address"`
+	NumBlocksProposed int32  `json:"num_blocks_proposed"`
+	BlockHeight       int64  `json:"block_height"`
+	TxHash            string `json:"tx_hash"`
+}
+
+// insert a new SLA node report record
+func (q *Queries) InsertSlaNodeReport(ctx context.Context, arg InsertSlaNodeReportParams) (EtlSlaNodeReport, error) {
+	row := q.db.QueryRow(ctx, insertSlaNodeReport,
+		arg.SlaRollupID,
+		arg.Address,
+		arg.NumBlocksProposed,
+		arg.BlockHeight,
+		arg.TxHash,
+	)
+	var i EtlSlaNodeReport
+	err := row.Scan(
+		&i.ID,
+		&i.SlaRollupID,
+		&i.Address,
+		&i.NumBlocksProposed,
+		&i.BlockHeight,
+		&i.TxHash,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const insertSlaRollup = `-- name: InsertSlaRollup :one
+insert into etl_sla_rollups (
+        timestamp,
+        block_start,
+        block_end,
+        block_height,
+        tx_hash
+    )
+values ($1, $2, $3, $4, $5)
+returning id, timestamp, block_start, block_end, block_height, tx_hash, created_at, updated_at
+`
+
+type InsertSlaRollupParams struct {
+	Timestamp   pgtype.Timestamp `json:"timestamp"`
+	BlockStart  int64            `json:"block_start"`
+	BlockEnd    int64            `json:"block_end"`
+	BlockHeight int64            `json:"block_height"`
+	TxHash      string           `json:"tx_hash"`
+}
+
+// insert a new SLA rollup record
+func (q *Queries) InsertSlaRollup(ctx context.Context, arg InsertSlaRollupParams) (EtlSlaRollup, error) {
+	row := q.db.QueryRow(ctx, insertSlaRollup,
+		arg.Timestamp,
+		arg.BlockStart,
+		arg.BlockEnd,
+		arg.BlockHeight,
+		arg.TxHash,
+	)
+	var i EtlSlaRollup
+	err := row.Scan(
+		&i.ID,
+		&i.Timestamp,
+		&i.BlockStart,
+		&i.BlockEnd,
+		&i.BlockHeight,
+		&i.TxHash,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const insertStorageProof = `-- name: InsertStorageProof :one
+insert into etl_storage_proofs (
+        height,
+        address,
+        prover_addresses,
+        cid,
+        proof_signature,
+        block_height,
+        tx_hash
+    )
+values ($1, $2, $3, $4, $5, $6, $7)
+returning id, height, address, prover_addresses, cid, proof_signature, block_height, tx_hash, created_at, updated_at
+`
+
+type InsertStorageProofParams struct {
+	Height          int64    `json:"height"`
+	Address         string   `json:"address"`
+	ProverAddresses []string `json:"prover_addresses"`
+	Cid             string   `json:"cid"`
+	ProofSignature  []byte   `json:"proof_signature"`
+	BlockHeight     int64    `json:"block_height"`
+	TxHash          string   `json:"tx_hash"`
+}
+
+// insert a new storage proof record
+func (q *Queries) InsertStorageProof(ctx context.Context, arg InsertStorageProofParams) (EtlStorageProof, error) {
+	row := q.db.QueryRow(ctx, insertStorageProof,
+		arg.Height,
+		arg.Address,
+		arg.ProverAddresses,
+		arg.Cid,
+		arg.ProofSignature,
+		arg.BlockHeight,
+		arg.TxHash,
+	)
+	var i EtlStorageProof
+	err := row.Scan(
+		&i.ID,
+		&i.Height,
+		&i.Address,
+		&i.ProverAddresses,
+		&i.Cid,
+		&i.ProofSignature,
+		&i.BlockHeight,
+		&i.TxHash,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const insertStorageProofVerification = `-- name: InsertStorageProofVerification :one
+insert into etl_storage_proof_verifications (
+        height,
+        proof,
+        block_height,
+        tx_hash
+    )
+values ($1, $2, $3, $4)
+returning id, height, proof, block_height, tx_hash, created_at, updated_at
+`
+
+type InsertStorageProofVerificationParams struct {
+	Height      int64  `json:"height"`
+	Proof       []byte `json:"proof"`
+	BlockHeight int64  `json:"block_height"`
+	TxHash      string `json:"tx_hash"`
+}
+
+// insert a new storage proof verification record
+func (q *Queries) InsertStorageProofVerification(ctx context.Context, arg InsertStorageProofVerificationParams) (EtlStorageProofVerification, error) {
+	row := q.db.QueryRow(ctx, insertStorageProofVerification,
+		arg.Height,
+		arg.Proof,
+		arg.BlockHeight,
+		arg.TxHash,
+	)
+	var i EtlStorageProofVerification
+	err := row.Scan(
+		&i.ID,
+		&i.Height,
+		&i.Proof,
+		&i.BlockHeight,
+		&i.TxHash,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const insertTransaction = `-- name: InsertTransaction :one
 insert into etl_transactions (
         tx_hash,
@@ -434,6 +641,45 @@ func (q *Queries) InsertValidatorDeregistration(ctx context.Context, arg InsertV
 	return i, err
 }
 
+const insertValidatorMisbehaviorDeregistration = `-- name: InsertValidatorMisbehaviorDeregistration :one
+insert into etl_validator_misbehavior_deregistrations (
+        comet_address,
+        pub_key,
+        block_height,
+        tx_hash
+    )
+values ($1, $2, $3, $4)
+returning id, comet_address, pub_key, block_height, tx_hash, created_at, updated_at
+`
+
+type InsertValidatorMisbehaviorDeregistrationParams struct {
+	CometAddress string `json:"comet_address"`
+	PubKey       []byte `json:"pub_key"`
+	BlockHeight  int64  `json:"block_height"`
+	TxHash       string `json:"tx_hash"`
+}
+
+// insert a new validator misbehavior deregistration record
+func (q *Queries) InsertValidatorMisbehaviorDeregistration(ctx context.Context, arg InsertValidatorMisbehaviorDeregistrationParams) (EtlValidatorMisbehaviorDeregistration, error) {
+	row := q.db.QueryRow(ctx, insertValidatorMisbehaviorDeregistration,
+		arg.CometAddress,
+		arg.PubKey,
+		arg.BlockHeight,
+		arg.TxHash,
+	)
+	var i EtlValidatorMisbehaviorDeregistration
+	err := row.Scan(
+		&i.ID,
+		&i.CometAddress,
+		&i.PubKey,
+		&i.BlockHeight,
+		&i.TxHash,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const insertValidatorRegistration = `-- name: InsertValidatorRegistration :one
 insert into etl_validator_registrations (
         address,
@@ -489,6 +735,65 @@ func (q *Queries) InsertValidatorRegistration(ctx context.Context, arg InsertVal
 		&i.Spid,
 		&i.CometPubkey,
 		&i.VotingPower,
+		&i.BlockHeight,
+		&i.TxHash,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const insertValidatorRegistrationLegacy = `-- name: InsertValidatorRegistrationLegacy :one
+insert into etl_validator_registrations_legacy (
+        endpoint,
+        comet_address,
+        eth_block,
+        node_type,
+        sp_id,
+        pub_key,
+        power,
+        block_height,
+        tx_hash
+    )
+values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+returning id, endpoint, comet_address, eth_block, node_type, sp_id, pub_key, power, block_height, tx_hash, created_at, updated_at
+`
+
+type InsertValidatorRegistrationLegacyParams struct {
+	Endpoint     string `json:"endpoint"`
+	CometAddress string `json:"comet_address"`
+	EthBlock     string `json:"eth_block"`
+	NodeType     string `json:"node_type"`
+	SpID         string `json:"sp_id"`
+	PubKey       []byte `json:"pub_key"`
+	Power        int64  `json:"power"`
+	BlockHeight  int64  `json:"block_height"`
+	TxHash       string `json:"tx_hash"`
+}
+
+// insert a new legacy validator registration record
+func (q *Queries) InsertValidatorRegistrationLegacy(ctx context.Context, arg InsertValidatorRegistrationLegacyParams) (EtlValidatorRegistrationsLegacy, error) {
+	row := q.db.QueryRow(ctx, insertValidatorRegistrationLegacy,
+		arg.Endpoint,
+		arg.CometAddress,
+		arg.EthBlock,
+		arg.NodeType,
+		arg.SpID,
+		arg.PubKey,
+		arg.Power,
+		arg.BlockHeight,
+		arg.TxHash,
+	)
+	var i EtlValidatorRegistrationsLegacy
+	err := row.Scan(
+		&i.ID,
+		&i.Endpoint,
+		&i.CometAddress,
+		&i.EthBlock,
+		&i.NodeType,
+		&i.SpID,
+		&i.PubKey,
+		&i.Power,
 		&i.BlockHeight,
 		&i.TxHash,
 		&i.CreatedAt,
