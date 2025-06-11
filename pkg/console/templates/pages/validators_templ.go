@@ -52,7 +52,7 @@ func Validators(validators []*v1.ValidatorInfo, currentPage int32, hasNext bool,
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			var templ_7745c5c3_Var3 = []any{"px-3 py-1 rounded text-sm", templ.KV("bg-blue-500 text-white", queryType == "active"), templ.KV("bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-300", queryType != "active")}
+			var templ_7745c5c3_Var3 = []any{"px-3 py-1 rounded text-sm !no-underline transition-colors", templ.KV("!bg-blue-500 !text-white hover:!bg-blue-600", queryType == "active"), templ.KV("!bg-gray-200 !text-gray-700 dark:!bg-gray-600 dark:!text-gray-300 hover:!bg-gray-300 dark:hover:!bg-gray-500", queryType != "active")}
 			templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var3...)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
@@ -74,7 +74,7 @@ func Validators(validators []*v1.ValidatorInfo, currentPage int32, hasNext bool,
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			var templ_7745c5c3_Var5 = []any{"px-3 py-1 rounded text-sm", templ.KV("bg-blue-500 text-white", queryType == "registrations"), templ.KV("bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-300", queryType != "registrations")}
+			var templ_7745c5c3_Var5 = []any{"px-3 py-1 rounded text-sm !no-underline transition-colors", templ.KV("!bg-blue-500 !text-white hover:!bg-blue-600", queryType == "registrations"), templ.KV("!bg-gray-200 !text-gray-700 dark:!bg-gray-600 dark:!text-gray-300 hover:!bg-gray-300 dark:hover:!bg-gray-500", queryType != "registrations")}
 			templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var5...)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
@@ -96,7 +96,7 @@ func Validators(validators []*v1.ValidatorInfo, currentPage int32, hasNext bool,
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			var templ_7745c5c3_Var7 = []any{"px-3 py-1 rounded text-sm", templ.KV("bg-blue-500 text-white", queryType == "deregistrations"), templ.KV("bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-300", queryType != "deregistrations")}
+			var templ_7745c5c3_Var7 = []any{"px-3 py-1 rounded text-sm !no-underline transition-colors", templ.KV("!bg-blue-500 !text-white hover:!bg-blue-600", queryType == "deregistrations"), templ.KV("!bg-gray-200 !text-gray-700 dark:!bg-gray-600 dark:!text-gray-300 hover:!bg-gray-300 dark:hover:!bg-gray-500", queryType != "deregistrations")}
 			templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var7...)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
@@ -316,7 +316,7 @@ func Validators(validators []*v1.ValidatorInfo, currentPage int32, hasNext bool,
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, "\" class=\"px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600\">Previous</a> ")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, "\" class=\"px-3 py-1 !bg-blue-500 !text-white !no-underline rounded hover:!bg-blue-600\">Previous</a> ")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -331,7 +331,7 @@ func Validators(validators []*v1.ValidatorInfo, currentPage int32, hasNext bool,
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 29, "\" class=\"px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600\">Next</a>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 29, "\" class=\"px-3 py-1 !bg-blue-500 !text-white !no-underline rounded hover:!bg-blue-600\">Next</a>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
