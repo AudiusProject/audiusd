@@ -57,7 +57,7 @@ func (e *ETLService) InitializeChainID(ctx context.Context) error {
 	nodeInfoResp, err := e.core.GetNodeInfo(ctx, connect.NewRequest(&corev1.GetNodeInfoRequest{}))
 	if err != nil {
 		// Use fallback chain ID if core service is not available
-		e.chainID = "audius-1"
+		e.chainID = "--"
 		e.logger.Warn("Failed to get chain ID from core service, using fallback", "error", err, "chainID", e.chainID)
 		return nil
 	}
@@ -80,27 +80,71 @@ func (e *ETLService) GetStats(ctx context.Context, req *connect.Request[v1.GetSt
 		return nil, err
 	}
 
+	info, err := e.core.GetNodeInfo(ctx, connect.NewRequest(&corev1.GetNodeInfoRequest{}))
+	if err != nil {
+		return nil, err
+	}
+
+	// give a little leeway for the sync status
+	isSyncing := currentHeight < info.Msg.CurrentHeight-100
+
+	syncStatus := &v1.SyncStatus{
+		IsSyncing:           isSyncing,
+		LatestIndexedHeight: currentHeight,
+		LatestChainHeight:   info.Msg.CurrentHeight,
+		BlockDelta:          info.Msg.CurrentHeight - currentHeight,
+	}
+
 	// Use cached chain ID
 	chainID := e.chainID
-	if chainID == "" {
-		chainID = "audius-1" // fallback if not initialized
+
+	recentBlocks, err := e.db.GetLatestBlocks(ctx, db.GetLatestBlocksParams{
+		Limit:  5,
+		Offset: 0,
+	})
+	if err != nil {
+		return nil, err
 	}
 
-	// Get BPS (blocks per second)
-	bpsResult, err := e.db.GetBlocksPerSecond(ctx)
-	var bps float64 = 0.0
-	if err == nil {
-		bps = bpsResult
+	recentProposers := make([]string, len(recentBlocks))
+	for i, block := range recentBlocks {
+		recentProposers[i] = block.ProposerAddress
 	}
 
-	// Get TPS (transactions per second)
-	tpsResult, err := e.db.GetTransactionsPerSecond(ctx)
-	var tps float64 = 0.0
-	if err == nil {
-		tps = tpsResult
+	bps := 0.0
+	if len(recentBlocks) > 1 {
+		// Calculate average block time: time difference / (number of intervals)
+		// recentBlocks[0] is newest, recentBlocks[len-1] is oldest
+		totalDuration := recentBlocks[0].BlockTime.Time.Sub(recentBlocks[len(recentBlocks)-1].BlockTime.Time)
+		intervals := len(recentBlocks) - 1
+		avgBlockTime := totalDuration.Seconds() / float64(intervals)
+
+		// Convert to blocks per second (if you want bps) or keep as average block time
+		if avgBlockTime > 0 {
+			bps = 1.0 / avgBlockTime // blocks per second
+		}
 	}
 
-	// Get total transactions count
+	tps := 0.0
+	if len(recentBlocks) > 1 {
+		// Calculate total transactions across all recent blocks
+		totalTransactions := 0
+		for _, block := range recentBlocks {
+			blockTxs, err := e.db.GetBlockTransactions(ctx, block.BlockHeight)
+			if err != nil {
+				// If we can't get transactions for a block, continue with others
+				continue
+			}
+			totalTransactions += len(blockTxs)
+		}
+
+		// Use the same time duration as BPS calculation
+		totalDuration := recentBlocks[0].BlockTime.Time.Sub(recentBlocks[len(recentBlocks)-1].BlockTime.Time)
+		if totalDuration.Seconds() > 0 {
+			tps = float64(totalTransactions) / totalDuration.Seconds()
+		}
+	}
+
 	totalTx, err := e.db.GetTotalTransactionsCount(ctx)
 	if err != nil {
 		return nil, err
@@ -113,10 +157,7 @@ func (e *ETLService) GetStats(ctx context.Context, req *connect.Request[v1.GetSt
 	}
 
 	// Get latest block with transactions
-	latestBlock, err := e.db.GetIndexedBlock(ctx, currentHeight)
-	if err != nil {
-		return nil, err
-	}
+	latestBlock := recentBlocks[len(recentBlocks)-1]
 
 	// Get transactions for latest block
 	txs, err := e.db.GetBlockTransactions(ctx, currentHeight)
@@ -146,15 +187,6 @@ func (e *ETLService) GetStats(ctx context.Context, req *connect.Request[v1.GetSt
 		Transactions: transactions,
 	}
 
-	// Get recent proposers
-	recentProposersResult, err := e.db.GetRecentProposers(ctx, 10)
-	var recentProposers []string
-	if err == nil {
-		recentProposers = recentProposersResult
-	} else {
-		recentProposers = []string{}
-	}
-
 	// Get transaction type breakdown
 	txBreakdownResult, err := e.db.GetTransactionTypeBreakdown(ctx)
 	var transactionBreakdown []*v1.TransactionTypeBreakdown
@@ -180,6 +212,7 @@ func (e *ETLService) GetStats(ctx context.Context, req *connect.Request[v1.GetSt
 		LatestBlock:          protoLatestBlock,
 		RecentProposers:      recentProposers,
 		TransactionBreakdown: transactionBreakdown,
+		SyncStatus:           syncStatus,
 	}), nil
 }
 

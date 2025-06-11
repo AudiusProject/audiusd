@@ -9,6 +9,7 @@ import (
 
 	"connectrpc.com/connect"
 	v1 "github.com/AudiusProject/audiusd/pkg/api/etl/v1"
+	"github.com/AudiusProject/audiusd/pkg/common"
 	"github.com/AudiusProject/audiusd/pkg/console/templates/pages"
 	"github.com/AudiusProject/audiusd/pkg/etl"
 	"github.com/labstack/echo/v4"
@@ -27,12 +28,13 @@ var imagesFS embed.FS
 var jsFS embed.FS
 
 type Console struct {
-	e   *echo.Echo
-	etl *etl.ETLService
+	e      *echo.Echo
+	etl    *etl.ETLService
+	logger *common.Logger
 }
 
 func NewConsole(etl *etl.ETLService) *Console {
-	return &Console{etl: etl, e: echo.New()}
+	return &Console{etl: etl, e: echo.New(), logger: common.NewLogger(nil).Child("console")}
 }
 
 func (con *Console) SetupRoutes() {
@@ -146,14 +148,18 @@ func (con *Console) Dashboard(c echo.Context) error {
 	}
 
 	stats := &pages.DashboardStats{
-		CurrentBlockHeight: statsResp.Msg.CurrentBlockHeight,
-		ChainID:            statsResp.Msg.ChainId,
-		BPS:                statsResp.Msg.Bps,
-		TPS:                statsResp.Msg.Tps,
-		TotalTransactions:  statsResp.Msg.TotalTransactions,
-		ValidatorCount:     statsResp.Msg.ValidatorCount,
-		LatestBlock:        statsResp.Msg.LatestBlock,
-		RecentProposers:    statsResp.Msg.RecentProposers,
+		CurrentBlockHeight:  statsResp.Msg.CurrentBlockHeight,
+		ChainID:             statsResp.Msg.ChainId,
+		BPS:                 statsResp.Msg.Bps,
+		TPS:                 statsResp.Msg.Tps,
+		TotalTransactions:   statsResp.Msg.TotalTransactions,
+		ValidatorCount:      statsResp.Msg.ValidatorCount,
+		LatestBlock:         statsResp.Msg.LatestBlock,
+		RecentProposers:     statsResp.Msg.RecentProposers,
+		IsSyncing:           statsResp.Msg.SyncStatus != nil && statsResp.Msg.SyncStatus.IsSyncing,
+		LatestIndexedHeight: statsResp.Msg.SyncStatus.GetLatestIndexedHeight(),
+		LatestChainHeight:   statsResp.Msg.SyncStatus.GetLatestChainHeight(),
+		BlockDelta:          statsResp.Msg.SyncStatus.GetBlockDelta(),
 	}
 
 	// Convert transaction breakdown from RPC response
