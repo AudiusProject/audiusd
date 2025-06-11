@@ -5,7 +5,7 @@ templ Frame(pageTitle string) {
 		<div class="flex justify-between py-3">
 			<div class="flex justify-center items-center gap-2">
 				<img src="/assets/images/Glyph_Black.svg" alt="Audius Logo" class="h-10 w-10 dark:invert"/>
-				<div class="text-2xl font-bold">Audius Console</div>
+				<div class="text-2xl font-bold text-gray-900 dark:text-gray-100">Audius Console</div>
 			</div>
 		</div>
 		<div class="flex flex-col gap-3">
@@ -17,7 +17,7 @@ templ Frame(pageTitle string) {
 				<a href="/content" class="!text-gray-600 dark:!text-gray-400 !no-underline hover:!bg-gray-100 hover:!text-gray-700 dark:hover:!bg-gray-800 dark:hover:!text-gray-300 px-3 py-1 rounded transition-colors">Content</a>
 			</div>
 			<div class="flex w-full items-center">
-				<div class="w-1/3 text-2xl font-bold pl-8">{ pageTitle }</div>
+				<div class="w-1/3 text-2xl font-bold pl-8 text-gray-900 dark:text-gray-100">{ pageTitle }</div>
 				<div class="w-2/3">
 					<div class="relative" x-data="searchBar()" x-init="init()" @navigate.window="window.location.href = $event.detail.path">
 						<div class="relative">

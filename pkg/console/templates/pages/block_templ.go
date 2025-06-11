@@ -83,7 +83,7 @@ func Block(block *v1.Block) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</div></div><div class=\"shadow-xl rounded-lg p-4 bg-white dark:bg-gray-800\"><h3 class=\"text-lg font-semibold mb-4\">Transactions</h3>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</div></div><div class=\"shadow-xl rounded-lg p-4 bg-white dark:bg-gray-800\"><h3 class=\"text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100\">Transactions</h3>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
