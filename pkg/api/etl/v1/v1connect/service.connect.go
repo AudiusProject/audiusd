@@ -60,6 +60,8 @@ const (
 	// ETLServiceGetValidatorsProcedure is the fully-qualified name of the ETLService's GetValidators
 	// RPC.
 	ETLServiceGetValidatorsProcedure = "/etl.v1.ETLService/GetValidators"
+	// ETLServiceGetValidatorProcedure is the fully-qualified name of the ETLService's GetValidator RPC.
+	ETLServiceGetValidatorProcedure = "/etl.v1.ETLService/GetValidator"
 	// ETLServiceGetLocationProcedure is the fully-qualified name of the ETLService's GetLocation RPC.
 	ETLServiceGetLocationProcedure = "/etl.v1.ETLService/GetLocation"
 	// ETLServiceSearchProcedure is the fully-qualified name of the ETLService's Search RPC.
@@ -79,6 +81,7 @@ type ETLServiceClient interface {
 	GetPlays(context.Context, *connect.Request[v1.GetPlaysRequest]) (*connect.Response[v1.GetPlaysResponse], error)
 	GetManageEntities(context.Context, *connect.Request[v1.GetManageEntitiesRequest]) (*connect.Response[v1.GetManageEntitiesResponse], error)
 	GetValidators(context.Context, *connect.Request[v1.GetValidatorsRequest]) (*connect.Response[v1.GetValidatorsResponse], error)
+	GetValidator(context.Context, *connect.Request[v1.GetValidatorRequest]) (*connect.Response[v1.GetValidatorResponse], error)
 	GetLocation(context.Context, *connect.Request[v1.GetLocationRequest]) (*connect.Response[v1.GetLocationResponse], error)
 	Search(context.Context, *connect.Request[v1.SearchRequest]) (*connect.Response[v1.SearchResponse], error)
 }
@@ -160,6 +163,12 @@ func NewETLServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			connect.WithSchema(eTLServiceMethods.ByName("GetValidators")),
 			connect.WithClientOptions(opts...),
 		),
+		getValidator: connect.NewClient[v1.GetValidatorRequest, v1.GetValidatorResponse](
+			httpClient,
+			baseURL+ETLServiceGetValidatorProcedure,
+			connect.WithSchema(eTLServiceMethods.ByName("GetValidator")),
+			connect.WithClientOptions(opts...),
+		),
 		getLocation: connect.NewClient[v1.GetLocationRequest, v1.GetLocationResponse](
 			httpClient,
 			baseURL+ETLServiceGetLocationProcedure,
@@ -188,6 +197,7 @@ type eTLServiceClient struct {
 	getPlays           *connect.Client[v1.GetPlaysRequest, v1.GetPlaysResponse]
 	getManageEntities  *connect.Client[v1.GetManageEntitiesRequest, v1.GetManageEntitiesResponse]
 	getValidators      *connect.Client[v1.GetValidatorsRequest, v1.GetValidatorsResponse]
+	getValidator       *connect.Client[v1.GetValidatorRequest, v1.GetValidatorResponse]
 	getLocation        *connect.Client[v1.GetLocationRequest, v1.GetLocationResponse]
 	search             *connect.Client[v1.SearchRequest, v1.SearchResponse]
 }
@@ -247,6 +257,11 @@ func (c *eTLServiceClient) GetValidators(ctx context.Context, req *connect.Reque
 	return c.getValidators.CallUnary(ctx, req)
 }
 
+// GetValidator calls etl.v1.ETLService.GetValidator.
+func (c *eTLServiceClient) GetValidator(ctx context.Context, req *connect.Request[v1.GetValidatorRequest]) (*connect.Response[v1.GetValidatorResponse], error) {
+	return c.getValidator.CallUnary(ctx, req)
+}
+
 // GetLocation calls etl.v1.ETLService.GetLocation.
 func (c *eTLServiceClient) GetLocation(ctx context.Context, req *connect.Request[v1.GetLocationRequest]) (*connect.Response[v1.GetLocationResponse], error) {
 	return c.getLocation.CallUnary(ctx, req)
@@ -270,6 +285,7 @@ type ETLServiceHandler interface {
 	GetPlays(context.Context, *connect.Request[v1.GetPlaysRequest]) (*connect.Response[v1.GetPlaysResponse], error)
 	GetManageEntities(context.Context, *connect.Request[v1.GetManageEntitiesRequest]) (*connect.Response[v1.GetManageEntitiesResponse], error)
 	GetValidators(context.Context, *connect.Request[v1.GetValidatorsRequest]) (*connect.Response[v1.GetValidatorsResponse], error)
+	GetValidator(context.Context, *connect.Request[v1.GetValidatorRequest]) (*connect.Response[v1.GetValidatorResponse], error)
 	GetLocation(context.Context, *connect.Request[v1.GetLocationRequest]) (*connect.Response[v1.GetLocationResponse], error)
 	Search(context.Context, *connect.Request[v1.SearchRequest]) (*connect.Response[v1.SearchResponse], error)
 }
@@ -347,6 +363,12 @@ func NewETLServiceHandler(svc ETLServiceHandler, opts ...connect.HandlerOption) 
 		connect.WithSchema(eTLServiceMethods.ByName("GetValidators")),
 		connect.WithHandlerOptions(opts...),
 	)
+	eTLServiceGetValidatorHandler := connect.NewUnaryHandler(
+		ETLServiceGetValidatorProcedure,
+		svc.GetValidator,
+		connect.WithSchema(eTLServiceMethods.ByName("GetValidator")),
+		connect.WithHandlerOptions(opts...),
+	)
 	eTLServiceGetLocationHandler := connect.NewUnaryHandler(
 		ETLServiceGetLocationProcedure,
 		svc.GetLocation,
@@ -383,6 +405,8 @@ func NewETLServiceHandler(svc ETLServiceHandler, opts ...connect.HandlerOption) 
 			eTLServiceGetManageEntitiesHandler.ServeHTTP(w, r)
 		case ETLServiceGetValidatorsProcedure:
 			eTLServiceGetValidatorsHandler.ServeHTTP(w, r)
+		case ETLServiceGetValidatorProcedure:
+			eTLServiceGetValidatorHandler.ServeHTTP(w, r)
 		case ETLServiceGetLocationProcedure:
 			eTLServiceGetLocationHandler.ServeHTTP(w, r)
 		case ETLServiceSearchProcedure:
@@ -438,6 +462,10 @@ func (UnimplementedETLServiceHandler) GetManageEntities(context.Context, *connec
 
 func (UnimplementedETLServiceHandler) GetValidators(context.Context, *connect.Request[v1.GetValidatorsRequest]) (*connect.Response[v1.GetValidatorsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("etl.v1.ETLService.GetValidators is not implemented"))
+}
+
+func (UnimplementedETLServiceHandler) GetValidator(context.Context, *connect.Request[v1.GetValidatorRequest]) (*connect.Response[v1.GetValidatorResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("etl.v1.ETLService.GetValidator is not implemented"))
 }
 
 func (UnimplementedETLServiceHandler) GetLocation(context.Context, *connect.Request[v1.GetLocationRequest]) (*connect.Response[v1.GetLocationResponse], error) {
