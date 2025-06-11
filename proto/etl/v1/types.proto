@@ -28,11 +28,19 @@ message GetStatsResponse {
   Block latest_block = 7;
   repeated string recent_proposers = 8;
   repeated TransactionTypeBreakdown transaction_breakdown = 9;
+  SyncStatus sync_status = 10;
 }
 
 message TransactionTypeBreakdown {
   string type = 1;
   int64 count = 2;
+}
+
+message SyncStatus {
+  bool is_syncing = 1;
+  int64 latest_indexed_height = 2;
+  int64 latest_chain_height = 3;
+  int64 block_delta = 4;
 }
 
 message Block {
