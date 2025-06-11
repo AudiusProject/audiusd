@@ -10,6 +10,27 @@ select *
 from etl_blocks
 where block_height = $1;
 
+-- name: GetLatestBlocks :many
+select *
+from etl_blocks
+order by block_height desc
+limit $1 offset $2;
+
+-- name: GetTotalBlocksCount :one
+select count(*) as total
+from etl_blocks;
+
+-- name: GetLatestTransactions :many
+select t.*, b.block_time
+from etl_transactions t
+join etl_blocks b on t.block_height = b.block_height
+order by t.id desc
+limit $1 offset $2;
+
+-- name: GetTotalTransactionsCount :one
+select count(*) as total
+from etl_transactions;
+
 -- name: GetBlockRangeByTime :one
 select min(block_height) as start_block,
     max(block_height) as end_block

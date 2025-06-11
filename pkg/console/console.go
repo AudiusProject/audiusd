@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"connectrpc.com/connect"
 	v1 "github.com/AudiusProject/audiusd/pkg/api/etl/v1"
@@ -129,12 +130,77 @@ func (con *Console) Validators(c echo.Context) error {
 }
 
 func (con *Console) Blocks(c echo.Context) error {
-	p := pages.Blocks()
+	// Parse query parameters
+	pageParam := c.QueryParam("page")
+	countParam := c.QueryParam("count")
+
+	page := int32(1) // default to page 1
+	if pageParam != "" {
+		if parsedPage, err := strconv.ParseInt(pageParam, 10, 32); err == nil && parsedPage > 0 {
+			page = int32(parsedPage)
+		}
+	}
+
+	count := int32(50) // default to 50 per page
+	if countParam != "" {
+		if parsedCount, err := strconv.ParseInt(countParam, 10, 32); err == nil && parsedCount > 0 && parsedCount <= 200 {
+			count = int32(parsedCount)
+		}
+	}
+
+	// Calculate offset from page number
+	offset := (page - 1) * count
+
+	blocks, err := con.etl.GetBlocks(c.Request().Context(), &connect.Request[v1.GetBlocksRequest]{
+		Msg: &v1.GetBlocksRequest{
+			Limit:  count,
+			Offset: offset,
+		},
+	})
+	if err != nil {
+		return c.String(http.StatusInternalServerError, "Failed to get blocks")
+	}
+
+	// Calculate pagination state
+	hasNext := blocks.Msg.HasMore
+	hasPrev := page > 1
+
+	p := pages.Blocks(blocks.Msg.Blocks, page, hasNext, hasPrev, count)
 	return p.Render(c.Request().Context(), c.Response().Writer)
 }
 
 func (con *Console) Transactions(c echo.Context) error {
-	p := pages.Transactions()
+	// Parse query parameters
+	pageParam := c.QueryParam("page")
+	countParam := c.QueryParam("count")
+
+	page := int32(1) // default to page 1
+	if pageParam != "" {
+		if parsedPage, err := strconv.ParseInt(pageParam, 10, 32); err == nil && parsedPage > 0 {
+			page = int32(parsedPage)
+		}
+	}
+
+	count := int32(50) // default to 50 per page
+	if countParam != "" {
+		if parsedCount, err := strconv.ParseInt(countParam, 10, 32); err == nil && parsedCount > 0 && parsedCount <= 200 {
+			count = int32(parsedCount)
+		}
+	}
+
+	// Calculate offset from page number
+	offset := (page - 1) * count
+
+	transactions, blockHeights, err := con.etl.GetTransactionsForAPI(c.Request().Context(), count, offset)
+	if err != nil {
+		return c.String(http.StatusInternalServerError, "Failed to get transactions")
+	}
+
+	// Calculate pagination state
+	hasNext := transactions.HasMore
+	hasPrev := page > 1
+
+	p := pages.Transactions(transactions.Transactions, blockHeights, page, hasNext, hasPrev, count)
 	return p.Render(c.Request().Context(), c.Response().Writer)
 }
 
@@ -162,4 +228,84 @@ func (con *Console) Block(c echo.Context) error {
 
 func (con *Console) stubRoute(c echo.Context) error {
 	return c.String(http.StatusOK, "Hello, World!")
+}
+
+func (con *Console) APIBlocks(c echo.Context) error {
+	// Parse query parameters
+	limitParam := c.QueryParam("limit")
+	offsetParam := c.QueryParam("offset")
+
+	limit := int32(50) // default
+	if limitParam != "" {
+		if parsedLimit, err := strconv.ParseInt(limitParam, 10, 32); err == nil {
+			limit = int32(parsedLimit)
+		}
+	}
+
+	offset := int32(0) // default
+	if offsetParam != "" {
+		if parsedOffset, err := strconv.ParseInt(offsetParam, 10, 32); err == nil {
+			offset = int32(parsedOffset)
+		}
+	}
+
+	blocks, err := con.etl.GetBlocks(c.Request().Context(), &connect.Request[v1.GetBlocksRequest]{
+		Msg: &v1.GetBlocksRequest{
+			Limit:  limit,
+			Offset: offset,
+		},
+	})
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to get blocks"})
+	}
+
+	return c.JSON(http.StatusOK, blocks.Msg)
+}
+
+func (con *Console) APITransactions(c echo.Context) error {
+	// Parse query parameters
+	limitParam := c.QueryParam("limit")
+	offsetParam := c.QueryParam("offset")
+
+	limit := int32(50) // default
+	if limitParam != "" {
+		if parsedLimit, err := strconv.ParseInt(limitParam, 10, 32); err == nil {
+			limit = int32(parsedLimit)
+		}
+	}
+
+	offset := int32(0) // default
+	if offsetParam != "" {
+		if parsedOffset, err := strconv.ParseInt(offsetParam, 10, 32); err == nil {
+			offset = int32(parsedOffset)
+		}
+	}
+
+	transactions, blockHeights, err := con.etl.GetTransactionsForAPI(c.Request().Context(), limit, offset)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to get transactions"})
+	}
+
+	// Create response with block heights for frontend
+	response := map[string]interface{}{
+		"transactions": make([]map[string]interface{}, len(transactions.Transactions)),
+		"has_more":     transactions.HasMore,
+		"total_count":  transactions.TotalCount,
+	}
+
+	for i, tx := range transactions.Transactions {
+		blockHeight := int64(0)
+		if bh, exists := blockHeights[tx.Hash]; exists {
+			blockHeight = bh
+		}
+
+		response["transactions"].([]map[string]interface{})[i] = map[string]interface{}{
+			"hash":         tx.Hash,
+			"type":         tx.Type,
+			"block_height": blockHeight,
+			"timestamp":    tx.Timestamp.AsTime().Format(time.RFC3339Nano),
+		}
+	}
+
+	return c.JSON(http.StatusOK, response)
 }

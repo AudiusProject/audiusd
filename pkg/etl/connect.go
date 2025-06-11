@@ -60,15 +60,168 @@ func (e *ETLService) Ping(context.Context, *connect.Request[v1.PingRequest]) (*c
 }
 
 // GetBlocks implements v1connect.ETLServiceHandler.
-func (e *ETLService) GetBlocks(context.Context, *connect.Request[v1.GetBlocksRequest]) (*connect.Response[v1.GetBlocksResponse], error) {
-	res := new(v1.GetBlocksResponse)
-	return connect.NewResponse(res), nil
+func (e *ETLService) GetBlocks(ctx context.Context, req *connect.Request[v1.GetBlocksRequest]) (*connect.Response[v1.GetBlocksResponse], error) {
+	var blocks []*v1.Block
+
+	// Set default limit if not specified
+	limit := req.Msg.Limit
+	if limit <= 0 {
+		limit = 50
+	}
+
+	offset := req.Msg.Offset
+	if offset < 0 {
+		offset = 0
+	}
+
+	// If no start/end height specified, return latest blocks with pagination
+	if req.Msg.StartHeight == 0 && req.Msg.EndHeight == 0 {
+		dbBlocks, err := e.db.GetLatestBlocks(ctx, db.GetLatestBlocksParams{
+			Limit:  limit,
+			Offset: offset,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		// Get total count for has_more calculation
+		totalCount, err := e.db.GetTotalBlocksCount(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		blocks = make([]*v1.Block, len(dbBlocks))
+		for i, block := range dbBlocks {
+			// Get transactions for this block
+			txs, err := e.db.GetBlockTransactions(ctx, block.BlockHeight)
+			if err != nil {
+				return nil, err
+			}
+
+			// Sort by index
+			sort.Slice(txs, func(i, j int) bool {
+				return txs[i].Index < txs[j].Index
+			})
+
+			transactions := make([]*v1.Block_Transaction, len(txs))
+			for j, tx := range txs {
+				transactions[j] = &v1.Block_Transaction{
+					Hash:      tx.TxHash,
+					Type:      tx.TxType,
+					Index:     uint32(tx.Index),
+					Timestamp: timestamppb.New(block.BlockTime.Time),
+				}
+			}
+
+			blocks[i] = &v1.Block{
+				Height:       block.BlockHeight,
+				Proposer:     block.ProposerAddress,
+				Timestamp:    timestamppb.New(block.BlockTime.Time),
+				Transactions: transactions,
+			}
+		}
+
+		hasMore := int64(offset+limit) < totalCount
+
+		return connect.NewResponse(&v1.GetBlocksResponse{
+			Blocks:     blocks,
+			HasMore:    hasMore,
+			TotalCount: int32(totalCount),
+		}), nil
+	} else {
+		// Handle range-based queries (existing logic would go here)
+		// For now, just return empty response
+		return connect.NewResponse(&v1.GetBlocksResponse{
+			Blocks:     []*v1.Block{},
+			HasMore:    false,
+			TotalCount: 0,
+		}), nil
+	}
 }
 
 // GetTransactions implements v1connect.ETLServiceHandler.
-func (e *ETLService) GetTransactions(context.Context, *connect.Request[v1.GetTransactionsRequest]) (*connect.Response[v1.GetTransactionsResponse], error) {
-	res := new(v1.GetTransactionsResponse)
-	return connect.NewResponse(res), nil
+func (e *ETLService) GetTransactions(ctx context.Context, req *connect.Request[v1.GetTransactionsRequest]) (*connect.Response[v1.GetTransactionsResponse], error) {
+	// Set default limit if not specified
+	limit := req.Msg.Limit
+	if limit <= 0 {
+		limit = 50
+	}
+
+	offset := req.Msg.Offset
+	if offset < 0 {
+		offset = 0
+	}
+
+	dbTxs, err := e.db.GetLatestTransactions(ctx, db.GetLatestTransactionsParams{
+		Limit:  limit,
+		Offset: offset,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Get total count for has_more calculation
+	totalCount, err := e.db.GetTotalTransactionsCount(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	transactions := make([]*v1.Block_Transaction, len(dbTxs))
+	for i, tx := range dbTxs {
+		// Get the block timestamp for this transaction
+		block, err := e.db.GetIndexedBlock(ctx, tx.BlockHeight)
+		if err != nil {
+			return nil, err
+		}
+
+		transactions[i] = &v1.Block_Transaction{
+			Hash:      tx.TxHash,
+			Type:      tx.TxType,
+			Index:     uint32(tx.Index),
+			Timestamp: timestamppb.New(block.BlockTime.Time),
+		}
+	}
+
+	hasMore := int64(offset+limit) < totalCount
+
+	return connect.NewResponse(&v1.GetTransactionsResponse{
+		Transactions: transactions,
+		HasMore:      hasMore,
+		TotalCount:   int32(totalCount),
+	}), nil
+}
+
+// GetTransactionsWithBlockInfo is a helper method for the console to get transactions with block heights
+func (e *ETLService) GetTransactionsWithBlockInfo(ctx context.Context) ([]*v1.Block_Transaction, map[string]int64, error) {
+	dbTxs, err := e.db.GetLatestTransactions(ctx, db.GetLatestTransactionsParams{
+		Limit:  50,
+		Offset: 0,
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	transactions := make([]*v1.Block_Transaction, len(dbTxs))
+	blockHeights := make(map[string]int64)
+
+	for i, tx := range dbTxs {
+		// Get the block timestamp for this transaction
+		block, err := e.db.GetIndexedBlock(ctx, tx.BlockHeight)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		transactions[i] = &v1.Block_Transaction{
+			Hash:      tx.TxHash,
+			Type:      tx.TxType,
+			Index:     uint32(tx.Index),
+			Timestamp: timestamppb.New(block.BlockTime.Time),
+		}
+
+		blockHeights[tx.TxHash] = tx.BlockHeight
+	}
+
+	return transactions, blockHeights, nil
 }
 
 func (e *ETLService) GetPlays(ctx context.Context, req *connect.Request[v1.GetPlaysRequest]) (*connect.Response[v1.GetPlaysResponse], error) {
@@ -180,4 +333,33 @@ func (e *ETLService) StreamTransactions(context.Context, *connect.Request[v1.Str
 // Search implements v1connect.ETLServiceHandler.
 func (e *ETLService) Search(context.Context, *connect.Request[v1.SearchRequest]) (*connect.Response[v1.SearchResponse], error) {
 	panic("unimplemented")
+}
+
+// GetTransactionsForAPI is a method for API endpoints that includes block heights
+func (e *ETLService) GetTransactionsForAPI(ctx context.Context, limit, offset int32) (*v1.GetTransactionsResponse, map[string]int64, error) {
+	response, err := e.GetTransactions(ctx, &connect.Request[v1.GetTransactionsRequest]{
+		Msg: &v1.GetTransactionsRequest{
+			Limit:  limit,
+			Offset: offset,
+		},
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Create block heights map
+	blockHeights := make(map[string]int64)
+	dbTxs, err := e.db.GetLatestTransactions(ctx, db.GetLatestTransactionsParams{
+		Limit:  limit,
+		Offset: offset,
+	})
+	if err != nil {
+		return response.Msg, blockHeights, nil // Return what we have if getting block heights fails
+	}
+
+	for _, tx := range dbTxs {
+		blockHeights[tx.TxHash] = tx.BlockHeight
+	}
+
+	return response.Msg, blockHeights, nil
 }

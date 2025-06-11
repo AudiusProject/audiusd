@@ -230,6 +230,45 @@ func (q *Queries) GetIndexedBlock(ctx context.Context, blockHeight int64) (EtlBl
 	return i, err
 }
 
+const getLatestBlocks = `-- name: GetLatestBlocks :many
+select id, proposer_address, block_height, block_time, created_at, updated_at
+from etl_blocks
+order by block_height desc
+limit $1 offset $2
+`
+
+type GetLatestBlocksParams struct {
+	Limit  int32 `json:"limit"`
+	Offset int32 `json:"offset"`
+}
+
+func (q *Queries) GetLatestBlocks(ctx context.Context, arg GetLatestBlocksParams) ([]EtlBlock, error) {
+	rows, err := q.db.Query(ctx, getLatestBlocks, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []EtlBlock
+	for rows.Next() {
+		var i EtlBlock
+		if err := rows.Scan(
+			&i.ID,
+			&i.ProposerAddress,
+			&i.BlockHeight,
+			&i.BlockTime,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getLatestIndexedBlock = `-- name: GetLatestIndexedBlock :one
 select block_height
 from etl_blocks
@@ -243,6 +282,59 @@ func (q *Queries) GetLatestIndexedBlock(ctx context.Context) (int64, error) {
 	var block_height int64
 	err := row.Scan(&block_height)
 	return block_height, err
+}
+
+const getLatestTransactions = `-- name: GetLatestTransactions :many
+select t.id, t.tx_hash, t.block_height, t.index, t.tx_type, t.created_at, t.updated_at, b.block_time
+from etl_transactions t
+join etl_blocks b on t.block_height = b.block_height
+order by t.id desc
+limit $1 offset $2
+`
+
+type GetLatestTransactionsParams struct {
+	Limit  int32 `json:"limit"`
+	Offset int32 `json:"offset"`
+}
+
+type GetLatestTransactionsRow struct {
+	ID          int32            `json:"id"`
+	TxHash      string           `json:"tx_hash"`
+	BlockHeight int64            `json:"block_height"`
+	Index       int64            `json:"index"`
+	TxType      string           `json:"tx_type"`
+	CreatedAt   pgtype.Timestamp `json:"created_at"`
+	UpdatedAt   pgtype.Timestamp `json:"updated_at"`
+	BlockTime   pgtype.Timestamp `json:"block_time"`
+}
+
+func (q *Queries) GetLatestTransactions(ctx context.Context, arg GetLatestTransactionsParams) ([]GetLatestTransactionsRow, error) {
+	rows, err := q.db.Query(ctx, getLatestTransactions, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetLatestTransactionsRow
+	for rows.Next() {
+		var i GetLatestTransactionsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.TxHash,
+			&i.BlockHeight,
+			&i.Index,
+			&i.TxType,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.BlockTime,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getPlayCountByAddress = `-- name: GetPlayCountByAddress :one
@@ -600,6 +692,30 @@ func (q *Queries) GetPlaysCount(ctx context.Context, arg GetPlaysCountParams) (i
 		arg.Column3,
 		arg.Column4,
 	)
+	var total int64
+	err := row.Scan(&total)
+	return total, err
+}
+
+const getTotalBlocksCount = `-- name: GetTotalBlocksCount :one
+select count(*) as total
+from etl_blocks
+`
+
+func (q *Queries) GetTotalBlocksCount(ctx context.Context) (int64, error) {
+	row := q.db.QueryRow(ctx, getTotalBlocksCount)
+	var total int64
+	err := row.Scan(&total)
+	return total, err
+}
+
+const getTotalTransactionsCount = `-- name: GetTotalTransactionsCount :one
+select count(*) as total
+from etl_transactions
+`
+
+func (q *Queries) GetTotalTransactionsCount(ctx context.Context) (int64, error) {
+	row := q.db.QueryRow(ctx, getTotalTransactionsCount)
 	var total int64
 	err := row.Scan(&total)
 	return total, err
