@@ -11,8 +11,8 @@ import templruntime "github.com/a-h/templ/runtime"
 import (
 	"fmt"
 	"github.com/AudiusProject/audiusd/pkg/api/etl/v1"
+	"github.com/AudiusProject/audiusd/pkg/console/templates"
 	"github.com/AudiusProject/audiusd/pkg/console/templates/layouts"
-	"time"
 )
 
 func Blocks(blocks []*v1.Block, currentPage int32, hasNext bool, hasPrev bool, pageSize int32) templ.Component {
@@ -144,12 +144,7 @@ func Blocks(blocks []*v1.Block, currentPage int32, hasNext bool, hasPrev bool, p
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					var templ_7745c5c3_Var10 string
-					templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(block.Timestamp.AsTime().Format(time.RFC3339))
-					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/blocks.templ`, Line: 43, Col: 86}
-					}
-					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
+					templ_7745c5c3_Err = templates.TimeWithTooltip(block.Timestamp.AsTime()).Render(ctx, templ_7745c5c3_Buffer)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -162,12 +157,12 @@ func Blocks(blocks []*v1.Block, currentPage int32, hasNext bool, hasPrev bool, p
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				var templ_7745c5c3_Var11 string
-				templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprint(currentPage))
+				var templ_7745c5c3_Var10 string
+				templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprint(currentPage))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/blocks.templ`, Line: 51, Col: 36}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/blocks.templ`, Line: 53, Col: 36}
 				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -175,12 +170,12 @@ func Blocks(blocks []*v1.Block, currentPage int32, hasNext bool, hasPrev bool, p
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				var templ_7745c5c3_Var12 string
-				templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprint(pageSize))
+				var templ_7745c5c3_Var11 string
+				templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprint(pageSize))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/blocks.templ`, Line: 51, Col: 65}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/blocks.templ`, Line: 53, Col: 65}
 				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -193,8 +188,8 @@ func Blocks(blocks []*v1.Block, currentPage int32, hasNext bool, hasPrev bool, p
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					var templ_7745c5c3_Var13 templ.SafeURL = templ.SafeURL(fmt.Sprintf("/blocks?page=%d&count=%d", currentPage-1, pageSize))
-					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(string(templ_7745c5c3_Var13)))
+					var templ_7745c5c3_Var12 templ.SafeURL = templ.SafeURL(fmt.Sprintf("/blocks?page=%d&count=%d", currentPage-1, pageSize))
+					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(string(templ_7745c5c3_Var12)))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -213,8 +208,8 @@ func Blocks(blocks []*v1.Block, currentPage int32, hasNext bool, hasPrev bool, p
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					var templ_7745c5c3_Var14 templ.SafeURL = templ.SafeURL(fmt.Sprintf("/blocks?page=%d&count=%d", currentPage+1, pageSize))
-					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(string(templ_7745c5c3_Var14)))
+					var templ_7745c5c3_Var13 templ.SafeURL = templ.SafeURL(fmt.Sprintf("/blocks?page=%d&count=%d", currentPage+1, pageSize))
+					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(string(templ_7745c5c3_Var13)))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
