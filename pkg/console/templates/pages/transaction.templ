@@ -15,7 +15,9 @@ templ Transaction(tx *v1.Transaction) {
 				<div class="flex justify-between items-start mb-4">
 					<div>
 						<h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Transaction Details</h2>
-						<p class="text-gray-500 dark:text-gray-400 font-mono text-sm mt-1 break-all">{ tx.Hash }</p>
+						<div class="text-gray-500 dark:text-gray-400 mt-1">
+							{ tx.Hash }
+						</div>
 					</div>
 					<div>
 						<span class="px-3 py-1 text-sm rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
@@ -47,9 +49,9 @@ templ Transaction(tx *v1.Transaction) {
 					if tx.ProposerAddress != "" {
 						<div>
 							<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Block Proposer</label>
-							<p class="text-gray-900 dark:text-gray-100 font-mono text-sm">
+							<p class="text-gray-900 dark:text-gray-100">
 								<a href={ templ.SafeURL(fmt.Sprintf("/validator/%s", tx.ProposerAddress)) } class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline">
-									{ tx.ProposerAddress }
+									@templates.StringWithTooltip(tx.ProposerAddress)
 								</a>
 							</p>
 						</div>
@@ -104,8 +106,12 @@ templ TrackPlaysSection(plays *v1.TrackPlaysTransaction) {
 				<tbody>
 					for _, play := range plays.Plays {
 						<tr class="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
-							<td class="py-2 px-4 font-mono text-sm">{ play.Address }</td>
-							<td class="py-2 px-4 font-mono text-sm">{ play.TrackId }</td>
+							<td class="py-2 px-4">
+								@templates.StringWithTooltip(play.Address)
+							</td>
+							<td class="py-2 px-4">
+								@templates.StringWithTooltip(play.TrackId)
+							</td>
 							<td class="py-2 px-4 text-sm">
 								{ play.City }
 								if play.Region != "" {
@@ -145,7 +151,9 @@ templ ManageEntitySection(entities *v1.ManageEntityTransaction) {
 				<tbody>
 					for _, entity := range entities.Entities {
 						<tr class="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
-							<td class="py-2 px-4 font-mono text-sm">{ entity.Address }</td>
+							<td class="py-2 px-4">
+								@templates.StringWithTooltip(entity.Address)
+							</td>
 							<td class="py-2 px-4">{ entity.EntityType }</td>
 							<td class="py-2 px-4">{ fmt.Sprintf("%d", entity.EntityId) }</td>
 							<td class="py-2 px-4">
@@ -153,7 +161,9 @@ templ ManageEntitySection(entities *v1.ManageEntityTransaction) {
 									{ entity.Action }
 								</span>
 							</td>
-							<td class="py-2 px-4 font-mono text-sm">{ entity.Signer }</td>
+							<td class="py-2 px-4">
+								@templates.StringWithTooltip(entity.Signer)
+							</td>
 						</tr>
 					}
 				</tbody>
@@ -179,12 +189,14 @@ templ ValidatorRegistrationSection(registrations *v1.ValidatorRegistrationTransa
 				<tbody>
 					for _, reg := range registrations.Registrations {
 						<tr class="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
-							<td class="py-2 px-4 font-mono text-sm">
+							<td class="py-2 px-4">
 								<a href={ templ.SafeURL(fmt.Sprintf("/validator/%s", reg.Address)) } class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline">
-									{ reg.Address }
+									@templates.StringWithTooltip(reg.Address)
 								</a>
 							</td>
-							<td class="py-2 px-4 font-mono text-sm">{ reg.CometAddress }</td>
+							<td class="py-2 px-4">
+								@templates.StringWithTooltip(reg.CometAddress)
+							</td>
 							<td class="py-2 px-4">{ reg.NodeType }</td>
 							<td class="py-2 px-4">{ fmt.Sprintf("%d", reg.VotingPower) }</td>
 							<td class="py-2 px-4">{ reg.Spid }</td>
@@ -210,13 +222,13 @@ templ ValidatorDeregistrationSection(deregistrations *v1.ValidatorDeregistration
 				<tbody>
 					for _, dereg := range deregistrations.Deregistrations {
 						<tr class="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
-							<td class="py-2 px-4 font-mono text-sm">
+							<td class="py-2 px-4">
 								<a href={ templ.SafeURL(fmt.Sprintf("/validator/%s", dereg.CometAddress)) } class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline">
-									{ dereg.CometAddress }
+									@templates.StringWithTooltip(dereg.CometAddress)
 								</a>
 							</td>
-							<td class="py-2 px-4 font-mono text-xs break-all">
-								{ fmt.Sprintf("%x", dereg.CometPubkey) }
+							<td class="py-2 px-4">
+								@templates.StringWithTooltip(fmt.Sprintf("%x", dereg.CometPubkey))
 							</td>
 						</tr>
 					}
@@ -261,9 +273,9 @@ templ SlaRollupSection(slaRollup *v1.SlaRollupTransaction) {
 					<tbody>
 						for _, report := range slaRollup.Reports {
 							<tr class="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
-								<td class="py-2 px-4 font-mono text-sm">
+								<td class="py-2 px-4">
 									<a href={ templ.SafeURL(fmt.Sprintf("/validator/%s", report.Address)) } class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline">
-										{ report.Address }
+										@templates.StringWithTooltip(report.Address)
 									</a>
 								</td>
 								<td class="py-2 px-4">{ fmt.Sprintf("%d", report.NumBlocksProposed) }</td>
@@ -286,18 +298,22 @@ templ StorageProofSection(storageProof *v1.StorageProofTransaction) {
 			</div>
 			<div>
 				<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Address</label>
-				<p class="text-gray-900 dark:text-gray-100 font-mono text-sm">{ storageProof.Address }</p>
+				<p class="text-gray-900 dark:text-gray-100">
+					@templates.StringWithTooltip(storageProof.Address)
+				</p>
 			</div>
 			<div>
 				<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">CID</label>
-				<p class="text-gray-900 dark:text-gray-100 font-mono text-sm break-all">{ storageProof.Cid }</p>
+				<p class="text-gray-900 dark:text-gray-100">
+					@templates.StringWithTooltip(storageProof.Cid)
+				</p>
 			</div>
 			<div class="md:col-span-2 lg:col-span-3">
 				<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Prover Addresses</label>
 				<div class="flex flex-wrap gap-2">
 					for _, addr := range storageProof.ProverAddresses {
-						<span class="px-2 py-1 text-xs rounded bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 font-mono">
-							{ addr }
+						<span class="px-2 py-1 text-xs rounded bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
+							@templates.StringWithTooltip(addr)
 						</span>
 					}
 				</div>
@@ -305,8 +321,8 @@ templ StorageProofSection(storageProof *v1.StorageProofTransaction) {
 			if storageProof.ProofSignature != nil {
 				<div class="md:col-span-2 lg:col-span-3">
 					<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Proof Signature</label>
-					<p class="text-gray-900 dark:text-gray-100 font-mono text-xs break-all">
-						{ fmt.Sprintf("%x", storageProof.ProofSignature) }
+					<p class="text-gray-900 dark:text-gray-100">
+						@templates.StringWithTooltip(fmt.Sprintf("%x", storageProof.ProofSignature))
 					</p>
 				</div>
 			}
@@ -324,8 +340,8 @@ templ StorageProofVerificationSection(storageProofVerification *v1.StorageProofV
 			</div>
 			<div>
 				<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Proof</label>
-				<p class="text-gray-900 dark:text-gray-100 font-mono text-xs break-all">
-					{ fmt.Sprintf("%x", storageProofVerification.Proof) }
+				<p class="text-gray-900 dark:text-gray-100">
+					@templates.StringWithTooltip(fmt.Sprintf("%x", storageProofVerification.Proof))
 				</p>
 			</div>
 		</div>
