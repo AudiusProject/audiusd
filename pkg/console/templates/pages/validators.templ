@@ -62,11 +62,7 @@ templ Validators(validators []*v1.ValidatorInfo, currentPage int32, hasNext bool
 										</a>
 									</td>
 									<td class="py-2 px-4 font-mono text-sm">
-										if len(validator.CometAddress) > 16 {
-											{ validator.CometAddress[:8] }...{ validator.CometAddress[len(validator.CometAddress)-8:] }
-										} else {
-											{ validator.CometAddress }
-										}
+										@templates.StringWithTooltip(validator.CometAddress)
 									</td>
 									<td class="py-2 px-4">
 										<span class="px-2 py-1 text-xs rounded bg-gray-100 dark:bg-gray-600 text-gray-800 dark:text-gray-200">
