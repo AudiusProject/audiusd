@@ -37,6 +37,8 @@ const (
 	ETLServicePingProcedure = "/etl.v1.ETLService/Ping"
 	// ETLServiceGetHealthProcedure is the fully-qualified name of the ETLService's GetHealth RPC.
 	ETLServiceGetHealthProcedure = "/etl.v1.ETLService/GetHealth"
+	// ETLServiceGetStatsProcedure is the fully-qualified name of the ETLService's GetStats RPC.
+	ETLServiceGetStatsProcedure = "/etl.v1.ETLService/GetStats"
 	// ETLServiceGetBlockProcedure is the fully-qualified name of the ETLService's GetBlock RPC.
 	ETLServiceGetBlockProcedure = "/etl.v1.ETLService/GetBlock"
 	// ETLServiceGetBlocksProcedure is the fully-qualified name of the ETLService's GetBlocks RPC.
@@ -69,6 +71,7 @@ const (
 type ETLServiceClient interface {
 	Ping(context.Context, *connect.Request[v1.PingRequest]) (*connect.Response[v1.PingResponse], error)
 	GetHealth(context.Context, *connect.Request[v1.GetHealthRequest]) (*connect.Response[v1.GetHealthResponse], error)
+	GetStats(context.Context, *connect.Request[v1.GetStatsRequest]) (*connect.Response[v1.GetStatsResponse], error)
 	GetBlock(context.Context, *connect.Request[v1.GetBlockRequest]) (*connect.Response[v1.GetBlockResponse], error)
 	GetBlocks(context.Context, *connect.Request[v1.GetBlocksRequest]) (*connect.Response[v1.GetBlocksResponse], error)
 	GetTransaction(context.Context, *connect.Request[v1.GetTransactionRequest]) (*connect.Response[v1.GetTransactionResponse], error)
@@ -103,6 +106,12 @@ func NewETLServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			httpClient,
 			baseURL+ETLServiceGetHealthProcedure,
 			connect.WithSchema(eTLServiceMethods.ByName("GetHealth")),
+			connect.WithClientOptions(opts...),
+		),
+		getStats: connect.NewClient[v1.GetStatsRequest, v1.GetStatsResponse](
+			httpClient,
+			baseURL+ETLServiceGetStatsProcedure,
+			connect.WithSchema(eTLServiceMethods.ByName("GetStats")),
 			connect.WithClientOptions(opts...),
 		),
 		getBlock: connect.NewClient[v1.GetBlockRequest, v1.GetBlockResponse](
@@ -178,6 +187,7 @@ func NewETLServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 type eTLServiceClient struct {
 	ping              *connect.Client[v1.PingRequest, v1.PingResponse]
 	getHealth         *connect.Client[v1.GetHealthRequest, v1.GetHealthResponse]
+	getStats          *connect.Client[v1.GetStatsRequest, v1.GetStatsResponse]
 	getBlock          *connect.Client[v1.GetBlockRequest, v1.GetBlockResponse]
 	getBlocks         *connect.Client[v1.GetBlocksRequest, v1.GetBlocksResponse]
 	getTransaction    *connect.Client[v1.GetTransactionRequest, v1.GetTransactionResponse]
@@ -199,6 +209,11 @@ func (c *eTLServiceClient) Ping(ctx context.Context, req *connect.Request[v1.Pin
 // GetHealth calls etl.v1.ETLService.GetHealth.
 func (c *eTLServiceClient) GetHealth(ctx context.Context, req *connect.Request[v1.GetHealthRequest]) (*connect.Response[v1.GetHealthResponse], error) {
 	return c.getHealth.CallUnary(ctx, req)
+}
+
+// GetStats calls etl.v1.ETLService.GetStats.
+func (c *eTLServiceClient) GetStats(ctx context.Context, req *connect.Request[v1.GetStatsRequest]) (*connect.Response[v1.GetStatsResponse], error) {
+	return c.getStats.CallUnary(ctx, req)
 }
 
 // GetBlock calls etl.v1.ETLService.GetBlock.
@@ -260,6 +275,7 @@ func (c *eTLServiceClient) Stream(ctx context.Context) *connect.BidiStreamForCli
 type ETLServiceHandler interface {
 	Ping(context.Context, *connect.Request[v1.PingRequest]) (*connect.Response[v1.PingResponse], error)
 	GetHealth(context.Context, *connect.Request[v1.GetHealthRequest]) (*connect.Response[v1.GetHealthResponse], error)
+	GetStats(context.Context, *connect.Request[v1.GetStatsRequest]) (*connect.Response[v1.GetStatsResponse], error)
 	GetBlock(context.Context, *connect.Request[v1.GetBlockRequest]) (*connect.Response[v1.GetBlockResponse], error)
 	GetBlocks(context.Context, *connect.Request[v1.GetBlocksRequest]) (*connect.Response[v1.GetBlocksResponse], error)
 	GetTransaction(context.Context, *connect.Request[v1.GetTransactionRequest]) (*connect.Response[v1.GetTransactionResponse], error)
@@ -290,6 +306,12 @@ func NewETLServiceHandler(svc ETLServiceHandler, opts ...connect.HandlerOption) 
 		ETLServiceGetHealthProcedure,
 		svc.GetHealth,
 		connect.WithSchema(eTLServiceMethods.ByName("GetHealth")),
+		connect.WithHandlerOptions(opts...),
+	)
+	eTLServiceGetStatsHandler := connect.NewUnaryHandler(
+		ETLServiceGetStatsProcedure,
+		svc.GetStats,
+		connect.WithSchema(eTLServiceMethods.ByName("GetStats")),
 		connect.WithHandlerOptions(opts...),
 	)
 	eTLServiceGetBlockHandler := connect.NewUnaryHandler(
@@ -364,6 +386,8 @@ func NewETLServiceHandler(svc ETLServiceHandler, opts ...connect.HandlerOption) 
 			eTLServicePingHandler.ServeHTTP(w, r)
 		case ETLServiceGetHealthProcedure:
 			eTLServiceGetHealthHandler.ServeHTTP(w, r)
+		case ETLServiceGetStatsProcedure:
+			eTLServiceGetStatsHandler.ServeHTTP(w, r)
 		case ETLServiceGetBlockProcedure:
 			eTLServiceGetBlockHandler.ServeHTTP(w, r)
 		case ETLServiceGetBlocksProcedure:
@@ -401,6 +425,10 @@ func (UnimplementedETLServiceHandler) Ping(context.Context, *connect.Request[v1.
 
 func (UnimplementedETLServiceHandler) GetHealth(context.Context, *connect.Request[v1.GetHealthRequest]) (*connect.Response[v1.GetHealthResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("etl.v1.ETLService.GetHealth is not implemented"))
+}
+
+func (UnimplementedETLServiceHandler) GetStats(context.Context, *connect.Request[v1.GetStatsRequest]) (*connect.Response[v1.GetStatsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("etl.v1.ETLService.GetStats is not implemented"))
 }
 
 func (UnimplementedETLServiceHandler) GetBlock(context.Context, *connect.Request[v1.GetBlockRequest]) (*connect.Response[v1.GetBlockResponse], error) {

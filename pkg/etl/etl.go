@@ -52,6 +52,12 @@ func (etl *ETLService) Run() error {
 	etl.pool = pool
 	etl.db = db.New(pool)
 
+	// Initialize chain ID from core service
+	err = etl.InitializeChainID(context.Background())
+	if err != nil {
+		etl.logger.Errorf("error initializing chain ID: %v", err)
+	}
+
 	etl.logger.Infof("starting etl service")
 
 	if etl.checkReadiness {

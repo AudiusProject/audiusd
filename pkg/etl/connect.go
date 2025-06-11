@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	corev1 "github.com/AudiusProject/audiusd/pkg/api/core/v1"
 	corev1connect "github.com/AudiusProject/audiusd/pkg/api/core/v1/v1connect"
 	v1 "github.com/AudiusProject/audiusd/pkg/api/etl/v1"
 	"github.com/AudiusProject/audiusd/pkg/api/etl/v1/v1connect"
@@ -23,6 +24,7 @@ type ETLService struct {
 	startingBlockHeight int64
 	endingBlockHeight   int64
 	checkReadiness      bool
+	chainID             string
 
 	core   corev1connect.CoreServiceClient
 	pool   *pgxpool.Pool
@@ -50,9 +52,135 @@ func (e *ETLService) SetCheckReadiness(checkReadiness bool) {
 	e.checkReadiness = checkReadiness
 }
 
+// InitializeChainID fetches and caches the chain ID from the core service
+func (e *ETLService) InitializeChainID(ctx context.Context) error {
+	nodeInfoResp, err := e.core.GetNodeInfo(ctx, connect.NewRequest(&corev1.GetNodeInfoRequest{}))
+	if err != nil {
+		// Use fallback chain ID if core service is not available
+		e.chainID = "audius-1"
+		e.logger.Warn("Failed to get chain ID from core service, using fallback", "error", err, "chainID", e.chainID)
+		return nil
+	}
+
+	e.chainID = nodeInfoResp.Msg.Chainid
+	e.logger.Info("Initialized chain ID", "chainID", e.chainID)
+	return nil
+}
+
 // GetHealth implements v1connect.ETLServiceHandler.
 func (e *ETLService) GetHealth(context.Context, *connect.Request[v1.GetHealthRequest]) (*connect.Response[v1.GetHealthResponse], error) {
 	return connect.NewResponse(&v1.GetHealthResponse{}), nil
+}
+
+// GetStats implements v1connect.ETLServiceHandler.
+func (e *ETLService) GetStats(ctx context.Context, req *connect.Request[v1.GetStatsRequest]) (*connect.Response[v1.GetStatsResponse], error) {
+	// Get current block height
+	currentHeight, err := e.db.GetLatestIndexedBlock(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Use cached chain ID
+	chainID := e.chainID
+	if chainID == "" {
+		chainID = "audius-1" // fallback if not initialized
+	}
+
+	// Get BPS (blocks per second)
+	bpsResult, err := e.db.GetBlocksPerSecond(ctx)
+	var bps float64 = 0.0
+	if err == nil {
+		bps = bpsResult
+	}
+
+	// Get TPS (transactions per second)
+	tpsResult, err := e.db.GetTransactionsPerSecond(ctx)
+	var tps float64 = 0.0
+	if err == nil {
+		tps = tpsResult
+	}
+
+	// Get total transactions count
+	totalTx, err := e.db.GetTotalTransactionsCount(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get active validators count
+	validatorCount, err := e.db.GetActiveValidatorsCount(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get latest block with transactions
+	latestBlock, err := e.db.GetIndexedBlock(ctx, currentHeight)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get transactions for latest block
+	txs, err := e.db.GetBlockTransactions(ctx, currentHeight)
+	if err != nil {
+		return nil, err
+	}
+
+	// Sort by index
+	sort.Slice(txs, func(i, j int) bool {
+		return txs[i].Index < txs[j].Index
+	})
+
+	transactions := make([]*v1.Block_Transaction, len(txs))
+	for i, tx := range txs {
+		transactions[i] = &v1.Block_Transaction{
+			Hash:      tx.TxHash,
+			Type:      tx.TxType,
+			Index:     uint32(tx.Index),
+			Timestamp: timestamppb.New(latestBlock.BlockTime.Time),
+		}
+	}
+
+	protoLatestBlock := &v1.Block{
+		Height:       latestBlock.BlockHeight,
+		Proposer:     latestBlock.ProposerAddress,
+		Timestamp:    timestamppb.New(latestBlock.BlockTime.Time),
+		Transactions: transactions,
+	}
+
+	// Get recent proposers
+	recentProposersResult, err := e.db.GetRecentProposers(ctx, 10)
+	var recentProposers []string
+	if err == nil {
+		recentProposers = recentProposersResult
+	} else {
+		recentProposers = []string{}
+	}
+
+	// Get transaction type breakdown
+	txBreakdownResult, err := e.db.GetTransactionTypeBreakdown(ctx)
+	var transactionBreakdown []*v1.TransactionTypeBreakdown
+	if err == nil {
+		transactionBreakdown = make([]*v1.TransactionTypeBreakdown, len(txBreakdownResult))
+		for i, breakdown := range txBreakdownResult {
+			transactionBreakdown[i] = &v1.TransactionTypeBreakdown{
+				Type:  breakdown.Type,
+				Count: breakdown.Count,
+			}
+		}
+	} else {
+		transactionBreakdown = []*v1.TransactionTypeBreakdown{}
+	}
+
+	return connect.NewResponse(&v1.GetStatsResponse{
+		CurrentBlockHeight:   currentHeight,
+		ChainId:              chainID,
+		Bps:                  bps,
+		Tps:                  tps,
+		TotalTransactions:    totalTx,
+		ValidatorCount:       validatorCount,
+		LatestBlock:          protoLatestBlock,
+		RecentProposers:      recentProposers,
+		TransactionBreakdown: transactionBreakdown,
+	}), nil
 }
 
 // Ping implements v1connect.ETLServiceHandler.
@@ -485,11 +613,6 @@ func (e *ETLService) GetBlock(ctx context.Context, req *connect.Request[v1.GetBl
 	}), nil
 }
 
-// StreamBlocks implements v1connect.ETLServiceHandler.
-func (e *ETLService) StreamBlocks(context.Context, *connect.Request[v1.StreamBlocksRequest], *connect.ServerStream[v1.StreamBlocksResponse]) error {
-	panic("unimplemented")
-}
-
 func NewETLService(core corev1connect.CoreServiceClient, logger *common.Logger) *ETLService {
 	return &ETLService{
 		logger: logger.Child("etl"),
@@ -772,11 +895,6 @@ func (e *ETLService) GetTransaction(ctx context.Context, req *connect.Request[v1
 	}), nil
 }
 
-// StreamTransactions implements v1connect.ETLServiceHandler.
-func (e *ETLService) StreamTransactions(context.Context, *connect.Request[v1.StreamTransactionsRequest], *connect.ServerStream[v1.StreamTransactionsResponse]) error {
-	panic("unimplemented")
-}
-
 // Search implements v1connect.ETLServiceHandler.
 func (e *ETLService) Search(context.Context, *connect.Request[v1.SearchRequest]) (*connect.Response[v1.SearchResponse], error) {
 	panic("unimplemented")
@@ -958,4 +1076,9 @@ func (e *ETLService) GetValidator(ctx context.Context, req *connect.Request[v1.G
 		Validator: validatorInfo,
 		Events:    events,
 	}), nil
+}
+
+// Stream implements v1connect.ETLServiceHandler.
+func (e *ETLService) Stream(context.Context, *connect.BidiStream[v1.StreamRequest, v1.StreamResponse]) error {
+	panic("unimplemented")
 }

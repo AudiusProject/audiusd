@@ -348,3 +348,45 @@ select release_data,
     tx_hash
 from etl_releases
 where tx_hash = $1;
+
+-- Dashboard Statistics Queries
+
+-- name: GetActiveValidatorsCount :one
+select count(distinct r.comet_address) as count
+from etl_validator_registrations r
+left join etl_validator_deregistrations d on r.comet_address = d.comet_address
+where d.comet_address is null;
+
+-- name: GetRecentProposers :many
+select distinct proposer_address
+from etl_blocks
+order by block_height desc
+limit $1;
+
+-- name: GetBlocksPerSecond :one
+select case 
+    when extract(epoch from (max(block_time) - min(block_time))) > 0 
+    then (count(*) - 1)::float / extract(epoch from (max(block_time) - min(block_time)))
+    else 0.0
+end as bps
+from etl_blocks
+where block_time >= now() - interval '1 hour';
+
+-- name: GetTransactionsPerSecond :one
+select case 
+    when extract(epoch from (max(b.block_time) - min(b.block_time))) > 0 
+    then count(t.*)::float / extract(epoch from (max(b.block_time) - min(b.block_time)))
+    else 0.0
+end as tps
+from etl_transactions t
+join etl_blocks b on t.block_height = b.block_height
+where b.block_time >= now() - interval '1 hour';
+
+-- name: GetTransactionTypeBreakdown :many
+select tx_type as type,
+    count(*) as count
+from etl_transactions t
+join etl_blocks b on t.block_height = b.block_height
+where b.block_time >= now() - interval '24 hours'
+group by tx_type
+order by count(*) desc;

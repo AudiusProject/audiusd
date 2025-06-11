@@ -120,7 +120,7 @@ func (con *Console) Hello(c echo.Context) error {
 }
 
 func (con *Console) Dashboard(c echo.Context) error {
-	// Get some recent blocks for the dashboard
+	// Get recent blocks for the dashboard
 	blocks, err := con.etl.GetBlocks(c.Request().Context(), &connect.Request[v1.GetBlocksRequest]{
 		Msg: &v1.GetBlocksRequest{
 			Limit:  10,
@@ -137,47 +137,35 @@ func (con *Console) Dashboard(c echo.Context) error {
 		return c.String(http.StatusInternalServerError, "Failed to get transactions")
 	}
 
-	// Create mock dashboard stats
+	// Get dashboard stats from ETL service
+	statsResp, err := con.etl.GetStats(c.Request().Context(), &connect.Request[v1.GetStatsRequest]{
+		Msg: &v1.GetStatsRequest{},
+	})
+	if err != nil {
+		return c.String(http.StatusInternalServerError, "Failed to get dashboard stats")
+	}
+
 	stats := &pages.DashboardStats{
-		CurrentBlockHeight: 0,
-		ChainID:            "audius-1",
-		BPS:                1.5,
-		TPS:                12.3,
-		TotalTransactions:  450123,
-		ValidatorCount:     25,
-		LatestBlock:        nil,
-		RecentProposers: []string{
-			"cosmos1abc123def456ghi789jkl012mno345pqr678stu",
-			"cosmos1xyz987wvu654tsq321pon098mlk765ihg432fed",
-			"cosmos1qwe456rty789uio012asd345fgh678jkl901zxc",
-			"cosmos1mnb567vcx890qaz123wsx456edc789rfv012tgb",
-		},
+		CurrentBlockHeight: statsResp.Msg.CurrentBlockHeight,
+		ChainID:            statsResp.Msg.ChainId,
+		BPS:                statsResp.Msg.Bps,
+		TPS:                statsResp.Msg.Tps,
+		TotalTransactions:  statsResp.Msg.TotalTransactions,
+		ValidatorCount:     statsResp.Msg.ValidatorCount,
+		LatestBlock:        statsResp.Msg.LatestBlock,
+		RecentProposers:    statsResp.Msg.RecentProposers,
 	}
 
-	// If we have blocks, update stats with real data
-	if len(blocks.Msg.Blocks) > 0 {
-		latestBlock := blocks.Msg.Blocks[0]
-		stats.CurrentBlockHeight = latestBlock.Height
-		stats.LatestBlock = latestBlock
-
-		// Extract recent proposers from blocks
-		proposers := make([]string, 0, 4)
-		for i, block := range blocks.Msg.Blocks {
-			if i >= 4 {
-				break
-			}
-			proposers = append(proposers, block.Proposer)
+	// Convert transaction breakdown from RPC response
+	transactionBreakdown := make([]*pages.TransactionTypeBreakdown, len(statsResp.Msg.TransactionBreakdown))
+	colors := []string{"bg-blue-500", "bg-green-500", "bg-yellow-500", "bg-purple-500", "bg-red-500", "bg-indigo-500", "bg-pink-500", "bg-gray-500"}
+	for i, breakdown := range statsResp.Msg.TransactionBreakdown {
+		color := colors[i%len(colors)] // Cycle through colors
+		transactionBreakdown[i] = &pages.TransactionTypeBreakdown{
+			Type:  breakdown.Type,
+			Count: breakdown.Count,
+			Color: color,
 		}
-		stats.RecentProposers = proposers
-	}
-
-	// Create mock transaction type breakdown
-	transactionBreakdown := []*pages.TransactionTypeBreakdown{
-		{Type: "Transfer", Count: 15420, Color: "bg-blue-500"},
-		{Type: "Delegate", Count: 8934, Color: "bg-green-500"},
-		{Type: "Vote", Count: 5123, Color: "bg-yellow-500"},
-		{Type: "Register", Count: 2451, Color: "bg-purple-500"},
-		{Type: "Other", Count: 1876, Color: "bg-gray-500"},
 	}
 
 	p := pages.Dashboard(stats, transactionBreakdown, blocks.Msg.Blocks, transactions.Transactions, blockHeights)
