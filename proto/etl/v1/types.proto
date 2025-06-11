@@ -16,6 +16,25 @@ message GetHealthRequest {}
 
 message GetHealthResponse {}
 
+message GetStatsRequest {}
+
+message GetStatsResponse {
+  int64 current_block_height = 1;
+  string chain_id = 2;
+  double bps = 3;
+  double tps = 4;
+  int64 total_transactions = 5;
+  int64 validator_count = 6;
+  Block latest_block = 7;
+  repeated string recent_proposers = 8;
+  repeated TransactionTypeBreakdown transaction_breakdown = 9;
+}
+
+message TransactionTypeBreakdown {
+  string type = 1;
+  int64 count = 2;
+}
+
 message Block {
   int64 height = 1;
   string proposer = 2;
@@ -277,7 +296,7 @@ message ValidatorInfo {
 }
 
 enum ValidatorStatus {
-  VALIDATOR_STATUS_UNKNOWN = 0;
+  VALIDATOR_STATUS_UNKNOWN_UNSPECIFIED = 0;
   VALIDATOR_STATUS_ACTIVE = 1;
   VALIDATOR_STATUS_DEREGISTERED = 2;
   VALIDATOR_STATUS_MISBEHAVIOR_DEREGISTERED = 3;
@@ -292,7 +311,7 @@ message ValidatorEvent {
 }
 
 enum ValidatorEventType {
-  VALIDATOR_EVENT_TYPE_UNKNOWN = 0;
+  VALIDATOR_EVENT_TYPE_UNKNOWN_UNSPECIFIED = 0;
   VALIDATOR_EVENT_TYPE_REGISTRATION = 1;
   VALIDATOR_EVENT_TYPE_REGISTRATION_LEGACY = 2;
   VALIDATOR_EVENT_TYPE_DEREGISTRATION = 3;

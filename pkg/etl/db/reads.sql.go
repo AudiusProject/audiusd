@@ -11,6 +11,22 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const getActiveValidatorsCount = `-- name: GetActiveValidatorsCount :one
+
+select count(distinct r.comet_address) as count
+from etl_validator_registrations r
+left join etl_validator_deregistrations d on r.comet_address = d.comet_address
+where d.comet_address is null
+`
+
+// Dashboard Statistics Queries
+func (q *Queries) GetActiveValidatorsCount(ctx context.Context) (int64, error) {
+	row := q.db.QueryRow(ctx, getActiveValidatorsCount)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const getAvailableCities = `-- name: GetAvailableCities :many
 select city,
     region,
@@ -208,6 +224,23 @@ func (q *Queries) GetBlockTransactions(ctx context.Context, blockHeight int64) (
 		return nil, err
 	}
 	return items, nil
+}
+
+const getBlocksPerSecond = `-- name: GetBlocksPerSecond :one
+select case 
+    when extract(epoch from (max(block_time) - min(block_time))) > 0 
+    then (count(*) - 1)::float / extract(epoch from (max(block_time) - min(block_time)))
+    else 0.0
+end as bps
+from etl_blocks
+where block_time >= now() - interval '1 hour'
+`
+
+func (q *Queries) GetBlocksPerSecond(ctx context.Context) (float64, error) {
+	row := q.db.QueryRow(ctx, getBlocksPerSecond)
+	var bps float64
+	err := row.Scan(&bps)
+	return bps, err
 }
 
 const getIndexedBlock = `-- name: GetIndexedBlock :one
@@ -812,6 +845,33 @@ func (q *Queries) GetPlaysCount(ctx context.Context, arg GetPlaysCountParams) (i
 	return total, err
 }
 
+const getRecentProposers = `-- name: GetRecentProposers :many
+select distinct proposer_address
+from etl_blocks
+order by block_height desc
+limit $1
+`
+
+func (q *Queries) GetRecentProposers(ctx context.Context, limit int32) ([]string, error) {
+	rows, err := q.db.Query(ctx, getRecentProposers, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var proposer_address string
+		if err := rows.Scan(&proposer_address); err != nil {
+			return nil, err
+		}
+		items = append(items, proposer_address)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getReleasesByTxHash = `-- name: GetReleasesByTxHash :many
 select release_data,
     block_height,
@@ -1083,6 +1143,59 @@ func (q *Queries) GetTransaction(ctx context.Context, txHash string) (GetTransac
 		&i.ProposerAddress,
 	)
 	return i, err
+}
+
+const getTransactionTypeBreakdown = `-- name: GetTransactionTypeBreakdown :many
+select tx_type as type,
+    count(*) as count
+from etl_transactions t
+join etl_blocks b on t.block_height = b.block_height
+where b.block_time >= now() - interval '24 hours'
+group by tx_type
+order by count(*) desc
+`
+
+type GetTransactionTypeBreakdownRow struct {
+	Type  string `json:"type"`
+	Count int64  `json:"count"`
+}
+
+func (q *Queries) GetTransactionTypeBreakdown(ctx context.Context) ([]GetTransactionTypeBreakdownRow, error) {
+	rows, err := q.db.Query(ctx, getTransactionTypeBreakdown)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetTransactionTypeBreakdownRow
+	for rows.Next() {
+		var i GetTransactionTypeBreakdownRow
+		if err := rows.Scan(&i.Type, &i.Count); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getTransactionsPerSecond = `-- name: GetTransactionsPerSecond :one
+select case 
+    when extract(epoch from (max(b.block_time) - min(b.block_time))) > 0 
+    then count(t.*)::float / extract(epoch from (max(b.block_time) - min(b.block_time)))
+    else 0.0
+end as tps
+from etl_transactions t
+join etl_blocks b on t.block_height = b.block_height
+where b.block_time >= now() - interval '1 hour'
+`
+
+func (q *Queries) GetTransactionsPerSecond(ctx context.Context) (float64, error) {
+	row := q.db.QueryRow(ctx, getTransactionsPerSecond)
+	var tps float64
+	err := row.Scan(&tps)
+	return tps, err
 }
 
 const getValidatorDeregistrations = `-- name: GetValidatorDeregistrations :many
