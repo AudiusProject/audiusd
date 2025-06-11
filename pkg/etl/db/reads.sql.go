@@ -1168,7 +1168,8 @@ func (q *Queries) GetValidatorDeregistrationsByTxHash(ctx context.Context, txHas
 }
 
 const getValidatorRegistrations = `-- name: GetValidatorRegistrations :many
-select address,
+select distinct on (address) address,
+    endpoint,
     comet_address,
     comet_pubkey,
     eth_block,
@@ -1178,10 +1179,12 @@ select address,
     block_height,
     tx_hash
 from etl_validator_registrations
+order by address, block_height desc
 `
 
 type GetValidatorRegistrationsRow struct {
 	Address      string `json:"address"`
+	Endpoint     string `json:"endpoint"`
 	CometAddress string `json:"comet_address"`
 	CometPubkey  []byte `json:"comet_pubkey"`
 	EthBlock     string `json:"eth_block"`
@@ -1192,7 +1195,7 @@ type GetValidatorRegistrationsRow struct {
 	TxHash       string `json:"tx_hash"`
 }
 
-// get validator registrations
+// get validator registrations (deduplicated by address, keeping latest)
 func (q *Queries) GetValidatorRegistrations(ctx context.Context) ([]GetValidatorRegistrationsRow, error) {
 	rows, err := q.db.Query(ctx, getValidatorRegistrations)
 	if err != nil {
@@ -1204,6 +1207,7 @@ func (q *Queries) GetValidatorRegistrations(ctx context.Context) ([]GetValidator
 		var i GetValidatorRegistrationsRow
 		if err := rows.Scan(
 			&i.Address,
+			&i.Endpoint,
 			&i.CometAddress,
 			&i.CometPubkey,
 			&i.EthBlock,

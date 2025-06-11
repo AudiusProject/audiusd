@@ -120,9 +120,10 @@ select count(*) as play_count
 from etl_plays
 where address = $1;
 
--- get validator registrations
+-- get validator registrations (deduplicated by address, keeping latest)
 -- name: GetValidatorRegistrations :many
-select address,
+select distinct on (address) address,
+    endpoint,
     comet_address,
     comet_pubkey,
     eth_block,
@@ -131,7 +132,8 @@ select address,
     voting_power,
     block_height,
     tx_hash
-from etl_validator_registrations;
+from etl_validator_registrations
+order by address, block_height desc;
 
 -- get validator deregistrations
 -- name: GetValidatorDeregistrations :many

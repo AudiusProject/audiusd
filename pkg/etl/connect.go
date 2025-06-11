@@ -309,7 +309,7 @@ func (e *ETLService) GetValidators(ctx context.Context, req *connect.Request[v1.
 
 			validators[i] = &v1.ValidatorInfo{
 				Address:                 validator.Address,
-				Endpoint:                "", // Not available in query result
+				Endpoint:                validator.Endpoint,
 				CometAddress:            validator.CometAddress,
 				EthBlock:                validator.EthBlock,
 				NodeType:                validator.NodeType,
@@ -358,7 +358,7 @@ func (e *ETLService) GetValidators(ctx context.Context, req *connect.Request[v1.
 
 			validators[i] = &v1.ValidatorInfo{
 				Address:                 validator.Address,
-				Endpoint:                "", // Not available in query result
+				Endpoint:                validator.Endpoint,
 				CometAddress:            validator.CometAddress,
 				EthBlock:                validator.EthBlock,
 				NodeType:                validator.NodeType,
@@ -886,7 +886,7 @@ func (e *ETLService) GetValidator(ctx context.Context, req *connect.Request[v1.G
 	// Build validator info
 	validatorInfo = &v1.ValidatorInfo{
 		Address:                 targetRegistration.Address,
-		Endpoint:                "", // Not available in query result
+		Endpoint:                targetRegistration.Endpoint,
 		CometAddress:            targetRegistration.CometAddress,
 		EthBlock:                targetRegistration.EthBlock,
 		NodeType:                targetRegistration.NodeType,

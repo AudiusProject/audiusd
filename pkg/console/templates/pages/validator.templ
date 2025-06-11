@@ -36,6 +36,12 @@ templ Validator(validator *v1.ValidatorInfo, events []*v1.ValidatorEvent) {
 						<p class="text-gray-900 dark:text-gray-100 font-mono text-sm break-all">{ validator.CometAddress }</p>
 					</div>
 					<div>
+						<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Endpoint</label>
+						<p class="text-gray-900 dark:text-gray-100 font-mono text-sm break-all">
+							{ extractHost(validator.Endpoint) }
+						</p>
+					</div>
+					<div>
 						<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Node Type</label>
 						<p class="text-gray-900 dark:text-gray-100">{ validator.NodeType }</p>
 					</div>
@@ -145,7 +151,7 @@ templ Validator(validator *v1.ValidatorInfo, events []*v1.ValidatorEvent) {
 											href={ templ.SafeURL(fmt.Sprintf("/transaction/%s", event.TxHash)) }
 											class="text-blue-600 dark:text-blue-400 hover:underline font-mono"
 										>
-											{ event.TxHash[:8] }...{ event.TxHash[len(event.TxHash)-8:] }
+											{ event.TxHash }
 										</a>
 									</div>
 								</div>
