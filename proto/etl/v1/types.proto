@@ -20,11 +20,18 @@ message Block {
   int64 height = 1;
   string proposer = 2;
   google.protobuf.Timestamp timestamp = 3;
-  repeated string transactions = 4;
+
+  message Transaction {
+    string hash = 1;
+    string type = 2;
+    uint32 index = 3;
+    google.protobuf.Timestamp timestamp = 4;
+  }
+
+  repeated Transaction transactions = 4;
 }
 
-message StreamBlocksRequest {
-}
+message StreamBlocksRequest {}
 
 message StreamBlocksResponse {
   Block block = 1;
@@ -65,8 +72,6 @@ message StreamTransactionsResponse {
   string tx_hash = 1;
 }
 
-
-
 message GetPlaysRequest {
   oneof query {
     GetPlays get_plays = 1;
@@ -104,8 +109,7 @@ message GetPlayResponse {
   string tx_hash = 8;
 }
 
-message GetManageEntitiesRequest {
-}
+message GetManageEntitiesRequest {}
 
 message GetManageEntitiesResponse {
   repeated GetManageEntityResponse manage_entities = 1;
@@ -158,8 +162,7 @@ message GetAvailableCities {}
 message GetAvailableRegions {}
 message GetAvailableCountries {}
 
-message GetLocationResponse {
-}
+message GetLocationResponse {}
 
 message SearchRequest {
   int64 height = 1;

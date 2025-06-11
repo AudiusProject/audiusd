@@ -190,18 +190,9 @@ group by country
 order by count(*) desc
 limit $1;
 
--- name: GetBlockTransactionHashes :many
-select etl_plays.tx_hash
-from etl_plays
-where etl_plays.block_height = $1
-union all
-select etl_validator_registrations.tx_hash
-from etl_validator_registrations
-where etl_validator_registrations.block_height = $1
-union all
-select etl_validator_deregistrations.tx_hash
-from etl_validator_deregistrations
-where etl_validator_deregistrations.block_height = $1;
+-- name: GetBlockTransactions :many
+select * from etl_transactions
+where block_height = $1;
 
 -- name: SearchBlockHeight :many
 select block_height

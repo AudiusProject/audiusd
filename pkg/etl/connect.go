@@ -2,6 +2,7 @@ package etl
 
 import (
 	"context"
+	"sort"
 
 	"connectrpc.com/connect"
 	corev1connect "github.com/AudiusProject/audiusd/pkg/api/core/v1/v1connect"
@@ -20,6 +21,7 @@ type ETLService struct {
 	runDownMigrations   bool
 	startingBlockHeight int64
 	endingBlockHeight   int64
+	checkReadiness      bool
 
 	core   corev1connect.CoreServiceClient
 	pool   *pgxpool.Pool
@@ -41,6 +43,10 @@ func (e *ETLService) SetEndingBlockHeight(endingBlockHeight int64) {
 
 func (e *ETLService) SetRunDownMigrations(runDownMigrations bool) {
 	e.runDownMigrations = runDownMigrations
+}
+
+func (e *ETLService) SetCheckReadiness(checkReadiness bool) {
+	e.checkReadiness = checkReadiness
 }
 
 // GetHealth implements v1connect.ETLServiceHandler.
@@ -119,9 +125,24 @@ func (e *ETLService) GetBlock(ctx context.Context, req *connect.Request[v1.GetBl
 		return nil, err
 	}
 
-	txHashes, err := e.db.GetBlockTransactionHashes(ctx, req.Msg.Height)
+	txs, err := e.db.GetBlockTransactions(ctx, req.Msg.Height)
 	if err != nil {
 		return nil, err
+	}
+
+	// sort by index
+	sort.Slice(txs, func(i, j int) bool {
+		return txs[i].Index < txs[j].Index
+	})
+
+	transactions := make([]*v1.Block_Transaction, len(txs))
+	for i, tx := range txs {
+		transactions[i] = &v1.Block_Transaction{
+			Hash:      tx.TxHash,
+			Type:      tx.TxType,
+			Index:     uint32(tx.Index),
+			Timestamp: timestamppb.New(block.BlockTime.Time),
+		}
 	}
 
 	return connect.NewResponse(&v1.GetBlockResponse{
@@ -129,7 +150,7 @@ func (e *ETLService) GetBlock(ctx context.Context, req *connect.Request[v1.GetBl
 			Height:       block.BlockHeight,
 			Proposer:     block.ProposerAddress,
 			Timestamp:    timestamppb.New(block.BlockTime.Time),
-			Transactions: txHashes,
+			Transactions: transactions,
 		},
 	}), nil
 }

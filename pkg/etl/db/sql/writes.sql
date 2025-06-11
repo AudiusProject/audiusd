@@ -140,3 +140,89 @@ insert into etl_transactions (
     )
 values ($1, $2, $3, $4)
 returning *;
+
+-- insert a new legacy validator registration record
+-- name: InsertValidatorRegistrationLegacy :one
+insert into etl_validator_registrations_legacy (
+        endpoint,
+        comet_address,
+        eth_block,
+        node_type,
+        sp_id,
+        pub_key,
+        power,
+        block_height,
+        tx_hash
+    )
+values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+returning *;
+
+-- insert a new SLA rollup record
+-- name: InsertSlaRollup :one
+insert into etl_sla_rollups (
+        timestamp,
+        block_start,
+        block_end,
+        block_height,
+        tx_hash
+    )
+values ($1, $2, $3, $4, $5)
+returning *;
+
+-- insert a new SLA node report record
+-- name: InsertSlaNodeReport :one
+insert into etl_sla_node_reports (
+        sla_rollup_id,
+        address,
+        num_blocks_proposed,
+        block_height,
+        tx_hash
+    )
+values ($1, $2, $3, $4, $5)
+returning *;
+
+-- insert a new validator misbehavior deregistration record
+-- name: InsertValidatorMisbehaviorDeregistration :one
+insert into etl_validator_misbehavior_deregistrations (
+        comet_address,
+        pub_key,
+        block_height,
+        tx_hash
+    )
+values ($1, $2, $3, $4)
+returning *;
+
+-- insert a new storage proof record
+-- name: InsertStorageProof :one
+insert into etl_storage_proofs (
+        height,
+        address,
+        prover_addresses,
+        cid,
+        proof_signature,
+        block_height,
+        tx_hash
+    )
+values ($1, $2, $3, $4, $5, $6, $7)
+returning *;
+
+-- insert a new storage proof verification record
+-- name: InsertStorageProofVerification :one
+insert into etl_storage_proof_verifications (
+        height,
+        proof,
+        block_height,
+        tx_hash
+    )
+values ($1, $2, $3, $4)
+returning *;
+
+-- insert a new release record
+-- name: InsertRelease :one
+insert into etl_releases (
+        release_data,
+        block_height,
+        tx_hash
+    )
+values ($1, $2, $3)
+returning *;
