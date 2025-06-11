@@ -1,11 +1,303 @@
 package pages
 
-import "github.com/AudiusProject/audiusd/pkg/console/templates/layouts"
+import (
+	"fmt"
+	"github.com/AudiusProject/audiusd/pkg/api/etl/v1"
+	"github.com/AudiusProject/audiusd/pkg/console/templates"
+	"github.com/AudiusProject/audiusd/pkg/console/templates/layouts"
+	"strconv"
+	"strings"
+)
 
-templ Dashboard() {
+type DashboardStats struct {
+	CurrentBlockHeight int64
+	ChainID            string
+	BPS                float64
+	TPS                float64
+	TotalTransactions  int64
+	ValidatorCount     int64
+	LatestBlock        *v1.Block
+	RecentProposers    []string
+}
+
+type TransactionTypeBreakdown struct {
+	Type  string
+	Count int64
+	Color string
+}
+
+func formatNumber(n int64) string {
+	str := strconv.FormatInt(n, 10)
+	if len(str) <= 3 {
+		return str
+	}
+
+	var result strings.Builder
+	for i, char := range str {
+		if i > 0 && (len(str)-i)%3 == 0 {
+			result.WriteString(",")
+		}
+		result.WriteRune(char)
+	}
+	return result.String()
+}
+
+func getTotalTransactionCount(breakdown []*TransactionTypeBreakdown) int64 {
+	var total int64
+	for _, b := range breakdown {
+		total += b.Count
+	}
+	return total
+}
+
+templ Dashboard(
+	stats *DashboardStats,
+	transactionBreakdown []*TransactionTypeBreakdown,
+	recentBlocks []*v1.Block,
+	recentTransactions []*v1.Block_Transaction,
+	blockHeights map[string]int64,
+) {
 	@layouts.Base("Dashboard") {
-		<div>
-			<div class="text-gray-900 dark:text-gray-100">Dashboard</div>
+		<div class="space-y-6">
+			<!-- Section 1: Current Stats -->
+			<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6">
+				<div class="flex items-center justify-between">
+					<div class="flex-1">
+						<h4 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Block Height</h4>
+						<p class="text-3xl font-bold text-gray-900 dark:text-gray-100">{ fmt.Sprintf("%d", stats.CurrentBlockHeight) }</p>
+					</div>
+					<div class="flex-1 border-l border-gray-200 dark:border-gray-700 pl-6">
+						<h4 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Chain ID</h4>
+						<p class="text-3xl font-bold text-gray-900 dark:text-gray-100">{ stats.ChainID }</p>
+					</div>
+					<div class="flex-none w-32 border-l border-gray-200 dark:border-gray-700 pl-6">
+						<h4 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">BPS</h4>
+						<p class="text-3xl font-bold text-gray-900 dark:text-gray-100">{ fmt.Sprintf("%.2f", stats.BPS) }</p>
+					</div>
+				</div>
+			</div>
+			<!-- Section 2: Live Map & Validator Info -->
+			<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+				<div class="lg:col-span-2 bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6">
+					<h3 class="text-xl font-bold mb-4 text-gray-900 dark:text-gray-100">Live Incoming Plays</h3>
+					<div class="relative bg-gray-100 dark:bg-gray-700 rounded-lg h-64 flex items-center justify-center">
+						<div class="text-center">
+							<div class="animate-pulse">
+								<div class="w-4 h-4 bg-green-500 rounded-full mx-auto mb-2 animate-ping"></div>
+							</div>
+							<p class="text-gray-600 dark:text-gray-400">Real-time play tracking coming soon</p>
+							<p class="text-sm text-gray-500 dark:text-gray-500 mt-1">WebSocket integration in progress</p>
+						</div>
+						<!-- Mock play indicators -->
+						<div class="absolute top-4 left-4">
+							<div class="w-2 h-2 bg-green-400 rounded-full animate-ping"></div>
+						</div>
+						<div class="absolute top-8 right-8">
+							<div class="w-2 h-2 bg-blue-400 rounded-full animate-ping" style="animation-delay: 0.5s;"></div>
+						</div>
+						<div class="absolute bottom-6 left-12">
+							<div class="w-2 h-2 bg-yellow-400 rounded-full animate-ping" style="animation-delay: 1s;"></div>
+						</div>
+					</div>
+				</div>
+				<div class="space-y-4">
+					<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6">
+						<h4 class="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">Network Info</h4>
+						<div class="space-y-3">
+							<div class="flex justify-between">
+								<span class="text-gray-600 dark:text-gray-400">Validators</span>
+								<span class="font-semibold text-gray-900 dark:text-gray-100">{ fmt.Sprintf("%d", stats.ValidatorCount) }</span>
+							</div>
+							if stats.LatestBlock != nil {
+								<div class="flex justify-between">
+									<span class="text-gray-600 dark:text-gray-400">Latest Block</span>
+									<a href={ templ.SafeURL(fmt.Sprintf("/block/%d", stats.LatestBlock.Height)) } class="font-semibold text-blue-600 dark:text-blue-400 hover:underline">
+										{ fmt.Sprintf("#%d", stats.LatestBlock.Height) }
+									</a>
+								</div>
+								<div class="flex justify-between">
+									<span class="text-gray-600 dark:text-gray-400">Proposer</span>
+									<a href={ templ.SafeURL(fmt.Sprintf("/validator/%s", stats.LatestBlock.Proposer)) } class="font-mono text-sm text-blue-600 dark:text-blue-400 hover:underline">
+										if len(stats.LatestBlock.Proposer) > 6 {
+											{ stats.LatestBlock.Proposer[:3] }...{ stats.LatestBlock.Proposer[len(stats.LatestBlock.Proposer)-3:] }
+										} else {
+											{ stats.LatestBlock.Proposer }
+										}
+									</a>
+								</div>
+							}
+						</div>
+					</div>
+					<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6">
+						<h4 class="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">Recent Proposers</h4>
+						<div class="space-y-2">
+							for i, proposer := range stats.RecentProposers {
+								<div class="flex items-center justify-between">
+									<span class="text-xs text-gray-500 dark:text-gray-500">{ fmt.Sprintf("#%d", i+1) }</span>
+									<a href={ templ.SafeURL(fmt.Sprintf("/validator/%s", proposer)) } class="font-mono text-xs text-blue-600 dark:text-blue-400 hover:underline">
+										if len(proposer) > 8 {
+											{ proposer[:4] }...{ proposer[len(proposer)-4:] }
+										} else {
+											{ proposer }
+										}
+									</a>
+								</div>
+							}
+						</div>
+					</div>
+				</div>
+			</div>
+			<!-- Section 3: Transaction Analytics -->
+			<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6">
+				<div class="flex items-center justify-between mb-6">
+					<h3 class="text-xl font-bold text-gray-900 dark:text-gray-100">Network Performance</h3>
+				</div>
+				<div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+					<!-- Primary Metrics -->
+					<div class="lg:col-span-2 grid grid-cols-2 gap-6">
+						<div class="border-r border-gray-200 dark:border-gray-700 pr-6">
+							<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Transactions/sec</div>
+							<div class="text-4xl font-light text-gray-900 dark:text-gray-100 mb-1">{ fmt.Sprintf("%.1f", stats.TPS) }</div>
+							<div class="text-xs text-gray-500 dark:text-gray-400">Peak: 25.3 TPS</div>
+						</div>
+						<div class="pr-6">
+							<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Total Transactions</div>
+							<div class="text-4xl font-light text-gray-900 dark:text-gray-100 mb-1">{ formatNumber(stats.TotalTransactions) }</div>
+							<div class="text-xs text-green-600 dark:text-green-400">+2.3% from yesterday</div>
+						</div>
+						<div class="border-r border-gray-200 dark:border-gray-700 pr-6 border-t border-gray-200 dark:border-gray-700 pt-6">
+							<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">24h Volume</div>
+							<div class="text-2xl font-light text-gray-900 dark:text-gray-100 mb-1">{ formatNumber(int64(89432)) }</div>
+							<div class="text-xs text-gray-500 dark:text-gray-400">Avg: 78.2k</div>
+						</div>
+						<div class="border-t border-gray-200 dark:border-gray-700 pt-6">
+							<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Success Rate</div>
+							<div class="text-2xl font-light text-gray-900 dark:text-gray-100 mb-1">99.8%</div>
+							<div class="text-xs text-gray-500 dark:text-gray-400">Last 1k txns</div>
+						</div>
+					</div>
+					<!-- Transaction Types -->
+					<div class="border-l border-gray-200 dark:border-gray-700 pl-6">
+						<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-4">Transaction Types</div>
+						<div class="space-y-3">
+							for _, breakdown := range transactionBreakdown {
+								<div class="flex items-center justify-between">
+									<span class="text-sm text-gray-700 dark:text-gray-300">{ breakdown.Type }</span>
+									<span class="text-sm font-medium text-gray-900 dark:text-gray-100 tabular-nums">{ formatNumber(breakdown.Count) }</span>
+								</div>
+							}
+						</div>
+					</div>
+					<!-- Network Health -->
+					<div class="border-l border-gray-200 dark:border-gray-700 pl-6">
+						<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-4">Network Health</div>
+						<div class="space-y-4">
+							<div>
+								<div class="flex items-center justify-between mb-1">
+									<span class="text-xs text-gray-600 dark:text-gray-400">Capacity</span>
+									<span class="text-xs font-medium text-gray-900 dark:text-gray-100">73%</span>
+								</div>
+								<div class="w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full">
+									<div class="w-3/4 h-full bg-gray-900 dark:bg-gray-100 rounded-full"></div>
+								</div>
+							</div>
+							<div>
+								<div class="flex items-center justify-between mb-1">
+									<span class="text-xs text-gray-600 dark:text-gray-400">Avg Confirmation</span>
+									<span class="text-xs font-medium text-gray-900 dark:text-gray-100">6.2s</span>
+								</div>
+							</div>
+							<div>
+								<div class="flex items-center justify-between mb-1">
+									<span class="text-xs text-gray-600 dark:text-gray-400">Queue Depth</span>
+									<span class="text-xs font-medium text-gray-900 dark:text-gray-100">142</span>
+								</div>
+							</div>
+							<div>
+								<div class="flex items-center justify-between mb-1">
+									<span class="text-xs text-gray-600 dark:text-gray-400">Avg Fee</span>
+									<span class="text-xs font-medium text-gray-900 dark:text-gray-100">0.001 AUD</span>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+			<!-- Section 4: Recent Blocks & Transactions -->
+			<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+				<!-- Latest Blocks -->
+				<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6">
+					<div class="flex justify-between items-center mb-4">
+						<h3 class="text-xl font-bold text-gray-900 dark:text-gray-100">Latest Blocks</h3>
+						<a href="/blocks" class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline text-sm">View all →</a>
+					</div>
+					if len(recentBlocks) > 0 {
+						<div class="space-y-2">
+							for _, block := range recentBlocks {
+								<div class="flex items-center justify-between py-3 px-4 border border-gray-200 dark:border-gray-700 rounded hover:bg-gray-50 dark:hover:bg-gray-700">
+									<div class="flex items-center gap-4">
+										<a href={ templ.SafeURL(fmt.Sprintf("/block/%d", block.Height)) } class="font-semibold text-blue-600 dark:text-blue-400 hover:underline">
+											{ fmt.Sprintf("#%d", block.Height) }
+										</a>
+										<span class="text-sm text-gray-500 dark:text-gray-400">
+											{ fmt.Sprintf("%d txns", len(block.Transactions)) }
+										</span>
+										<a href={ templ.SafeURL(fmt.Sprintf("/validator/%s", block.Proposer)) } class="font-mono text-xs text-blue-600 dark:text-blue-400 hover:underline">
+											if len(block.Proposer) > 8 {
+												{ block.Proposer[:4] }...{ block.Proposer[len(block.Proposer)-4:] }
+											} else {
+												{ block.Proposer }
+											}
+										</a>
+									</div>
+									<div class="text-xs text-gray-500 dark:text-gray-400">
+										@templates.TimeWithTooltip(block.Timestamp.AsTime())
+									</div>
+								</div>
+							}
+						</div>
+					} else {
+						<p class="text-gray-500 dark:text-gray-400">No blocks found</p>
+					}
+				</div>
+				<!-- Latest Transactions -->
+				<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6">
+					<div class="flex justify-between items-center mb-4">
+						<h3 class="text-xl font-bold text-gray-900 dark:text-gray-100">Latest Transactions</h3>
+						<a href="/transactions" class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline text-sm">View all →</a>
+					</div>
+					if len(recentTransactions) > 0 {
+						<div class="space-y-2">
+							for _, tx := range recentTransactions {
+								<div class="flex items-center justify-between py-3 px-4 border border-gray-200 dark:border-gray-700 rounded hover:bg-gray-50 dark:hover:bg-gray-700">
+									<div class="flex items-center gap-4">
+										<a href={ templ.SafeURL(fmt.Sprintf("/transaction/%s", tx.Hash)) } class="font-mono text-sm text-blue-600 dark:text-blue-400 hover:underline">
+											if len(tx.Hash) > 8 {
+												{ tx.Hash[:4] }...{ tx.Hash[len(tx.Hash)-4:] }
+											} else {
+												{ tx.Hash }
+											}
+										</a>
+										<span class="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-gray-600 dark:text-gray-400">
+											{ tx.Type }
+										</span>
+										if blockHeight, exists := blockHeights[tx.Hash]; exists {
+											<a href={ templ.SafeURL(fmt.Sprintf("/block/%d", blockHeight)) } class="text-xs text-blue-600 dark:text-blue-400 hover:underline">
+												{ fmt.Sprintf("#%d", blockHeight) }
+											</a>
+										}
+									</div>
+									<div class="text-xs text-gray-500 dark:text-gray-400">
+										@templates.TimeWithTooltip(tx.Timestamp.AsTime())
+									</div>
+								</div>
+							}
+						</div>
+					} else {
+						<p class="text-gray-500 dark:text-gray-400">No transactions found</p>
+					}
+				</div>
+			</div>
 		</div>
 	}
 }

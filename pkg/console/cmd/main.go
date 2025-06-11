@@ -18,6 +18,7 @@ func main() {
 
 	etl := etl.NewETLService(auds.Core, logger)
 	etl.SetDBURL("postgres://postgres:postgres@0.0.0.0:5432/audiusd?sslmode=disable")
+	etl.SetCheckReadiness(false)
 
 	console := console.NewConsole(etl)
 	console.SetupRoutes()
