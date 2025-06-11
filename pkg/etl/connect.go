@@ -240,15 +240,191 @@ func (e *ETLService) GetPlays(ctx context.Context, req *connect.Request[v1.GetPl
 
 // GetValidators implements v1connect.ETLServiceHandler.
 func (e *ETLService) GetValidators(ctx context.Context, req *connect.Request[v1.GetValidatorsRequest]) (*connect.Response[v1.GetValidatorsResponse], error) {
-	res := new(v1.GetValidatorsResponse)
+	// Set default pagination
+	limit := req.Msg.Limit
+	if limit <= 0 {
+		limit = 50
+	}
+	offset := req.Msg.Offset
+	if offset < 0 {
+		offset = 0
+	}
+
+	var validators []*v1.ValidatorInfo
+	var totalCount int64
 
 	switch req.Msg.Query.(type) {
 	case *v1.GetValidatorsRequest_GetRegisteredValidators:
-	case *v1.GetValidatorsRequest_GetValidatorDeregistrations:
+		// Get currently registered validators (not deregistered)
+		dbValidators, err := e.db.GetValidatorRegistrations(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		// Get all deregistrations to filter out deregistered validators
+		deregistrations, err := e.db.GetValidatorDeregistrations(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		// Create map of deregistered comet addresses for quick lookup
+		deregisteredMap := make(map[string]bool)
+		for _, dereg := range deregistrations {
+			deregisteredMap[dereg.CometAddress] = true
+		}
+
+		// Filter active validators and apply pagination
+		var activeValidators []db.GetValidatorRegistrationsRow
+		for _, validator := range dbValidators {
+			if !deregisteredMap[validator.CometAddress] {
+				activeValidators = append(activeValidators, validator)
+			}
+		}
+
+		totalCount = int64(len(activeValidators))
+
+		// Apply pagination
+		start := offset
+		end := offset + limit
+		if start > int32(len(activeValidators)) {
+			start = int32(len(activeValidators))
+		}
+		if end > int32(len(activeValidators)) {
+			end = int32(len(activeValidators))
+		}
+
+		paginatedValidators := activeValidators[start:end]
+		validators = make([]*v1.ValidatorInfo, len(paginatedValidators))
+
+		for i, validator := range paginatedValidators {
+			// Get block timestamp for registration time
+			block, err := e.db.GetIndexedBlock(ctx, validator.BlockHeight)
+			var registeredAt *timestamppb.Timestamp
+			if err == nil {
+				registeredAt = timestamppb.New(block.BlockTime.Time)
+			} else {
+				registeredAt = timestamppb.Now() // fallback
+			}
+
+			validators[i] = &v1.ValidatorInfo{
+				Address:                 validator.Address,
+				Endpoint:                "", // Not available in query result
+				CometAddress:            validator.CometAddress,
+				EthBlock:                validator.EthBlock,
+				NodeType:                validator.NodeType,
+				Spid:                    validator.Spid,
+				CometPubkey:             validator.CometPubkey,
+				VotingPower:             validator.VotingPower,
+				Status:                  v1.ValidatorStatus_VALIDATOR_STATUS_ACTIVE,
+				RegisteredAt:            registeredAt,
+				LastActivity:            registeredAt,
+				RegistrationBlockHeight: validator.BlockHeight,
+				RegistrationTxHash:      validator.TxHash,
+			}
+		}
+
 	case *v1.GetValidatorsRequest_GetValidatorRegistrations:
+		// Get all validator registrations with pagination
+		dbValidators, err := e.db.GetValidatorRegistrations(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		totalCount = int64(len(dbValidators))
+
+		// Apply pagination
+		start := offset
+		end := offset + limit
+		if start > int32(len(dbValidators)) {
+			start = int32(len(dbValidators))
+		}
+		if end > int32(len(dbValidators)) {
+			end = int32(len(dbValidators))
+		}
+
+		paginatedValidators := dbValidators[start:end]
+		validators = make([]*v1.ValidatorInfo, len(paginatedValidators))
+
+		for i, validator := range paginatedValidators {
+			// Get block timestamp for registration time
+			block, err := e.db.GetIndexedBlock(ctx, validator.BlockHeight)
+			var registeredAt *timestamppb.Timestamp
+			if err == nil {
+				registeredAt = timestamppb.New(block.BlockTime.Time)
+			} else {
+				registeredAt = timestamppb.Now() // fallback
+			}
+
+			validators[i] = &v1.ValidatorInfo{
+				Address:                 validator.Address,
+				Endpoint:                "", // Not available in query result
+				CometAddress:            validator.CometAddress,
+				EthBlock:                validator.EthBlock,
+				NodeType:                validator.NodeType,
+				Spid:                    validator.Spid,
+				CometPubkey:             validator.CometPubkey,
+				VotingPower:             validator.VotingPower,
+				Status:                  v1.ValidatorStatus_VALIDATOR_STATUS_ACTIVE, // Default to active for registrations
+				RegisteredAt:            registeredAt,
+				LastActivity:            registeredAt,
+				RegistrationBlockHeight: validator.BlockHeight,
+				RegistrationTxHash:      validator.TxHash,
+			}
+		}
+
+	case *v1.GetValidatorsRequest_GetValidatorDeregistrations:
+		// Get all validator deregistrations with pagination
+		dbDeregistrations, err := e.db.GetValidatorDeregistrations(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		totalCount = int64(len(dbDeregistrations))
+
+		// Apply pagination
+		start := offset
+		end := offset + limit
+		if start > int32(len(dbDeregistrations)) {
+			start = int32(len(dbDeregistrations))
+		}
+		if end > int32(len(dbDeregistrations)) {
+			end = int32(len(dbDeregistrations))
+		}
+
+		paginatedDeregistrations := dbDeregistrations[start:end]
+		validators = make([]*v1.ValidatorInfo, len(paginatedDeregistrations))
+
+		for i, dereg := range paginatedDeregistrations {
+			// Get block timestamp for deregistration time
+			block, err := e.db.GetIndexedBlock(ctx, dereg.BlockHeight)
+			var deregisteredAt *timestamppb.Timestamp
+			if err == nil {
+				deregisteredAt = timestamppb.New(block.BlockTime.Time)
+			} else {
+				deregisteredAt = timestamppb.Now() // fallback
+			}
+
+			validators[i] = &v1.ValidatorInfo{
+				CometAddress:            dereg.CometAddress,
+				CometPubkey:             dereg.CometPubkey,
+				Status:                  v1.ValidatorStatus_VALIDATOR_STATUS_DEREGISTERED,
+				LastActivity:            deregisteredAt,
+				RegistrationBlockHeight: dereg.BlockHeight,
+				RegistrationTxHash:      dereg.TxHash,
+			}
+		}
+
+	default:
+		return nil, connect.NewError(connect.CodeInvalidArgument, nil)
 	}
 
-	return connect.NewResponse(res), nil
+	hasMore := int64(offset+limit) < totalCount
+
+	return connect.NewResponse(&v1.GetValidatorsResponse{
+		Validators: validators,
+		HasMore:    hasMore,
+		TotalCount: int32(totalCount),
+	}), nil
 }
 
 // GetManageEntities implements v1connect.ETLServiceHandler.
@@ -362,4 +538,153 @@ func (e *ETLService) GetTransactionsForAPI(ctx context.Context, limit, offset in
 	}
 
 	return response.Msg, blockHeights, nil
+}
+
+// GetValidator implements v1connect.ETLServiceHandler.
+func (e *ETLService) GetValidator(ctx context.Context, req *connect.Request[v1.GetValidatorRequest]) (*connect.Response[v1.GetValidatorResponse], error) {
+	var validatorInfo *v1.ValidatorInfo
+	var events []*v1.ValidatorEvent
+
+	// Get all validator registrations, deregistrations to find the requested validator
+	registrations, err := e.db.GetValidatorRegistrations(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	deregistrations, err := e.db.GetValidatorDeregistrations(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Find the validator based on the identifier
+	var targetRegistration *db.GetValidatorRegistrationsRow
+	var targetCometAddress string
+
+	switch req.Msg.Identifier.(type) {
+	case *v1.GetValidatorRequest_Address:
+		address := req.Msg.GetAddress()
+		for _, reg := range registrations {
+			if reg.Address == address {
+				targetRegistration = &reg
+				targetCometAddress = reg.CometAddress
+				break
+			}
+		}
+	case *v1.GetValidatorRequest_CometAddress:
+		cometAddress := req.Msg.GetCometAddress()
+		targetCometAddress = cometAddress
+		for _, reg := range registrations {
+			if reg.CometAddress == cometAddress {
+				targetRegistration = &reg
+				break
+			}
+		}
+	default:
+		return nil, connect.NewError(connect.CodeInvalidArgument, nil)
+	}
+
+	if targetRegistration == nil {
+		return nil, connect.NewError(connect.CodeNotFound, nil)
+	}
+
+	// Get registration block timestamp
+	registrationBlock, err := e.db.GetIndexedBlock(ctx, targetRegistration.BlockHeight)
+	var registeredAt *timestamppb.Timestamp
+	if err == nil {
+		registeredAt = timestamppb.New(registrationBlock.BlockTime.Time)
+	} else {
+		registeredAt = timestamppb.Now() // fallback
+	}
+
+	// Determine current status by checking if deregistered
+	status := v1.ValidatorStatus_VALIDATOR_STATUS_ACTIVE
+	var lastActivity *timestamppb.Timestamp = registeredAt
+
+	for _, dereg := range deregistrations {
+		if dereg.CometAddress == targetCometAddress {
+			status = v1.ValidatorStatus_VALIDATOR_STATUS_DEREGISTERED
+			// Get deregistration block timestamp
+			deregBlock, err := e.db.GetIndexedBlock(ctx, dereg.BlockHeight)
+			if err == nil {
+				lastActivity = timestamppb.New(deregBlock.BlockTime.Time)
+			}
+			break
+		}
+	}
+
+	// Build validator info
+	validatorInfo = &v1.ValidatorInfo{
+		Address:                 targetRegistration.Address,
+		Endpoint:                "", // Not available in query result
+		CometAddress:            targetRegistration.CometAddress,
+		EthBlock:                targetRegistration.EthBlock,
+		NodeType:                targetRegistration.NodeType,
+		Spid:                    targetRegistration.Spid,
+		CometPubkey:             targetRegistration.CometPubkey,
+		VotingPower:             targetRegistration.VotingPower,
+		Status:                  status,
+		RegisteredAt:            registeredAt,
+		LastActivity:            lastActivity,
+		RegistrationBlockHeight: targetRegistration.BlockHeight,
+		RegistrationTxHash:      targetRegistration.TxHash,
+	}
+
+	// Build event history
+	events = []*v1.ValidatorEvent{}
+
+	// Add registration event
+	events = append(events, &v1.ValidatorEvent{
+		Type:        v1.ValidatorEventType_VALIDATOR_EVENT_TYPE_REGISTRATION,
+		Timestamp:   registeredAt,
+		BlockHeight: targetRegistration.BlockHeight,
+		TxHash:      targetRegistration.TxHash,
+		Data: &v1.ValidatorEventData{
+			Event: &v1.ValidatorEventData_Registration{
+				Registration: &v1.ValidatorRegistrationEvent{
+					Address:      targetRegistration.Address,
+					Endpoint:     "", // Not available in query result
+					CometAddress: targetRegistration.CometAddress,
+					EthBlock:     targetRegistration.EthBlock,
+					NodeType:     targetRegistration.NodeType,
+					Spid:         targetRegistration.Spid,
+					CometPubkey:  targetRegistration.CometPubkey,
+					VotingPower:  targetRegistration.VotingPower,
+				},
+			},
+		},
+	})
+
+	// Add deregistration event if applicable
+	for _, dereg := range deregistrations {
+		if dereg.CometAddress == targetCometAddress {
+			deregBlock, err := e.db.GetIndexedBlock(ctx, dereg.BlockHeight)
+			var deregTime *timestamppb.Timestamp
+			if err == nil {
+				deregTime = timestamppb.New(deregBlock.BlockTime.Time)
+			} else {
+				deregTime = timestamppb.Now() // fallback
+			}
+
+			events = append(events, &v1.ValidatorEvent{
+				Type:        v1.ValidatorEventType_VALIDATOR_EVENT_TYPE_DEREGISTRATION,
+				Timestamp:   deregTime,
+				BlockHeight: dereg.BlockHeight,
+				TxHash:      dereg.TxHash,
+				Data: &v1.ValidatorEventData{
+					Event: &v1.ValidatorEventData_Deregistration{
+						Deregistration: &v1.ValidatorDeregistrationEvent{
+							CometAddress: dereg.CometAddress,
+							CometPubkey:  dereg.CometPubkey,
+						},
+					},
+				},
+			})
+			break
+		}
+	}
+
+	return connect.NewResponse(&v1.GetValidatorResponse{
+		Validator: validatorInfo,
+		Events:    events,
+	}), nil
 }

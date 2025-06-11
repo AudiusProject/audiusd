@@ -65,7 +65,7 @@ func (con *Console) SetupRoutes() {
 	e.GET("/hello", con.Hello)
 
 	e.GET("/validators", con.Validators)
-	e.GET("/validator/:address", con.stubRoute)
+	e.GET("/validator/:address", con.Validator)
 
 	e.GET("/blocks", con.Blocks)
 	e.GET("/block/:height", con.Block)
@@ -125,7 +125,94 @@ func (con *Console) Dashboard(c echo.Context) error {
 }
 
 func (con *Console) Validators(c echo.Context) error {
-	p := pages.Validators()
+	// Parse query parameters
+	pageParam := c.QueryParam("page")
+	countParam := c.QueryParam("count")
+	queryType := c.QueryParam("type") // "active", "registrations", "deregistrations"
+
+	page := int32(1) // default to page 1
+	if pageParam != "" {
+		if parsedPage, err := strconv.ParseInt(pageParam, 10, 32); err == nil && parsedPage > 0 {
+			page = int32(parsedPage)
+		}
+	}
+
+	count := int32(50) // default to 50 per page
+	if countParam != "" {
+		if parsedCount, err := strconv.ParseInt(countParam, 10, 32); err == nil && parsedCount > 0 && parsedCount <= 200 {
+			count = int32(parsedCount)
+		}
+	}
+
+	// Calculate offset from page number
+	offset := (page - 1) * count
+
+	// Default to active validators
+	if queryType == "" {
+		queryType = "active"
+	}
+
+	// Build request based on query type
+	var validatorsReq *v1.GetValidatorsRequest
+	switch queryType {
+	case "active":
+		validatorsReq = &v1.GetValidatorsRequest{
+			Query:  &v1.GetValidatorsRequest_GetRegisteredValidators{GetRegisteredValidators: &v1.GetRegisteredValidators{}},
+			Limit:  count,
+			Offset: offset,
+		}
+	case "registrations":
+		validatorsReq = &v1.GetValidatorsRequest{
+			Query:  &v1.GetValidatorsRequest_GetValidatorRegistrations{GetValidatorRegistrations: &v1.GetValidatorRegistrations{}},
+			Limit:  count,
+			Offset: offset,
+		}
+	case "deregistrations":
+		validatorsReq = &v1.GetValidatorsRequest{
+			Query:  &v1.GetValidatorsRequest_GetValidatorDeregistrations{GetValidatorDeregistrations: &v1.GetValidatorDeregistrations{}},
+			Limit:  count,
+			Offset: offset,
+		}
+	default:
+		queryType = "active"
+		validatorsReq = &v1.GetValidatorsRequest{
+			Query:  &v1.GetValidatorsRequest_GetRegisteredValidators{GetRegisteredValidators: &v1.GetRegisteredValidators{}},
+			Limit:  count,
+			Offset: offset,
+		}
+	}
+
+	validators, err := con.etl.GetValidators(c.Request().Context(), &connect.Request[v1.GetValidatorsRequest]{
+		Msg: validatorsReq,
+	})
+	if err != nil {
+		return c.String(http.StatusInternalServerError, "Failed to get validators")
+	}
+
+	// Calculate pagination state
+	hasNext := validators.Msg.HasMore
+	hasPrev := page > 1
+
+	p := pages.Validators(validators.Msg.Validators, page, hasNext, hasPrev, count, queryType)
+	return p.Render(c.Request().Context(), c.Response().Writer)
+}
+
+func (con *Console) Validator(c echo.Context) error {
+	address := c.Param("address")
+	if address == "" {
+		return c.String(http.StatusBadRequest, "Validator address required")
+	}
+
+	validator, err := con.etl.GetValidator(c.Request().Context(), &connect.Request[v1.GetValidatorRequest]{
+		Msg: &v1.GetValidatorRequest{
+			Identifier: &v1.GetValidatorRequest_Address{Address: address},
+		},
+	})
+	if err != nil {
+		return c.String(http.StatusInternalServerError, "Failed to get validator")
+	}
+
+	p := pages.Validator(validator.Msg.Validator, validator.Msg.Events)
 	return p.Render(c.Request().Context(), c.Response().Writer)
 }
 

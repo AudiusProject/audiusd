@@ -145,20 +145,109 @@ message GetValidatorsRequest {
     GetValidatorRegistrations get_validator_registrations = 2;
     GetValidatorDeregistrations get_validator_deregistrations = 3;
   }
+  int32 limit = 4;
+  int32 offset = 5;
 }
 
 message GetRegisteredValidators {}
 message GetValidatorRegistrations {}
 message GetValidatorDeregistrations {}
 
-message GetValidatorsResponse {}
+message GetValidatorsResponse {
+  repeated ValidatorInfo validators = 1;
+  bool has_more = 2;
+  int32 total_count = 3;
+}
+
+message GetValidatorRequest {
+  oneof identifier {
+    string address = 1;
+    string comet_address = 2;
+  }
+}
 
 message GetValidatorResponse {
+  ValidatorInfo validator = 1;
+  repeated ValidatorEvent events = 2;
+}
+
+message ValidatorInfo {
   string address = 1;
-  string validator_address = 2;
+  string endpoint = 2;
+  string comet_address = 3;
+  string eth_block = 4;
+  string node_type = 5;
+  string spid = 6;
+  bytes comet_pubkey = 7;
+  int64 voting_power = 8;
+  ValidatorStatus status = 9;
+  google.protobuf.Timestamp registered_at = 10;
+  google.protobuf.Timestamp last_activity = 11;
+  int64 registration_block_height = 12;
+  string registration_tx_hash = 13;
+}
+
+enum ValidatorStatus {
+  VALIDATOR_STATUS_UNKNOWN = 0;
+  VALIDATOR_STATUS_ACTIVE = 1;
+  VALIDATOR_STATUS_DEREGISTERED = 2;
+  VALIDATOR_STATUS_MISBEHAVIOR_DEREGISTERED = 3;
+}
+
+message ValidatorEvent {
+  ValidatorEventType type = 1;
+  google.protobuf.Timestamp timestamp = 2;
   int64 block_height = 3;
   string tx_hash = 4;
-  google.protobuf.Timestamp timestamp = 5;
+  ValidatorEventData data = 5;
+}
+
+enum ValidatorEventType {
+  VALIDATOR_EVENT_TYPE_UNKNOWN = 0;
+  VALIDATOR_EVENT_TYPE_REGISTRATION = 1;
+  VALIDATOR_EVENT_TYPE_REGISTRATION_LEGACY = 2;
+  VALIDATOR_EVENT_TYPE_DEREGISTRATION = 3;
+  VALIDATOR_EVENT_TYPE_MISBEHAVIOR_DEREGISTRATION = 4;
+}
+
+message ValidatorEventData {
+  oneof event {
+    ValidatorRegistrationEvent registration = 1;
+    ValidatorRegistrationLegacyEvent registration_legacy = 2;
+    ValidatorDeregistrationEvent deregistration = 3;
+    ValidatorMisbehaviorDeregistrationEvent misbehavior_deregistration = 4;
+  }
+}
+
+message ValidatorRegistrationEvent {
+  string address = 1;
+  string endpoint = 2;
+  string comet_address = 3;
+  string eth_block = 4;
+  string node_type = 5;
+  string spid = 6;
+  bytes comet_pubkey = 7;
+  int64 voting_power = 8;
+}
+
+message ValidatorRegistrationLegacyEvent {
+  string endpoint = 1;
+  string comet_address = 2;
+  string eth_block = 3;
+  string node_type = 4;
+  string sp_id = 5;
+  bytes pub_key = 6;
+  int64 power = 7;
+}
+
+message ValidatorDeregistrationEvent {
+  string comet_address = 1;
+  bytes comet_pubkey = 2;
+}
+
+message ValidatorMisbehaviorDeregistrationEvent {
+  string comet_address = 1;
+  bytes pub_key = 2;
 }
 
 message GetLocationRequest {

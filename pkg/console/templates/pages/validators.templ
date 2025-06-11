@@ -1,11 +1,128 @@
 package pages
 
-import "github.com/AudiusProject/audiusd/pkg/console/templates/layouts"
+import (
+	"fmt"
+	"github.com/AudiusProject/audiusd/pkg/api/etl/v1"
+	"github.com/AudiusProject/audiusd/pkg/console/templates"
+	"github.com/AudiusProject/audiusd/pkg/console/templates/layouts"
+)
 
-templ Validators() {
+templ Validators(validators []*v1.ValidatorInfo, currentPage int32, hasNext bool, hasPrev bool, pageSize int32, queryType string) {
 	@layouts.Base("Validators") {
-		<div>
-			<div>Validators</div>
+		<div class="shadow-xl rounded-lg p-4 bg-white dark:bg-gray-800">
+			<div class="flex justify-between items-center mb-4">
+				<h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Validators</h2>
+				<div class="flex space-x-2">
+					<a
+						href="?type=active"
+						class={ "px-3 py-1 rounded text-sm", templ.KV("bg-blue-500 text-white", queryType == "active"), templ.KV("bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-300", queryType != "active") }
+					>
+						Active
+					</a>
+					<a
+						href="?type=registrations"
+						class={ "px-3 py-1 rounded text-sm", templ.KV("bg-blue-500 text-white", queryType == "registrations"), templ.KV("bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-300", queryType != "registrations") }
+					>
+						All Registrations
+					</a>
+					<a
+						href="?type=deregistrations"
+						class={ "px-3 py-1 rounded text-sm", templ.KV("bg-blue-500 text-white", queryType == "deregistrations"), templ.KV("bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-300", queryType != "deregistrations") }
+					>
+						Deregistrations
+					</a>
+				</div>
+			</div>
+			if len(validators) > 0 {
+				<div class="overflow-x-auto">
+					<table class="min-w-full table-auto">
+						<thead>
+							<tr class="border-b border-gray-200 dark:border-gray-700">
+								<th class="text-left py-2 px-4 font-medium text-gray-900 dark:text-gray-100">Address</th>
+								<th class="text-left py-2 px-4 font-medium text-gray-900 dark:text-gray-100">Comet Address</th>
+								<th class="text-left py-2 px-4 font-medium text-gray-900 dark:text-gray-100">Node Type</th>
+								<th class="text-left py-2 px-4 font-medium text-gray-900 dark:text-gray-100">Voting Power</th>
+								<th class="text-left py-2 px-4 font-medium text-gray-900 dark:text-gray-100">Status</th>
+								<th class="text-left py-2 px-4 font-medium text-gray-900 dark:text-gray-100">Registered</th>
+							</tr>
+						</thead>
+						<tbody>
+							for _, validator := range validators {
+								<tr class="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+									<td class="py-2 px-4">
+										<a
+											href={ templ.SafeURL(fmt.Sprintf("/validator/%s", validator.Address)) }
+											class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline font-mono text-sm"
+										>
+											if len(validator.Address) > 16 {
+												{ validator.Address[:8] }...{ validator.Address[len(validator.Address)-8:] }
+											} else {
+												{ validator.Address }
+											}
+										</a>
+									</td>
+									<td class="py-2 px-4 font-mono text-sm">
+										if len(validator.CometAddress) > 16 {
+											{ validator.CometAddress[:8] }...{ validator.CometAddress[len(validator.CometAddress)-8:] }
+										} else {
+											{ validator.CometAddress }
+										}
+									</td>
+									<td class="py-2 px-4">
+										<span class="px-2 py-1 text-xs rounded bg-gray-100 dark:bg-gray-600 text-gray-800 dark:text-gray-200">
+											{ validator.NodeType }
+										</span>
+									</td>
+									<td class="py-2 px-4">{ fmt.Sprintf("%d", validator.VotingPower) }</td>
+									<td class="py-2 px-4">
+										switch validator.Status {
+											case v1.ValidatorStatus_VALIDATOR_STATUS_ACTIVE:
+												<span class="px-2 py-1 text-xs rounded bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">Active</span>
+											case v1.ValidatorStatus_VALIDATOR_STATUS_DEREGISTERED:
+												<span class="px-2 py-1 text-xs rounded bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200">Deregistered</span>
+											case v1.ValidatorStatus_VALIDATOR_STATUS_MISBEHAVIOR_DEREGISTERED:
+												<span class="px-2 py-1 text-xs rounded bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200">Misbehavior</span>
+											default:
+												<span class="px-2 py-1 text-xs rounded bg-gray-100 dark:bg-gray-600 text-gray-800 dark:text-gray-200">Unknown</span>
+										}
+									</td>
+									<td class="py-2 px-4 text-sm">
+										if validator.RegisteredAt != nil {
+											@templates.TimeWithTooltip(validator.RegisteredAt.AsTime())
+										}
+									</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+				<!-- Pagination -->
+				<div class="mt-4 flex justify-between items-center">
+					<div class="text-sm text-gray-500 dark:text-gray-400">
+						Page { fmt.Sprint(currentPage) } • { fmt.Sprint(pageSize) } per page
+					</div>
+					<div class="flex space-x-2">
+						if hasPrev {
+							<a
+								href={ templ.SafeURL(fmt.Sprintf("?page=%d&count=%d&type=%s", currentPage-1, pageSize, queryType)) }
+								class="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
+							>
+								Previous
+							</a>
+						}
+						if hasNext {
+							<a
+								href={ templ.SafeURL(fmt.Sprintf("?page=%d&count=%d&type=%s", currentPage+1, pageSize, queryType)) }
+								class="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
+							>
+								Next
+							</a>
+						}
+					</div>
+				</div>
+			} else {
+				<p class="text-gray-500 dark:text-gray-400">No validators found</p>
+			}
 		</div>
 	}
 }
