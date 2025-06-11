@@ -246,3 +246,103 @@ where address % $1
     and similarity(address, $1) > 0.4
     and address like $1 || '%'
 order by similarity(address, $1) desc;
+
+-- name: GetTransaction :one
+select t.*, b.block_time, b.proposer_address
+from etl_transactions t
+join etl_blocks b on t.block_height = b.block_height
+where t.tx_hash = $1;
+
+-- name: GetPlaysByTxHash :many
+select address,
+    track_id,
+    extract(
+        epoch
+        from played_at
+    )::bigint as timestamp,
+    city,
+    country,
+    region,
+    block_height,
+    tx_hash
+from etl_plays
+where tx_hash = $1;
+
+-- name: GetManageEntitiesByTxHash :many
+select address,
+    entity_type,
+    entity_id,
+    action,
+    metadata,
+    signature,
+    signer,
+    nonce,
+    block_height,
+    tx_hash
+from etl_manage_entities
+where tx_hash = $1;
+
+-- name: GetValidatorRegistrationsByTxHash :many
+select address,
+    comet_address,
+    comet_pubkey,
+    eth_block,
+    node_type,
+    spid,
+    voting_power,
+    block_height,
+    tx_hash
+from etl_validator_registrations
+where tx_hash = $1;
+
+-- name: GetValidatorDeregistrationsByTxHash :many
+select comet_address,
+    comet_pubkey,
+    block_height,
+    tx_hash
+from etl_validator_deregistrations
+where tx_hash = $1;
+
+-- name: GetSlaRollupsByTxHash :many
+select block_start,
+    block_end,
+    timestamp,
+    block_height,
+    tx_hash
+from etl_sla_rollups
+where tx_hash = $1;
+
+-- name: GetSlaNodeReportsByTxHash :many
+select sla_rollup_id,
+    address,
+    num_blocks_proposed,
+    block_height,
+    tx_hash
+from etl_sla_node_reports
+where tx_hash = $1;
+
+-- name: GetStorageProofsByTxHash :many
+select address,
+    height,
+    prover_addresses,
+    cid,
+    proof_signature,
+    block_height,
+    tx_hash
+from etl_storage_proofs
+where tx_hash = $1;
+
+-- name: GetStorageProofVerificationsByTxHash :many
+select height,
+    proof,
+    block_height,
+    tx_hash
+from etl_storage_proof_verifications
+where tx_hash = $1;
+
+-- name: GetReleasesByTxHash :many
+select release_data,
+    block_height,
+    tx_hash
+from etl_releases
+where tx_hash = $1;

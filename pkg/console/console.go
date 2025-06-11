@@ -71,7 +71,7 @@ func (con *Console) SetupRoutes() {
 	e.GET("/block/:height", con.Block)
 
 	e.GET("/transactions", con.Transactions)
-	e.GET("/transaction/:hash", con.stubRoute)
+	e.GET("/transaction/:hash", con.Transaction)
 
 	e.GET("/account/:address", con.stubRoute)
 	e.GET("/account/:address/transactions", con.stubRoute)
@@ -310,6 +310,26 @@ func (con *Console) Block(c echo.Context) error {
 		return c.String(http.StatusInternalServerError, "Failed to get block")
 	}
 	p := pages.Block(block.Msg.Block)
+	return p.Render(c.Request().Context(), c.Response().Writer)
+}
+
+func (con *Console) Transaction(c echo.Context) error {
+	txHash := c.Param("hash")
+	if txHash == "" {
+		return c.String(http.StatusBadRequest, "Transaction hash required")
+	}
+
+	// Get transaction details using the standard gRPC call
+	response, err := con.etl.GetTransaction(c.Request().Context(), &connect.Request[v1.GetTransactionRequest]{
+		Msg: &v1.GetTransactionRequest{
+			TxHash: txHash,
+		},
+	})
+	if err != nil {
+		return c.String(http.StatusInternalServerError, "Failed to get transaction")
+	}
+
+	p := pages.Transaction(response.Msg.Transaction)
 	return p.Render(c.Request().Context(), c.Response().Writer)
 }
 

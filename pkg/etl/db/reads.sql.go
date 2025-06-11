@@ -337,6 +337,65 @@ func (q *Queries) GetLatestTransactions(ctx context.Context, arg GetLatestTransa
 	return items, nil
 }
 
+const getManageEntitiesByTxHash = `-- name: GetManageEntitiesByTxHash :many
+select address,
+    entity_type,
+    entity_id,
+    action,
+    metadata,
+    signature,
+    signer,
+    nonce,
+    block_height,
+    tx_hash
+from etl_manage_entities
+where tx_hash = $1
+`
+
+type GetManageEntitiesByTxHashRow struct {
+	Address     string      `json:"address"`
+	EntityType  string      `json:"entity_type"`
+	EntityID    int64       `json:"entity_id"`
+	Action      string      `json:"action"`
+	Metadata    pgtype.Text `json:"metadata"`
+	Signature   string      `json:"signature"`
+	Signer      string      `json:"signer"`
+	Nonce       string      `json:"nonce"`
+	BlockHeight int64       `json:"block_height"`
+	TxHash      string      `json:"tx_hash"`
+}
+
+func (q *Queries) GetManageEntitiesByTxHash(ctx context.Context, txHash string) ([]GetManageEntitiesByTxHashRow, error) {
+	rows, err := q.db.Query(ctx, getManageEntitiesByTxHash, txHash)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetManageEntitiesByTxHashRow
+	for rows.Next() {
+		var i GetManageEntitiesByTxHashRow
+		if err := rows.Scan(
+			&i.Address,
+			&i.EntityType,
+			&i.EntityID,
+			&i.Action,
+			&i.Metadata,
+			&i.Signature,
+			&i.Signer,
+			&i.Nonce,
+			&i.BlockHeight,
+			&i.TxHash,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getPlayCountByAddress = `-- name: GetPlayCountByAddress :one
 select count(*) as play_count
 from etl_plays
@@ -659,6 +718,62 @@ func (q *Queries) GetPlaysByTrack(ctx context.Context, arg GetPlaysByTrackParams
 	return items, nil
 }
 
+const getPlaysByTxHash = `-- name: GetPlaysByTxHash :many
+select address,
+    track_id,
+    extract(
+        epoch
+        from played_at
+    )::bigint as timestamp,
+    city,
+    country,
+    region,
+    block_height,
+    tx_hash
+from etl_plays
+where tx_hash = $1
+`
+
+type GetPlaysByTxHashRow struct {
+	Address     string `json:"address"`
+	TrackID     string `json:"track_id"`
+	Timestamp   int64  `json:"timestamp"`
+	City        string `json:"city"`
+	Country     string `json:"country"`
+	Region      string `json:"region"`
+	BlockHeight int64  `json:"block_height"`
+	TxHash      string `json:"tx_hash"`
+}
+
+func (q *Queries) GetPlaysByTxHash(ctx context.Context, txHash string) ([]GetPlaysByTxHashRow, error) {
+	rows, err := q.db.Query(ctx, getPlaysByTxHash, txHash)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetPlaysByTxHashRow
+	for rows.Next() {
+		var i GetPlaysByTxHashRow
+		if err := rows.Scan(
+			&i.Address,
+			&i.TrackID,
+			&i.Timestamp,
+			&i.City,
+			&i.Country,
+			&i.Region,
+			&i.BlockHeight,
+			&i.TxHash,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getPlaysCount = `-- name: GetPlaysCount :one
 select count(*) as total
 from etl_plays
@@ -697,6 +812,219 @@ func (q *Queries) GetPlaysCount(ctx context.Context, arg GetPlaysCountParams) (i
 	return total, err
 }
 
+const getReleasesByTxHash = `-- name: GetReleasesByTxHash :many
+select release_data,
+    block_height,
+    tx_hash
+from etl_releases
+where tx_hash = $1
+`
+
+type GetReleasesByTxHashRow struct {
+	ReleaseData []byte `json:"release_data"`
+	BlockHeight int64  `json:"block_height"`
+	TxHash      string `json:"tx_hash"`
+}
+
+func (q *Queries) GetReleasesByTxHash(ctx context.Context, txHash string) ([]GetReleasesByTxHashRow, error) {
+	rows, err := q.db.Query(ctx, getReleasesByTxHash, txHash)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetReleasesByTxHashRow
+	for rows.Next() {
+		var i GetReleasesByTxHashRow
+		if err := rows.Scan(&i.ReleaseData, &i.BlockHeight, &i.TxHash); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getSlaNodeReportsByTxHash = `-- name: GetSlaNodeReportsByTxHash :many
+select sla_rollup_id,
+    address,
+    num_blocks_proposed,
+    block_height,
+    tx_hash
+from etl_sla_node_reports
+where tx_hash = $1
+`
+
+type GetSlaNodeReportsByTxHashRow struct {
+	SlaRollupID       int32  `json:"sla_rollup_id"`
+	Address           string `json:"address"`
+	NumBlocksProposed int32  `json:"num_blocks_proposed"`
+	BlockHeight       int64  `json:"block_height"`
+	TxHash            string `json:"tx_hash"`
+}
+
+func (q *Queries) GetSlaNodeReportsByTxHash(ctx context.Context, txHash string) ([]GetSlaNodeReportsByTxHashRow, error) {
+	rows, err := q.db.Query(ctx, getSlaNodeReportsByTxHash, txHash)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetSlaNodeReportsByTxHashRow
+	for rows.Next() {
+		var i GetSlaNodeReportsByTxHashRow
+		if err := rows.Scan(
+			&i.SlaRollupID,
+			&i.Address,
+			&i.NumBlocksProposed,
+			&i.BlockHeight,
+			&i.TxHash,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getSlaRollupsByTxHash = `-- name: GetSlaRollupsByTxHash :many
+select block_start,
+    block_end,
+    timestamp,
+    block_height,
+    tx_hash
+from etl_sla_rollups
+where tx_hash = $1
+`
+
+type GetSlaRollupsByTxHashRow struct {
+	BlockStart  int64            `json:"block_start"`
+	BlockEnd    int64            `json:"block_end"`
+	Timestamp   pgtype.Timestamp `json:"timestamp"`
+	BlockHeight int64            `json:"block_height"`
+	TxHash      string           `json:"tx_hash"`
+}
+
+func (q *Queries) GetSlaRollupsByTxHash(ctx context.Context, txHash string) ([]GetSlaRollupsByTxHashRow, error) {
+	rows, err := q.db.Query(ctx, getSlaRollupsByTxHash, txHash)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetSlaRollupsByTxHashRow
+	for rows.Next() {
+		var i GetSlaRollupsByTxHashRow
+		if err := rows.Scan(
+			&i.BlockStart,
+			&i.BlockEnd,
+			&i.Timestamp,
+			&i.BlockHeight,
+			&i.TxHash,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getStorageProofVerificationsByTxHash = `-- name: GetStorageProofVerificationsByTxHash :many
+select height,
+    proof,
+    block_height,
+    tx_hash
+from etl_storage_proof_verifications
+where tx_hash = $1
+`
+
+type GetStorageProofVerificationsByTxHashRow struct {
+	Height      int64  `json:"height"`
+	Proof       []byte `json:"proof"`
+	BlockHeight int64  `json:"block_height"`
+	TxHash      string `json:"tx_hash"`
+}
+
+func (q *Queries) GetStorageProofVerificationsByTxHash(ctx context.Context, txHash string) ([]GetStorageProofVerificationsByTxHashRow, error) {
+	rows, err := q.db.Query(ctx, getStorageProofVerificationsByTxHash, txHash)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetStorageProofVerificationsByTxHashRow
+	for rows.Next() {
+		var i GetStorageProofVerificationsByTxHashRow
+		if err := rows.Scan(
+			&i.Height,
+			&i.Proof,
+			&i.BlockHeight,
+			&i.TxHash,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getStorageProofsByTxHash = `-- name: GetStorageProofsByTxHash :many
+select address,
+    height,
+    prover_addresses,
+    cid,
+    proof_signature,
+    block_height,
+    tx_hash
+from etl_storage_proofs
+where tx_hash = $1
+`
+
+type GetStorageProofsByTxHashRow struct {
+	Address         string   `json:"address"`
+	Height          int64    `json:"height"`
+	ProverAddresses []string `json:"prover_addresses"`
+	Cid             string   `json:"cid"`
+	ProofSignature  []byte   `json:"proof_signature"`
+	BlockHeight     int64    `json:"block_height"`
+	TxHash          string   `json:"tx_hash"`
+}
+
+func (q *Queries) GetStorageProofsByTxHash(ctx context.Context, txHash string) ([]GetStorageProofsByTxHashRow, error) {
+	rows, err := q.db.Query(ctx, getStorageProofsByTxHash, txHash)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetStorageProofsByTxHashRow
+	for rows.Next() {
+		var i GetStorageProofsByTxHashRow
+		if err := rows.Scan(
+			&i.Address,
+			&i.Height,
+			&i.ProverAddresses,
+			&i.Cid,
+			&i.ProofSignature,
+			&i.BlockHeight,
+			&i.TxHash,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getTotalBlocksCount = `-- name: GetTotalBlocksCount :one
 select count(*) as total
 from etl_blocks
@@ -719,6 +1047,42 @@ func (q *Queries) GetTotalTransactionsCount(ctx context.Context) (int64, error) 
 	var total int64
 	err := row.Scan(&total)
 	return total, err
+}
+
+const getTransaction = `-- name: GetTransaction :one
+select t.id, t.tx_hash, t.block_height, t.index, t.tx_type, t.created_at, t.updated_at, b.block_time, b.proposer_address
+from etl_transactions t
+join etl_blocks b on t.block_height = b.block_height
+where t.tx_hash = $1
+`
+
+type GetTransactionRow struct {
+	ID              int32            `json:"id"`
+	TxHash          string           `json:"tx_hash"`
+	BlockHeight     int64            `json:"block_height"`
+	Index           int64            `json:"index"`
+	TxType          string           `json:"tx_type"`
+	CreatedAt       pgtype.Timestamp `json:"created_at"`
+	UpdatedAt       pgtype.Timestamp `json:"updated_at"`
+	BlockTime       pgtype.Timestamp `json:"block_time"`
+	ProposerAddress string           `json:"proposer_address"`
+}
+
+func (q *Queries) GetTransaction(ctx context.Context, txHash string) (GetTransactionRow, error) {
+	row := q.db.QueryRow(ctx, getTransaction, txHash)
+	var i GetTransactionRow
+	err := row.Scan(
+		&i.ID,
+		&i.TxHash,
+		&i.BlockHeight,
+		&i.Index,
+		&i.TxType,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.BlockTime,
+		&i.ProposerAddress,
+	)
+	return i, err
 }
 
 const getValidatorDeregistrations = `-- name: GetValidatorDeregistrations :many
@@ -746,6 +1110,47 @@ func (q *Queries) GetValidatorDeregistrations(ctx context.Context) ([]GetValidat
 	var items []GetValidatorDeregistrationsRow
 	for rows.Next() {
 		var i GetValidatorDeregistrationsRow
+		if err := rows.Scan(
+			&i.CometAddress,
+			&i.CometPubkey,
+			&i.BlockHeight,
+			&i.TxHash,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getValidatorDeregistrationsByTxHash = `-- name: GetValidatorDeregistrationsByTxHash :many
+select comet_address,
+    comet_pubkey,
+    block_height,
+    tx_hash
+from etl_validator_deregistrations
+where tx_hash = $1
+`
+
+type GetValidatorDeregistrationsByTxHashRow struct {
+	CometAddress string `json:"comet_address"`
+	CometPubkey  []byte `json:"comet_pubkey"`
+	BlockHeight  int64  `json:"block_height"`
+	TxHash       string `json:"tx_hash"`
+}
+
+func (q *Queries) GetValidatorDeregistrationsByTxHash(ctx context.Context, txHash string) ([]GetValidatorDeregistrationsByTxHashRow, error) {
+	rows, err := q.db.Query(ctx, getValidatorDeregistrationsByTxHash, txHash)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetValidatorDeregistrationsByTxHashRow
+	for rows.Next() {
+		var i GetValidatorDeregistrationsByTxHashRow
 		if err := rows.Scan(
 			&i.CometAddress,
 			&i.CometPubkey,
@@ -797,6 +1202,62 @@ func (q *Queries) GetValidatorRegistrations(ctx context.Context) ([]GetValidator
 	var items []GetValidatorRegistrationsRow
 	for rows.Next() {
 		var i GetValidatorRegistrationsRow
+		if err := rows.Scan(
+			&i.Address,
+			&i.CometAddress,
+			&i.CometPubkey,
+			&i.EthBlock,
+			&i.NodeType,
+			&i.Spid,
+			&i.VotingPower,
+			&i.BlockHeight,
+			&i.TxHash,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getValidatorRegistrationsByTxHash = `-- name: GetValidatorRegistrationsByTxHash :many
+select address,
+    comet_address,
+    comet_pubkey,
+    eth_block,
+    node_type,
+    spid,
+    voting_power,
+    block_height,
+    tx_hash
+from etl_validator_registrations
+where tx_hash = $1
+`
+
+type GetValidatorRegistrationsByTxHashRow struct {
+	Address      string `json:"address"`
+	CometAddress string `json:"comet_address"`
+	CometPubkey  []byte `json:"comet_pubkey"`
+	EthBlock     string `json:"eth_block"`
+	NodeType     string `json:"node_type"`
+	Spid         string `json:"spid"`
+	VotingPower  int64  `json:"voting_power"`
+	BlockHeight  int64  `json:"block_height"`
+	TxHash       string `json:"tx_hash"`
+}
+
+func (q *Queries) GetValidatorRegistrationsByTxHash(ctx context.Context, txHash string) ([]GetValidatorRegistrationsByTxHashRow, error) {
+	rows, err := q.db.Query(ctx, getValidatorRegistrationsByTxHash, txHash)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetValidatorRegistrationsByTxHashRow
+	for rows.Next() {
+		var i GetValidatorRegistrationsByTxHashRow
 		if err := rows.Scan(
 			&i.Address,
 			&i.CometAddress,
