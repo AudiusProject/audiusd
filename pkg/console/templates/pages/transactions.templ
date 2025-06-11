@@ -1,11 +1,81 @@
 package pages
 
-import "github.com/AudiusProject/audiusd/pkg/console/templates/layouts"
+import (
+	"fmt"
+	"github.com/AudiusProject/audiusd/pkg/api/etl/v1"
+	"github.com/AudiusProject/audiusd/pkg/console/templates/layouts"
+	"time"
+)
 
-templ Transactions() {
+templ Transactions(transactions []*v1.Block_Transaction, blockHeights map[string]int64, currentPage int32, hasNext bool, hasPrev bool, pageSize int32) {
 	@layouts.Base("Transactions") {
-		<div>
-			<div>Transactions</div>
+		<div class="shadow-xl rounded-lg p-4 bg-white dark:bg-gray-800">
+			<h2 class="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">Latest Transactions</h2>
+			if len(transactions) > 0 {
+				<div class="overflow-x-auto">
+					<table class="min-w-full table-auto">
+						<thead>
+							<tr class="border-b border-gray-200 dark:border-gray-700">
+								<th class="text-left py-2 px-4 font-medium text-gray-900 dark:text-gray-100">Hash</th>
+								<th class="text-left py-2 px-4 font-medium text-gray-900 dark:text-gray-100">Type</th>
+								<th class="text-left py-2 px-4 font-medium text-gray-900 dark:text-gray-100">Block</th>
+								<th class="text-left py-2 px-4 font-medium text-gray-900 dark:text-gray-100">Time</th>
+							</tr>
+						</thead>
+						<tbody>
+							for _, tx := range transactions {
+								<tr class="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+									<td class="py-2 px-4 font-mono text-sm">
+										<a href={ templ.SafeURL(fmt.Sprintf("/transaction/%s", tx.Hash)) } class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline">
+											if len(tx.Hash) > 8 {
+												{ tx.Hash[:4] }...{ tx.Hash[len(tx.Hash)-4:] }
+											} else {
+												{ tx.Hash }
+											}
+										</a>
+									</td>
+									<td class="py-2 px-4">{ tx.Type }</td>
+									<td class="py-2 px-4">
+										if blockHeight, exists := blockHeights[tx.Hash]; exists {
+											<a href={ templ.SafeURL(fmt.Sprintf("/block/%d", blockHeight)) } class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline">
+												{ fmt.Sprintf("%d", blockHeight) }
+											</a>
+										}
+									</td>
+									<td class="py-2 px-4 text-sm">{ tx.Timestamp.AsTime().Format(time.RFC3339) }</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+				<div class="mt-4 flex justify-between items-center">
+					<div class="text-sm text-gray-500 dark:text-gray-400">
+						Page { fmt.Sprint(currentPage) } • { fmt.Sprint(pageSize) } transactions per page
+					</div>
+					<div class="flex gap-2">
+						if hasPrev {
+							<a href={ templ.SafeURL(fmt.Sprintf("/transactions?page=%d&count=%d", currentPage-1, pageSize)) } class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
+								← Previous
+							</a>
+						} else {
+							<span class="bg-gray-300 text-gray-500 font-bold py-2 px-4 rounded cursor-not-allowed">
+								← Previous
+							</span>
+						}
+						if hasNext {
+							<a href={ templ.SafeURL(fmt.Sprintf("/transactions?page=%d&count=%d", currentPage+1, pageSize)) } class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+								Next →
+							</a>
+						} else {
+							<span class="bg-gray-300 text-gray-500 font-bold py-2 px-4 rounded cursor-not-allowed">
+								Next →
+							</span>
+						}
+					</div>
+				</div>
+			} else {
+				<p class="text-gray-500 dark:text-gray-400">No transactions found</p>
+			}
 		</div>
 	}
 }
