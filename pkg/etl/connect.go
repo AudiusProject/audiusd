@@ -3,6 +3,7 @@ package etl
 import (
 	"context"
 	"sort"
+	"time"
 
 	"connectrpc.com/connect"
 	corev1connect "github.com/AudiusProject/audiusd/pkg/api/core/v1/v1connect"
@@ -497,8 +498,278 @@ func NewETLService(core corev1connect.CoreServiceClient, logger *common.Logger) 
 }
 
 // GetTransaction implements v1connect.ETLServiceHandler.
-func (e *ETLService) GetTransaction(context.Context, *connect.Request[v1.GetTransactionRequest]) (*connect.Response[v1.GetTransactionResponse], error) {
-	panic("unimplemented")
+func (e *ETLService) GetTransaction(ctx context.Context, req *connect.Request[v1.GetTransactionRequest]) (*connect.Response[v1.GetTransactionResponse], error) {
+	txHash := req.Msg.TxHash
+	if txHash == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, nil)
+	}
+
+	// Get the transaction directly by hash
+	txResult, err := e.db.GetTransaction(ctx, txHash)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeNotFound, nil)
+	}
+
+	// Create the base transaction
+	transaction := &v1.Transaction{
+		Hash:            txResult.TxHash,
+		Type:            txResult.TxType,
+		BlockHeight:     txResult.BlockHeight,
+		Index:           txResult.Index,
+		BlockTime:       timestamppb.New(txResult.BlockTime.Time),
+		ProposerAddress: txResult.ProposerAddress,
+	}
+
+	// Get transaction content based on type using direct queries by tx_hash
+	switch txResult.TxType {
+	case TxTypePlay:
+		plays, err := e.db.GetPlaysByTxHash(ctx, txHash)
+		if err != nil {
+			return nil, err
+		}
+
+		trackPlays := make([]*v1.TrackPlay, len(plays))
+		for i, play := range plays {
+			trackPlays[i] = &v1.TrackPlay{
+				Address:  play.Address,
+				TrackId:  play.TrackID,
+				PlayedAt: timestamppb.New(time.Unix(play.Timestamp, 0)),
+				City:     play.City,
+				Region:   play.Region,
+				Country:  play.Country,
+			}
+		}
+		transaction.Content = &v1.Transaction_Plays{
+			Plays: &v1.TrackPlaysTransaction{Plays: trackPlays},
+		}
+
+	case TxTypeManageEntity:
+		entities, err := e.db.GetManageEntitiesByTxHash(ctx, txHash)
+		if err != nil {
+			return nil, err
+		}
+
+		manageEntities := make([]*v1.ManageEntity, len(entities))
+		for i, entity := range entities {
+			manageEntities[i] = &v1.ManageEntity{
+				Address:    entity.Address,
+				EntityType: entity.EntityType,
+				EntityId:   entity.EntityID,
+				Action:     entity.Action,
+				Metadata:   entity.Metadata.String,
+				Signature:  entity.Signature,
+				Signer:     entity.Signer,
+				Nonce:      entity.Nonce,
+			}
+		}
+		transaction.Content = &v1.Transaction_ManageEntity{
+			ManageEntity: &v1.ManageEntityTransaction{Entities: manageEntities},
+		}
+
+	case TxTypeValidatorRegistration:
+		registrations, err := e.db.GetValidatorRegistrationsByTxHash(ctx, txHash)
+		if err != nil {
+			return nil, err
+		}
+
+		validatorRegistrations := make([]*v1.ValidatorRegistration, len(registrations))
+		for i, reg := range registrations {
+			validatorRegistrations[i] = &v1.ValidatorRegistration{
+				Address:      reg.Address,
+				CometAddress: reg.CometAddress,
+				EthBlock:     reg.EthBlock,
+				NodeType:     reg.NodeType,
+				Spid:         reg.Spid,
+				CometPubkey:  reg.CometPubkey,
+				VotingPower:  reg.VotingPower,
+			}
+		}
+		transaction.Content = &v1.Transaction_ValidatorRegistration{
+			ValidatorRegistration: &v1.ValidatorRegistrationTransaction{Registrations: validatorRegistrations},
+		}
+
+	case TxTypeValidatorDeregistration:
+		deregistrations, err := e.db.GetValidatorDeregistrationsByTxHash(ctx, txHash)
+		if err != nil {
+			return nil, err
+		}
+
+		validatorDeregistrations := make([]*v1.ValidatorDeregistration, len(deregistrations))
+		for i, dereg := range deregistrations {
+			validatorDeregistrations[i] = &v1.ValidatorDeregistration{
+				CometAddress: dereg.CometAddress,
+				CometPubkey:  dereg.CometPubkey,
+			}
+		}
+		transaction.Content = &v1.Transaction_ValidatorDeregistration{
+			ValidatorDeregistration: &v1.ValidatorDeregistrationTransaction{Deregistrations: validatorDeregistrations},
+		}
+
+	case TxTypeValidatorRegistrationLegacy:
+		// Legacy validator registration uses the same structure as regular validator registration
+		registrations, err := e.db.GetValidatorRegistrationsByTxHash(ctx, txHash)
+		if err != nil {
+			return nil, err
+		}
+
+		validatorRegistrations := make([]*v1.ValidatorRegistration, len(registrations))
+		for i, reg := range registrations {
+			validatorRegistrations[i] = &v1.ValidatorRegistration{
+				Address:      reg.Address,
+				CometAddress: reg.CometAddress,
+				EthBlock:     reg.EthBlock,
+				NodeType:     reg.NodeType,
+				Spid:         reg.Spid,
+				CometPubkey:  reg.CometPubkey,
+				VotingPower:  reg.VotingPower,
+			}
+		}
+		transaction.Content = &v1.Transaction_ValidatorRegistration{
+			ValidatorRegistration: &v1.ValidatorRegistrationTransaction{Registrations: validatorRegistrations},
+		}
+
+	case TxTypeSlaRollup:
+		slaRollups, err := e.db.GetSlaRollupsByTxHash(ctx, txHash)
+		if err != nil {
+			return nil, err
+		}
+
+		slaNodeReports, err := e.db.GetSlaNodeReportsByTxHash(ctx, txHash)
+		if err != nil {
+			return nil, err
+		}
+
+		// Convert to protobuf structures
+		reports := make([]*v1.SlaNodeReport, len(slaNodeReports))
+		for i, report := range slaNodeReports {
+			reports[i] = &v1.SlaNodeReport{
+				Address:           report.Address,
+				NumBlocksProposed: report.NumBlocksProposed,
+			}
+		}
+
+		// For SLA rollup transaction, we expect one rollup record
+		var timestamp *timestamppb.Timestamp
+		var blockStart, blockEnd int64
+		if len(slaRollups) > 0 {
+			rollup := slaRollups[0]
+			timestamp = timestamppb.New(rollup.Timestamp.Time)
+			blockStart = rollup.BlockStart
+			blockEnd = rollup.BlockEnd
+		}
+
+		transaction.Content = &v1.Transaction_SlaRollup{
+			SlaRollup: &v1.SlaRollupTransaction{
+				Timestamp:  timestamp,
+				BlockStart: blockStart,
+				BlockEnd:   blockEnd,
+				Reports:    reports,
+			},
+		}
+
+	case TxTypeStorageProof:
+		storageProofs, err := e.db.GetStorageProofsByTxHash(ctx, txHash)
+		if err != nil {
+			e.logger.Error("Failed to get storage proofs", "error", err, "txHash", txHash)
+			return nil, err
+		}
+
+		e.logger.Info("Storage proof query result", "txHash", txHash, "count", len(storageProofs))
+
+		// For storage proof transaction, we expect one proof record
+		if len(storageProofs) > 0 {
+			proof := storageProofs[0]
+			e.logger.Info("Storage proof data", "height", proof.Height, "address", proof.Address, "cid", proof.Cid)
+			transaction.Content = &v1.Transaction_StorageProof{
+				StorageProof: &v1.StorageProofTransaction{
+					Height:          proof.Height,
+					Address:         proof.Address,
+					ProverAddresses: proof.ProverAddresses,
+					Cid:             proof.Cid,
+					ProofSignature:  proof.ProofSignature,
+				},
+			}
+		} else {
+			e.logger.Warn("No storage proofs found for transaction", "txHash", txHash)
+			// Empty storage proof if no records found
+			transaction.Content = &v1.Transaction_StorageProof{
+				StorageProof: &v1.StorageProofTransaction{},
+			}
+		}
+
+	case TxTypeStorageProofVerification:
+		verifications, err := e.db.GetStorageProofVerificationsByTxHash(ctx, txHash)
+		if err != nil {
+			e.logger.Error("Failed to get storage proof verifications", "error", err, "txHash", txHash)
+			return nil, err
+		}
+
+		e.logger.Info("Storage proof verification query result", "txHash", txHash, "count", len(verifications))
+
+		// For storage proof verification transaction, we expect one verification record
+		if len(verifications) > 0 {
+			verification := verifications[0]
+			e.logger.Info("Storage proof verification data", "height", verification.Height, "proofLength", len(verification.Proof))
+			transaction.Content = &v1.Transaction_StorageProofVerification{
+				StorageProofVerification: &v1.StorageProofVerificationTransaction{
+					Height: verification.Height,
+					Proof:  verification.Proof,
+				},
+			}
+		} else {
+			e.logger.Warn("No storage proof verifications found for transaction", "txHash", txHash)
+			// Empty storage proof verification if no records found
+			transaction.Content = &v1.Transaction_StorageProofVerification{
+				StorageProofVerification: &v1.StorageProofVerificationTransaction{},
+			}
+		}
+
+	case TxTypeRelease:
+		releases, err := e.db.GetReleasesByTxHash(ctx, txHash)
+		if err != nil {
+			return nil, err
+		}
+
+		// For release transaction, we expect one release record
+		if len(releases) > 0 {
+			release := releases[0]
+			transaction.Content = &v1.Transaction_Release{
+				Release: &v1.ReleaseTransaction{
+					ReleaseData: release.ReleaseData,
+				},
+			}
+		} else {
+			// Empty release if no records found
+			transaction.Content = &v1.Transaction_Release{
+				Release: &v1.ReleaseTransaction{},
+			}
+		}
+
+	case TxTypeValidatorMisbehaviorDeregistration:
+		// This likely uses the same structure as regular validator deregistration
+		deregistrations, err := e.db.GetValidatorDeregistrationsByTxHash(ctx, txHash)
+		if err != nil {
+			return nil, err
+		}
+
+		validatorDeregistrations := make([]*v1.ValidatorDeregistration, len(deregistrations))
+		for i, dereg := range deregistrations {
+			validatorDeregistrations[i] = &v1.ValidatorDeregistration{
+				CometAddress: dereg.CometAddress,
+				CometPubkey:  dereg.CometPubkey,
+			}
+		}
+		transaction.Content = &v1.Transaction_ValidatorDeregistration{
+			ValidatorDeregistration: &v1.ValidatorDeregistrationTransaction{Deregistrations: validatorDeregistrations},
+		}
+
+	default:
+		// For unknown transaction types, don't set content
+	}
+
+	return connect.NewResponse(&v1.GetTransactionResponse{
+		Transaction: transaction,
+	}), nil
 }
 
 // StreamTransactions implements v1connect.ETLServiceHandler.

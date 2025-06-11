@@ -73,7 +73,110 @@ message GetTransactionRequest {
   string tx_hash = 1;
 }
 
-message GetTransactionResponse {}
+message GetTransactionResponse {
+  Transaction transaction = 1;
+}
+
+message Transaction {
+  string hash = 1;
+  string type = 2;
+  int64 block_height = 3;
+  int64 index = 4;
+  google.protobuf.Timestamp block_time = 5;
+  string proposer_address = 6;
+  
+  oneof content {
+    TrackPlaysTransaction plays = 100;
+    ManageEntityTransaction manage_entity = 101;
+    ValidatorRegistrationTransaction validator_registration = 102;
+    ValidatorDeregistrationTransaction validator_deregistration = 103;
+    SlaRollupTransaction sla_rollup = 104;
+    StorageProofTransaction storage_proof = 105;
+    StorageProofVerificationTransaction storage_proof_verification = 106;
+    ReleaseTransaction release = 107;
+  }
+}
+
+message TrackPlaysTransaction {
+  repeated TrackPlay plays = 1;
+}
+
+message TrackPlay {
+  string address = 1;
+  string track_id = 2;
+  google.protobuf.Timestamp played_at = 3;
+  string city = 4;
+  string region = 5;
+  string country = 6;
+}
+
+message ManageEntityTransaction {
+  repeated ManageEntity entities = 1;
+}
+
+message ManageEntity {
+  string address = 1;
+  string entity_type = 2;
+  int64 entity_id = 3;
+  string action = 4;
+  string metadata = 5;
+  string signature = 6;
+  string signer = 7;
+  string nonce = 8;
+}
+
+message ValidatorRegistrationTransaction {
+  repeated ValidatorRegistration registrations = 1;
+}
+
+message ValidatorRegistration {
+  string address = 1;
+  string endpoint = 2;
+  string comet_address = 3;
+  string eth_block = 4;
+  string node_type = 5;
+  string spid = 6;
+  bytes comet_pubkey = 7;
+  int64 voting_power = 8;
+}
+
+message ValidatorDeregistrationTransaction {
+  repeated ValidatorDeregistration deregistrations = 1;
+}
+
+message ValidatorDeregistration {
+  string comet_address = 1;
+  bytes comet_pubkey = 2;
+}
+
+message SlaRollupTransaction {
+  google.protobuf.Timestamp timestamp = 1;
+  int64 block_start = 2;
+  int64 block_end = 3;
+  repeated SlaNodeReport reports = 4;
+}
+
+message SlaNodeReport {
+  string address = 1;
+  int32 num_blocks_proposed = 2;
+}
+
+message StorageProofTransaction {
+  int64 height = 1;
+  string address = 2;
+  repeated string prover_addresses = 3;
+  string cid = 4;
+  bytes proof_signature = 5;
+}
+
+message StorageProofVerificationTransaction {
+  int64 height = 1;
+  bytes proof = 2;
+}
+
+message ReleaseTransaction {
+  bytes release_data = 1;
+}
 
 message StreamTransactionsRequest {
   string address = 1;
