@@ -3,8 +3,8 @@ package pages
 import (
 	"fmt"
 	"github.com/AudiusProject/audiusd/pkg/api/etl/v1"
+	"github.com/AudiusProject/audiusd/pkg/console/templates"
 	"github.com/AudiusProject/audiusd/pkg/console/templates/layouts"
-	"time"
 )
 
 templ Transactions(transactions []*v1.Block_Transaction, blockHeights map[string]int64, currentPage int32, hasNext bool, hasPrev bool, pageSize int32) {
@@ -42,7 +42,9 @@ templ Transactions(transactions []*v1.Block_Transaction, blockHeights map[string
 											</a>
 										}
 									</td>
-									<td class="py-2 px-4 text-sm">{ tx.Timestamp.AsTime().Format(time.RFC3339) }</td>
+									<td class="py-2 px-4 text-sm">
+										@templates.TimeWithTooltip(tx.Timestamp.AsTime())
+									</td>
 								</tr>
 							}
 						</tbody>
