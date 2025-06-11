@@ -31,12 +31,6 @@ message Block {
   repeated Transaction transactions = 4;
 }
 
-message StreamBlocksRequest {}
-
-message StreamBlocksResponse {
-  Block block = 1;
-}
-
 message GetBlockRequest {
   int64 height = 1;
 }
@@ -84,7 +78,7 @@ message Transaction {
   int64 index = 4;
   google.protobuf.Timestamp block_time = 5;
   string proposer_address = 6;
-  
+
   oneof content {
     TrackPlaysTransaction plays = 100;
     ManageEntityTransaction manage_entity = 101;
@@ -176,14 +170,6 @@ message StorageProofVerificationTransaction {
 
 message ReleaseTransaction {
   bytes release_data = 1;
-}
-
-message StreamTransactionsRequest {
-  string address = 1;
-}
-
-message StreamTransactionsResponse {
-  string tx_hash = 1;
 }
 
 message GetPlaysRequest {
@@ -378,4 +364,31 @@ message SearchResponse {
   repeated string transactions = 2;
   repeated string accounts = 3;
   repeated string validators = 4;
+}
+
+message StreamRequest {
+  message StreamBlocksRequest {}
+  message StreamPlaysRequest {}
+
+  oneof query {
+    StreamBlocksRequest stream_blocks = 1;
+    StreamPlaysRequest stream_plays = 2;
+  }
+}
+
+message StreamResponse {
+  message StreamBlocksResponse {
+    int64 height = 1;
+    string proposer = 2;
+  }
+
+  message StreamPlaysResponse {
+    string city = 1;
+    string country = 2;
+    string region = 3;
+  }
+  oneof response {
+    StreamBlocksResponse stream_blocks = 1;
+    StreamPlaysResponse stream_plays = 2;
+  }
 }

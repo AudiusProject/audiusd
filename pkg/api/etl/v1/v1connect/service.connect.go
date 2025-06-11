@@ -41,17 +41,12 @@ const (
 	ETLServiceGetBlockProcedure = "/etl.v1.ETLService/GetBlock"
 	// ETLServiceGetBlocksProcedure is the fully-qualified name of the ETLService's GetBlocks RPC.
 	ETLServiceGetBlocksProcedure = "/etl.v1.ETLService/GetBlocks"
-	// ETLServiceStreamBlocksProcedure is the fully-qualified name of the ETLService's StreamBlocks RPC.
-	ETLServiceStreamBlocksProcedure = "/etl.v1.ETLService/StreamBlocks"
 	// ETLServiceGetTransactionProcedure is the fully-qualified name of the ETLService's GetTransaction
 	// RPC.
 	ETLServiceGetTransactionProcedure = "/etl.v1.ETLService/GetTransaction"
 	// ETLServiceGetTransactionsProcedure is the fully-qualified name of the ETLService's
 	// GetTransactions RPC.
 	ETLServiceGetTransactionsProcedure = "/etl.v1.ETLService/GetTransactions"
-	// ETLServiceStreamTransactionsProcedure is the fully-qualified name of the ETLService's
-	// StreamTransactions RPC.
-	ETLServiceStreamTransactionsProcedure = "/etl.v1.ETLService/StreamTransactions"
 	// ETLServiceGetPlaysProcedure is the fully-qualified name of the ETLService's GetPlays RPC.
 	ETLServiceGetPlaysProcedure = "/etl.v1.ETLService/GetPlays"
 	// ETLServiceGetManageEntitiesProcedure is the fully-qualified name of the ETLService's
@@ -66,6 +61,8 @@ const (
 	ETLServiceGetLocationProcedure = "/etl.v1.ETLService/GetLocation"
 	// ETLServiceSearchProcedure is the fully-qualified name of the ETLService's Search RPC.
 	ETLServiceSearchProcedure = "/etl.v1.ETLService/Search"
+	// ETLServiceStreamProcedure is the fully-qualified name of the ETLService's Stream RPC.
+	ETLServiceStreamProcedure = "/etl.v1.ETLService/Stream"
 )
 
 // ETLServiceClient is a client for the etl.v1.ETLService service.
@@ -74,16 +71,15 @@ type ETLServiceClient interface {
 	GetHealth(context.Context, *connect.Request[v1.GetHealthRequest]) (*connect.Response[v1.GetHealthResponse], error)
 	GetBlock(context.Context, *connect.Request[v1.GetBlockRequest]) (*connect.Response[v1.GetBlockResponse], error)
 	GetBlocks(context.Context, *connect.Request[v1.GetBlocksRequest]) (*connect.Response[v1.GetBlocksResponse], error)
-	StreamBlocks(context.Context, *connect.Request[v1.StreamBlocksRequest]) (*connect.ServerStreamForClient[v1.StreamBlocksResponse], error)
 	GetTransaction(context.Context, *connect.Request[v1.GetTransactionRequest]) (*connect.Response[v1.GetTransactionResponse], error)
 	GetTransactions(context.Context, *connect.Request[v1.GetTransactionsRequest]) (*connect.Response[v1.GetTransactionsResponse], error)
-	StreamTransactions(context.Context, *connect.Request[v1.StreamTransactionsRequest]) (*connect.ServerStreamForClient[v1.StreamTransactionsResponse], error)
 	GetPlays(context.Context, *connect.Request[v1.GetPlaysRequest]) (*connect.Response[v1.GetPlaysResponse], error)
 	GetManageEntities(context.Context, *connect.Request[v1.GetManageEntitiesRequest]) (*connect.Response[v1.GetManageEntitiesResponse], error)
 	GetValidators(context.Context, *connect.Request[v1.GetValidatorsRequest]) (*connect.Response[v1.GetValidatorsResponse], error)
 	GetValidator(context.Context, *connect.Request[v1.GetValidatorRequest]) (*connect.Response[v1.GetValidatorResponse], error)
 	GetLocation(context.Context, *connect.Request[v1.GetLocationRequest]) (*connect.Response[v1.GetLocationResponse], error)
 	Search(context.Context, *connect.Request[v1.SearchRequest]) (*connect.Response[v1.SearchResponse], error)
+	Stream(context.Context) *connect.BidiStreamForClient[v1.StreamRequest, v1.StreamResponse]
 }
 
 // NewETLServiceClient constructs a client for the etl.v1.ETLService service. By default, it uses
@@ -121,12 +117,6 @@ func NewETLServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			connect.WithSchema(eTLServiceMethods.ByName("GetBlocks")),
 			connect.WithClientOptions(opts...),
 		),
-		streamBlocks: connect.NewClient[v1.StreamBlocksRequest, v1.StreamBlocksResponse](
-			httpClient,
-			baseURL+ETLServiceStreamBlocksProcedure,
-			connect.WithSchema(eTLServiceMethods.ByName("StreamBlocks")),
-			connect.WithClientOptions(opts...),
-		),
 		getTransaction: connect.NewClient[v1.GetTransactionRequest, v1.GetTransactionResponse](
 			httpClient,
 			baseURL+ETLServiceGetTransactionProcedure,
@@ -137,12 +127,6 @@ func NewETLServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			httpClient,
 			baseURL+ETLServiceGetTransactionsProcedure,
 			connect.WithSchema(eTLServiceMethods.ByName("GetTransactions")),
-			connect.WithClientOptions(opts...),
-		),
-		streamTransactions: connect.NewClient[v1.StreamTransactionsRequest, v1.StreamTransactionsResponse](
-			httpClient,
-			baseURL+ETLServiceStreamTransactionsProcedure,
-			connect.WithSchema(eTLServiceMethods.ByName("StreamTransactions")),
 			connect.WithClientOptions(opts...),
 		),
 		getPlays: connect.NewClient[v1.GetPlaysRequest, v1.GetPlaysResponse](
@@ -181,25 +165,30 @@ func NewETLServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			connect.WithSchema(eTLServiceMethods.ByName("Search")),
 			connect.WithClientOptions(opts...),
 		),
+		stream: connect.NewClient[v1.StreamRequest, v1.StreamResponse](
+			httpClient,
+			baseURL+ETLServiceStreamProcedure,
+			connect.WithSchema(eTLServiceMethods.ByName("Stream")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // eTLServiceClient implements ETLServiceClient.
 type eTLServiceClient struct {
-	ping               *connect.Client[v1.PingRequest, v1.PingResponse]
-	getHealth          *connect.Client[v1.GetHealthRequest, v1.GetHealthResponse]
-	getBlock           *connect.Client[v1.GetBlockRequest, v1.GetBlockResponse]
-	getBlocks          *connect.Client[v1.GetBlocksRequest, v1.GetBlocksResponse]
-	streamBlocks       *connect.Client[v1.StreamBlocksRequest, v1.StreamBlocksResponse]
-	getTransaction     *connect.Client[v1.GetTransactionRequest, v1.GetTransactionResponse]
-	getTransactions    *connect.Client[v1.GetTransactionsRequest, v1.GetTransactionsResponse]
-	streamTransactions *connect.Client[v1.StreamTransactionsRequest, v1.StreamTransactionsResponse]
-	getPlays           *connect.Client[v1.GetPlaysRequest, v1.GetPlaysResponse]
-	getManageEntities  *connect.Client[v1.GetManageEntitiesRequest, v1.GetManageEntitiesResponse]
-	getValidators      *connect.Client[v1.GetValidatorsRequest, v1.GetValidatorsResponse]
-	getValidator       *connect.Client[v1.GetValidatorRequest, v1.GetValidatorResponse]
-	getLocation        *connect.Client[v1.GetLocationRequest, v1.GetLocationResponse]
-	search             *connect.Client[v1.SearchRequest, v1.SearchResponse]
+	ping              *connect.Client[v1.PingRequest, v1.PingResponse]
+	getHealth         *connect.Client[v1.GetHealthRequest, v1.GetHealthResponse]
+	getBlock          *connect.Client[v1.GetBlockRequest, v1.GetBlockResponse]
+	getBlocks         *connect.Client[v1.GetBlocksRequest, v1.GetBlocksResponse]
+	getTransaction    *connect.Client[v1.GetTransactionRequest, v1.GetTransactionResponse]
+	getTransactions   *connect.Client[v1.GetTransactionsRequest, v1.GetTransactionsResponse]
+	getPlays          *connect.Client[v1.GetPlaysRequest, v1.GetPlaysResponse]
+	getManageEntities *connect.Client[v1.GetManageEntitiesRequest, v1.GetManageEntitiesResponse]
+	getValidators     *connect.Client[v1.GetValidatorsRequest, v1.GetValidatorsResponse]
+	getValidator      *connect.Client[v1.GetValidatorRequest, v1.GetValidatorResponse]
+	getLocation       *connect.Client[v1.GetLocationRequest, v1.GetLocationResponse]
+	search            *connect.Client[v1.SearchRequest, v1.SearchResponse]
+	stream            *connect.Client[v1.StreamRequest, v1.StreamResponse]
 }
 
 // Ping calls etl.v1.ETLService.Ping.
@@ -222,11 +211,6 @@ func (c *eTLServiceClient) GetBlocks(ctx context.Context, req *connect.Request[v
 	return c.getBlocks.CallUnary(ctx, req)
 }
 
-// StreamBlocks calls etl.v1.ETLService.StreamBlocks.
-func (c *eTLServiceClient) StreamBlocks(ctx context.Context, req *connect.Request[v1.StreamBlocksRequest]) (*connect.ServerStreamForClient[v1.StreamBlocksResponse], error) {
-	return c.streamBlocks.CallServerStream(ctx, req)
-}
-
 // GetTransaction calls etl.v1.ETLService.GetTransaction.
 func (c *eTLServiceClient) GetTransaction(ctx context.Context, req *connect.Request[v1.GetTransactionRequest]) (*connect.Response[v1.GetTransactionResponse], error) {
 	return c.getTransaction.CallUnary(ctx, req)
@@ -235,11 +219,6 @@ func (c *eTLServiceClient) GetTransaction(ctx context.Context, req *connect.Requ
 // GetTransactions calls etl.v1.ETLService.GetTransactions.
 func (c *eTLServiceClient) GetTransactions(ctx context.Context, req *connect.Request[v1.GetTransactionsRequest]) (*connect.Response[v1.GetTransactionsResponse], error) {
 	return c.getTransactions.CallUnary(ctx, req)
-}
-
-// StreamTransactions calls etl.v1.ETLService.StreamTransactions.
-func (c *eTLServiceClient) StreamTransactions(ctx context.Context, req *connect.Request[v1.StreamTransactionsRequest]) (*connect.ServerStreamForClient[v1.StreamTransactionsResponse], error) {
-	return c.streamTransactions.CallServerStream(ctx, req)
 }
 
 // GetPlays calls etl.v1.ETLService.GetPlays.
@@ -272,22 +251,26 @@ func (c *eTLServiceClient) Search(ctx context.Context, req *connect.Request[v1.S
 	return c.search.CallUnary(ctx, req)
 }
 
+// Stream calls etl.v1.ETLService.Stream.
+func (c *eTLServiceClient) Stream(ctx context.Context) *connect.BidiStreamForClient[v1.StreamRequest, v1.StreamResponse] {
+	return c.stream.CallBidiStream(ctx)
+}
+
 // ETLServiceHandler is an implementation of the etl.v1.ETLService service.
 type ETLServiceHandler interface {
 	Ping(context.Context, *connect.Request[v1.PingRequest]) (*connect.Response[v1.PingResponse], error)
 	GetHealth(context.Context, *connect.Request[v1.GetHealthRequest]) (*connect.Response[v1.GetHealthResponse], error)
 	GetBlock(context.Context, *connect.Request[v1.GetBlockRequest]) (*connect.Response[v1.GetBlockResponse], error)
 	GetBlocks(context.Context, *connect.Request[v1.GetBlocksRequest]) (*connect.Response[v1.GetBlocksResponse], error)
-	StreamBlocks(context.Context, *connect.Request[v1.StreamBlocksRequest], *connect.ServerStream[v1.StreamBlocksResponse]) error
 	GetTransaction(context.Context, *connect.Request[v1.GetTransactionRequest]) (*connect.Response[v1.GetTransactionResponse], error)
 	GetTransactions(context.Context, *connect.Request[v1.GetTransactionsRequest]) (*connect.Response[v1.GetTransactionsResponse], error)
-	StreamTransactions(context.Context, *connect.Request[v1.StreamTransactionsRequest], *connect.ServerStream[v1.StreamTransactionsResponse]) error
 	GetPlays(context.Context, *connect.Request[v1.GetPlaysRequest]) (*connect.Response[v1.GetPlaysResponse], error)
 	GetManageEntities(context.Context, *connect.Request[v1.GetManageEntitiesRequest]) (*connect.Response[v1.GetManageEntitiesResponse], error)
 	GetValidators(context.Context, *connect.Request[v1.GetValidatorsRequest]) (*connect.Response[v1.GetValidatorsResponse], error)
 	GetValidator(context.Context, *connect.Request[v1.GetValidatorRequest]) (*connect.Response[v1.GetValidatorResponse], error)
 	GetLocation(context.Context, *connect.Request[v1.GetLocationRequest]) (*connect.Response[v1.GetLocationResponse], error)
 	Search(context.Context, *connect.Request[v1.SearchRequest]) (*connect.Response[v1.SearchResponse], error)
+	Stream(context.Context, *connect.BidiStream[v1.StreamRequest, v1.StreamResponse]) error
 }
 
 // NewETLServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -321,12 +304,6 @@ func NewETLServiceHandler(svc ETLServiceHandler, opts ...connect.HandlerOption) 
 		connect.WithSchema(eTLServiceMethods.ByName("GetBlocks")),
 		connect.WithHandlerOptions(opts...),
 	)
-	eTLServiceStreamBlocksHandler := connect.NewServerStreamHandler(
-		ETLServiceStreamBlocksProcedure,
-		svc.StreamBlocks,
-		connect.WithSchema(eTLServiceMethods.ByName("StreamBlocks")),
-		connect.WithHandlerOptions(opts...),
-	)
 	eTLServiceGetTransactionHandler := connect.NewUnaryHandler(
 		ETLServiceGetTransactionProcedure,
 		svc.GetTransaction,
@@ -337,12 +314,6 @@ func NewETLServiceHandler(svc ETLServiceHandler, opts ...connect.HandlerOption) 
 		ETLServiceGetTransactionsProcedure,
 		svc.GetTransactions,
 		connect.WithSchema(eTLServiceMethods.ByName("GetTransactions")),
-		connect.WithHandlerOptions(opts...),
-	)
-	eTLServiceStreamTransactionsHandler := connect.NewServerStreamHandler(
-		ETLServiceStreamTransactionsProcedure,
-		svc.StreamTransactions,
-		connect.WithSchema(eTLServiceMethods.ByName("StreamTransactions")),
 		connect.WithHandlerOptions(opts...),
 	)
 	eTLServiceGetPlaysHandler := connect.NewUnaryHandler(
@@ -381,6 +352,12 @@ func NewETLServiceHandler(svc ETLServiceHandler, opts ...connect.HandlerOption) 
 		connect.WithSchema(eTLServiceMethods.ByName("Search")),
 		connect.WithHandlerOptions(opts...),
 	)
+	eTLServiceStreamHandler := connect.NewBidiStreamHandler(
+		ETLServiceStreamProcedure,
+		svc.Stream,
+		connect.WithSchema(eTLServiceMethods.ByName("Stream")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/etl.v1.ETLService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case ETLServicePingProcedure:
@@ -391,14 +368,10 @@ func NewETLServiceHandler(svc ETLServiceHandler, opts ...connect.HandlerOption) 
 			eTLServiceGetBlockHandler.ServeHTTP(w, r)
 		case ETLServiceGetBlocksProcedure:
 			eTLServiceGetBlocksHandler.ServeHTTP(w, r)
-		case ETLServiceStreamBlocksProcedure:
-			eTLServiceStreamBlocksHandler.ServeHTTP(w, r)
 		case ETLServiceGetTransactionProcedure:
 			eTLServiceGetTransactionHandler.ServeHTTP(w, r)
 		case ETLServiceGetTransactionsProcedure:
 			eTLServiceGetTransactionsHandler.ServeHTTP(w, r)
-		case ETLServiceStreamTransactionsProcedure:
-			eTLServiceStreamTransactionsHandler.ServeHTTP(w, r)
 		case ETLServiceGetPlaysProcedure:
 			eTLServiceGetPlaysHandler.ServeHTTP(w, r)
 		case ETLServiceGetManageEntitiesProcedure:
@@ -411,6 +384,8 @@ func NewETLServiceHandler(svc ETLServiceHandler, opts ...connect.HandlerOption) 
 			eTLServiceGetLocationHandler.ServeHTTP(w, r)
 		case ETLServiceSearchProcedure:
 			eTLServiceSearchHandler.ServeHTTP(w, r)
+		case ETLServiceStreamProcedure:
+			eTLServiceStreamHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -436,20 +411,12 @@ func (UnimplementedETLServiceHandler) GetBlocks(context.Context, *connect.Reques
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("etl.v1.ETLService.GetBlocks is not implemented"))
 }
 
-func (UnimplementedETLServiceHandler) StreamBlocks(context.Context, *connect.Request[v1.StreamBlocksRequest], *connect.ServerStream[v1.StreamBlocksResponse]) error {
-	return connect.NewError(connect.CodeUnimplemented, errors.New("etl.v1.ETLService.StreamBlocks is not implemented"))
-}
-
 func (UnimplementedETLServiceHandler) GetTransaction(context.Context, *connect.Request[v1.GetTransactionRequest]) (*connect.Response[v1.GetTransactionResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("etl.v1.ETLService.GetTransaction is not implemented"))
 }
 
 func (UnimplementedETLServiceHandler) GetTransactions(context.Context, *connect.Request[v1.GetTransactionsRequest]) (*connect.Response[v1.GetTransactionsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("etl.v1.ETLService.GetTransactions is not implemented"))
-}
-
-func (UnimplementedETLServiceHandler) StreamTransactions(context.Context, *connect.Request[v1.StreamTransactionsRequest], *connect.ServerStream[v1.StreamTransactionsResponse]) error {
-	return connect.NewError(connect.CodeUnimplemented, errors.New("etl.v1.ETLService.StreamTransactions is not implemented"))
 }
 
 func (UnimplementedETLServiceHandler) GetPlays(context.Context, *connect.Request[v1.GetPlaysRequest]) (*connect.Response[v1.GetPlaysResponse], error) {
@@ -474,4 +441,8 @@ func (UnimplementedETLServiceHandler) GetLocation(context.Context, *connect.Requ
 
 func (UnimplementedETLServiceHandler) Search(context.Context, *connect.Request[v1.SearchRequest]) (*connect.Response[v1.SearchResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("etl.v1.ETLService.Search is not implemented"))
+}
+
+func (UnimplementedETLServiceHandler) Stream(context.Context, *connect.BidiStream[v1.StreamRequest, v1.StreamResponse]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("etl.v1.ETLService.Stream is not implemented"))
 }
