@@ -119,47 +119,9 @@ templ Dashboard(
 					>
 						<!-- Map container -->
 						<div id="playMap" class="w-full h-full"></div>
-						<!-- Region Selector Overlay - Top Right -->
-						<div class="absolute top-4 right-4 z-50" x-data="{ open: false }">
-							<button
-								@click="open = !open"
-								class="flex items-center px-3 py-2 text-sm bg-white/95 dark:bg-gray-800/95 backdrop-blur-md text-gray-700 dark:text-gray-300 rounded-md hover:bg-white dark:hover:bg-gray-800 transition-colors border border-gray-300 dark:border-gray-600 shadow-lg"
-							>
-								<span x-text="$store.mapRegion.currentRegion.name">North America</span>
-								<svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-								</svg>
-							</button>
-							<div
-								x-show="open"
-								@click.away="open = false"
-								x-transition:enter="transition ease-out duration-100"
-								x-transition:enter-start="transform opacity-0 scale-95"
-								x-transition:enter-end="transform opacity-100 scale-100"
-								x-transition:leave="transition ease-in duration-75"
-								x-transition:leave-start="transform opacity-100 scale-100"
-								x-transition:leave-end="transform opacity-0 scale-95"
-								class="absolute right-0 mt-2 w-48 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md rounded-md shadow-xl border border-gray-300 dark:border-gray-600 z-[9999]"
-								style="z-index: 9999;"
-							>
-								<div class="py-1">
-									<template x-for="region in $store.mapRegion.regions" :key="region.key">
-										<button
-											@click="$store.mapRegion.setRegion(region); open = false"
-											class="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-											x-text="region.name"
-										></button>
-									</template>
-								</div>
-							</div>
-						</div>
 						<!-- Connection status -->
 						<div class="absolute top-4 left-4 bg-black/20 backdrop-blur-sm rounded px-2 py-1" x-show="!connected">
 							<span class="text-white/90 text-xs">Connecting...</span>
-						</div>
-						<!-- Region info overlay -->
-						<div class="absolute bottom-4 right-4 bg-black/20 backdrop-blur-sm rounded px-2 py-1">
-							<span class="text-white/90 text-xs" x-text="$store.mapRegion.currentRegion.name"></span>
 						</div>
 					</div>
 					<!-- Network Info Overlay - Left Side (aligned with zoom buttons) -->
@@ -324,7 +286,7 @@ templ Dashboard(
 
 // HTMX Fragment Templates
 templ StatsHeaderFragment(stats *DashboardStats, syncProgressPercentage float64) {
-	<div id="stats-header" hx-get="/fragments/stats-header" hx-trigger="every 5s" hx-swap="outerHTML">
+	<div id="stats-header" hx-get="/fragments/stats-header" hx-trigger="every 2s" hx-swap="outerHTML">
 		<div class="flex items-center justify-between">
 			<div class="flex-1">
 				<h4 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Block Height</h4>
@@ -381,7 +343,7 @@ templ StatsHeaderFragment(stats *DashboardStats, syncProgressPercentage float64)
 }
 
 templ NetworkSidebarFragment(stats *DashboardStats) {
-	<div id="network-sidebar" hx-get="/fragments/network-sidebar" hx-trigger="every 10s" hx-swap="outerHTML" class="space-y-2">
+	<div id="network-sidebar" hx-get="/fragments/network-sidebar" hx-trigger="every 5s" hx-swap="outerHTML" class="space-y-2">
 		<div class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-md rounded-lg p-3 border border-white/20 dark:border-gray-700/50 shadow-lg">
 			<h4 class="text-xs font-semibold mb-2 text-gray-900 dark:text-gray-100 uppercase tracking-wide">Network Info</h4>
 			<div class="space-y-1.5">
@@ -459,82 +421,6 @@ templ TotalTransactionsFragment(stats *DashboardStats) {
 // Live Play Map Alpine.js Component
 templ LivePlayMapScript() {
 	<script>
-		// Alpine.js store for map regions
-		document.addEventListener('alpine:init', () => {
-			Alpine.store('mapRegion', {
-				regions: [
-					{
-						key: 'north-america',
-						name: 'North America',
-						center: [39.0, -110.0],
-						zoom: 5
-					},
-					{
-						key: 'south-america',
-						name: 'South America',
-						center: [-15.0, -60.0],
-						zoom: 3
-					},
-					{
-						key: 'europe',
-						name: 'Europe',
-						center: [54.0, 15.0],
-						zoom: 4
-					},
-					{
-						key: 'uk',
-						name: 'United Kingdom',
-						center: [54.5, -4.0],
-						zoom: 6
-					},
-					{
-						key: 'africa',
-						name: 'Africa',
-						center: [0.0, 20.0],
-						zoom: 3
-					},
-					{
-						key: 'asia',
-						name: 'Asia',
-						center: [35.0, 105.0],
-						zoom: 3
-					},
-					{
-						key: 'oceania',
-						name: 'Oceania',
-						center: [-25.0, 140.0],
-						zoom: 4
-					},
-					{
-						key: 'global',
-						name: 'Global View',
-						center: [20.0, 0.0],
-						zoom: 2
-					}
-				],
-				
-				currentRegion: {
-					key: 'north-america',
-					name: 'North America',
-					center: [39.0, -110.0],
-					zoom: 5
-				},
-				
-				setRegion(region) {
-					this.currentRegion = region;
-					// Trigger map update
-					this.updateMap();
-				},
-				
-				updateMap() {
-					// This will be called by the map component
-					window.dispatchEvent(new CustomEvent('region-changed', { 
-						detail: this.currentRegion 
-					}));
-				}
-			});
-		});
-
 		function livePlayMap() {
 			return {
 				map: null,
@@ -543,11 +429,8 @@ templ LivePlayMapScript() {
 				playMarkers: [],
 				
 				initMap() {
-					const store = Alpine.store('mapRegion');
-					const region = store.currentRegion;
-					
-					// Initialize Leaflet map with current region
-					this.map = L.map('playMap').setView(region.center, region.zoom);
+					// Initialize Leaflet map focused on US
+					this.map = L.map('playMap').setView([39.0, -110.0], 5);
 					
 					// Detect dark mode and use appropriate tiles
 					const isDarkMode = document.documentElement.classList.contains('dark') || 
@@ -565,12 +448,6 @@ templ LivePlayMapScript() {
 							attribution: '© OpenStreetMap contributors'
 						}).addTo(this.map);
 					}
-					
-					// Listen for region changes
-					window.addEventListener('region-changed', (event) => {
-						const newRegion = event.detail;
-						this.map.setView(newRegion.center, newRegion.zoom);
-					});
 				},
 				
 				initSSE() {
