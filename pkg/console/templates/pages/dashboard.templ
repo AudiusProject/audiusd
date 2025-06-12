@@ -115,7 +115,7 @@ templ Dashboard(
 					<div
 						class="relative bg-gray-100 dark:bg-gray-700 h-96 z-10"
 						x-data="livePlayMap()"
-						x-init="initSSE(); initMap()"
+						x-init="initSSEEventSource(); initMap()"
 					>
 						<!-- Map container -->
 						<div id="playMap" class="w-full h-full"></div>
@@ -280,6 +280,7 @@ templ Dashboard(
 				</div>
 			</div>
 		</div>
+		@SSEEventScript()
 		@LivePlayMapScript()
 	}
 }
@@ -418,6 +419,30 @@ templ TotalTransactionsFragment(stats *DashboardStats) {
 	</div>
 }
 
+templ SSEEventScript() {
+	<script>
+		function initSSEEventSource() {
+			const eventSource = new EventSource('/sse/events');
+
+			// Dispatch custom events for each SSE event
+			eventSource.onmessage = (event) => {
+				const data = JSON.parse(event.data);
+				document.dispatchEvent(new CustomEvent(data.event, { detail: data.data }));
+			};
+
+			eventSource.onerror = (error) => {
+				console.error('SSE connection error:', error);
+			};
+
+			eventSource.onopen = () => {
+				console.log('SSE connection opened');
+			};
+
+			return eventSource;
+		}
+	</script>
+}
+
 // Live Play Map Alpine.js Component
 templ LivePlayMapScript() {
 	<script>
@@ -429,6 +454,10 @@ templ LivePlayMapScript() {
 				playMarkers: [],
 				
 				initMap() {
+					document.addEventListener('play', (event) => {
+						this.addPlayToMap(event.detail);
+					});
+
 					// Initialize Leaflet map focused on US
 					this.map = L.map('playMap').setView([39.0, -110.0], 5);
 					
@@ -448,25 +477,6 @@ templ LivePlayMapScript() {
 							attribution: '© OpenStreetMap contributors'
 						}).addTo(this.map);
 					}
-				},
-				
-				initSSE() {
-					this.eventSource = new EventSource('/sse/plays');
-					
-					this.eventSource.onmessage = (event) => {
-						const play = JSON.parse(event.data);
-						this.addPlayToMap(play);
-					};
-					
-					this.eventSource.onerror = (error) => {
-						console.error('SSE connection error:', error);
-						this.connected = false;
-					};
-					
-					this.eventSource.onopen = () => {
-						console.log('SSE connection opened');
-						this.connected = true;
-					};
 				},
 				
 				addPlayToMap(play) {

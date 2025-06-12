@@ -148,7 +148,7 @@ func Dashboard(
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</div></div><!-- Section 2: Live Map & Validator Info --><div class=\"bg-white dark:bg-gray-800 rounded-lg shadow-xl overflow-hidden\"><div class=\"relative\"><!-- Map - Full Background --><div class=\"relative bg-gray-100 dark:bg-gray-700 h-96 z-10\" x-data=\"livePlayMap()\" x-init=\"initSSE(); initMap()\"><!-- Map container --><div id=\"playMap\" class=\"w-full h-full\"></div><!-- Connection status --><div class=\"absolute top-4 left-4 bg-black/20 backdrop-blur-sm rounded px-2 py-1\" x-show=\"!connected\"><span class=\"text-white/90 text-xs\">Connecting...</span></div></div><!-- Network Info Overlay - Left Side (aligned with zoom buttons) --><div class=\"absolute top-14 left-16 w-56 z-20\"><div id=\"network-sidebar\" hx-get=\"/fragments/network-sidebar\" hx-trigger=\"every 10s\" hx-swap=\"outerHTML\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</div></div><!-- Section 2: Live Map & Validator Info --><div class=\"bg-white dark:bg-gray-800 rounded-lg shadow-xl overflow-hidden\"><div class=\"relative\"><!-- Map - Full Background --><div class=\"relative bg-gray-100 dark:bg-gray-700 h-96 z-10\" x-data=\"livePlayMap()\" x-init=\"initSSEEventSource(); initMap()\"><!-- Map container --><div id=\"playMap\" class=\"w-full h-full\"></div><!-- Connection status --><div class=\"absolute top-4 left-4 bg-black/20 backdrop-blur-sm rounded px-2 py-1\" x-show=\"!connected\"><span class=\"text-white/90 text-xs\">Connecting...</span></div></div><!-- Network Info Overlay - Left Side (aligned with zoom buttons) --><div class=\"absolute top-14 left-16 w-56 z-20\"><div id=\"network-sidebar\" hx-get=\"/fragments/network-sidebar\" hx-trigger=\"every 10s\" hx-swap=\"outerHTML\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -465,6 +465,14 @@ func Dashboard(
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
+			templ_7745c5c3_Err = SSEEventScript().Render(ctx, templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 37, " ")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
 			templ_7745c5c3_Err = LivePlayMapScript().Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
@@ -501,111 +509,111 @@ func StatsHeaderFragment(stats *DashboardStats, syncProgressPercentage float64) 
 			templ_7745c5c3_Var20 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 37, "<div id=\"stats-header\" hx-get=\"/fragments/stats-header\" hx-trigger=\"every 2s\" hx-swap=\"outerHTML\"><div class=\"flex items-center justify-between\"><div class=\"flex-1\"><h4 class=\"text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide\">Block Height</h4><p class=\"text-3xl font-bold text-gray-900 dark:text-gray-100\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 38, "<div id=\"stats-header\" hx-get=\"/fragments/stats-header\" hx-trigger=\"every 2s\" hx-swap=\"outerHTML\"><div class=\"flex items-center justify-between\"><div class=\"flex-1\"><h4 class=\"text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide\">Block Height</h4><p class=\"text-3xl font-bold text-gray-900 dark:text-gray-100\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var21 string
 		templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", stats.CurrentBlockHeight))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 293, Col: 112}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 294, Col: 112}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 38, "</p></div><div class=\"flex-1 border-l border-gray-200 dark:border-gray-700 pl-6\"><h4 class=\"text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide\">Chain ID</h4><p class=\"text-3xl font-bold text-gray-900 dark:text-gray-100\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 39, "</p></div><div class=\"flex-1 border-l border-gray-200 dark:border-gray-700 pl-6\"><h4 class=\"text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide\">Chain ID</h4><p class=\"text-3xl font-bold text-gray-900 dark:text-gray-100\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var22 string
 		templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.JoinStringErrs(stats.ChainID)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 297, Col: 82}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 298, Col: 82}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var22))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 39, "</p></div><div class=\"flex-none w-32 border-l border-gray-200 dark:border-gray-700 pl-6\"><h4 class=\"text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide\">BPS</h4><p class=\"text-3xl font-bold text-gray-900 dark:text-gray-100\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 40, "</p></div><div class=\"flex-none w-32 border-l border-gray-200 dark:border-gray-700 pl-6\"><h4 class=\"text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide\">BPS</h4><p class=\"text-3xl font-bold text-gray-900 dark:text-gray-100\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var23 string
 		templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%.2f", stats.BPS))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 301, Col: 99}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 302, Col: 99}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var23))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 40, "</p></div><div class=\"flex-none w-40 border-l border-gray-200 dark:border-gray-700 pl-6\"><h4 class=\"text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide\">Sync Status</h4>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 41, "</p></div><div class=\"flex-none w-40 border-l border-gray-200 dark:border-gray-700 pl-6\"><h4 class=\"text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide\">Sync Status</h4>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		if stats.IsSyncing {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 41, "<div class=\"flex items-center\"><div class=\"w-2 h-2 bg-yellow-500 rounded-full mr-2 animate-pulse\"></div><p class=\"text-xl font-bold text-yellow-600 dark:text-yellow-400\">Syncing</p></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 42, "<div class=\"flex items-center\"><div class=\"w-2 h-2 bg-yellow-500 rounded-full mr-2 animate-pulse\"></div><p class=\"text-xl font-bold text-yellow-600 dark:text-yellow-400\">Syncing</p></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 42, "<div class=\"flex items-center\"><div class=\"w-2 h-2 bg-green-500 rounded-full mr-2\"></div><p class=\"text-xl font-bold text-green-600 dark:text-green-400\">Synced</p></div><p class=\"text-xs text-gray-500 dark:text-gray-400\">Up to date</p>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 43, "<div class=\"flex items-center\"><div class=\"w-2 h-2 bg-green-500 rounded-full mr-2\"></div><p class=\"text-xl font-bold text-green-600 dark:text-green-400\">Synced</p></div><p class=\"text-xs text-gray-500 dark:text-gray-400\">Up to date</p>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 43, "</div></div><!-- Sync Progress Bar -->")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 44, "</div></div><!-- Sync Progress Bar -->")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		if stats.IsSyncing && stats.LatestChainHeight > 0 {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 44, "<div class=\"mt-4 pt-4 border-t border-gray-200 dark:border-gray-700\"><div class=\"flex items-center justify-between mb-2\"><span class=\"text-xs font-medium text-gray-600 dark:text-gray-400\">Sync Progress ")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 45, "<div class=\"mt-4 pt-4 border-t border-gray-200 dark:border-gray-700\"><div class=\"flex items-center justify-between mb-2\"><span class=\"text-xs font-medium text-gray-600 dark:text-gray-400\">Sync Progress ")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			if stats.BlockDelta > 0 {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 45, "| ")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 46, "| ")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var24 string
 				templ_7745c5c3_Var24, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d blocks to go", stats.BlockDelta))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 326, Col: 59}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 327, Col: 59}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var24))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 46, "</span> <span class=\"text-xs text-gray-500 dark:text-gray-500\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 47, "</span> <span class=\"text-xs text-gray-500 dark:text-gray-500\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var25 string
 			templ_7745c5c3_Var25, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d / %d", stats.LatestIndexedHeight, stats.LatestChainHeight))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 330, Col: 82}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 331, Col: 82}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var25))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 47, " (")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 48, " (")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var26 string
 			templ_7745c5c3_Var26, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%.1f%%", syncProgressPercentage))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 331, Col: 54}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 332, Col: 54}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var26))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 48, ")</span></div><div class=\"w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 relative overflow-hidden\"><!-- Exact progress representation using calculated percentage -->")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 49, ")</span></div><div class=\"w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 relative overflow-hidden\"><!-- Exact progress representation using calculated percentage -->")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -614,7 +622,7 @@ func StatsHeaderFragment(stats *DashboardStats, syncProgressPercentage float64) 
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 49, "<div class=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 50, "<div class=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -627,12 +635,12 @@ func StatsHeaderFragment(stats *DashboardStats, syncProgressPercentage float64) 
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 50, "\"></div></div></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 51, "\"></div></div></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 51, "</div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 52, "</div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -661,25 +669,25 @@ func NetworkSidebarFragment(stats *DashboardStats) templ.Component {
 			templ_7745c5c3_Var29 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 52, "<div id=\"network-sidebar\" hx-get=\"/fragments/network-sidebar\" hx-trigger=\"every 5s\" hx-swap=\"outerHTML\" class=\"space-y-2\"><div class=\"bg-white/90 dark:bg-gray-800/90 backdrop-blur-md rounded-lg p-3 border border-white/20 dark:border-gray-700/50 shadow-lg\"><h4 class=\"text-xs font-semibold mb-2 text-gray-900 dark:text-gray-100 uppercase tracking-wide\">Network Info</h4><div class=\"space-y-1.5\"><div class=\"flex justify-between\"><span class=\"text-xs text-gray-600 dark:text-gray-400\">Validators</span> <span class=\"text-xs font-semibold text-gray-900 dark:text-gray-100\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 53, "<div id=\"network-sidebar\" hx-get=\"/fragments/network-sidebar\" hx-trigger=\"every 5s\" hx-swap=\"outerHTML\" class=\"space-y-2\"><div class=\"bg-white/90 dark:bg-gray-800/90 backdrop-blur-md rounded-lg p-3 border border-white/20 dark:border-gray-700/50 shadow-lg\"><h4 class=\"text-xs font-semibold mb-2 text-gray-900 dark:text-gray-100 uppercase tracking-wide\">Network Info</h4><div class=\"space-y-1.5\"><div class=\"flex justify-between\"><span class=\"text-xs text-gray-600 dark:text-gray-400\">Validators</span> <span class=\"text-xs font-semibold text-gray-900 dark:text-gray-100\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var30 string
 		templ_7745c5c3_Var30, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", stats.ValidatorCount))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 352, Col: 115}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 353, Col: 115}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var30))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 53, "</span></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 54, "</span></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		if stats.LatestBlock != nil {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 54, "<div class=\"flex justify-between\"><span class=\"text-xs text-gray-600 dark:text-gray-400\">Latest Block</span> <a href=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 55, "<div class=\"flex justify-between\"><span class=\"text-xs text-gray-600 dark:text-gray-400\">Latest Block</span> <a href=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -688,20 +696,20 @@ func NetworkSidebarFragment(stats *DashboardStats) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 55, "\" class=\"text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 56, "\" class=\"text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var32 string
 			templ_7745c5c3_Var32, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("#%d", stats.LatestBlock.Height))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 358, Col: 53}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 359, Col: 53}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var32))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 56, "</a></div><div class=\"flex justify-between\"><span class=\"text-xs text-gray-600 dark:text-gray-400\">Proposer</span> <a href=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 57, "</a></div><div class=\"flex justify-between\"><span class=\"text-xs text-gray-600 dark:text-gray-400\">Proposer</span> <a href=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -710,7 +718,7 @@ func NetworkSidebarFragment(stats *DashboardStats) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 57, "\" class=\"font-mono text-xs text-blue-600 dark:text-blue-400 hover:underline\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 58, "\" class=\"font-mono text-xs text-blue-600 dark:text-blue-400 hover:underline\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -718,32 +726,32 @@ func NetworkSidebarFragment(stats *DashboardStats) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 58, "</a></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 59, "</a></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 59, "</div></div><div class=\"bg-white/90 dark:bg-gray-800/90 backdrop-blur-md rounded-lg p-3 border border-white/20 dark:border-gray-700/50 shadow-lg\"><h4 class=\"text-xs font-semibold mb-2 text-gray-900 dark:text-gray-100 uppercase tracking-wide\">Recent Proposers</h4><div class=\"space-y-1\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 60, "</div></div><div class=\"bg-white/90 dark:bg-gray-800/90 backdrop-blur-md rounded-lg p-3 border border-white/20 dark:border-gray-700/50 shadow-lg\"><h4 class=\"text-xs font-semibold mb-2 text-gray-900 dark:text-gray-100 uppercase tracking-wide\">Recent Proposers</h4><div class=\"space-y-1\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		if len(stats.RecentProposers) > 0 {
 			for i, proposer := range stats.RecentProposers {
 				if i < 4 {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 60, "<div class=\"flex items-center justify-between\"><span class=\"text-xs text-gray-500 dark:text-gray-500\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 61, "<div class=\"flex items-center justify-between\"><span class=\"text-xs text-gray-500 dark:text-gray-500\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var34 string
 					templ_7745c5c3_Var34, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("#%d", i+1))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 377, Col: 88}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 378, Col: 88}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var34))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 61, "</span> <a href=\"")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 62, "</span> <a href=\"")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -752,7 +760,7 @@ func NetworkSidebarFragment(stats *DashboardStats) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 62, "\" class=\"font-mono text-xs text-blue-600 dark:text-blue-400 hover:underline truncate\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 63, "\" class=\"font-mono text-xs text-blue-600 dark:text-blue-400 hover:underline truncate\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -760,20 +768,20 @@ func NetworkSidebarFragment(stats *DashboardStats) templ.Component {
 						var templ_7745c5c3_Var36 string
 						templ_7745c5c3_Var36, templ_7745c5c3_Err = templ.JoinStringErrs(proposer[:6])
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 380, Col: 24}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 381, Col: 24}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var36))
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 63, "...")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 64, "...")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
 						var templ_7745c5c3_Var37 string
 						templ_7745c5c3_Var37, templ_7745c5c3_Err = templ.JoinStringErrs(proposer[len(proposer)-4:])
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 380, Col: 57}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 381, Col: 57}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var37))
 						if templ_7745c5c3_Err != nil {
@@ -783,41 +791,41 @@ func NetworkSidebarFragment(stats *DashboardStats) templ.Component {
 						var templ_7745c5c3_Var38 string
 						templ_7745c5c3_Var38, templ_7745c5c3_Err = templ.JoinStringErrs(proposer)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 382, Col: 20}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 383, Col: 20}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var38))
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 64, "</a></div>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 65, "</a></div>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 				}
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 65, "<div class=\"text-center py-1\"><p class=\"text-gray-500 dark:text-gray-400 text-xs\">No recent proposers</p><p class=\"text-xs text-gray-400 dark:text-gray-500\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 66, "<div class=\"text-center py-1\"><p class=\"text-gray-500 dark:text-gray-400 text-xs\">No recent proposers</p><p class=\"text-xs text-gray-400 dark:text-gray-500\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			if stats.IsSyncing {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 66, "Syncing...")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 67, "Syncing...")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			} else {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 67, "Waiting...")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 68, "Waiting...")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 68, "</p></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 69, "</p></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 69, "</div></div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 70, "</div></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -846,20 +854,20 @@ func TPSFragment(stats *DashboardStats) templ.Component {
 			templ_7745c5c3_Var39 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 70, "<div id=\"tps-fragment\" hx-get=\"/fragments/tps\" hx-trigger=\"every 5s\" hx-swap=\"outerHTML\" class=\"border-r border-gray-200 dark:border-gray-700 pr-6\"><div class=\"text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1\">Transactions/sec</div><div class=\"text-4xl font-light text-gray-900 dark:text-gray-100 mb-1\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 71, "<div id=\"tps-fragment\" hx-get=\"/fragments/tps\" hx-trigger=\"every 5s\" hx-swap=\"outerHTML\" class=\"border-r border-gray-200 dark:border-gray-700 pr-6\"><div class=\"text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1\">Transactions/sec</div><div class=\"text-4xl font-light text-gray-900 dark:text-gray-100 mb-1\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var40 string
 		templ_7745c5c3_Var40, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%.1f", stats.TPS))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 408, Col: 105}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 409, Col: 105}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var40))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 71, "</div><div class=\"text-xs text-gray-500 dark:text-gray-400\">Peak: 25.3 TPS</div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 72, "</div><div class=\"text-xs text-gray-500 dark:text-gray-400\">Peak: 25.3 TPS</div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -888,20 +896,49 @@ func TotalTransactionsFragment(stats *DashboardStats) templ.Component {
 			templ_7745c5c3_Var41 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 72, "<div id=\"total-transactions-fragment\" hx-get=\"/fragments/total-transactions\" hx-trigger=\"every 10s\" hx-swap=\"outerHTML\" class=\"pr-6\"><div class=\"text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1\">Total Transactions</div><div class=\"text-4xl font-light text-gray-900 dark:text-gray-100 mb-1\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 73, "<div id=\"total-transactions-fragment\" hx-get=\"/fragments/total-transactions\" hx-trigger=\"every 10s\" hx-swap=\"outerHTML\" class=\"pr-6\"><div class=\"text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1\">Total Transactions</div><div class=\"text-4xl font-light text-gray-900 dark:text-gray-100 mb-1\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var42 string
 		templ_7745c5c3_Var42, templ_7745c5c3_Err = templ.JoinStringErrs(formatNumber(stats.TotalTransactions))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 416, Col: 112}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 417, Col: 112}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var42))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 73, "</div><div class=\"text-xs text-green-600 dark:text-green-400\">+2.3% from yesterday</div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 74, "</div><div class=\"text-xs text-green-600 dark:text-green-400\">+2.3% from yesterday</div></div>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		return nil
+	})
+}
+
+func SSEEventScript() templ.Component {
+	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
+			return templ_7745c5c3_CtxErr
+		}
+		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+		if !templ_7745c5c3_IsBuffer {
+			defer func() {
+				templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err == nil {
+					templ_7745c5c3_Err = templ_7745c5c3_BufErr
+				}
+			}()
+		}
+		ctx = templ.InitializeContext(ctx)
+		templ_7745c5c3_Var43 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var43 == nil {
+			templ_7745c5c3_Var43 = templ.NopComponent
+		}
+		ctx = templ.ClearChildren(ctx)
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 75, "<script>\n\t\tfunction initSSEEventSource() {\n\t\t\tconst eventSource = new EventSource('/sse/events');\n\n\t\t\t// Dispatch custom events for each SSE event\n\t\t\teventSource.onmessage = (event) => {\n\t\t\t\tconst data = JSON.parse(event.data);\n\t\t\t\tdocument.dispatchEvent(new CustomEvent(data.event, { detail: data.data }));\n\t\t\t};\n\n\t\t\teventSource.onerror = (error) => {\n\t\t\t\tconsole.error('SSE connection error:', error);\n\t\t\t};\n\n\t\t\teventSource.onopen = () => {\n\t\t\t\tconsole.log('SSE connection opened');\n\t\t\t};\n\n\t\t\treturn eventSource;\n\t\t}\n\t</script>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -926,12 +963,12 @@ func LivePlayMapScript() templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var43 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var43 == nil {
-			templ_7745c5c3_Var43 = templ.NopComponent
+		templ_7745c5c3_Var44 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var44 == nil {
+			templ_7745c5c3_Var44 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 74, "<script>\n\t\tfunction livePlayMap() {\n\t\t\treturn {\n\t\t\t\tmap: null,\n\t\t\t\teventSource: null,\n\t\t\t\tconnected: false,\n\t\t\t\tplayMarkers: [],\n\t\t\t\t\n\t\t\t\tinitMap() {\n\t\t\t\t\t// Initialize Leaflet map focused on US\n\t\t\t\t\tthis.map = L.map('playMap').setView([39.0, -110.0], 5);\n\t\t\t\t\t\n\t\t\t\t\t// Detect dark mode and use appropriate tiles\n\t\t\t\t\tconst isDarkMode = document.documentElement.classList.contains('dark') || \n\t\t\t\t\t                  window.matchMedia('(prefers-color-scheme: dark)').matches;\n\t\t\t\t\t\n\t\t\t\t\tif (isDarkMode) {\n\t\t\t\t\t\t// Dark mode tiles\n\t\t\t\t\t\tL.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {\n\t\t\t\t\t\t\tattribution: '© OpenStreetMap, © CartoDB',\n\t\t\t\t\t\t\tsubdomains: 'abcd'\n\t\t\t\t\t\t}).addTo(this.map);\n\t\t\t\t\t} else {\n\t\t\t\t\t\t// Light mode tiles\n\t\t\t\t\t\tL.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {\n\t\t\t\t\t\t\tattribution: '© OpenStreetMap contributors'\n\t\t\t\t\t\t}).addTo(this.map);\n\t\t\t\t\t}\n\t\t\t\t},\n\t\t\t\t\n\t\t\t\tinitSSE() {\n\t\t\t\t\tthis.eventSource = new EventSource('/sse/plays');\n\t\t\t\t\t\n\t\t\t\t\tthis.eventSource.onmessage = (event) => {\n\t\t\t\t\t\tconst play = JSON.parse(event.data);\n\t\t\t\t\t\tthis.addPlayToMap(play);\n\t\t\t\t\t};\n\t\t\t\t\t\n\t\t\t\t\tthis.eventSource.onerror = (error) => {\n\t\t\t\t\t\tconsole.error('SSE connection error:', error);\n\t\t\t\t\t\tthis.connected = false;\n\t\t\t\t\t};\n\t\t\t\t\t\n\t\t\t\t\tthis.eventSource.onopen = () => {\n\t\t\t\t\t\tconsole.log('SSE connection opened');\n\t\t\t\t\t\tthis.connected = true;\n\t\t\t\t\t};\n\t\t\t\t},\n\t\t\t\t\n\t\t\t\taddPlayToMap(play) {\n\t\t\t\t\tif (!this.map) return;\n\t\t\t\t\t\n\t\t\t\t\tconst color = this.getRandomColor();\n\t\t\t\t\t\n\t\t\t\t\t// Create radar-style animation with expanding circles\n\t\t\t\t\tconst radarGroup = L.layerGroup().addTo(this.map);\n\t\t\t\t\t\n\t\t\t\t\t// Create multiple expanding circles for radar effect\n\t\t\t\t\tfor (let i = 0; i < 3; i++) {\n\t\t\t\t\t\tsetTimeout(() => {\n\t\t\t\t\t\t\tconst circle = L.circle([play.lat, play.lng], {\n\t\t\t\t\t\t\t\tradius: 0,\n\t\t\t\t\t\t\t\tfillColor: color,\n\t\t\t\t\t\t\t\tcolor: color,\n\t\t\t\t\t\t\t\tweight: 2,\n\t\t\t\t\t\t\t\topacity: 0.8,\n\t\t\t\t\t\t\t\tfillOpacity: 0.3\n\t\t\t\t\t\t\t}).addTo(radarGroup);\n\t\t\t\t\t\t\t\n\t\t\t\t\t\t\t// Animate the circle expansion\n\t\t\t\t\t\t\tlet radius = 0;\n\t\t\t\t\t\t\tlet opacity = 0.8;\n\t\t\t\t\t\t\tconst maxRadius = 100000; // 100km in meters\n\t\t\t\t\t\t\tconst animationDuration = play.duration * 1000 / 3; // Stagger the circles\n\t\t\t\t\t\t\tconst startTime = Date.now();\n\t\t\t\t\t\t\t\n\t\t\t\t\t\t\tconst animate = () => {\n\t\t\t\t\t\t\t\tconst elapsed = Date.now() - startTime;\n\t\t\t\t\t\t\t\tconst progress = Math.min(elapsed / animationDuration, 1);\n\t\t\t\t\t\t\t\t\n\t\t\t\t\t\t\t\tradius = maxRadius * progress;\n\t\t\t\t\t\t\t\topacity = 0.8 * (1 - progress);\n\t\t\t\t\t\t\t\t\n\t\t\t\t\t\t\t\tcircle.setRadius(radius);\n\t\t\t\t\t\t\t\tcircle.setStyle({ \n\t\t\t\t\t\t\t\t\topacity: opacity,\n\t\t\t\t\t\t\t\t\tfillOpacity: opacity * 0.3\n\t\t\t\t\t\t\t\t});\n\t\t\t\t\t\t\t\t\n\t\t\t\t\t\t\t\tif (progress < 1) {\n\t\t\t\t\t\t\t\t\trequestAnimationFrame(animate);\n\t\t\t\t\t\t\t\t} else {\n\t\t\t\t\t\t\t\t\tradarGroup.removeLayer(circle);\n\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t};\n\t\t\t\t\t\t\t\n\t\t\t\t\t\t\tanimate();\n\t\t\t\t\t\t}, i * 200); // Stagger each circle by 200ms\n\t\t\t\t\t}\n\t\t\t\t\t\n\t\t\t\t\t// Add center dot\n\t\t\t\t\tconst centerDot = L.circleMarker([play.lat, play.lng], {\n\t\t\t\t\t\tradius: 4,\n\t\t\t\t\t\tfillColor: color,\n\t\t\t\t\t\tcolor: '#ffffff',\n\t\t\t\t\t\tweight: 2,\n\t\t\t\t\t\topacity: 1,\n\t\t\t\t\t\tfillOpacity: 1\n\t\t\t\t\t}).addTo(radarGroup);\n\t\t\t\t\t\n\t\t\t\t\t// Add popup with play info\n\t\t\t\t\tcenterDot.bindPopup(`Play at ${new Date(play.timestamp).toLocaleTimeString()}`);\n\t\t\t\t\t\n\t\t\t\t\t// Store group for cleanup\n\t\t\t\t\tthis.playMarkers.push(radarGroup);\n\t\t\t\t\t\n\t\t\t\t\t// Remove entire radar group after duration\n\t\t\t\t\tsetTimeout(() => {\n\t\t\t\t\t\tthis.map.removeLayer(radarGroup);\n\t\t\t\t\t\tthis.playMarkers = this.playMarkers.filter(m => m !== radarGroup);\n\t\t\t\t\t}, play.duration * 1000);\n\t\t\t\t},\n\t\t\t\t\n\t\t\t\tgetRandomColor() {\n\t\t\t\t\tconst colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#f0932b', '#eb4d4b', '#6c5ce7'];\n\t\t\t\t\treturn colors[Math.floor(Math.random() * colors.length)];\n\t\t\t\t},\n\t\t\t\t\n\t\t\t\tcleanup() {\n\t\t\t\t\tif (this.eventSource) {\n\t\t\t\t\t\tthis.eventSource.close();\n\t\t\t\t\t}\n\t\t\t\t\tif (this.map) {\n\t\t\t\t\t\tthis.map.remove();\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\t</script>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 76, "<script>\n\t\tfunction livePlayMap() {\n\t\t\treturn {\n\t\t\t\tmap: null,\n\t\t\t\teventSource: null,\n\t\t\t\tconnected: false,\n\t\t\t\tplayMarkers: [],\n\t\t\t\t\n\t\t\t\tinitMap() {\n\t\t\t\t\tdocument.addEventListener('play', (event) => {\n\t\t\t\t\t\tthis.addPlayToMap(event.detail);\n\t\t\t\t\t});\n\n\t\t\t\t\t// Initialize Leaflet map focused on US\n\t\t\t\t\tthis.map = L.map('playMap').setView([39.0, -110.0], 5);\n\t\t\t\t\t\n\t\t\t\t\t// Detect dark mode and use appropriate tiles\n\t\t\t\t\tconst isDarkMode = document.documentElement.classList.contains('dark') || \n\t\t\t\t\t                  window.matchMedia('(prefers-color-scheme: dark)').matches;\n\t\t\t\t\t\n\t\t\t\t\tif (isDarkMode) {\n\t\t\t\t\t\t// Dark mode tiles\n\t\t\t\t\t\tL.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {\n\t\t\t\t\t\t\tattribution: '© OpenStreetMap, © CartoDB',\n\t\t\t\t\t\t\tsubdomains: 'abcd'\n\t\t\t\t\t\t}).addTo(this.map);\n\t\t\t\t\t} else {\n\t\t\t\t\t\t// Light mode tiles\n\t\t\t\t\t\tL.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {\n\t\t\t\t\t\t\tattribution: '© OpenStreetMap contributors'\n\t\t\t\t\t\t}).addTo(this.map);\n\t\t\t\t\t}\n\t\t\t\t},\n\t\t\t\t\n\t\t\t\taddPlayToMap(play) {\n\t\t\t\t\tif (!this.map) return;\n\t\t\t\t\t\n\t\t\t\t\tconst color = this.getRandomColor();\n\t\t\t\t\t\n\t\t\t\t\t// Create radar-style animation with expanding circles\n\t\t\t\t\tconst radarGroup = L.layerGroup().addTo(this.map);\n\t\t\t\t\t\n\t\t\t\t\t// Create multiple expanding circles for radar effect\n\t\t\t\t\tfor (let i = 0; i < 3; i++) {\n\t\t\t\t\t\tsetTimeout(() => {\n\t\t\t\t\t\t\tconst circle = L.circle([play.lat, play.lng], {\n\t\t\t\t\t\t\t\tradius: 0,\n\t\t\t\t\t\t\t\tfillColor: color,\n\t\t\t\t\t\t\t\tcolor: color,\n\t\t\t\t\t\t\t\tweight: 2,\n\t\t\t\t\t\t\t\topacity: 0.8,\n\t\t\t\t\t\t\t\tfillOpacity: 0.3\n\t\t\t\t\t\t\t}).addTo(radarGroup);\n\t\t\t\t\t\t\t\n\t\t\t\t\t\t\t// Animate the circle expansion\n\t\t\t\t\t\t\tlet radius = 0;\n\t\t\t\t\t\t\tlet opacity = 0.8;\n\t\t\t\t\t\t\tconst maxRadius = 100000; // 100km in meters\n\t\t\t\t\t\t\tconst animationDuration = play.duration * 1000 / 3; // Stagger the circles\n\t\t\t\t\t\t\tconst startTime = Date.now();\n\t\t\t\t\t\t\t\n\t\t\t\t\t\t\tconst animate = () => {\n\t\t\t\t\t\t\t\tconst elapsed = Date.now() - startTime;\n\t\t\t\t\t\t\t\tconst progress = Math.min(elapsed / animationDuration, 1);\n\t\t\t\t\t\t\t\t\n\t\t\t\t\t\t\t\tradius = maxRadius * progress;\n\t\t\t\t\t\t\t\topacity = 0.8 * (1 - progress);\n\t\t\t\t\t\t\t\t\n\t\t\t\t\t\t\t\tcircle.setRadius(radius);\n\t\t\t\t\t\t\t\tcircle.setStyle({ \n\t\t\t\t\t\t\t\t\topacity: opacity,\n\t\t\t\t\t\t\t\t\tfillOpacity: opacity * 0.3\n\t\t\t\t\t\t\t\t});\n\t\t\t\t\t\t\t\t\n\t\t\t\t\t\t\t\tif (progress < 1) {\n\t\t\t\t\t\t\t\t\trequestAnimationFrame(animate);\n\t\t\t\t\t\t\t\t} else {\n\t\t\t\t\t\t\t\t\tradarGroup.removeLayer(circle);\n\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t};\n\t\t\t\t\t\t\t\n\t\t\t\t\t\t\tanimate();\n\t\t\t\t\t\t}, i * 200); // Stagger each circle by 200ms\n\t\t\t\t\t}\n\t\t\t\t\t\n\t\t\t\t\t// Add center dot\n\t\t\t\t\tconst centerDot = L.circleMarker([play.lat, play.lng], {\n\t\t\t\t\t\tradius: 4,\n\t\t\t\t\t\tfillColor: color,\n\t\t\t\t\t\tcolor: '#ffffff',\n\t\t\t\t\t\tweight: 2,\n\t\t\t\t\t\topacity: 1,\n\t\t\t\t\t\tfillOpacity: 1\n\t\t\t\t\t}).addTo(radarGroup);\n\t\t\t\t\t\n\t\t\t\t\t// Add popup with play info\n\t\t\t\t\tcenterDot.bindPopup(`Play at ${new Date(play.timestamp).toLocaleTimeString()}`);\n\t\t\t\t\t\n\t\t\t\t\t// Store group for cleanup\n\t\t\t\t\tthis.playMarkers.push(radarGroup);\n\t\t\t\t\t\n\t\t\t\t\t// Remove entire radar group after duration\n\t\t\t\t\tsetTimeout(() => {\n\t\t\t\t\t\tthis.map.removeLayer(radarGroup);\n\t\t\t\t\t\tthis.playMarkers = this.playMarkers.filter(m => m !== radarGroup);\n\t\t\t\t\t}, play.duration * 1000);\n\t\t\t\t},\n\t\t\t\t\n\t\t\t\tgetRandomColor() {\n\t\t\t\t\tconst colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#f0932b', '#eb4d4b', '#6c5ce7'];\n\t\t\t\t\treturn colors[Math.floor(Math.random() * colors.length)];\n\t\t\t\t},\n\t\t\t\t\n\t\t\t\tcleanup() {\n\t\t\t\t\tif (this.eventSource) {\n\t\t\t\t\t\tthis.eventSource.close();\n\t\t\t\t\t}\n\t\t\t\t\tif (this.map) {\n\t\t\t\t\t\tthis.map.remove();\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\t</script>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
