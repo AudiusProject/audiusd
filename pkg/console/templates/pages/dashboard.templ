@@ -61,41 +61,112 @@ func getTotalTransactionCount(breakdown []*TransactionTypeBreakdown) int64 {
 	return total
 }
 
+func getProgressBarClass(percentage float64) string {
+	switch {
+	case percentage >= 99:
+		return "w-full"
+	case percentage >= 95:
+		return "w-11/12"
+	case percentage >= 90:
+		return "w-5/6"
+	case percentage >= 80:
+		return "w-4/5"
+	case percentage >= 75:
+		return "w-3/4"
+	case percentage >= 60:
+		return "w-3/5"
+	case percentage >= 50:
+		return "w-1/2"
+	case percentage >= 40:
+		return "w-2/5"
+	case percentage >= 25:
+		return "w-1/4"
+	case percentage >= 20:
+		return "w-1/5"
+	case percentage >= 10:
+		return "w-1/12"
+	case percentage >= 5:
+		return "w-1/24"
+	default:
+		return "w-px"
+	}
+}
+
 templ Dashboard(
 	stats *DashboardStats,
 	transactionBreakdown []*TransactionTypeBreakdown,
 	recentBlocks []*v1.Block,
 	recentTransactions []*v1.Block_Transaction,
 	blockHeights map[string]int64,
+	syncProgressPercentage float64,
 ) {
 	@layouts.Base("Dashboard") {
 		<div class="space-y-6">
 			<!-- Section 1: Current Stats -->
 			<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6">
 				<div id="stats-header" hx-get="/fragments/stats-header" hx-trigger="every 5s" hx-swap="outerHTML">
-					@StatsHeaderFragment(stats)
+					@StatsHeaderFragment(stats, syncProgressPercentage)
 				</div>
 			</div>
 			<!-- Section 2: Live Map & Validator Info -->
-			<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-				<div class="lg:col-span-2 bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6">
-					<h3 class="text-xl font-bold mb-4 text-gray-900 dark:text-gray-100">Live Incoming Plays</h3>
+			<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl overflow-hidden">
+				<div class="relative">
+					<!-- Map - Full Background -->
 					<div
-						class="relative bg-gray-100 dark:bg-gray-700 rounded-lg h-64 overflow-hidden"
+						class="relative bg-gray-100 dark:bg-gray-700 h-96 z-10"
 						x-data="livePlayMap()"
 						x-init="initSSE(); initMap()"
 					>
 						<!-- Map container -->
-						<div id="playMap" class="w-full h-full rounded-lg"></div>
+						<div id="playMap" class="w-full h-full"></div>
+						<!-- Region Selector Overlay - Top Right -->
+						<div class="absolute top-4 right-4 z-50" x-data="{ open: false }">
+							<button
+								@click="open = !open"
+								class="flex items-center px-3 py-2 text-sm bg-white/95 dark:bg-gray-800/95 backdrop-blur-md text-gray-700 dark:text-gray-300 rounded-md hover:bg-white dark:hover:bg-gray-800 transition-colors border border-gray-300 dark:border-gray-600 shadow-lg"
+							>
+								<span x-text="$store.mapRegion.currentRegion.name">North America</span>
+								<svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+								</svg>
+							</button>
+							<div
+								x-show="open"
+								@click.away="open = false"
+								x-transition:enter="transition ease-out duration-100"
+								x-transition:enter-start="transform opacity-0 scale-95"
+								x-transition:enter-end="transform opacity-100 scale-100"
+								x-transition:leave="transition ease-in duration-75"
+								x-transition:leave-start="transform opacity-100 scale-100"
+								x-transition:leave-end="transform opacity-0 scale-95"
+								class="absolute right-0 mt-2 w-48 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md rounded-md shadow-xl border border-gray-300 dark:border-gray-600 z-[9999]"
+								style="z-index: 9999;"
+							>
+								<div class="py-1">
+									<template x-for="region in $store.mapRegion.regions" :key="region.key">
+										<button
+											@click="$store.mapRegion.setRegion(region); open = false"
+											class="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+											x-text="region.name"
+										></button>
+									</template>
+								</div>
+							</div>
+						</div>
 						<!-- Connection status -->
 						<div class="absolute top-4 left-4 bg-black/20 backdrop-blur-sm rounded px-2 py-1" x-show="!connected">
 							<span class="text-white/90 text-xs">Connecting...</span>
 						</div>
+						<!-- Region info overlay -->
+						<div class="absolute bottom-4 right-4 bg-black/20 backdrop-blur-sm rounded px-2 py-1">
+							<span class="text-white/90 text-xs" x-text="$store.mapRegion.currentRegion.name"></span>
+						</div>
 					</div>
-				</div>
-				<div class="space-y-4">
-					<div id="network-sidebar" hx-get="/fragments/network-sidebar" hx-trigger="every 10s" hx-swap="outerHTML">
-						@NetworkSidebarFragment(stats)
+					<!-- Network Info Overlay - Left Side (aligned with zoom buttons) -->
+					<div class="absolute top-14 left-16 w-56 z-20">
+						<div id="network-sidebar" hx-get="/fragments/network-sidebar" hx-trigger="every 10s" hx-swap="outerHTML">
+							@NetworkSidebarFragment(stats)
+						</div>
 					</div>
 				</div>
 			</div>
@@ -252,7 +323,7 @@ templ Dashboard(
 }
 
 // HTMX Fragment Templates
-templ StatsHeaderFragment(stats *DashboardStats) {
+templ StatsHeaderFragment(stats *DashboardStats, syncProgressPercentage float64) {
 	<div id="stats-header" hx-get="/fragments/stats-header" hx-trigger="every 5s" hx-swap="outerHTML">
 		<div class="flex items-center justify-between">
 			<div class="flex-1">
@@ -295,24 +366,14 @@ templ StatsHeaderFragment(stats *DashboardStats) {
 					</span>
 					<span class="text-xs text-gray-500 dark:text-gray-500">
 						{ fmt.Sprintf("%d / %d", stats.LatestIndexedHeight, stats.LatestChainHeight) }
-						({ fmt.Sprintf("%.1f%%", float64(stats.LatestIndexedHeight)/float64(stats.LatestChainHeight)*100) })
+						({ fmt.Sprintf("%.1f%%", syncProgressPercentage) })
 					</span>
 				</div>
 				<div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 relative overflow-hidden">
-					<!-- Simple progress representation with blocks -->
-					if float64(stats.LatestIndexedHeight)/float64(stats.LatestChainHeight) >= 0.9 {
-						<div class="bg-blue-600 h-2 rounded-full w-11/12"></div>
-					} else if float64(stats.LatestIndexedHeight)/float64(stats.LatestChainHeight) >= 0.8 {
-						<div class="bg-blue-600 h-2 rounded-full w-4/5"></div>
-					} else if float64(stats.LatestIndexedHeight)/float64(stats.LatestChainHeight) >= 0.6 {
-						<div class="bg-blue-600 h-2 rounded-full w-3/5"></div>
-					} else if float64(stats.LatestIndexedHeight)/float64(stats.LatestChainHeight) >= 0.4 {
-						<div class="bg-blue-600 h-2 rounded-full w-2/5"></div>
-					} else if float64(stats.LatestIndexedHeight)/float64(stats.LatestChainHeight) >= 0.2 {
-						<div class="bg-blue-600 h-2 rounded-full w-1/5"></div>
-					} else {
-						<div class="bg-blue-600 h-2 rounded-full w-1/12"></div>
-					}
+					<!-- Exact progress representation using calculated percentage -->
+					<div
+						class={ fmt.Sprintf("bg-blue-600 h-2 rounded-full transition-all duration-300 ease-in-out %s", getProgressBarClass(syncProgressPercentage)) }
+					></div>
 				</div>
 			</div>
 		}
@@ -320,50 +381,56 @@ templ StatsHeaderFragment(stats *DashboardStats) {
 }
 
 templ NetworkSidebarFragment(stats *DashboardStats) {
-	<div id="network-sidebar" hx-get="/fragments/network-sidebar" hx-trigger="every 10s" hx-swap="outerHTML" class="space-y-4">
-		<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6">
-			<h4 class="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">Network Info</h4>
-			<div class="space-y-3">
+	<div id="network-sidebar" hx-get="/fragments/network-sidebar" hx-trigger="every 10s" hx-swap="outerHTML" class="space-y-2">
+		<div class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-md rounded-lg p-3 border border-white/20 dark:border-gray-700/50 shadow-lg">
+			<h4 class="text-xs font-semibold mb-2 text-gray-900 dark:text-gray-100 uppercase tracking-wide">Network Info</h4>
+			<div class="space-y-1.5">
 				<div class="flex justify-between">
-					<span class="text-gray-600 dark:text-gray-400">Validators</span>
-					<span class="font-semibold text-gray-900 dark:text-gray-100">{ fmt.Sprintf("%d", stats.ValidatorCount) }</span>
+					<span class="text-xs text-gray-600 dark:text-gray-400">Validators</span>
+					<span class="text-xs font-semibold text-gray-900 dark:text-gray-100">{ fmt.Sprintf("%d", stats.ValidatorCount) }</span>
 				</div>
 				if stats.LatestBlock != nil {
 					<div class="flex justify-between">
-						<span class="text-gray-600 dark:text-gray-400">Latest Block</span>
-						<a href={ templ.SafeURL(fmt.Sprintf("/block/%d", stats.LatestBlock.Height)) } class="font-semibold text-blue-600 dark:text-blue-400 hover:underline">
+						<span class="text-xs text-gray-600 dark:text-gray-400">Latest Block</span>
+						<a href={ templ.SafeURL(fmt.Sprintf("/block/%d", stats.LatestBlock.Height)) } class="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline">
 							{ fmt.Sprintf("#%d", stats.LatestBlock.Height) }
 						</a>
 					</div>
 					<div class="flex justify-between">
-						<span class="text-gray-600 dark:text-gray-400">Proposer</span>
-						<a href={ templ.SafeURL(fmt.Sprintf("/validator/%s", stats.LatestBlock.Proposer)) } class="font-mono text-sm text-blue-600 dark:text-blue-400 hover:underline">
+						<span class="text-xs text-gray-600 dark:text-gray-400">Proposer</span>
+						<a href={ templ.SafeURL(fmt.Sprintf("/validator/%s", stats.LatestBlock.Proposer)) } class="font-mono text-xs text-blue-600 dark:text-blue-400 hover:underline">
 							@templates.StringWithTooltip(stats.LatestBlock.Proposer)
 						</a>
 					</div>
 				}
 			</div>
 		</div>
-		<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6">
-			<h4 class="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">Recent Proposers</h4>
-			<div class="space-y-2">
+		<div class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-md rounded-lg p-3 border border-white/20 dark:border-gray-700/50 shadow-lg">
+			<h4 class="text-xs font-semibold mb-2 text-gray-900 dark:text-gray-100 uppercase tracking-wide">Recent Proposers</h4>
+			<div class="space-y-1">
 				if len(stats.RecentProposers) > 0 {
 					for i, proposer := range stats.RecentProposers {
-						<div class="flex items-center justify-between">
-							<span class="text-xs text-gray-500 dark:text-gray-500">{ fmt.Sprintf("#%d", i+1) }</span>
-							<a href={ templ.SafeURL(fmt.Sprintf("/validator/%s", proposer)) } class="font-mono text-xs text-blue-600 dark:text-blue-400 hover:underline">
-								{ proposer }
-							</a>
-						</div>
+						if i < 4 {
+							<div class="flex items-center justify-between">
+								<span class="text-xs text-gray-500 dark:text-gray-500">{ fmt.Sprintf("#%d", i+1) }</span>
+								<a href={ templ.SafeURL(fmt.Sprintf("/validator/%s", proposer)) } class="font-mono text-xs text-blue-600 dark:text-blue-400 hover:underline truncate">
+									if len(proposer) > 12 {
+										{ proposer[:6] }...{ proposer[len(proposer)-4:] }
+									} else {
+										{ proposer }
+									}
+								</a>
+							</div>
+						}
 					}
 				} else {
-					<div class="text-center py-4">
-						<p class="text-gray-500 dark:text-gray-400 text-sm">No recent proposers</p>
-						<p class="text-xs text-gray-400 dark:text-gray-500 mt-1">
+					<div class="text-center py-1">
+						<p class="text-gray-500 dark:text-gray-400 text-xs">No recent proposers</p>
+						<p class="text-xs text-gray-400 dark:text-gray-500">
 							if stats.IsSyncing {
-								Still syncing blocks...
+								Syncing...
 							} else {
-								Waiting for block data
+								Waiting...
 							}
 						</p>
 					</div>
@@ -392,6 +459,82 @@ templ TotalTransactionsFragment(stats *DashboardStats) {
 // Live Play Map Alpine.js Component
 templ LivePlayMapScript() {
 	<script>
+		// Alpine.js store for map regions
+		document.addEventListener('alpine:init', () => {
+			Alpine.store('mapRegion', {
+				regions: [
+					{
+						key: 'north-america',
+						name: 'North America',
+						center: [39.0, -110.0],
+						zoom: 5
+					},
+					{
+						key: 'south-america',
+						name: 'South America',
+						center: [-15.0, -60.0],
+						zoom: 3
+					},
+					{
+						key: 'europe',
+						name: 'Europe',
+						center: [54.0, 15.0],
+						zoom: 4
+					},
+					{
+						key: 'uk',
+						name: 'United Kingdom',
+						center: [54.5, -4.0],
+						zoom: 6
+					},
+					{
+						key: 'africa',
+						name: 'Africa',
+						center: [0.0, 20.0],
+						zoom: 3
+					},
+					{
+						key: 'asia',
+						name: 'Asia',
+						center: [35.0, 105.0],
+						zoom: 3
+					},
+					{
+						key: 'oceania',
+						name: 'Oceania',
+						center: [-25.0, 140.0],
+						zoom: 4
+					},
+					{
+						key: 'global',
+						name: 'Global View',
+						center: [20.0, 0.0],
+						zoom: 2
+					}
+				],
+				
+				currentRegion: {
+					key: 'north-america',
+					name: 'North America',
+					center: [39.0, -110.0],
+					zoom: 5
+				},
+				
+				setRegion(region) {
+					this.currentRegion = region;
+					// Trigger map update
+					this.updateMap();
+				},
+				
+				updateMap() {
+					// This will be called by the map component
+					window.dispatchEvent(new CustomEvent('region-changed', { 
+						detail: this.currentRegion 
+					}));
+				}
+			});
+		});
+
 		function livePlayMap() {
 			return {
 				map: null,
@@ -400,8 +543,11 @@ templ LivePlayMapScript() {
 				playMarkers: [],
 				
 				initMap() {
-					// Initialize Leaflet map - center on US with Mexico/Canada visible
-					this.map = L.map('playMap').setView([39.8283, -98.5795], 4); // Center US, zoom level 4
+					const store = Alpine.store('mapRegion');
+					const region = store.currentRegion;
+					
+					// Initialize Leaflet map with current region
+					this.map = L.map('playMap').setView(region.center, region.zoom);
 					
 					// Detect dark mode and use appropriate tiles
 					const isDarkMode = document.documentElement.classList.contains('dark') || 
@@ -419,6 +565,12 @@ templ LivePlayMapScript() {
 							attribution: '© OpenStreetMap contributors'
 						}).addTo(this.map);
 					}
+					
+					// Listen for region changes
+					window.addEventListener('region-changed', (event) => {
+						const newRegion = event.detail;
+						this.map.setView(newRegion.center, newRegion.zoom);
+					});
 				},
 				
 				initSSE() {
