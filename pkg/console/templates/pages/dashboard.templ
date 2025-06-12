@@ -65,64 +65,9 @@ templ Dashboard(
 		<div class="space-y-6">
 			<!-- Section 1: Current Stats -->
 			<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6">
-				<div class="flex items-center justify-between">
-					<div class="flex-1">
-						<h4 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Block Height</h4>
-						<p class="text-3xl font-bold text-gray-900 dark:text-gray-100">{ fmt.Sprintf("%d", stats.CurrentBlockHeight) }</p>
-					</div>
-					<div class="flex-1 border-l border-gray-200 dark:border-gray-700 pl-6">
-						<h4 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Chain ID</h4>
-						<p class="text-3xl font-bold text-gray-900 dark:text-gray-100">{ stats.ChainID }</p>
-					</div>
-					<div class="flex-none w-32 border-l border-gray-200 dark:border-gray-700 pl-6">
-						<h4 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">BPS</h4>
-						<p class="text-3xl font-bold text-gray-900 dark:text-gray-100">{ fmt.Sprintf("%.2f", stats.BPS) }</p>
-					</div>
-					<div class="flex-none w-40 border-l border-gray-200 dark:border-gray-700 pl-6">
-						<h4 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Sync Status</h4>
-						if stats.IsSyncing {
-							<div class="flex items-center">
-								<div class="w-2 h-2 bg-yellow-500 rounded-full mr-2 animate-pulse"></div>
-								<p class="text-xl font-bold text-yellow-600 dark:text-yellow-400">Syncing</p>
-							</div>
-							<p class="text-xs text-gray-500 dark:text-gray-400">{ fmt.Sprintf("%d blocks behind", stats.BlockDelta) }</p>
-						} else {
-							<div class="flex items-center">
-								<div class="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-								<p class="text-xl font-bold text-green-600 dark:text-green-400">Synced</p>
-							</div>
-							<p class="text-xs text-gray-500 dark:text-gray-400">Up to date</p>
-						}
-					</div>
+				<div id="stats-header" hx-get="/fragments/stats-header" hx-trigger="every 5s" hx-swap="outerHTML">
+					@StatsHeaderFragment(stats)
 				</div>
-				<!-- Sync Progress Bar -->
-				if stats.IsSyncing && stats.LatestChainHeight > 0 {
-					<div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-						<div class="flex items-center justify-between mb-2">
-							<span class="text-xs font-medium text-gray-600 dark:text-gray-400">Sync Progress</span>
-							<span class="text-xs text-gray-500 dark:text-gray-500">
-								{ fmt.Sprintf("%d / %d", stats.LatestIndexedHeight, stats.LatestChainHeight) }
-								({ fmt.Sprintf("%.1f%%", float64(stats.LatestIndexedHeight)/float64(stats.LatestChainHeight)*100) })
-							</span>
-						</div>
-						<div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 relative overflow-hidden">
-							<!-- Simple progress representation with blocks -->
-							if float64(stats.LatestIndexedHeight)/float64(stats.LatestChainHeight) >= 0.9 {
-								<div class="bg-blue-600 h-2 rounded-full w-11/12"></div>
-							} else if float64(stats.LatestIndexedHeight)/float64(stats.LatestChainHeight) >= 0.8 {
-								<div class="bg-blue-600 h-2 rounded-full w-4/5"></div>
-							} else if float64(stats.LatestIndexedHeight)/float64(stats.LatestChainHeight) >= 0.6 {
-								<div class="bg-blue-600 h-2 rounded-full w-3/5"></div>
-							} else if float64(stats.LatestIndexedHeight)/float64(stats.LatestChainHeight) >= 0.4 {
-								<div class="bg-blue-600 h-2 rounded-full w-2/5"></div>
-							} else if float64(stats.LatestIndexedHeight)/float64(stats.LatestChainHeight) >= 0.2 {
-								<div class="bg-blue-600 h-2 rounded-full w-1/5"></div>
-							} else {
-								<div class="bg-blue-600 h-2 rounded-full w-1/12"></div>
-							}
-						</div>
-					</div>
-				}
 			</div>
 			<!-- Section 2: Live Map & Validator Info -->
 			<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -149,54 +94,8 @@ templ Dashboard(
 					</div>
 				</div>
 				<div class="space-y-4">
-					<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6">
-						<h4 class="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">Network Info</h4>
-						<div class="space-y-3">
-							<div class="flex justify-between">
-								<span class="text-gray-600 dark:text-gray-400">Validators</span>
-								<span class="font-semibold text-gray-900 dark:text-gray-100">{ fmt.Sprintf("%d", stats.ValidatorCount) }</span>
-							</div>
-							if stats.LatestBlock != nil {
-								<div class="flex justify-between">
-									<span class="text-gray-600 dark:text-gray-400">Latest Block</span>
-									<a href={ templ.SafeURL(fmt.Sprintf("/block/%d", stats.LatestBlock.Height)) } class="font-semibold text-blue-600 dark:text-blue-400 hover:underline">
-										{ fmt.Sprintf("#%d", stats.LatestBlock.Height) }
-									</a>
-								</div>
-								<div class="flex justify-between">
-									<span class="text-gray-600 dark:text-gray-400">Proposer</span>
-									<a href={ templ.SafeURL(fmt.Sprintf("/validator/%s", stats.LatestBlock.Proposer)) } class="font-mono text-sm text-blue-600 dark:text-blue-400 hover:underline">
-										{ stats.LatestBlock.Proposer }
-									</a>
-								</div>
-							}
-						</div>
-					</div>
-					<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6">
-						<h4 class="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">Recent Proposers</h4>
-						<div class="space-y-2">
-							if len(stats.RecentProposers) > 0 {
-								for i, proposer := range stats.RecentProposers {
-									<div class="flex items-center justify-between">
-										<span class="text-xs text-gray-500 dark:text-gray-500">{ fmt.Sprintf("#%d", i+1) }</span>
-										<a href={ templ.SafeURL(fmt.Sprintf("/validator/%s", proposer)) } class="font-mono text-xs text-blue-600 dark:text-blue-400 hover:underline">
-											{ proposer }
-										</a>
-									</div>
-								}
-							} else {
-								<div class="text-center py-4">
-									<p class="text-gray-500 dark:text-gray-400 text-sm">No recent proposers</p>
-									<p class="text-xs text-gray-400 dark:text-gray-500 mt-1">
-										if stats.IsSyncing {
-											Still syncing blocks...
-										} else {
-											Waiting for block data
-										}
-									</p>
-								</div>
-							}
-						</div>
+					<div id="network-sidebar" hx-get="/fragments/network-sidebar" hx-trigger="every 10s" hx-swap="outerHTML">
+						@NetworkSidebarFragment(stats)
 					</div>
 				</div>
 			</div>
@@ -208,15 +107,11 @@ templ Dashboard(
 				<div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
 					<!-- Primary Metrics -->
 					<div class="lg:col-span-2 grid grid-cols-2 gap-6">
-						<div class="border-r border-gray-200 dark:border-gray-700 pr-6">
-							<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Transactions/sec</div>
-							<div class="text-4xl font-light text-gray-900 dark:text-gray-100 mb-1">{ fmt.Sprintf("%.1f", stats.TPS) }</div>
-							<div class="text-xs text-gray-500 dark:text-gray-400">Peak: 25.3 TPS</div>
+						<div id="tps-fragment" hx-get="/fragments/tps" hx-trigger="every 5s" hx-swap="outerHTML">
+							@TPSFragment(stats)
 						</div>
-						<div class="pr-6">
-							<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Total Transactions</div>
-							<div class="text-4xl font-light text-gray-900 dark:text-gray-100 mb-1">{ formatNumber(stats.TotalTransactions) }</div>
-							<div class="text-xs text-green-600 dark:text-green-400">+2.3% from yesterday</div>
+						<div id="total-transactions-fragment" hx-get="/fragments/total-transactions" hx-trigger="every 10s" hx-swap="outerHTML">
+							@TotalTransactionsFragment(stats)
 						</div>
 						<div class="border-r border-gray-200 dark:border-gray-700 pr-6 border-t border-gray-200 dark:border-gray-700 pt-6">
 							<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">24h Volume</div>
@@ -353,4 +248,142 @@ templ Dashboard(
 			</div>
 		</div>
 	}
+}
+
+// HTMX Fragment Templates
+templ StatsHeaderFragment(stats *DashboardStats) {
+	<div id="stats-header" hx-get="/fragments/stats-header" hx-trigger="every 5s" hx-swap="outerHTML">
+		<div class="flex items-center justify-between">
+			<div class="flex-1">
+				<h4 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Block Height</h4>
+				<p class="text-3xl font-bold text-gray-900 dark:text-gray-100">{ fmt.Sprintf("%d", stats.CurrentBlockHeight) }</p>
+			</div>
+			<div class="flex-1 border-l border-gray-200 dark:border-gray-700 pl-6">
+				<h4 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Chain ID</h4>
+				<p class="text-3xl font-bold text-gray-900 dark:text-gray-100">{ stats.ChainID }</p>
+			</div>
+			<div class="flex-none w-32 border-l border-gray-200 dark:border-gray-700 pl-6">
+				<h4 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">BPS</h4>
+				<p class="text-3xl font-bold text-gray-900 dark:text-gray-100">{ fmt.Sprintf("%.2f", stats.BPS) }</p>
+			</div>
+			<div class="flex-none w-40 border-l border-gray-200 dark:border-gray-700 pl-6">
+				<h4 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Sync Status</h4>
+				if stats.IsSyncing {
+					<div class="flex items-center">
+						<div class="w-2 h-2 bg-yellow-500 rounded-full mr-2 animate-pulse"></div>
+						<p class="text-xl font-bold text-yellow-600 dark:text-yellow-400">Syncing</p>
+					</div>
+				} else {
+					<div class="flex items-center">
+						<div class="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+						<p class="text-xl font-bold text-green-600 dark:text-green-400">Synced</p>
+					</div>
+					<p class="text-xs text-gray-500 dark:text-gray-400">Up to date</p>
+				}
+			</div>
+		</div>
+		<!-- Sync Progress Bar -->
+		if stats.IsSyncing && stats.LatestChainHeight > 0 {
+			<div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+				<div class="flex items-center justify-between mb-2">
+					<span class="text-xs font-medium text-gray-600 dark:text-gray-400">
+						Sync Progress
+						if stats.BlockDelta > 0 {
+							| { fmt.Sprintf("%d blocks to go", stats.BlockDelta) }
+						}
+					</span>
+					<span class="text-xs text-gray-500 dark:text-gray-500">
+						{ fmt.Sprintf("%d / %d", stats.LatestIndexedHeight, stats.LatestChainHeight) }
+						({ fmt.Sprintf("%.1f%%", float64(stats.LatestIndexedHeight)/float64(stats.LatestChainHeight)*100) })
+					</span>
+				</div>
+				<div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 relative overflow-hidden">
+					<!-- Simple progress representation with blocks -->
+					if float64(stats.LatestIndexedHeight)/float64(stats.LatestChainHeight) >= 0.9 {
+						<div class="bg-blue-600 h-2 rounded-full w-11/12"></div>
+					} else if float64(stats.LatestIndexedHeight)/float64(stats.LatestChainHeight) >= 0.8 {
+						<div class="bg-blue-600 h-2 rounded-full w-4/5"></div>
+					} else if float64(stats.LatestIndexedHeight)/float64(stats.LatestChainHeight) >= 0.6 {
+						<div class="bg-blue-600 h-2 rounded-full w-3/5"></div>
+					} else if float64(stats.LatestIndexedHeight)/float64(stats.LatestChainHeight) >= 0.4 {
+						<div class="bg-blue-600 h-2 rounded-full w-2/5"></div>
+					} else if float64(stats.LatestIndexedHeight)/float64(stats.LatestChainHeight) >= 0.2 {
+						<div class="bg-blue-600 h-2 rounded-full w-1/5"></div>
+					} else {
+						<div class="bg-blue-600 h-2 rounded-full w-1/12"></div>
+					}
+				</div>
+			</div>
+		}
+	</div>
+}
+
+templ NetworkSidebarFragment(stats *DashboardStats) {
+	<div id="network-sidebar" hx-get="/fragments/network-sidebar" hx-trigger="every 10s" hx-swap="outerHTML" class="space-y-4">
+		<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6">
+			<h4 class="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">Network Info</h4>
+			<div class="space-y-3">
+				<div class="flex justify-between">
+					<span class="text-gray-600 dark:text-gray-400">Validators</span>
+					<span class="font-semibold text-gray-900 dark:text-gray-100">{ fmt.Sprintf("%d", stats.ValidatorCount) }</span>
+				</div>
+				if stats.LatestBlock != nil {
+					<div class="flex justify-between">
+						<span class="text-gray-600 dark:text-gray-400">Latest Block</span>
+						<a href={ templ.SafeURL(fmt.Sprintf("/block/%d", stats.LatestBlock.Height)) } class="font-semibold text-blue-600 dark:text-blue-400 hover:underline">
+							{ fmt.Sprintf("#%d", stats.LatestBlock.Height) }
+						</a>
+					</div>
+					<div class="flex justify-between">
+						<span class="text-gray-600 dark:text-gray-400">Proposer</span>
+						<a href={ templ.SafeURL(fmt.Sprintf("/validator/%s", stats.LatestBlock.Proposer)) } class="font-mono text-sm text-blue-600 dark:text-blue-400 hover:underline">
+							@templates.StringWithTooltip(stats.LatestBlock.Proposer)
+						</a>
+					</div>
+				}
+			</div>
+		</div>
+		<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6">
+			<h4 class="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">Recent Proposers</h4>
+			<div class="space-y-2">
+				if len(stats.RecentProposers) > 0 {
+					for i, proposer := range stats.RecentProposers {
+						<div class="flex items-center justify-between">
+							<span class="text-xs text-gray-500 dark:text-gray-500">{ fmt.Sprintf("#%d", i+1) }</span>
+							<a href={ templ.SafeURL(fmt.Sprintf("/validator/%s", proposer)) } class="font-mono text-xs text-blue-600 dark:text-blue-400 hover:underline">
+								{ proposer }
+							</a>
+						</div>
+					}
+				} else {
+					<div class="text-center py-4">
+						<p class="text-gray-500 dark:text-gray-400 text-sm">No recent proposers</p>
+						<p class="text-xs text-gray-400 dark:text-gray-500 mt-1">
+							if stats.IsSyncing {
+								Still syncing blocks...
+							} else {
+								Waiting for block data
+							}
+						</p>
+					</div>
+				}
+			</div>
+		</div>
+	</div>
+}
+
+templ TPSFragment(stats *DashboardStats) {
+	<div id="tps-fragment" hx-get="/fragments/tps" hx-trigger="every 5s" hx-swap="outerHTML" class="border-r border-gray-200 dark:border-gray-700 pr-6">
+		<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Transactions/sec</div>
+		<div class="text-4xl font-light text-gray-900 dark:text-gray-100 mb-1">{ fmt.Sprintf("%.1f", stats.TPS) }</div>
+		<div class="text-xs text-gray-500 dark:text-gray-400">Peak: 25.3 TPS</div>
+	</div>
+}
+
+templ TotalTransactionsFragment(stats *DashboardStats) {
+	<div id="total-transactions-fragment" hx-get="/fragments/total-transactions" hx-trigger="every 10s" hx-swap="outerHTML" class="pr-6">
+		<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Total Transactions</div>
+		<div class="text-4xl font-light text-gray-900 dark:text-gray-100 mb-1">{ formatNumber(stats.TotalTransactions) }</div>
+		<div class="text-xs text-green-600 dark:text-green-400">+2.3% from yesterday</div>
+	</div>
 }

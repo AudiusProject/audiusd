@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 
 	"connectrpc.com/connect"
 	v1 "github.com/AudiusProject/audiusd/pkg/api/etl/v1"
@@ -65,6 +64,12 @@ func (con *Console) SetupRoutes() {
 
 	e.GET("/", con.Dashboard)
 	e.GET("/hello", con.Hello)
+
+	// HTMX Fragment routes
+	e.GET("/fragments/stats-header", con.StatsHeaderFragment)
+	e.GET("/fragments/network-sidebar", con.NetworkSidebarFragment)
+	e.GET("/fragments/tps", con.TPSFragment)
+	e.GET("/fragments/total-transactions", con.TotalTransactionsFragment)
 
 	e.GET("/validators", con.Validators)
 	e.GET("/validator/:address", con.Validator)
@@ -423,50 +428,76 @@ func (con *Console) APIBlocks(c echo.Context) error {
 	return c.JSON(http.StatusOK, blocks.Msg)
 }
 
-func (con *Console) APITransactions(c echo.Context) error {
-	// Parse query parameters
-	limitParam := c.QueryParam("limit")
-	offsetParam := c.QueryParam("offset")
-
-	limit := int32(50) // default
-	if limitParam != "" {
-		if parsedLimit, err := strconv.ParseInt(limitParam, 10, 32); err == nil {
-			limit = int32(parsedLimit)
-		}
-	}
-
-	offset := int32(0) // default
-	if offsetParam != "" {
-		if parsedOffset, err := strconv.ParseInt(offsetParam, 10, 32); err == nil {
-			offset = int32(parsedOffset)
-		}
-	}
-
-	transactions, blockHeights, err := con.etl.GetTransactionsForAPI(c.Request().Context(), limit, offset)
+// HTMX Fragment Handlers
+func (con *Console) StatsHeaderFragment(c echo.Context) error {
+	statsResp, err := con.etl.GetStats(c.Request().Context(), &connect.Request[v1.GetStatsRequest]{
+		Msg: &v1.GetStatsRequest{},
+	})
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to get transactions"})
+		return c.String(http.StatusInternalServerError, "Failed to get dashboard stats")
 	}
 
-	// Create response with block heights for frontend
-	response := map[string]interface{}{
-		"transactions": make([]map[string]interface{}, len(transactions.Transactions)),
-		"has_more":     transactions.HasMore,
-		"total_count":  transactions.TotalCount,
+	stats := &pages.DashboardStats{
+		CurrentBlockHeight:  statsResp.Msg.CurrentBlockHeight,
+		ChainID:             statsResp.Msg.ChainId,
+		BPS:                 statsResp.Msg.Bps,
+		IsSyncing:           statsResp.Msg.SyncStatus != nil && statsResp.Msg.SyncStatus.IsSyncing,
+		LatestIndexedHeight: statsResp.Msg.SyncStatus.GetLatestIndexedHeight(),
+		LatestChainHeight:   statsResp.Msg.SyncStatus.GetLatestChainHeight(),
+		BlockDelta:          statsResp.Msg.SyncStatus.GetBlockDelta(),
 	}
 
-	for i, tx := range transactions.Transactions {
-		blockHeight := int64(0)
-		if bh, exists := blockHeights[tx.Hash]; exists {
-			blockHeight = bh
-		}
+	fragment := pages.StatsHeaderFragment(stats)
+	return fragment.Render(c.Request().Context(), c.Response().Writer)
+}
 
-		response["transactions"].([]map[string]interface{})[i] = map[string]interface{}{
-			"hash":         tx.Hash,
-			"type":         tx.Type,
-			"block_height": blockHeight,
-			"timestamp":    tx.Timestamp.AsTime().Format(time.RFC3339Nano),
-		}
+func (con *Console) NetworkSidebarFragment(c echo.Context) error {
+	statsResp, err := con.etl.GetStats(c.Request().Context(), &connect.Request[v1.GetStatsRequest]{
+		Msg: &v1.GetStatsRequest{},
+	})
+	if err != nil {
+		return c.String(http.StatusInternalServerError, "Failed to get dashboard stats")
 	}
 
-	return c.JSON(http.StatusOK, response)
+	stats := &pages.DashboardStats{
+		ValidatorCount:  statsResp.Msg.ValidatorCount,
+		LatestBlock:     statsResp.Msg.LatestBlock,
+		RecentProposers: statsResp.Msg.RecentProposers,
+		IsSyncing:       statsResp.Msg.SyncStatus != nil && statsResp.Msg.SyncStatus.IsSyncing,
+	}
+
+	fragment := pages.NetworkSidebarFragment(stats)
+	return fragment.Render(c.Request().Context(), c.Response().Writer)
+}
+
+func (con *Console) TPSFragment(c echo.Context) error {
+	statsResp, err := con.etl.GetStats(c.Request().Context(), &connect.Request[v1.GetStatsRequest]{
+		Msg: &v1.GetStatsRequest{},
+	})
+	if err != nil {
+		return c.String(http.StatusInternalServerError, "Failed to get dashboard stats")
+	}
+
+	stats := &pages.DashboardStats{
+		TPS: statsResp.Msg.Tps,
+	}
+
+	fragment := pages.TPSFragment(stats)
+	return fragment.Render(c.Request().Context(), c.Response().Writer)
+}
+
+func (con *Console) TotalTransactionsFragment(c echo.Context) error {
+	statsResp, err := con.etl.GetStats(c.Request().Context(), &connect.Request[v1.GetStatsRequest]{
+		Msg: &v1.GetStatsRequest{},
+	})
+	if err != nil {
+		return c.String(http.StatusInternalServerError, "Failed to get dashboard stats")
+	}
+
+	stats := &pages.DashboardStats{
+		TotalTransactions: statsResp.Msg.TotalTransactions,
+	}
+
+	fragment := pages.TotalTransactionsFragment(stats)
+	return fragment.Render(c.Request().Context(), c.Response().Writer)
 }
