@@ -533,12 +533,23 @@ func (con *Console) LiveEventsSSE(c echo.Context) error {
 
 	flusher, ok := c.Response().Writer.(http.Flusher)
 	if !ok {
-		return c.String(http.StatusInternalServerError, "Streaming unsupported!")
+		return nil
 	}
 
 	// Subscribe to play events from ETL pubsub
 	playChannel := con.etl.GetPlayPubsub().Subscribe(etl.PlayTopic, 100)
 	defer con.etl.GetPlayPubsub().Unsubscribe(etl.PlayTopic, playChannel)
+
+	blockChannel := con.etl.GetBlockPubsub().Subscribe(etl.BlockTopic, 100)
+	defer con.etl.GetBlockPubsub().Unsubscribe(etl.BlockTopic, blockChannel)
+
+	// Throttle state for block events
+	var (
+		latestBlock    *v1.Block
+		lastSentHeight int64
+		blockTicker    = time.NewTicker(1 * time.Second)
+	)
+	defer blockTicker.Stop()
 
 	flusher.Flush()
 
@@ -546,6 +557,31 @@ func (con *Console) LiveEventsSSE(c echo.Context) error {
 		select {
 		case <-c.Request().Context().Done():
 			return nil
+		case blockEvent := <-blockChannel:
+			if blockEvent != nil {
+				latestBlock = blockEvent
+			}
+		case <-blockTicker.C:
+			if latestBlock != nil && latestBlock.Height > lastSentHeight {
+				resp := &v1.StreamResponse_StreamBlocksResponse{
+					Height:   latestBlock.Height,
+					Proposer: latestBlock.Proposer,
+				}
+
+				event := SSEEvent{
+					Event: "block",
+					Data:  resp,
+				}
+
+				jsonData, err := json.Marshal(event)
+				if err != nil {
+					continue
+				}
+				fmt.Fprintf(c.Response(), "data: %s\n\n", jsonData)
+				lastSentHeight = latestBlock.Height
+				flusher.Flush()
+			}
+
 		case playEvent := <-playChannel:
 			if playEvent != nil && playEvent.Latitude != 0 && playEvent.Longitude != 0 {
 				// Convert ETL TrackPlay to PlayEvent format
