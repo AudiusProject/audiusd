@@ -535,8 +535,6 @@ func (con *Console) LivePlaysSSE(c echo.Context) error {
 	playChannel := con.etl.GetPlayPubsub().Subscribe(etl.PlayTopic, 100)
 	defer con.etl.GetPlayPubsub().Unsubscribe(etl.PlayTopic, playChannel)
 
-	// Send initial connection confirmation
-	fmt.Fprintf(c.Response(), "data: {\"type\":\"connected\"}\n\n")
 	flusher.Flush()
 
 	for {
