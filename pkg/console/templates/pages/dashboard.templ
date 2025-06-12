@@ -101,10 +101,10 @@ templ Dashboard(
 	syncProgressPercentage float64,
 ) {
 	@layouts.Base("Dashboard") {
-		<div class="space-y-6">
+		<div class="space-y-6" x-data="blockEvents()" x-init="init()">
 			<!-- Section 1: Current Stats -->
 			<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6">
-				<div id="stats-header" hx-get="/fragments/stats-header" hx-trigger="every 5s" hx-swap="outerHTML">
+				<div id="stats-header">
 					@StatsHeaderFragment(stats, syncProgressPercentage)
 				</div>
 			</div>
@@ -126,7 +126,7 @@ templ Dashboard(
 					</div>
 					<!-- Network Info Overlay - Left Side (aligned with zoom buttons) -->
 					<div class="absolute top-14 left-16 w-56 z-20">
-						<div id="network-sidebar" hx-get="/fragments/network-sidebar" hx-trigger="every 10s" hx-swap="outerHTML">
+						<div id="network-sidebar">
 							@NetworkSidebarFragment(stats)
 						</div>
 					</div>
@@ -282,12 +282,13 @@ templ Dashboard(
 		</div>
 		@SSEEventScript()
 		@LivePlayMapScript()
+		@BlockEventsScript()
 	}
 }
 
 // HTMX Fragment Templates
 templ StatsHeaderFragment(stats *DashboardStats, syncProgressPercentage float64) {
-	<div id="stats-header" hx-get="/fragments/stats-header" hx-trigger="every 2s" hx-swap="outerHTML">
+	<div id="stats-header">
 		<div class="flex items-center justify-between">
 			<div class="flex-1">
 				<h4 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Block Height</h4>
@@ -344,7 +345,7 @@ templ StatsHeaderFragment(stats *DashboardStats, syncProgressPercentage float64)
 }
 
 templ NetworkSidebarFragment(stats *DashboardStats) {
-	<div id="network-sidebar" hx-get="/fragments/network-sidebar" hx-trigger="every 5s" hx-swap="outerHTML" class="space-y-2">
+	<div id="network-sidebar" class="space-y-2">
 		<div class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-md rounded-lg p-3 border border-white/20 dark:border-gray-700/50 shadow-lg">
 			<h4 class="text-xs font-semibold mb-2 text-gray-900 dark:text-gray-100 uppercase tracking-wide">Network Info</h4>
 			<div class="space-y-1.5">
@@ -373,7 +374,7 @@ templ NetworkSidebarFragment(stats *DashboardStats) {
 			<div class="space-y-1">
 				if len(stats.RecentProposers) > 0 {
 					for i, proposer := range stats.RecentProposers {
-						if i < 4 {
+						if i < 5 {
 							<div class="flex items-center justify-between">
 								<span class="text-xs text-gray-500 dark:text-gray-500">{ fmt.Sprintf("#%d", i+1) }</span>
 								<a href={ templ.SafeURL(fmt.Sprintf("/validator/%s", proposer)) } class="font-mono text-xs text-blue-600 dark:text-blue-400 hover:underline truncate">
@@ -564,6 +565,87 @@ templ LivePlayMapScript() {
 					}
 					if (this.map) {
 						this.map.remove();
+					}
+				}
+			}
+		}
+	</script>
+}
+
+// Block Events Alpine.js Component
+templ BlockEventsScript() {
+	<script>
+		function blockEvents() {
+			return {
+				recentBlocks: [],
+				
+				init() {
+					document.addEventListener('block', (event) => {
+						this.handleBlockEvent(event.detail);
+					});
+				},
+
+				handleBlockEvent(blockData) {
+					// Check if we already have this block
+					const existingBlockIndex = this.recentBlocks.findIndex(block => block.height === blockData.height);
+					if (existingBlockIndex !== -1) {
+						// Remove the existing block if found
+						this.recentBlocks.splice(existingBlockIndex, 1);
+					}
+					
+					// Add new block to the beginning of the array
+					this.recentBlocks.unshift(blockData);
+					
+					// Keep only the last 5 blocks
+					if (this.recentBlocks.length > 5) {
+						this.recentBlocks = this.recentBlocks.slice(0, 5);
+					}
+
+					// Update the network info display
+					this.updateNetworkInfo(blockData);
+				},
+
+				updateNetworkInfo(blockData) {
+					// Update block height
+					const blockHeightEl = document.querySelector('#stats-header .text-3xl');
+					if (blockHeightEl) {
+						blockHeightEl.textContent = blockData.height;
+					}
+
+					// Update network sidebar
+					const networkSidebar = document.querySelector('#network-sidebar');
+					if (networkSidebar) {
+						// Update latest block
+						const latestBlockEl = networkSidebar.querySelector('a[href^="/block/"]');
+						if (latestBlockEl) {
+							latestBlockEl.textContent = `#${blockData.height}`;
+							latestBlockEl.href = `/block/${blockData.height}`;
+						}
+
+						// Update proposer
+						const proposerEl = networkSidebar.querySelector('a[href^="/validator/"]');
+						if (proposerEl) {
+							const shortProposer = blockData.proposer.length > 12 
+								? `${blockData.proposer.slice(0, 6)}...${blockData.proposer.slice(-4)}`
+								: blockData.proposer;
+							proposerEl.textContent = shortProposer;
+							proposerEl.href = `/validator/${blockData.proposer}`;
+						}
+
+						// Update recent proposers list
+						const recentProposersContainer = networkSidebar.querySelector('.space-y-1');
+						if (recentProposersContainer) {
+							recentProposersContainer.innerHTML = this.recentBlocks.map((block, index) => `
+								<div class="flex items-center justify-between">
+									<span class="text-xs text-gray-500 dark:text-gray-500">#${index + 1}</span>
+									<a href="/validator/${block.proposer}" class="font-mono text-xs text-blue-600 dark:text-blue-400 hover:underline truncate">
+										${block.proposer.length > 12 
+											? `${block.proposer.slice(0, 6)}...${block.proposer.slice(-4)}`
+											: block.proposer}
+									</a>
+								</div>
+							`).join('');
+						}
 					}
 				}
 			}
