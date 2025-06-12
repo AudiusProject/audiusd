@@ -8,7 +8,9 @@ import (
 
 	"connectrpc.com/connect"
 	v1 "github.com/AudiusProject/audiusd/pkg/api/core/v1"
+	etlv1 "github.com/AudiusProject/audiusd/pkg/api/etl/v1"
 	"github.com/AudiusProject/audiusd/pkg/etl/db"
+	"github.com/AudiusProject/audiusd/pkg/etl/location"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -51,6 +53,12 @@ func (etl *ETLService) Run() error {
 
 	etl.pool = pool
 	etl.db = db.New(pool)
+
+	locationDB, err := location.NewLocationService()
+	if err != nil {
+		return fmt.Errorf("error creating location service: %v", err)
+	}
+	etl.locationDB = locationDB
 
 	// Initialize chain ID from core service
 	err = etl.InitializeChainID(context.Background())
@@ -163,6 +171,30 @@ func (etl *ETLService) indexBlocks() error {
 						BlockHeight: block.Msg.Block.Height,
 						TxHash:      tx.Hash,
 					})
+
+					// TODO: persist lat long in db, only supported in streams
+					go func() {
+						// check if city, region, country are not empty
+						if play.City == "" || play.Region == "" || play.Country == "" {
+							return
+						}
+
+						latLong, err := etl.locationDB.GetLatLong(context.Background(), play.City, play.Region, play.Country)
+						if err != nil {
+							return
+						}
+
+						etl.playPubsub.Publish(context.Background(), PlayTopic, &etlv1.TrackPlay{
+							Address:   play.UserId,
+							TrackId:   play.TrackId,
+							City:      play.City,
+							Region:    play.Region,
+							Country:   play.Country,
+							PlayedAt:  play.Timestamp,
+							Latitude:  latLong.Latitude,
+							Longitude: latLong.Longitude,
+						})
+					}()
 				}
 			case *v1.SignedTransaction_ManageEntity:
 				txType = TxTypeManageEntity
@@ -297,6 +329,16 @@ func (etl *ETLService) indexBlocks() error {
 				TxType:      txType,
 			})
 		}
+
+		go func() {
+			if err == nil {
+				etl.blockPubsub.Publish(context.Background(), BlockTopic, &etlv1.Block{
+					Height:    block.Msg.Block.Height,
+					Proposer:  block.Msg.Block.Proposer,
+					Timestamp: block.Msg.Block.Timestamp,
+				})
+			}
+		}()
 
 		if etl.endingBlockHeight > 0 && block.Msg.Block.Height >= etl.endingBlockHeight {
 			etl.logger.Infof("ending block height reached, stopping etl service")

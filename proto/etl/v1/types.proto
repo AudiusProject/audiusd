@@ -129,6 +129,8 @@ message TrackPlay {
   string city = 4;
   string region = 5;
   string country = 6;
+  double latitude = 7;
+  double longitude = 8;
 }
 
 message ManageEntityTransaction {
@@ -413,6 +415,8 @@ message StreamResponse {
     string city = 1;
     string country = 2;
     string region = 3;
+    double latitude = 4;
+    double longitude = 5;
   }
   oneof response {
     StreamBlocksResponse stream_blocks = 1;

@@ -519,35 +519,37 @@ func (con *Console) LivePlaysSSE(c echo.Context) error {
 		return c.String(http.StatusInternalServerError, "Streaming unsupported!")
 	}
 
-	rand.Seed(time.Now().UnixNano())
+	// Subscribe to play events from ETL pubsub
+	playChannel := con.etl.GetPlayPubsub().Subscribe(etl.PlayTopic, 100)
+	defer con.etl.GetPlayPubsub().Unsubscribe(etl.PlayTopic, playChannel)
+
+	// Send initial connection confirmation
+	fmt.Fprintf(c.Response(), "data: {\"type\":\"connected\"}\n\n")
+	flusher.Flush()
 
 	for {
 		select {
 		case <-c.Request().Context().Done():
 			return nil
-		default:
-			// Generate coordinates focused on North America
-			// US mainland: roughly 25°N to 49°N, 125°W to 66°W
-			// Include parts of Mexico (down to ~20°N) and Canada (up to ~55°N)
-			lat := 20 + rand.Float64()*35   // 20°N to 55°N (Mexico to Canada)
-			lng := -130 + rand.Float64()*65 // 130°W to 65°W (West coast to East coast)
+		case playEvent := <-playChannel:
+			if playEvent != nil && playEvent.Latitude != 0 && playEvent.Longitude != 0 {
+				// Convert ETL TrackPlay to PlayEvent format
+				play := &pages.PlayEvent{
+					Timestamp: playEvent.PlayedAt.AsTime().Format(time.RFC3339),
+					Lat:       playEvent.Latitude,
+					Lng:       playEvent.Longitude,
+					Duration:  rand.Intn(3) + 2, // Keep random duration for animation (2-4 seconds)
+				}
 
-			play := &pages.PlayEvent{
-				Timestamp: time.Now().Format(time.RFC3339),
-				Lat:       lat,
-				Lng:       lng,
-				Duration:  rand.Intn(3) + 2, // 2-4 seconds
+				jsonData, err := json.Marshal(play)
+				if err != nil {
+					con.logger.Error("Failed to marshal play event", "error", err)
+					continue
+				}
+
+				fmt.Fprintf(c.Response(), "data: %s\n\n", jsonData)
+				flusher.Flush()
 			}
-
-			jsonData, err := json.Marshal(play)
-			if err != nil {
-				return err
-			}
-
-			fmt.Fprintf(c.Response(), "data: %s\n\n", jsonData)
-			flusher.Flush()
-
-			time.Sleep(time.Second)
 		}
 	}
 }

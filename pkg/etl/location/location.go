@@ -16,10 +16,14 @@ var databases embed.FS
 
 // LocationService provides location lookup functionality
 type LocationService struct {
-	citiesDB    *sql.DB
-	statesDB    *sql.DB
-	regionsDB   *sql.DB
-	countriesDB *sql.DB
+	citiesDB       *sql.DB
+	statesDB       *sql.DB
+	regionsDB      *sql.DB
+	countriesDB    *sql.DB
+	citiesQuery    *Queries
+	statesQuery    *Queries
+	regionsQuery   *Queries
+	countriesQuery *Queries
 }
 
 // LatLong represents latitude and longitude coordinates
@@ -39,12 +43,14 @@ func NewLocationService() (*LocationService, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to open cities database: %w", err)
 	}
+	service.citiesQuery = New(service.citiesDB)
 
 	service.statesDB, err = openEmbeddedDB("states.sqlite3")
 	if err != nil {
 		service.citiesDB.Close()
 		return nil, fmt.Errorf("failed to open states database: %w", err)
 	}
+	service.statesQuery = New(service.statesDB)
 
 	service.regionsDB, err = openEmbeddedDB("regions.sqlite3")
 	if err != nil {
@@ -52,6 +58,7 @@ func NewLocationService() (*LocationService, error) {
 		service.statesDB.Close()
 		return nil, fmt.Errorf("failed to open regions database: %w", err)
 	}
+	service.regionsQuery = New(service.regionsDB)
 
 	service.countriesDB, err = openEmbeddedDB("countries.sqlite3")
 	if err != nil {
@@ -60,6 +67,7 @@ func NewLocationService() (*LocationService, error) {
 		service.regionsDB.Close()
 		return nil, fmt.Errorf("failed to open countries database: %w", err)
 	}
+	service.countriesQuery = New(service.countriesDB)
 
 	return service, nil
 }
@@ -94,7 +102,7 @@ func openEmbeddedDB(filename string) (*sql.DB, error) {
 // GetLatLong retrieves latitude and longitude for a given city, state, and country
 func (ls *LocationService) GetLatLong(ctx context.Context, city, state, country string) (*LatLong, error) {
 	// Step 1: Get country code from country name
-	countryCode, err := ls.getCountryCode(ctx, country)
+	countryCode, err := ls.countriesQuery.GetCountryCode(ctx, country)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get country code for %s: %w", country, err)
 	}
@@ -103,7 +111,10 @@ func (ls *LocationService) GetLatLong(ctx context.Context, city, state, country 
 	}
 
 	// Step 2: Get state code from state name and country code
-	stateCode, err := ls.getStateCode(ctx, state, countryCode.String)
+	stateCode, err := ls.statesQuery.GetStateCode(ctx, GetStateCodeParams{
+		Name:        state,
+		CountryCode: countryCode.String,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get state code for %s in %s: %w", state, country, err)
 	}
@@ -112,57 +123,22 @@ func (ls *LocationService) GetLatLong(ctx context.Context, city, state, country 
 	}
 
 	// Step 3: Get latitude and longitude from city name, state code, and country code
-	latLong, err := ls.getCityLatLong(ctx, city, stateCode.String, countryCode.String)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get coordinates for %s, %s, %s: %w", city, state, country, err)
-	}
-
-	return latLong, nil
-}
-
-// getCountryCode gets the ISO2 country code from country name
-func (ls *LocationService) getCountryCode(ctx context.Context, name string) (sql.NullString, error) {
-	query := "SELECT iso2 FROM countries WHERE name = ? LIMIT 1"
-	row := ls.countriesDB.QueryRowContext(ctx, query, name)
-
-	var iso2 sql.NullString
-	err := row.Scan(&iso2)
-	if err != nil && err != sql.ErrNoRows {
-		return sql.NullString{}, err
-	}
-
-	return iso2, nil
-}
-
-// getStateCode gets the ISO2 state code from state name and country code
-func (ls *LocationService) getStateCode(ctx context.Context, name, countryCode string) (sql.NullString, error) {
-	query := "SELECT iso2 FROM states WHERE name = ? AND country_code = ? LIMIT 1"
-	row := ls.statesDB.QueryRowContext(ctx, query, name, countryCode)
-
-	var iso2 sql.NullString
-	err := row.Scan(&iso2)
-	if err != nil && err != sql.ErrNoRows {
-		return sql.NullString{}, err
-	}
-
-	return iso2, nil
-}
-
-// getCityLatLong gets latitude and longitude from city name, state code, and country code
-func (ls *LocationService) getCityLatLong(ctx context.Context, name, stateCode, countryCode string) (*LatLong, error) {
-	query := "SELECT latitude, longitude FROM cities WHERE name = ? AND state_code = ? AND country_code = ? LIMIT 1"
-	row := ls.citiesDB.QueryRowContext(ctx, query, name, stateCode, countryCode)
-
-	var latLong LatLong
-	err := row.Scan(&latLong.Latitude, &latLong.Longitude)
+	cityResult, err := ls.citiesQuery.GetCityLatLong(ctx, GetCityLatLongParams{
+		Name:        city,
+		StateCode:   stateCode.String,
+		CountryCode: countryCode.String,
+	})
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("city not found")
 		}
-		return nil, err
+		return nil, fmt.Errorf("failed to get coordinates for %s, %s, %s: %w", city, state, country, err)
 	}
 
-	return &latLong, nil
+	return &LatLong{
+		Latitude:  cityResult.Latitude,
+		Longitude: cityResult.Longitude,
+	}, nil
 }
 
 // Close closes all database connections and cleans up temporary files

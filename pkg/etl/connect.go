@@ -12,6 +12,7 @@ import (
 	"github.com/AudiusProject/audiusd/pkg/api/etl/v1/v1connect"
 	"github.com/AudiusProject/audiusd/pkg/common"
 	"github.com/AudiusProject/audiusd/pkg/etl/db"
+	"github.com/AudiusProject/audiusd/pkg/etl/location"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -30,6 +31,11 @@ type ETLService struct {
 	pool   *pgxpool.Pool
 	db     *db.Queries
 	logger *common.Logger
+
+	locationDB *location.LocationService
+
+	blockPubsub *BlockPubsub
+	playPubsub  *PlayPubsub
 }
 
 func (e *ETLService) SetDBURL(dbURL string) {
@@ -647,10 +653,14 @@ func (e *ETLService) GetBlock(ctx context.Context, req *connect.Request[v1.GetBl
 }
 
 func NewETLService(core corev1connect.CoreServiceClient, logger *common.Logger) *ETLService {
-	return &ETLService{
-		logger: logger.Child("etl"),
-		core:   core,
+	etl := &ETLService{
+		logger:      logger.Child("etl"),
+		core:        core,
+		blockPubsub: NewPubsub[*v1.Block](),
+		playPubsub:  NewPubsub[*v1.TrackPlay](),
 	}
+
+	return etl
 }
 
 // GetTransaction implements v1connect.ETLServiceHandler.
@@ -1112,6 +1122,97 @@ func (e *ETLService) GetValidator(ctx context.Context, req *connect.Request[v1.G
 }
 
 // Stream implements v1connect.ETLServiceHandler.
-func (e *ETLService) Stream(context.Context, *connect.BidiStream[v1.StreamRequest, v1.StreamResponse]) error {
-	panic("unimplemented")
+func (e *ETLService) Stream(ctx context.Context, stream *connect.BidiStream[v1.StreamRequest, v1.StreamResponse]) error {
+	var blockCh chan *v1.Block
+	var playCh chan *v1.TrackPlay
+
+	// Handle incoming stream requests
+	go func() {
+		for {
+			req, err := stream.Receive()
+			if err != nil {
+				// Client closed connection or other error
+				return
+			}
+
+			switch req.Query.(type) {
+			case *v1.StreamRequest_StreamBlocks:
+				// Subscribe to blocks if not already subscribed
+				if blockCh == nil {
+					blockCh = e.blockPubsub.Subscribe(BlockTopic, 100)
+					e.logger.Info("Subscribed to block stream")
+				}
+			case *v1.StreamRequest_StreamPlays:
+				// Subscribe to plays if not already subscribed
+				if playCh == nil {
+					playCh = e.playPubsub.Subscribe(PlayTopic, 100)
+					e.logger.Info("Subscribed to play stream")
+				}
+			}
+		}
+	}()
+
+	// Handle outgoing messages from pubsub
+	for {
+		select {
+		case <-ctx.Done():
+			// Cleanup subscriptions when context is cancelled
+			if blockCh != nil {
+				e.blockPubsub.Unsubscribe(BlockTopic, blockCh)
+				e.logger.Info("Unsubscribed from block stream")
+			}
+			if playCh != nil {
+				e.playPubsub.Unsubscribe(PlayTopic, playCh)
+				e.logger.Info("Unsubscribed from play stream")
+			}
+			return ctx.Err()
+
+		case block := <-blockCh:
+			if block != nil {
+				// Send block data as StreamBlocksResponse
+				err := stream.Send(&v1.StreamResponse{
+					Response: &v1.StreamResponse_StreamBlocks{
+						StreamBlocks: &v1.StreamResponse_StreamBlocksResponse{
+							Height:   block.Height,
+							Proposer: block.Proposer,
+						},
+					},
+				})
+				if err != nil {
+					e.logger.Error("Failed to send block stream response", "error", err)
+					return err
+				}
+			}
+
+		case play := <-playCh:
+			if play != nil {
+				// Send play data as StreamPlaysResponse
+				err := stream.Send(&v1.StreamResponse{
+					Response: &v1.StreamResponse_StreamPlays{
+						StreamPlays: &v1.StreamResponse_StreamPlaysResponse{
+							City:      play.City,
+							Country:   play.Country,
+							Region:    play.Region,
+							Latitude:  play.Latitude,
+							Longitude: play.Longitude,
+						},
+					},
+				})
+				if err != nil {
+					e.logger.Error("Failed to send play stream response", "error", err)
+					return err
+				}
+			}
+		}
+	}
+}
+
+// GetPlayPubsub returns the play pubsub for external subscribers
+func (e *ETLService) GetPlayPubsub() *PlayPubsub {
+	return e.playPubsub
+}
+
+// GetBlockPubsub returns the block pubsub for external subscribers
+func (e *ETLService) GetBlockPubsub() *BlockPubsub {
+	return e.blockPubsub
 }
