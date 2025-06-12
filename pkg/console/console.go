@@ -2,9 +2,13 @@ package console
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+	"math/rand"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"connectrpc.com/connect"
 	v1 "github.com/AudiusProject/audiusd/pkg/api/etl/v1"
@@ -64,6 +68,9 @@ func (con *Console) SetupRoutes() {
 
 	e.GET("/", con.Dashboard)
 	e.GET("/hello", con.Hello)
+
+	// SSE endpoints
+	e.GET("/sse/plays", con.LivePlaysSSE)
 
 	// HTMX Fragment routes
 	e.GET("/fragments/stats-header", con.StatsHeaderFragment)
@@ -500,4 +507,47 @@ func (con *Console) TotalTransactionsFragment(c echo.Context) error {
 
 	fragment := pages.TotalTransactionsFragment(stats)
 	return fragment.Render(c.Request().Context(), c.Response().Writer)
+}
+
+func (con *Console) LivePlaysSSE(c echo.Context) error {
+	c.Response().Header().Set("Content-Type", "text/event-stream")
+	c.Response().Header().Set("Cache-Control", "no-cache")
+	c.Response().Header().Set("Connection", "keep-alive")
+
+	flusher, ok := c.Response().Writer.(http.Flusher)
+	if !ok {
+		return c.String(http.StatusInternalServerError, "Streaming unsupported!")
+	}
+
+	rand.Seed(time.Now().UnixNano())
+
+	for {
+		select {
+		case <-c.Request().Context().Done():
+			return nil
+		default:
+			// Generate coordinates focused on North America
+			// US mainland: roughly 25°N to 49°N, 125°W to 66°W
+			// Include parts of Mexico (down to ~20°N) and Canada (up to ~55°N)
+			lat := 20 + rand.Float64()*35   // 20°N to 55°N (Mexico to Canada)
+			lng := -130 + rand.Float64()*65 // 130°W to 65°W (West coast to East coast)
+
+			play := &pages.PlayEvent{
+				Timestamp: time.Now().Format(time.RFC3339),
+				Lat:       lat,
+				Lng:       lng,
+				Duration:  rand.Intn(3) + 2, // 2-4 seconds
+			}
+
+			jsonData, err := json.Marshal(play)
+			if err != nil {
+				return err
+			}
+
+			fmt.Fprintf(c.Response(), "data: %s\n\n", jsonData)
+			flusher.Flush()
+
+			time.Sleep(time.Second)
+		}
+	}
 }

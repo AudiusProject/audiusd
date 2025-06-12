@@ -30,6 +30,13 @@ type TransactionTypeBreakdown struct {
 	Color string
 }
 
+type PlayEvent struct {
+	Timestamp string  `json:"timestamp"`
+	Lat       float64 `json:"lat"`
+	Lng       float64 `json:"lng"`
+	Duration  int     `json:"duration"`
+}
+
 func formatNumber(n int64) string {
 	str := strconv.FormatInt(n, 10)
 	if len(str) <= 3 {
@@ -73,23 +80,16 @@ templ Dashboard(
 			<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 				<div class="lg:col-span-2 bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6">
 					<h3 class="text-xl font-bold mb-4 text-gray-900 dark:text-gray-100">Live Incoming Plays</h3>
-					<div class="relative bg-gray-100 dark:bg-gray-700 rounded-lg h-64 flex items-center justify-center">
-						<div class="text-center">
-							<div class="animate-pulse">
-								<div class="w-4 h-4 bg-green-500 rounded-full mx-auto mb-2 animate-ping"></div>
-							</div>
-							<p class="text-gray-600 dark:text-gray-400">Real-time play tracking coming soon</p>
-							<p class="text-sm text-gray-500 dark:text-gray-500 mt-1">WebSocket integration in progress</p>
-						</div>
-						<!-- Mock play indicators -->
-						<div class="absolute top-4 left-4">
-							<div class="w-2 h-2 bg-green-400 rounded-full animate-ping"></div>
-						</div>
-						<div class="absolute top-8 right-8">
-							<div class="w-2 h-2 bg-blue-400 rounded-full animate-ping" style="animation-delay: 0.5s;"></div>
-						</div>
-						<div class="absolute bottom-6 left-12">
-							<div class="w-2 h-2 bg-yellow-400 rounded-full animate-ping" style="animation-delay: 1s;"></div>
+					<div
+						class="relative bg-gray-100 dark:bg-gray-700 rounded-lg h-64 overflow-hidden"
+						x-data="livePlayMap()"
+						x-init="initSSE(); initMap()"
+					>
+						<!-- Map container -->
+						<div id="playMap" class="w-full h-full rounded-lg"></div>
+						<!-- Connection status -->
+						<div class="absolute top-4 left-4 bg-black/20 backdrop-blur-sm rounded px-2 py-1" x-show="!connected">
+							<span class="text-white/90 text-xs">Connecting...</span>
 						</div>
 					</div>
 				</div>
@@ -247,6 +247,7 @@ templ Dashboard(
 				</div>
 			</div>
 		</div>
+		@LivePlayMapScript()
 	}
 }
 
@@ -386,4 +387,147 @@ templ TotalTransactionsFragment(stats *DashboardStats) {
 		<div class="text-4xl font-light text-gray-900 dark:text-gray-100 mb-1">{ formatNumber(stats.TotalTransactions) }</div>
 		<div class="text-xs text-green-600 dark:text-green-400">+2.3% from yesterday</div>
 	</div>
+}
+
+// Live Play Map Alpine.js Component
+templ LivePlayMapScript() {
+	<script>
+		function livePlayMap() {
+			return {
+				map: null,
+				eventSource: null,
+				connected: false,
+				playMarkers: [],
+				
+				initMap() {
+					// Initialize Leaflet map - center on US with Mexico/Canada visible
+					this.map = L.map('playMap').setView([39.8283, -98.5795], 4); // Center US, zoom level 4
+					
+					// Detect dark mode and use appropriate tiles
+					const isDarkMode = document.documentElement.classList.contains('dark') || 
+					                  window.matchMedia('(prefers-color-scheme: dark)').matches;
+					
+					if (isDarkMode) {
+						// Dark mode tiles
+						L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+							attribution: '© OpenStreetMap, © CartoDB',
+							subdomains: 'abcd'
+						}).addTo(this.map);
+					} else {
+						// Light mode tiles
+						L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+							attribution: '© OpenStreetMap contributors'
+						}).addTo(this.map);
+					}
+				},
+				
+				initSSE() {
+					this.eventSource = new EventSource('/sse/plays');
+					
+					this.eventSource.onmessage = (event) => {
+						const play = JSON.parse(event.data);
+						this.addPlayToMap(play);
+					};
+					
+					this.eventSource.onerror = (error) => {
+						console.error('SSE connection error:', error);
+						this.connected = false;
+					};
+					
+					this.eventSource.onopen = () => {
+						console.log('SSE connection opened');
+						this.connected = true;
+					};
+				},
+				
+				addPlayToMap(play) {
+					if (!this.map) return;
+					
+					const color = this.getRandomColor();
+					
+					// Create radar-style animation with expanding circles
+					const radarGroup = L.layerGroup().addTo(this.map);
+					
+					// Create multiple expanding circles for radar effect
+					for (let i = 0; i < 3; i++) {
+						setTimeout(() => {
+							const circle = L.circle([play.lat, play.lng], {
+								radius: 0,
+								fillColor: color,
+								color: color,
+								weight: 2,
+								opacity: 0.8,
+								fillOpacity: 0.3
+							}).addTo(radarGroup);
+							
+							// Animate the circle expansion
+							let radius = 0;
+							let opacity = 0.8;
+							const maxRadius = 100000; // 100km in meters
+							const animationDuration = play.duration * 1000 / 3; // Stagger the circles
+							const startTime = Date.now();
+							
+							const animate = () => {
+								const elapsed = Date.now() - startTime;
+								const progress = Math.min(elapsed / animationDuration, 1);
+								
+								radius = maxRadius * progress;
+								opacity = 0.8 * (1 - progress);
+								
+								circle.setRadius(radius);
+								circle.setStyle({ 
+									opacity: opacity,
+									fillOpacity: opacity * 0.3
+								});
+								
+								if (progress < 1) {
+									requestAnimationFrame(animate);
+								} else {
+									radarGroup.removeLayer(circle);
+								}
+							};
+							
+							animate();
+						}, i * 200); // Stagger each circle by 200ms
+					}
+					
+					// Add center dot
+					const centerDot = L.circleMarker([play.lat, play.lng], {
+						radius: 4,
+						fillColor: color,
+						color: '#ffffff',
+						weight: 2,
+						opacity: 1,
+						fillOpacity: 1
+					}).addTo(radarGroup);
+					
+					// Add popup with play info
+					centerDot.bindPopup(`Play at ${new Date(play.timestamp).toLocaleTimeString()}`);
+					
+					// Store group for cleanup
+					this.playMarkers.push(radarGroup);
+					
+					// Remove entire radar group after duration
+					setTimeout(() => {
+						this.map.removeLayer(radarGroup);
+						this.playMarkers = this.playMarkers.filter(m => m !== radarGroup);
+					}, play.duration * 1000);
+				},
+				
+				getRandomColor() {
+					const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#f0932b', '#eb4d4b', '#6c5ce7'];
+					return colors[Math.floor(Math.random() * colors.length)];
+				},
+				
+				cleanup() {
+					if (this.eventSource) {
+						this.eventSource.close();
+					}
+					if (this.map) {
+						this.map.remove();
+					}
+				}
+			}
+		}
+	</script>
 }
