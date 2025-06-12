@@ -70,7 +70,7 @@ func (con *Console) SetupRoutes() {
 	e.GET("/hello", con.Hello)
 
 	// SSE endpoints
-	e.GET("/sse/plays", con.LivePlaysSSE)
+	e.GET("/sse/events", con.LiveEventsSSE)
 
 	// HTMX Fragment routes
 	e.GET("/fragments/stats-header", con.StatsHeaderFragment)
@@ -521,7 +521,12 @@ func (con *Console) TotalTransactionsFragment(c echo.Context) error {
 	return fragment.Render(c.Request().Context(), c.Response().Writer)
 }
 
-func (con *Console) LivePlaysSSE(c echo.Context) error {
+type SSEEvent struct {
+	Event string `json:"event"`
+	Data  any    `json:"data"`
+}
+
+func (con *Console) LiveEventsSSE(c echo.Context) error {
 	c.Response().Header().Set("Content-Type", "text/event-stream")
 	c.Response().Header().Set("Cache-Control", "no-cache")
 	c.Response().Header().Set("Connection", "keep-alive")
@@ -551,7 +556,12 @@ func (con *Console) LivePlaysSSE(c echo.Context) error {
 					Duration:  rand.Intn(3) + 2, // Keep random duration for animation (2-4 seconds)
 				}
 
-				jsonData, err := json.Marshal(play)
+				event := SSEEvent{
+					Event: "play",
+					Data:  play,
+				}
+
+				jsonData, err := json.Marshal(event)
 				if err != nil {
 					con.logger.Error("Failed to marshal play event", "error", err)
 					continue
