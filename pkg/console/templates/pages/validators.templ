@@ -63,7 +63,7 @@ templ Validators(validators []*v1.ValidatorInfo, currentPage int32, hasNext bool
 			if len(validators) > 0 {
 				<div class="space-y-2">
 					for _, validator := range validators {
-						<div class="flex items-center justify-between py-4 px-6 border border-gray-200 dark:border-gray-700 rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+						<div class="flex items-center justify-between py-4 px-6 border border-gray-200 dark:border-gray-700 rounded hover:bg-purple-50 hover:border-purple-200 dark:hover:bg-gray-700 transition-colors">
 							<div class="flex items-center gap-6 flex-1">
 								<div class="flex-1">
 									<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Endpoint</div>
@@ -75,7 +75,7 @@ templ Validators(validators []*v1.ValidatorInfo, currentPage int32, hasNext bool
 									<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Address</div>
 									<a
 										href={ templ.SafeURL(fmt.Sprintf("/validator/%s", validator.Address)) }
-										class="font-mono text-sm text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 hover:underline"
+										class="font-mono text-sm text-purple-600 dark:text-purple-400 hover:underline"
 									>
 										@templates.StringWithTooltip(validator.Address)
 									</a>
@@ -129,7 +129,7 @@ templ Validators(validators []*v1.ValidatorInfo, currentPage int32, hasNext bool
 								← Previous
 							</a>
 						} else {
-							<span class="px-4 py-2 text-sm font-medium text-gray-400 dark:text-gray-600 bg-gray-50 dark:bg-gray-800 rounded cursor-not-allowed">
+							<span class="px-4 py-2 text-sm font-medium text-gray-400 dark:text-gray-600 bg-gray-50 dark:bg-gray-700 rounded cursor-not-allowed">
 								← Previous
 							</span>
 						}
@@ -141,7 +141,7 @@ templ Validators(validators []*v1.ValidatorInfo, currentPage int32, hasNext bool
 								Next →
 							</a>
 						} else {
-							<span class="px-4 py-2 text-sm font-medium text-gray-400 dark:text-gray-600 bg-gray-50 dark:bg-gray-800 rounded cursor-not-allowed">
+							<span class="px-4 py-2 text-sm font-medium text-gray-400 dark:text-gray-600 bg-gray-50 dark:bg-gray-700 rounded cursor-not-allowed">
 								Next →
 							</span>
 						}
