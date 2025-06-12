@@ -11,6 +11,9 @@ SQL_ARTIFACTS := $(wildcard pkg/core/db/*.sql.go)
 ETL_SQL_SRCS := $(shell find pkg/etl/db/sql -type f -name '*.sql') pkg/etl/db/sqlc.yaml
 ETL_SQL_ARTIFACTS := $(wildcard pkg/etl/db/*.sql.go)
 
+LOCATION_SQL_SRCS := $(shell find pkg/etl/location -type f -name '*.sql') pkg/etl/location/sqlc.yaml
+LOCATION_SQL_ARTIFACTS := $(wildcard pkg/etl/location/*.sql.go)
+
 PROTO_SRCS := $(shell find proto -type f -name '*.proto')
 PROTO_ARTIFACTS := $(shell find pkg/api -type f -name '*.pb.go')
 
@@ -77,7 +80,7 @@ audius-ctl-production-build: clean ignore-code-gen bin/audius-ctl-arm64-linux bi
 .PHONY: ignore-code-gen
 ignore-code-gen:
 	@echo "Warning: not regenerating .go files from sql, templ, proto, etc. Using existing artifacts instead."
-	@touch $(SQL_ARTIFACTS) $(TEMPL_ARTIFACTS) $(PROTO_ARTIFACTS) go.mod
+	@touch $(SQL_ARTIFACTS) $(ETL_SQL_ARTIFACTS) $(LOCATION_SQL_ARTIFACTS) $(TEMPL_ARTIFACTS) $(PROTO_ARTIFACTS) go.mod
 
 .PHONY: build-wrapper-local build-push-wrapper
 docker-wrapper-local:
@@ -164,6 +167,15 @@ regen-etl-sql: $(ETL_SQL_ARTIFACTS)
 $(ETL_SQL_ARTIFACTS): $(ETL_SQL_SRCS)
 	@echo Regenerating etl sql code
 	cd pkg/etl/db && sqlc generate
+
+.PHONY: regen-location-sql
+regen-location-sql:
+	@echo Regenerating location sql code
+	cd pkg/etl/location && sqlc generate
+
+$(LOCATION_SQL_ARTIFACTS): $(LOCATION_SQL_SRCS)
+	@echo Regenerating location sql code
+	cd pkg/etl/location && sqlc generate
 
 .PHONY: regen-contracts
 regen-contracts:
