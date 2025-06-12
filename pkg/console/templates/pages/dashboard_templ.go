@@ -38,6 +38,13 @@ type TransactionTypeBreakdown struct {
 	Color string
 }
 
+type PlayEvent struct {
+	Timestamp string  `json:"timestamp"`
+	Lat       float64 `json:"lat"`
+	Lng       float64 `json:"lng"`
+	Duration  int     `json:"duration"`
+}
+
 func formatNumber(n int64) string {
 	str := strconv.FormatInt(n, 10)
 	if len(str) <= 3 {
@@ -109,7 +116,7 @@ func Dashboard(
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</div></div><!-- Section 2: Live Map & Validator Info --><div class=\"grid grid-cols-1 lg:grid-cols-3 gap-6\"><div class=\"lg:col-span-2 bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6\"><h3 class=\"text-xl font-bold mb-4 text-gray-900 dark:text-gray-100\">Live Incoming Plays</h3><div class=\"relative bg-gray-100 dark:bg-gray-700 rounded-lg h-64 flex items-center justify-center\"><div class=\"text-center\"><div class=\"animate-pulse\"><div class=\"w-4 h-4 bg-green-500 rounded-full mx-auto mb-2 animate-ping\"></div></div><p class=\"text-gray-600 dark:text-gray-400\">Real-time play tracking coming soon</p><p class=\"text-sm text-gray-500 dark:text-gray-500 mt-1\">WebSocket integration in progress</p></div><!-- Mock play indicators --><div class=\"absolute top-4 left-4\"><div class=\"w-2 h-2 bg-green-400 rounded-full animate-ping\"></div></div><div class=\"absolute top-8 right-8\"><div class=\"w-2 h-2 bg-blue-400 rounded-full animate-ping\" style=\"animation-delay: 0.5s;\"></div></div><div class=\"absolute bottom-6 left-12\"><div class=\"w-2 h-2 bg-yellow-400 rounded-full animate-ping\" style=\"animation-delay: 1s;\"></div></div></div></div><div class=\"space-y-4\"><div id=\"network-sidebar\" hx-get=\"/fragments/network-sidebar\" hx-trigger=\"every 10s\" hx-swap=\"outerHTML\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</div></div><!-- Section 2: Live Map & Validator Info --><div class=\"grid grid-cols-1 lg:grid-cols-3 gap-6\"><div class=\"lg:col-span-2 bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6\"><h3 class=\"text-xl font-bold mb-4 text-gray-900 dark:text-gray-100\">Live Incoming Plays</h3><div class=\"relative bg-gray-100 dark:bg-gray-700 rounded-lg h-64 overflow-hidden\" x-data=\"livePlayMap()\" x-init=\"initSSE(); initMap()\"><!-- Map container --><div id=\"playMap\" class=\"w-full h-full rounded-lg\"></div><!-- Connection status --><div class=\"absolute top-4 left-4 bg-black/20 backdrop-blur-sm rounded px-2 py-1\" x-show=\"!connected\"><span class=\"text-white/90 text-xs\">Connecting...</span></div></div></div><div class=\"space-y-4\"><div id=\"network-sidebar\" hx-get=\"/fragments/network-sidebar\" hx-trigger=\"every 10s\" hx-swap=\"outerHTML\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -426,6 +433,10 @@ func Dashboard(
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
+			templ_7745c5c3_Err = LivePlayMapScript().Render(ctx, templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
 			return nil
 		})
 		templ_7745c5c3_Err = layouts.Base("Dashboard").Render(templ.WithChildren(ctx, templ_7745c5c3_Var2), templ_7745c5c3_Buffer)
@@ -465,7 +476,7 @@ func StatsHeaderFragment(stats *DashboardStats) templ.Component {
 		var templ_7745c5c3_Var21 string
 		templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", stats.CurrentBlockHeight))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 259, Col: 112}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 260, Col: 112}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
 		if templ_7745c5c3_Err != nil {
@@ -478,7 +489,7 @@ func StatsHeaderFragment(stats *DashboardStats) templ.Component {
 		var templ_7745c5c3_Var22 string
 		templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.JoinStringErrs(stats.ChainID)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 263, Col: 82}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 264, Col: 82}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var22))
 		if templ_7745c5c3_Err != nil {
@@ -491,7 +502,7 @@ func StatsHeaderFragment(stats *DashboardStats) templ.Component {
 		var templ_7745c5c3_Var23 string
 		templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%.2f", stats.BPS))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 267, Col: 99}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 268, Col: 99}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var23))
 		if templ_7745c5c3_Err != nil {
@@ -529,7 +540,7 @@ func StatsHeaderFragment(stats *DashboardStats) templ.Component {
 				var templ_7745c5c3_Var24 string
 				templ_7745c5c3_Var24, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d blocks to go", stats.BlockDelta))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 292, Col: 59}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 293, Col: 59}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var24))
 				if templ_7745c5c3_Err != nil {
@@ -543,7 +554,7 @@ func StatsHeaderFragment(stats *DashboardStats) templ.Component {
 			var templ_7745c5c3_Var25 string
 			templ_7745c5c3_Var25, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d / %d", stats.LatestIndexedHeight, stats.LatestChainHeight))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 296, Col: 82}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 297, Col: 82}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var25))
 			if templ_7745c5c3_Err != nil {
@@ -556,7 +567,7 @@ func StatsHeaderFragment(stats *DashboardStats) templ.Component {
 			var templ_7745c5c3_Var26 string
 			templ_7745c5c3_Var26, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%.1f%%", float64(stats.LatestIndexedHeight)/float64(stats.LatestChainHeight)*100))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 297, Col: 103}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 298, Col: 103}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var26))
 			if templ_7745c5c3_Err != nil {
@@ -638,7 +649,7 @@ func NetworkSidebarFragment(stats *DashboardStats) templ.Component {
 		var templ_7745c5c3_Var28 string
 		templ_7745c5c3_Var28, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", stats.ValidatorCount))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 328, Col: 107}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 329, Col: 107}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var28))
 		if templ_7745c5c3_Err != nil {
@@ -665,7 +676,7 @@ func NetworkSidebarFragment(stats *DashboardStats) templ.Component {
 			var templ_7745c5c3_Var30 string
 			templ_7745c5c3_Var30, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("#%d", stats.LatestBlock.Height))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 334, Col: 53}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 335, Col: 53}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var30))
 			if templ_7745c5c3_Err != nil {
@@ -706,7 +717,7 @@ func NetworkSidebarFragment(stats *DashboardStats) templ.Component {
 				var templ_7745c5c3_Var32 string
 				templ_7745c5c3_Var32, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("#%d", i+1))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 352, Col: 87}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 353, Col: 87}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var32))
 				if templ_7745c5c3_Err != nil {
@@ -728,7 +739,7 @@ func NetworkSidebarFragment(stats *DashboardStats) templ.Component {
 				var templ_7745c5c3_Var34 string
 				templ_7745c5c3_Var34, templ_7745c5c3_Err = templ.JoinStringErrs(proposer)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 354, Col: 18}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 355, Col: 18}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var34))
 				if templ_7745c5c3_Err != nil {
@@ -796,7 +807,7 @@ func TPSFragment(stats *DashboardStats) templ.Component {
 		var templ_7745c5c3_Var36 string
 		templ_7745c5c3_Var36, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%.1f", stats.TPS))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 378, Col: 105}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 379, Col: 105}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var36))
 		if templ_7745c5c3_Err != nil {
@@ -838,13 +849,43 @@ func TotalTransactionsFragment(stats *DashboardStats) templ.Component {
 		var templ_7745c5c3_Var38 string
 		templ_7745c5c3_Var38, templ_7745c5c3_Err = templ.JoinStringErrs(formatNumber(stats.TotalTransactions))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 386, Col: 112}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 387, Col: 112}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var38))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 77, "</div><div class=\"text-xs text-green-600 dark:text-green-400\">+2.3% from yesterday</div></div>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		return nil
+	})
+}
+
+// Live Play Map Alpine.js Component
+func LivePlayMapScript() templ.Component {
+	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
+			return templ_7745c5c3_CtxErr
+		}
+		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+		if !templ_7745c5c3_IsBuffer {
+			defer func() {
+				templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err == nil {
+					templ_7745c5c3_Err = templ_7745c5c3_BufErr
+				}
+			}()
+		}
+		ctx = templ.InitializeContext(ctx)
+		templ_7745c5c3_Var39 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var39 == nil {
+			templ_7745c5c3_Var39 = templ.NopComponent
+		}
+		ctx = templ.ClearChildren(ctx)
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 78, "<script>\n\t\tfunction livePlayMap() {\n\t\t\treturn {\n\t\t\t\tmap: null,\n\t\t\t\teventSource: null,\n\t\t\t\tconnected: false,\n\t\t\t\tplayMarkers: [],\n\t\t\t\t\n\t\t\t\tinitMap() {\n\t\t\t\t\t// Initialize Leaflet map - center on US with Mexico/Canada visible\n\t\t\t\t\tthis.map = L.map('playMap').setView([39.8283, -98.5795], 4); // Center US, zoom level 4\n\t\t\t\t\t\n\t\t\t\t\t// Detect dark mode and use appropriate tiles\n\t\t\t\t\tconst isDarkMode = document.documentElement.classList.contains('dark') || \n\t\t\t\t\t                  window.matchMedia('(prefers-color-scheme: dark)').matches;\n\t\t\t\t\t\n\t\t\t\t\tif (isDarkMode) {\n\t\t\t\t\t\t// Dark mode tiles\n\t\t\t\t\t\tL.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {\n\t\t\t\t\t\t\tattribution: '© OpenStreetMap, © CartoDB',\n\t\t\t\t\t\t\tsubdomains: 'abcd'\n\t\t\t\t\t\t}).addTo(this.map);\n\t\t\t\t\t} else {\n\t\t\t\t\t\t// Light mode tiles\n\t\t\t\t\t\tL.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {\n\t\t\t\t\t\t\tattribution: '© OpenStreetMap contributors'\n\t\t\t\t\t\t}).addTo(this.map);\n\t\t\t\t\t}\n\t\t\t\t},\n\t\t\t\t\n\t\t\t\tinitSSE() {\n\t\t\t\t\tthis.eventSource = new EventSource('/sse/plays');\n\t\t\t\t\t\n\t\t\t\t\tthis.eventSource.onmessage = (event) => {\n\t\t\t\t\t\tconst play = JSON.parse(event.data);\n\t\t\t\t\t\tthis.addPlayToMap(play);\n\t\t\t\t\t};\n\t\t\t\t\t\n\t\t\t\t\tthis.eventSource.onerror = (error) => {\n\t\t\t\t\t\tconsole.error('SSE connection error:', error);\n\t\t\t\t\t\tthis.connected = false;\n\t\t\t\t\t};\n\t\t\t\t\t\n\t\t\t\t\tthis.eventSource.onopen = () => {\n\t\t\t\t\t\tconsole.log('SSE connection opened');\n\t\t\t\t\t\tthis.connected = true;\n\t\t\t\t\t};\n\t\t\t\t},\n\t\t\t\t\n\t\t\t\taddPlayToMap(play) {\n\t\t\t\t\tif (!this.map) return;\n\t\t\t\t\t\n\t\t\t\t\tconst color = this.getRandomColor();\n\t\t\t\t\t\n\t\t\t\t\t// Create radar-style animation with expanding circles\n\t\t\t\t\tconst radarGroup = L.layerGroup().addTo(this.map);\n\t\t\t\t\t\n\t\t\t\t\t// Create multiple expanding circles for radar effect\n\t\t\t\t\tfor (let i = 0; i < 3; i++) {\n\t\t\t\t\t\tsetTimeout(() => {\n\t\t\t\t\t\t\tconst circle = L.circle([play.lat, play.lng], {\n\t\t\t\t\t\t\t\tradius: 0,\n\t\t\t\t\t\t\t\tfillColor: color,\n\t\t\t\t\t\t\t\tcolor: color,\n\t\t\t\t\t\t\t\tweight: 2,\n\t\t\t\t\t\t\t\topacity: 0.8,\n\t\t\t\t\t\t\t\tfillOpacity: 0.3\n\t\t\t\t\t\t\t}).addTo(radarGroup);\n\t\t\t\t\t\t\t\n\t\t\t\t\t\t\t// Animate the circle expansion\n\t\t\t\t\t\t\tlet radius = 0;\n\t\t\t\t\t\t\tlet opacity = 0.8;\n\t\t\t\t\t\t\tconst maxRadius = 100000; // 100km in meters\n\t\t\t\t\t\t\tconst animationDuration = play.duration * 1000 / 3; // Stagger the circles\n\t\t\t\t\t\t\tconst startTime = Date.now();\n\t\t\t\t\t\t\t\n\t\t\t\t\t\t\tconst animate = () => {\n\t\t\t\t\t\t\t\tconst elapsed = Date.now() - startTime;\n\t\t\t\t\t\t\t\tconst progress = Math.min(elapsed / animationDuration, 1);\n\t\t\t\t\t\t\t\t\n\t\t\t\t\t\t\t\tradius = maxRadius * progress;\n\t\t\t\t\t\t\t\topacity = 0.8 * (1 - progress);\n\t\t\t\t\t\t\t\t\n\t\t\t\t\t\t\t\tcircle.setRadius(radius);\n\t\t\t\t\t\t\t\tcircle.setStyle({ \n\t\t\t\t\t\t\t\t\topacity: opacity,\n\t\t\t\t\t\t\t\t\tfillOpacity: opacity * 0.3\n\t\t\t\t\t\t\t\t});\n\t\t\t\t\t\t\t\t\n\t\t\t\t\t\t\t\tif (progress < 1) {\n\t\t\t\t\t\t\t\t\trequestAnimationFrame(animate);\n\t\t\t\t\t\t\t\t} else {\n\t\t\t\t\t\t\t\t\tradarGroup.removeLayer(circle);\n\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t};\n\t\t\t\t\t\t\t\n\t\t\t\t\t\t\tanimate();\n\t\t\t\t\t\t}, i * 200); // Stagger each circle by 200ms\n\t\t\t\t\t}\n\t\t\t\t\t\n\t\t\t\t\t// Add center dot\n\t\t\t\t\tconst centerDot = L.circleMarker([play.lat, play.lng], {\n\t\t\t\t\t\tradius: 4,\n\t\t\t\t\t\tfillColor: color,\n\t\t\t\t\t\tcolor: '#ffffff',\n\t\t\t\t\t\tweight: 2,\n\t\t\t\t\t\topacity: 1,\n\t\t\t\t\t\tfillOpacity: 1\n\t\t\t\t\t}).addTo(radarGroup);\n\t\t\t\t\t\n\t\t\t\t\t// Add popup with play info\n\t\t\t\t\tcenterDot.bindPopup(`Play at ${new Date(play.timestamp).toLocaleTimeString()}`);\n\t\t\t\t\t\n\t\t\t\t\t// Store group for cleanup\n\t\t\t\t\tthis.playMarkers.push(radarGroup);\n\t\t\t\t\t\n\t\t\t\t\t// Remove entire radar group after duration\n\t\t\t\t\tsetTimeout(() => {\n\t\t\t\t\t\tthis.map.removeLayer(radarGroup);\n\t\t\t\t\t\tthis.playMarkers = this.playMarkers.filter(m => m !== radarGroup);\n\t\t\t\t\t}, play.duration * 1000);\n\t\t\t\t},\n\t\t\t\t\n\t\t\t\tgetRandomColor() {\n\t\t\t\t\tconst colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#f0932b', '#eb4d4b', '#6c5ce7'];\n\t\t\t\t\treturn colors[Math.floor(Math.random() * colors.length)];\n\t\t\t\t},\n\t\t\t\t\n\t\t\t\tcleanup() {\n\t\t\t\t\tif (this.eventSource) {\n\t\t\t\t\t\tthis.eventSource.close();\n\t\t\t\t\t}\n\t\t\t\t\tif (this.map) {\n\t\t\t\t\t\tthis.map.remove();\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\t</script>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
