@@ -104,8 +104,59 @@ templ Dashboard(
 		<div class="space-y-6" x-data="blockEvents()" x-init="init()">
 			<!-- Section 1: Current Stats -->
 			<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6">
-				<div id="stats-header">
-					@StatsHeaderFragment(stats, syncProgressPercentage)
+				<div id="stats-header" x-data="blockEvents()" x-init="init()">
+					<div class="flex items-center justify-between">
+						<div class="flex-1">
+							<h4 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Block Height</h4>
+							<p class="text-3xl font-bold text-gray-900 dark:text-gray-100" x-text="latestBlock.height">{ fmt.Sprintf("%d", stats.CurrentBlockHeight) }</p>
+						</div>
+						<div class="flex-1 border-l border-gray-200 dark:border-gray-700 pl-6">
+							<h4 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Chain ID</h4>
+							<p class="text-3xl font-bold text-gray-900 dark:text-gray-100">{ stats.ChainID }</p>
+						</div>
+						<div class="flex-none w-32 border-l border-gray-200 dark:border-gray-700 pl-6">
+							<h4 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">BPS</h4>
+							<p class="text-3xl font-bold text-gray-900 dark:text-gray-100">{ fmt.Sprintf("%.2f", stats.BPS) }</p>
+						</div>
+						<div class="flex-none w-40 border-l border-gray-200 dark:border-gray-700 pl-6">
+							<h4 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Sync Status</h4>
+							if stats.IsSyncing {
+								<div class="flex items-center">
+									<div class="w-2 h-2 bg-yellow-500 rounded-full mr-2 animate-pulse"></div>
+									<p class="text-xl font-bold text-yellow-600 dark:text-yellow-400">Syncing</p>
+								</div>
+							} else {
+								<div class="flex items-center">
+									<div class="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+									<p class="text-xl font-bold text-green-600 dark:text-green-400">Synced</p>
+								</div>
+								<p class="text-xs text-gray-500 dark:text-gray-400">Up to date</p>
+							}
+						</div>
+					</div>
+					<!-- Sync Progress Bar -->
+					if stats.IsSyncing && stats.LatestChainHeight > 0 {
+						<div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+							<div class="flex items-center justify-between mb-2">
+								<span class="text-xs font-medium text-gray-600 dark:text-gray-400">
+									Sync Progress
+									if stats.BlockDelta > 0 {
+										| { fmt.Sprintf("%d blocks to go", stats.BlockDelta) }
+									}
+								</span>
+								<span class="text-xs text-gray-500 dark:text-gray-500">
+									{ fmt.Sprintf("%d / %d", stats.LatestIndexedHeight, stats.LatestChainHeight) }
+									({ fmt.Sprintf("%.1f%%", syncProgressPercentage) })
+								</span>
+							</div>
+							<div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 relative overflow-hidden">
+								<!-- Exact progress representation using calculated percentage -->
+								<div
+									class={ fmt.Sprintf("bg-blue-600 h-2 rounded-full transition-all duration-300 ease-in-out %s", getProgressBarClass(syncProgressPercentage)) }
+								></div>
+							</div>
+						</div>
+					}
 				</div>
 			</div>
 			<!-- Section 2: Live Map & Validator Info -->
@@ -126,7 +177,7 @@ templ Dashboard(
 					</div>
 					<!-- Network Info Overlay - Left Side (aligned with zoom buttons) -->
 					<div class="absolute top-14 left-16 w-56 z-20">
-						<div id="network-sidebar">
+						<div id="network-sidebar" class="space-y-2" x-data="blockEvents()" x-init={ fmt.Sprintf("init({ validatorCount: %d })", stats.ValidatorCount) }>
 							@NetworkSidebarFragment(stats)
 						</div>
 					</div>
@@ -344,66 +395,6 @@ templ StatsHeaderFragment(stats *DashboardStats, syncProgressPercentage float64)
 	</div>
 }
 
-templ NetworkSidebarFragment(stats *DashboardStats) {
-	<div id="network-sidebar" class="space-y-2">
-		<div class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-md rounded-lg p-3 border border-white/20 dark:border-gray-700/50 shadow-lg">
-			<h4 class="text-xs font-semibold mb-2 text-gray-900 dark:text-gray-100 uppercase tracking-wide">Network Info</h4>
-			<div class="space-y-1.5">
-				<div class="flex justify-between">
-					<span class="text-xs text-gray-600 dark:text-gray-400">Validators</span>
-					<span class="text-xs font-semibold text-gray-900 dark:text-gray-100">{ fmt.Sprintf("%d", stats.ValidatorCount) }</span>
-				</div>
-				if stats.LatestBlock != nil {
-					<div class="flex justify-between">
-						<span class="text-xs text-gray-600 dark:text-gray-400">Latest Block</span>
-						<a href={ templ.SafeURL(fmt.Sprintf("/block/%d", stats.LatestBlock.Height)) } class="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline">
-							{ fmt.Sprintf("#%d", stats.LatestBlock.Height) }
-						</a>
-					</div>
-					<div class="flex justify-between">
-						<span class="text-xs text-gray-600 dark:text-gray-400">Proposer</span>
-						<a href={ templ.SafeURL(fmt.Sprintf("/validator/%s", stats.LatestBlock.Proposer)) } class="font-mono text-xs text-blue-600 dark:text-blue-400 hover:underline">
-							@templates.StringWithTooltip(stats.LatestBlock.Proposer)
-						</a>
-					</div>
-				}
-			</div>
-		</div>
-		<div class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-md rounded-lg p-3 border border-white/20 dark:border-gray-700/50 shadow-lg">
-			<h4 class="text-xs font-semibold mb-2 text-gray-900 dark:text-gray-100 uppercase tracking-wide">Recent Proposers</h4>
-			<div class="space-y-1">
-				if len(stats.RecentProposers) > 0 {
-					for i, proposer := range stats.RecentProposers {
-						if i < 5 {
-							<div class="flex items-center justify-between">
-								<span class="text-xs text-gray-500 dark:text-gray-500">{ fmt.Sprintf("#%d", i+1) }</span>
-								<a href={ templ.SafeURL(fmt.Sprintf("/validator/%s", proposer)) } class="font-mono text-xs text-blue-600 dark:text-blue-400 hover:underline truncate">
-									if len(proposer) > 12 {
-										{ proposer[:6] }...{ proposer[len(proposer)-4:] }
-									} else {
-										{ proposer }
-									}
-								</a>
-							</div>
-						}
-					}
-				} else {
-					<div class="text-center py-1">
-						<p class="text-gray-500 dark:text-gray-400 text-xs">No recent proposers</p>
-						<p class="text-xs text-gray-400 dark:text-gray-500">
-							if stats.IsSyncing {
-								Syncing...
-							} else {
-								Waiting...
-							}
-						</p>
-					</div>
-				}
-			</div>
-		</div>
-	</div>
-}
-
 templ TPSFragment(stats *DashboardStats) {
 	<div id="tps-fragment" hx-get="/fragments/tps" hx-trigger="every 5s" hx-swap="outerHTML" class="border-r border-gray-200 dark:border-gray-700 pr-6">
 		<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Transactions/sec</div>
@@ -578,11 +569,48 @@ templ BlockEventsScript() {
 		function blockEvents() {
 			return {
 				recentBlocks: [],
+				latestBlock: { height: 0, proposer: '' },
+				validatorCount: 0,
 				
-				init() {
+				init(initialState = {}) {
+					// Set initial state from server-rendered values
+					const networkSidebar = document.querySelector('#network-sidebar');
+					const statsHeader = document.querySelector('#stats-header');
+					
+					// Set initial validator count from server
+					if (initialState.validatorCount) {
+						this.validatorCount = parseInt(initialState.validatorCount);
+					}
+					
+					if (networkSidebar) {
+						const blockHeightEl = networkSidebar.querySelector('a[href^="/block/"]');
+						const proposerEl = networkSidebar.querySelector('a[href^="/validator/"]');
+
+						if (blockHeightEl && proposerEl) {
+							this.latestBlock = {
+								height: parseInt(blockHeightEl.textContent.replace('#', '')),
+								proposer: proposerEl.href.split('/').pop()
+							};
+						}
+					}
+
+					// Also get initial block height from stats header
+					if (statsHeader) {
+						const blockHeightEl = statsHeader.querySelector('.text-3xl');
+						if (blockHeightEl) {
+							this.latestBlock.height = parseInt(blockHeightEl.textContent);
+						}
+					}
+
 					document.addEventListener('block', (event) => {
 						this.handleBlockEvent(event.detail);
 					});
+				},
+
+				formatProposer(proposer) {
+					return proposer.length > 12 
+						? `${proposer.slice(0, 6)}...${proposer.slice(-4)}`
+						: proposer;
 				},
 
 				handleBlockEvent(blockData) {
@@ -601,54 +629,63 @@ templ BlockEventsScript() {
 						this.recentBlocks = this.recentBlocks.slice(0, 5);
 					}
 
-					// Update the network info display
-					this.updateNetworkInfo(blockData);
-				},
-
-				updateNetworkInfo(blockData) {
-					// Update block height
-					const blockHeightEl = document.querySelector('#stats-header .text-3xl');
-					if (blockHeightEl) {
-						blockHeightEl.textContent = blockData.height;
-					}
-
-					// Update network sidebar
-					const networkSidebar = document.querySelector('#network-sidebar');
-					if (networkSidebar) {
-						// Update latest block
-						const latestBlockEl = networkSidebar.querySelector('a[href^="/block/"]');
-						if (latestBlockEl) {
-							latestBlockEl.textContent = `#${blockData.height}`;
-							latestBlockEl.href = `/block/${blockData.height}`;
-						}
-
-						// Update proposer
-						const proposerEl = networkSidebar.querySelector('a[href^="/validator/"]');
-						if (proposerEl) {
-							const shortProposer = blockData.proposer.length > 12 
-								? `${blockData.proposer.slice(0, 6)}...${blockData.proposer.slice(-4)}`
-								: blockData.proposer;
-							proposerEl.textContent = shortProposer;
-							proposerEl.href = `/validator/${blockData.proposer}`;
-						}
-
-						// Update recent proposers list
-						const recentProposersContainer = networkSidebar.querySelector('.space-y-1');
-						if (recentProposersContainer) {
-							recentProposersContainer.innerHTML = this.recentBlocks.map((block, index) => `
-								<div class="flex items-center justify-between">
-									<span class="text-xs text-gray-500 dark:text-gray-500">#${index + 1}</span>
-									<a href="/validator/${block.proposer}" class="font-mono text-xs text-blue-600 dark:text-blue-400 hover:underline truncate">
-										${block.proposer.length > 12 
-											? `${block.proposer.slice(0, 6)}...${block.proposer.slice(-4)}`
-											: block.proposer}
-									</a>
-								</div>
-							`).join('');
-						}
-					}
+					// Update latest block
+					this.latestBlock = blockData;
 				}
 			}
 		}
 	</script>
+}
+
+templ NetworkSidebarFragment(stats *DashboardStats) {
+	<div class="space-y-2">
+		<div class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-md rounded-lg p-3 border border-white/20 dark:border-gray-700/50 shadow-lg">
+			<h4 class="text-xs font-semibold mb-2 text-gray-900 dark:text-gray-100 uppercase tracking-wide">Network Info</h4>
+			<div class="space-y-1.5">
+				<div class="flex justify-between">
+					<span class="text-xs text-gray-600 dark:text-gray-400">Validators</span>
+					<span class="text-xs font-semibold text-gray-900 dark:text-gray-100" x-text="validatorCount">{ fmt.Sprintf("%d", stats.ValidatorCount) }</span>
+				</div>
+				if stats.LatestBlock != nil {
+					<div class="flex justify-between">
+						<span class="text-xs text-gray-600 dark:text-gray-400">Latest Block</span>
+						<a :href="'/block/' + latestBlock.height" class="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline" x-text="'#' + latestBlock.height">
+							{ fmt.Sprintf("#%d", stats.LatestBlock.Height) }
+						</a>
+					</div>
+					<div class="flex justify-between">
+						<span class="text-xs text-gray-600 dark:text-gray-400">Proposer</span>
+						<a :href="'/validator/' + latestBlock.proposer" class="font-mono text-xs text-blue-600 dark:text-blue-400 hover:underline" x-text="formatProposer(latestBlock.proposer)">
+							@templates.StringWithTooltip(stats.LatestBlock.Proposer)
+						</a>
+					</div>
+				}
+			</div>
+		</div>
+		<div class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-md rounded-lg p-3 border border-white/20 dark:border-gray-700/50 shadow-lg">
+			<h4 class="text-xs font-semibold mb-2 text-gray-900 dark:text-gray-100 uppercase tracking-wide">Recent Proposers</h4>
+			<div class="space-y-1">
+				<template x-if="recentBlocks.length > 0">
+					<template x-for="(block, index) in recentBlocks" :key="block.height">
+						<div class="flex items-center justify-between">
+							<span class="text-xs text-gray-500 dark:text-gray-500" x-text="'#' + (index + 1)"></span>
+							<a :href="'/validator/' + block.proposer" class="font-mono text-xs text-blue-600 dark:text-blue-400 hover:underline truncate" x-text="formatProposer(block.proposer)"></a>
+						</div>
+					</template>
+				</template>
+				<template x-if="recentBlocks.length === 0">
+					<div class="text-center py-1">
+						<p class="text-gray-500 dark:text-gray-400 text-xs">No recent proposers</p>
+						<p class="text-xs text-gray-400 dark:text-gray-500">
+							if stats.IsSyncing {
+								Syncing...
+							} else {
+								Waiting...
+							}
+						</p>
+					</div>
+				</template>
+			</div>
+		</div>
+	</div>
 }
