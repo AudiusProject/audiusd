@@ -23,7 +23,7 @@ tailwind-install:
 	mv tailwindcss-macos-arm64 ./tmp/tailwindcss
 
 pg:
-	docker run --name audiusd-postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=audiusd -d -p 5432:5432 postgres
+	docker run --name audiusd-postgres-2 -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=audiusd -d -p 5433:5432 postgres
 
 node:
 	docker run -d \
