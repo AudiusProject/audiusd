@@ -159,6 +159,12 @@ func (con *Console) Dashboard(c echo.Context) error {
 		return c.String(http.StatusInternalServerError, "Failed to get dashboard stats")
 	}
 
+	// Calculate exact sync progress percentage
+	var syncProgressPercentage float64
+	if statsResp.Msg.SyncStatus != nil && statsResp.Msg.SyncStatus.GetLatestChainHeight() > 0 {
+		syncProgressPercentage = float64(statsResp.Msg.SyncStatus.GetLatestIndexedHeight()) / float64(statsResp.Msg.SyncStatus.GetLatestChainHeight()) * 100
+	}
+
 	stats := &pages.DashboardStats{
 		CurrentBlockHeight:  statsResp.Msg.CurrentBlockHeight,
 		ChainID:             statsResp.Msg.ChainId,
@@ -186,7 +192,7 @@ func (con *Console) Dashboard(c echo.Context) error {
 		}
 	}
 
-	p := pages.Dashboard(stats, transactionBreakdown, blocks.Msg.Blocks, transactions.Transactions, blockHeights)
+	p := pages.Dashboard(stats, transactionBreakdown, blocks.Msg.Blocks, transactions.Transactions, blockHeights, syncProgressPercentage)
 	return p.Render(c.Request().Context(), c.Response().Writer)
 }
 
@@ -444,6 +450,12 @@ func (con *Console) StatsHeaderFragment(c echo.Context) error {
 		return c.String(http.StatusInternalServerError, "Failed to get dashboard stats")
 	}
 
+	// Calculate exact sync progress percentage
+	var syncProgressPercentage float64
+	if statsResp.Msg.SyncStatus != nil && statsResp.Msg.SyncStatus.GetLatestChainHeight() > 0 {
+		syncProgressPercentage = float64(statsResp.Msg.SyncStatus.GetLatestIndexedHeight()) / float64(statsResp.Msg.SyncStatus.GetLatestChainHeight()) * 100
+	}
+
 	stats := &pages.DashboardStats{
 		CurrentBlockHeight:  statsResp.Msg.CurrentBlockHeight,
 		ChainID:             statsResp.Msg.ChainId,
@@ -454,7 +466,7 @@ func (con *Console) StatsHeaderFragment(c echo.Context) error {
 		BlockDelta:          statsResp.Msg.SyncStatus.GetBlockDelta(),
 	}
 
-	fragment := pages.StatsHeaderFragment(stats)
+	fragment := pages.StatsHeaderFragment(stats, syncProgressPercentage)
 	return fragment.Render(c.Request().Context(), c.Response().Writer)
 }
 
