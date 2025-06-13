@@ -2,7 +2,7 @@ package etl
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"sort"
 	"time"
 
@@ -86,7 +86,20 @@ func (e *ETLService) GetHealth(context.Context, *connect.Request[v1.GetHealthReq
 func (e *ETLService) GetStats(ctx context.Context, req *connect.Request[v1.GetStatsRequest]) (*connect.Response[v1.GetStatsResponse], error) {
 	stats, ok := e.stats.Get("current")
 	if !ok {
-		return nil, fmt.Errorf("stats not found")
+		return connect.NewResponse(&v1.GetStatsResponse{
+			CurrentBlockHeight:   0,
+			ChainId:              e.chainID,
+			Bps:                  0,
+			Tps:                  0,
+			TotalTransactions:    0,
+			TransactionBreakdown: []*v1.TransactionTypeBreakdown{},
+			SyncStatus: &v1.SyncStatus{
+				IsSyncing:           true,
+				LatestChainHeight:   0,
+				LatestIndexedHeight: 0,
+				BlockDelta:          0,
+			},
+		}), nil
 	}
 
 	// Convert cached transaction breakdown to protobuf format
@@ -291,6 +304,59 @@ func (e *ETLService) GetTransactionsWithBlockInfo(ctx context.Context) ([]*v1.Bl
 	}
 
 	return transactions, blockHeights, nil
+}
+
+// GetTransactionsByAddress implements v1connect.ETLServiceHandler.
+func (e *ETLService) GetTransactionsByAddress(ctx context.Context, req *connect.Request[v1.GetTransactionsByAddressRequest]) (*connect.Response[v1.GetTransactionsByAddressResponse], error) {
+	// Set default limit if not specified
+	limit := req.Msg.Limit
+	if limit <= 0 {
+		limit = 50
+	}
+
+	offset := req.Msg.Offset
+	if offset < 0 {
+		offset = 0
+	}
+
+	address := req.Msg.Address
+	if address == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("address is required"))
+	}
+
+	// Get transactions by address from the database
+	dbTxs, err := e.db.GetTransactionsByAddress(ctx, db.GetTransactionsByAddressParams{
+		Address: address,
+		Limit:   limit,
+		Offset:  offset,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert to API response format
+	transactions := make([]*v1.AddressTransaction, len(dbTxs))
+	for i, tx := range dbTxs {
+		transactions[i] = &v1.AddressTransaction{
+			TxHash:       tx.TxHash,
+			TxType:       tx.TxType,
+			BlockHeight:  tx.BlockHeight,
+			Index:        tx.Index,
+			Address:      tx.Address,
+			RelationType: tx.RelationType,
+			BlockTime:    timestamppb.New(tx.BlockTime.Time),
+		}
+	}
+
+	// For has_more calculation, we need to know if there are more results
+	// We'll check if we got the full limit - if so, there might be more
+	hasMore := len(dbTxs) == int(limit)
+
+	return connect.NewResponse(&v1.GetTransactionsByAddressResponse{
+		Transactions: transactions,
+		HasMore:      hasMore,
+		TotalCount:   int32(len(dbTxs)), // This is approximate - for exact count we'd need another query
+	}), nil
 }
 
 func (e *ETLService) GetPlays(ctx context.Context, req *connect.Request[v1.GetPlaysRequest]) (*connect.Response[v1.GetPlaysResponse], error) {

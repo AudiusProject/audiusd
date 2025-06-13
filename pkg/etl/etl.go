@@ -99,23 +99,10 @@ func (etl *ETLService) Run() error {
 	}
 
 	g, _ := errgroup.WithContext(context.Background())
-
 	g.Go(func() error {
-		err := etl.updateStats()
-		if err != nil {
-			etl.logger.Errorf("error updating initial stats: %v", err)
+		if err := etl.updateStats(); err != nil {
+			return fmt.Errorf("error updating stats: %v", err)
 		}
-
-		ticker := time.NewTicker(30 * time.Second)
-		defer ticker.Stop()
-
-		for range ticker.C {
-			err := etl.updateStats()
-			if err != nil {
-				etl.logger.Errorf("error updating stats: %v", err)
-			}
-		}
-
 		return nil
 	})
 
@@ -296,6 +283,11 @@ func (etl *ETLService) indexBlocks() error {
 						TxHash:            tx.Hash,
 					})
 				}
+				go func() {
+					if err := etl.updateStats(); err != nil {
+						etl.logger.Errorf("error updating stats: %v", err)
+					}
+				}()
 			case *corev1.SignedTransaction_ValidatorDeregistration:
 				txType = TxTypeValidatorMisbehaviorDeregistration
 				vd := signedTx.ValidatorDeregistration
@@ -332,7 +324,7 @@ func (etl *ETLService) indexBlocks() error {
 					txType = TxTypeValidatorRegistration
 					vr := at.GetValidatorRegistration()
 					etl.db.InsertValidatorRegistration(context.Background(), db.InsertValidatorRegistrationParams{
-						Address:      block.Msg.Block.Proposer,
+						Address:      vr.DelegateWallet,
 						Endpoint:     vr.Endpoint,
 						CometAddress: vr.CometAddress,
 						EthBlock:     fmt.Sprintf("%d", vr.EthBlock),
@@ -397,6 +389,9 @@ func (etl *ETLService) indexBlocks() error {
 func (etl *ETLService) updateStats() error {
 	latestRollup, err := etl.db.GetLatestSLARollup(context.Background())
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil
+		}
 		return fmt.Errorf("error getting latest SLA rollup: %v", err)
 	}
 

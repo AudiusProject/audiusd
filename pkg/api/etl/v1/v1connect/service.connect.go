@@ -49,6 +49,9 @@ const (
 	// ETLServiceGetTransactionsProcedure is the fully-qualified name of the ETLService's
 	// GetTransactions RPC.
 	ETLServiceGetTransactionsProcedure = "/etl.v1.ETLService/GetTransactions"
+	// ETLServiceGetTransactionsByAddressProcedure is the fully-qualified name of the ETLService's
+	// GetTransactionsByAddress RPC.
+	ETLServiceGetTransactionsByAddressProcedure = "/etl.v1.ETLService/GetTransactionsByAddress"
 	// ETLServiceGetPlaysProcedure is the fully-qualified name of the ETLService's GetPlays RPC.
 	ETLServiceGetPlaysProcedure = "/etl.v1.ETLService/GetPlays"
 	// ETLServiceGetManageEntitiesProcedure is the fully-qualified name of the ETLService's
@@ -76,6 +79,7 @@ type ETLServiceClient interface {
 	GetBlocks(context.Context, *connect.Request[v1.GetBlocksRequest]) (*connect.Response[v1.GetBlocksResponse], error)
 	GetTransaction(context.Context, *connect.Request[v1.GetTransactionRequest]) (*connect.Response[v1.GetTransactionResponse], error)
 	GetTransactions(context.Context, *connect.Request[v1.GetTransactionsRequest]) (*connect.Response[v1.GetTransactionsResponse], error)
+	GetTransactionsByAddress(context.Context, *connect.Request[v1.GetTransactionsByAddressRequest]) (*connect.Response[v1.GetTransactionsByAddressResponse], error)
 	GetPlays(context.Context, *connect.Request[v1.GetPlaysRequest]) (*connect.Response[v1.GetPlaysResponse], error)
 	GetManageEntities(context.Context, *connect.Request[v1.GetManageEntitiesRequest]) (*connect.Response[v1.GetManageEntitiesResponse], error)
 	GetValidators(context.Context, *connect.Request[v1.GetValidatorsRequest]) (*connect.Response[v1.GetValidatorsResponse], error)
@@ -138,6 +142,12 @@ func NewETLServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			connect.WithSchema(eTLServiceMethods.ByName("GetTransactions")),
 			connect.WithClientOptions(opts...),
 		),
+		getTransactionsByAddress: connect.NewClient[v1.GetTransactionsByAddressRequest, v1.GetTransactionsByAddressResponse](
+			httpClient,
+			baseURL+ETLServiceGetTransactionsByAddressProcedure,
+			connect.WithSchema(eTLServiceMethods.ByName("GetTransactionsByAddress")),
+			connect.WithClientOptions(opts...),
+		),
 		getPlays: connect.NewClient[v1.GetPlaysRequest, v1.GetPlaysResponse](
 			httpClient,
 			baseURL+ETLServiceGetPlaysProcedure,
@@ -185,20 +195,21 @@ func NewETLServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 
 // eTLServiceClient implements ETLServiceClient.
 type eTLServiceClient struct {
-	ping              *connect.Client[v1.PingRequest, v1.PingResponse]
-	getHealth         *connect.Client[v1.GetHealthRequest, v1.GetHealthResponse]
-	getStats          *connect.Client[v1.GetStatsRequest, v1.GetStatsResponse]
-	getBlock          *connect.Client[v1.GetBlockRequest, v1.GetBlockResponse]
-	getBlocks         *connect.Client[v1.GetBlocksRequest, v1.GetBlocksResponse]
-	getTransaction    *connect.Client[v1.GetTransactionRequest, v1.GetTransactionResponse]
-	getTransactions   *connect.Client[v1.GetTransactionsRequest, v1.GetTransactionsResponse]
-	getPlays          *connect.Client[v1.GetPlaysRequest, v1.GetPlaysResponse]
-	getManageEntities *connect.Client[v1.GetManageEntitiesRequest, v1.GetManageEntitiesResponse]
-	getValidators     *connect.Client[v1.GetValidatorsRequest, v1.GetValidatorsResponse]
-	getValidator      *connect.Client[v1.GetValidatorRequest, v1.GetValidatorResponse]
-	getLocation       *connect.Client[v1.GetLocationRequest, v1.GetLocationResponse]
-	search            *connect.Client[v1.SearchRequest, v1.SearchResponse]
-	stream            *connect.Client[v1.StreamRequest, v1.StreamResponse]
+	ping                     *connect.Client[v1.PingRequest, v1.PingResponse]
+	getHealth                *connect.Client[v1.GetHealthRequest, v1.GetHealthResponse]
+	getStats                 *connect.Client[v1.GetStatsRequest, v1.GetStatsResponse]
+	getBlock                 *connect.Client[v1.GetBlockRequest, v1.GetBlockResponse]
+	getBlocks                *connect.Client[v1.GetBlocksRequest, v1.GetBlocksResponse]
+	getTransaction           *connect.Client[v1.GetTransactionRequest, v1.GetTransactionResponse]
+	getTransactions          *connect.Client[v1.GetTransactionsRequest, v1.GetTransactionsResponse]
+	getTransactionsByAddress *connect.Client[v1.GetTransactionsByAddressRequest, v1.GetTransactionsByAddressResponse]
+	getPlays                 *connect.Client[v1.GetPlaysRequest, v1.GetPlaysResponse]
+	getManageEntities        *connect.Client[v1.GetManageEntitiesRequest, v1.GetManageEntitiesResponse]
+	getValidators            *connect.Client[v1.GetValidatorsRequest, v1.GetValidatorsResponse]
+	getValidator             *connect.Client[v1.GetValidatorRequest, v1.GetValidatorResponse]
+	getLocation              *connect.Client[v1.GetLocationRequest, v1.GetLocationResponse]
+	search                   *connect.Client[v1.SearchRequest, v1.SearchResponse]
+	stream                   *connect.Client[v1.StreamRequest, v1.StreamResponse]
 }
 
 // Ping calls etl.v1.ETLService.Ping.
@@ -234,6 +245,11 @@ func (c *eTLServiceClient) GetTransaction(ctx context.Context, req *connect.Requ
 // GetTransactions calls etl.v1.ETLService.GetTransactions.
 func (c *eTLServiceClient) GetTransactions(ctx context.Context, req *connect.Request[v1.GetTransactionsRequest]) (*connect.Response[v1.GetTransactionsResponse], error) {
 	return c.getTransactions.CallUnary(ctx, req)
+}
+
+// GetTransactionsByAddress calls etl.v1.ETLService.GetTransactionsByAddress.
+func (c *eTLServiceClient) GetTransactionsByAddress(ctx context.Context, req *connect.Request[v1.GetTransactionsByAddressRequest]) (*connect.Response[v1.GetTransactionsByAddressResponse], error) {
+	return c.getTransactionsByAddress.CallUnary(ctx, req)
 }
 
 // GetPlays calls etl.v1.ETLService.GetPlays.
@@ -280,6 +296,7 @@ type ETLServiceHandler interface {
 	GetBlocks(context.Context, *connect.Request[v1.GetBlocksRequest]) (*connect.Response[v1.GetBlocksResponse], error)
 	GetTransaction(context.Context, *connect.Request[v1.GetTransactionRequest]) (*connect.Response[v1.GetTransactionResponse], error)
 	GetTransactions(context.Context, *connect.Request[v1.GetTransactionsRequest]) (*connect.Response[v1.GetTransactionsResponse], error)
+	GetTransactionsByAddress(context.Context, *connect.Request[v1.GetTransactionsByAddressRequest]) (*connect.Response[v1.GetTransactionsByAddressResponse], error)
 	GetPlays(context.Context, *connect.Request[v1.GetPlaysRequest]) (*connect.Response[v1.GetPlaysResponse], error)
 	GetManageEntities(context.Context, *connect.Request[v1.GetManageEntitiesRequest]) (*connect.Response[v1.GetManageEntitiesResponse], error)
 	GetValidators(context.Context, *connect.Request[v1.GetValidatorsRequest]) (*connect.Response[v1.GetValidatorsResponse], error)
@@ -336,6 +353,12 @@ func NewETLServiceHandler(svc ETLServiceHandler, opts ...connect.HandlerOption) 
 		ETLServiceGetTransactionsProcedure,
 		svc.GetTransactions,
 		connect.WithSchema(eTLServiceMethods.ByName("GetTransactions")),
+		connect.WithHandlerOptions(opts...),
+	)
+	eTLServiceGetTransactionsByAddressHandler := connect.NewUnaryHandler(
+		ETLServiceGetTransactionsByAddressProcedure,
+		svc.GetTransactionsByAddress,
+		connect.WithSchema(eTLServiceMethods.ByName("GetTransactionsByAddress")),
 		connect.WithHandlerOptions(opts...),
 	)
 	eTLServiceGetPlaysHandler := connect.NewUnaryHandler(
@@ -396,6 +419,8 @@ func NewETLServiceHandler(svc ETLServiceHandler, opts ...connect.HandlerOption) 
 			eTLServiceGetTransactionHandler.ServeHTTP(w, r)
 		case ETLServiceGetTransactionsProcedure:
 			eTLServiceGetTransactionsHandler.ServeHTTP(w, r)
+		case ETLServiceGetTransactionsByAddressProcedure:
+			eTLServiceGetTransactionsByAddressHandler.ServeHTTP(w, r)
 		case ETLServiceGetPlaysProcedure:
 			eTLServiceGetPlaysHandler.ServeHTTP(w, r)
 		case ETLServiceGetManageEntitiesProcedure:
@@ -445,6 +470,10 @@ func (UnimplementedETLServiceHandler) GetTransaction(context.Context, *connect.R
 
 func (UnimplementedETLServiceHandler) GetTransactions(context.Context, *connect.Request[v1.GetTransactionsRequest]) (*connect.Response[v1.GetTransactionsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("etl.v1.ETLService.GetTransactions is not implemented"))
+}
+
+func (UnimplementedETLServiceHandler) GetTransactionsByAddress(context.Context, *connect.Request[v1.GetTransactionsByAddressRequest]) (*connect.Response[v1.GetTransactionsByAddressResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("etl.v1.ETLService.GetTransactionsByAddress is not implemented"))
 }
 
 func (UnimplementedETLServiceHandler) GetPlays(context.Context, *connect.Request[v1.GetPlaysRequest]) (*connect.Response[v1.GetPlaysResponse], error) {
