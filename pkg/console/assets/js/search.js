@@ -6,6 +6,7 @@ function searchBar() {
         suggestions: [],
         isLoading: false,
         isSelectingSuggestion: false,
+        hasNoResults: false,
 
         init() {
             console.log('Search component initialized');
@@ -37,6 +38,9 @@ function searchBar() {
                 return;
             }
 
+            // Reset no results state
+            this.hasNoResults = false;
+
             // Hide suggestions and clear type if query is empty or too short
             if (!this.query.trim()) {
                 this.suggestions = [];
@@ -55,10 +59,20 @@ function searchBar() {
                     console.error('Search error:', data.error);
                     this.suggestions = [];
                     this.showSuggestions = false;
+                    this.flashNoResults();
                     return;
                 }
 
                 const results = data.results || [];
+
+                // Check if no results found
+                if (results.length === 0) {
+                    this.suggestions = [];
+                    this.showSuggestions = false;
+                    this.searchType = '';
+                    this.flashNoResults();
+                    return;
+                }
 
                 // Determine search type based on query pattern and results
                 if (this.query.startsWith('0x')) {
@@ -84,6 +98,7 @@ function searchBar() {
                 console.error('Error handling input:', error);
                 this.suggestions = [];
                 this.showSuggestions = false;
+                this.flashNoResults();
             } finally {
                 this.isLoading = false;
             }
@@ -176,6 +191,31 @@ function searchBar() {
             // If for some reason navigation fails, reset the flag
             this.isSelectingSuggestion = false;
             this.showSuggestions = false;
+        },
+
+        handleKeydown(event) {
+            // Handle Enter key
+            if (event.key === 'Enter') {
+                event.preventDefault();
+
+                // Find the first non-header suggestion
+                const firstSuggestion = this.suggestions.find(s => !s.isHeader);
+
+                if (firstSuggestion) {
+                    this.selectSuggestion(firstSuggestion);
+                } else if (this.query.trim()) {
+                    // If no suggestions but there's a query, flash red
+                    this.flashNoResults();
+                }
+            }
+        },
+
+        flashNoResults() {
+            this.hasNoResults = true;
+            // Reset the flash after 500ms
+            setTimeout(() => {
+                this.hasNoResults = false;
+            }, 500);
         }
     }
 }
