@@ -387,7 +387,8 @@ select tx_type as type,
     count(*) as count
 from etl_transactions t
 join etl_blocks b on t.block_height = b.block_height
-where b.block_time >= now() - interval '24 hours'
+where b.block_time >= $1
+    and b.block_time <= $2
 group by tx_type
 order by count(*) desc;
 

@@ -180,6 +180,10 @@ func (con *Console) Dashboard(c echo.Context) error {
 		return c.String(http.StatusInternalServerError, "Failed to get dashboard stats")
 	}
 
+	con.logger.Info("Dashboard stats response",
+		"transactionBreakdownCount", len(statsResp.Msg.TransactionBreakdown),
+		"transactionBreakdown", statsResp.Msg.TransactionBreakdown)
+
 	// Calculate exact sync progress percentage
 	var syncProgressPercentage float64
 	if statsResp.Msg.SyncStatus != nil && statsResp.Msg.SyncStatus.GetLatestChainHeight() > 0 {
@@ -215,6 +219,10 @@ func (con *Console) Dashboard(c echo.Context) error {
 			Color: color,
 		}
 	}
+
+	con.logger.Info("Converted transaction breakdown for template",
+		"count", len(transactionBreakdown),
+		"items", transactionBreakdown)
 
 	// Calculate sync progress percentage
 	syncProgressPercentage = float64(0)
