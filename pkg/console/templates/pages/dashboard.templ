@@ -111,7 +111,28 @@ templ Dashboard(
 					<div class="flex items-center justify-between">
 						<div class="flex-1">
 							<h4 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Block Height</h4>
-							<p class="text-3xl font-bold text-gray-900 dark:text-gray-100" x-text="latestBlock.height">{ fmt.Sprintf("%d", stats.CurrentBlockHeight) }</p>
+							<div class="flex items-center h-12" x-data="animatedNumber()" x-init="init(latestBlock.height)">
+								<template x-for="(digit, index) in digits" :key="index">
+									<div class="relative h-10 w-6 overflow-hidden flex items-center justify-center">
+										<!-- Current digit (slides down when animating) -->
+										<div class="absolute inset-0 flex items-center justify-center">
+											<span
+												class="text-3xl font-bold text-gray-900 dark:text-gray-100 tabular-nums"
+												:class="getCurrentDigitClass(digit)"
+												x-text="digit.current"
+											></span>
+										</div>
+										<!-- Next digit (slides in from above when animating) -->
+										<div class="absolute inset-0 flex items-center justify-center">
+											<span
+												class="text-3xl font-bold text-gray-900 dark:text-gray-100 tabular-nums"
+												:class="getNextDigitClass(digit)"
+												x-text="digit.next"
+											></span>
+										</div>
+									</div>
+								</template>
+							</div>
 						</div>
 						<div class="flex-1 border-l border-gray-200 dark:border-gray-700 pl-6">
 							<h4 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Chain ID</h4>
@@ -334,7 +355,28 @@ templ StatsHeaderFragment(stats *DashboardStats, syncProgressPercentage float64)
 		<div class="flex items-center justify-between">
 			<div class="flex-1">
 				<h4 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Block Height</h4>
-				<p class="text-3xl font-bold text-gray-900 dark:text-gray-100">{ fmt.Sprintf("%d", stats.CurrentBlockHeight) }</p>
+				<div class="flex items-center h-12" x-data="animatedNumber()" x-init="init(latestBlock.height)">
+					<template x-for="(digit, index) in digits" :key="index">
+						<div class="relative h-10 w-6 overflow-hidden flex items-center justify-center">
+							<!-- Current digit (slides down when animating) -->
+							<div class="absolute inset-0 flex items-center justify-center">
+								<span
+									class="text-3xl font-bold text-gray-900 dark:text-gray-100 tabular-nums"
+									:class="getCurrentDigitClass(digit)"
+									x-text="digit.current"
+								></span>
+							</div>
+							<!-- Next digit (slides in from above when animating) -->
+							<div class="absolute inset-0 flex items-center justify-center">
+								<span
+									class="text-3xl font-bold text-gray-900 dark:text-gray-100 tabular-nums"
+									:class="getNextDigitClass(digit)"
+									x-text="digit.next"
+								></span>
+							</div>
+						</div>
+					</template>
+				</div>
 			</div>
 			<div class="flex-1 border-l border-gray-200 dark:border-gray-700 pl-6">
 				<h4 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Chain ID</h4>
@@ -563,6 +605,99 @@ templ LivePlayMapScript() {
 // Block Events Alpine.js Component
 templ BlockEventsScript() {
 	<script>
+		function animatedNumber() {
+			return {
+				displayValue: 0,
+				digits: [],
+				
+				init(initialValue) {
+					this.displayValue = initialValue || 0;
+					this.updateDigits(this.displayValue);
+					
+					// Listen directly to block events instead of watching parent data
+					document.addEventListener('block', (event) => {
+						if (event.detail && event.detail.height && event.detail.height !== this.displayValue) {
+							this.animateToNewValue(event.detail.height);
+						}
+					});
+				},
+				
+				updateDigits(value) {
+					const str = value.toString();
+					const newDigits = [];
+					
+					// Pad with leading zeros if necessary to maintain consistent width
+					const maxLength = Math.max(str.length, this.digits.length);
+					const paddedStr = str.padStart(maxLength, '0');
+					
+					for (let i = 0; i < paddedStr.length; i++) {
+						const digit = parseInt(paddedStr[i]);
+						const existingDigit = this.digits[i];
+						
+						if (existingDigit) {
+							// Keep existing digit state but update target
+							newDigits.push({
+								...existingDigit,
+								next: digit,
+								isAnimating: existingDigit.current !== digit
+							});
+						} else {
+							// New digit
+							newDigits.push({
+								current: digit,
+								next: digit,
+								isAnimating: false
+							});
+						}
+					}
+					
+					this.digits = newDigits;
+				},
+				
+				animateToNewValue(newValue) {
+					if (newValue === this.displayValue) return;
+					
+					this.updateDigits(newValue);
+					
+					// Start animations for changed digits
+					this.digits.forEach((digit, index) => {
+						if (digit.isAnimating) {
+							this.animateDigit(index);
+						}
+					});
+					
+					this.displayValue = newValue;
+				},
+				
+				animateDigit(index) {
+					const digit = this.digits[index];
+					
+					// Mark as animating
+					digit.isAnimating = true;
+					
+					// After animation duration, update the current digit and stop animating
+					setTimeout(() => {
+						digit.current = digit.next;
+						digit.isAnimating = false;
+					}, 300); // Animation duration
+				},
+				
+				getCurrentDigitClass(digit) {
+					if (digit.isAnimating) {
+						return 'transform translate-y-full opacity-0 transition-all duration-300 ease-in-out';
+					}
+					return 'transform translate-y-0 opacity-100';
+				},
+				
+				getNextDigitClass(digit) {
+					if (digit.isAnimating) {
+						return 'transform translate-y-0 opacity-100 transition-all duration-300 ease-in-out';
+					}
+					return 'transform -translate-y-full opacity-0';
+				}
+			}
+		}
+
 		function blockEvents() {
 			return {
 				recentBlocks: [],
@@ -635,7 +770,7 @@ templ BlockEventsScript() {
 }
 
 templ NetworkSidebarFragment(stats *DashboardStats) {
-	<div class="space-y-2">
+	<div class="">
 		<div class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-md rounded-lg p-3 border border-white/20 dark:border-gray-700/50 shadow-lg">
 			<h4 class="text-xs font-semibold mb-2 text-gray-900 dark:text-gray-100 uppercase tracking-wide">Network Info</h4>
 			<div class="space-y-1.5">

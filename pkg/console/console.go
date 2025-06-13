@@ -69,15 +69,6 @@ func (con *Console) SetupRoutes() {
 	e.GET("/", con.Dashboard)
 	e.GET("/hello", con.Hello)
 
-	// SSE endpoints
-	e.GET("/sse/events", con.LiveEventsSSE)
-
-	// HTMX Fragment routes
-	e.GET("/fragments/stats-header", con.StatsHeaderFragment)
-	e.GET("/fragments/network-sidebar", con.NetworkSidebarFragment)
-	e.GET("/fragments/tps", con.TPSFragment)
-	e.GET("/fragments/total-transactions", con.TotalTransactionsFragment)
-
 	e.GET("/validators", con.Validators)
 	e.GET("/validator/:address", con.Validator)
 
@@ -98,6 +89,13 @@ func (con *Console) SetupRoutes() {
 	e.GET("/release/:address", con.stubRoute)
 
 	e.GET("/search", con.stubRoute)
+
+	// SSE endpoints
+	e.GET("/sse/events", con.LiveEventsSSE)
+
+	// HTMX Fragment routes
+	e.GET("/fragments/tps", con.TPSFragment)
+	e.GET("/fragments/total-transactions", con.TotalTransactionsFragment)
 }
 
 func (con *Console) Run() error {
