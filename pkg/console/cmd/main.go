@@ -14,7 +14,7 @@ func main() {
 
 	logger.Info("Starting Console")
 
-	auds := sdk.NewAudiusdSDK("creatornode2.audius.co")
+	auds := sdk.NewAudiusdSDK("rpc.audius.engineering")
 
 	etl := etl.NewETLService(auds.Core, logger)
 	etl.SetDBURL("postgres://postgres:postgres@0.0.0.0:5433/audiusd?sslmode=disable")
