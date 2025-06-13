@@ -3,7 +3,10 @@ package etl
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sort"
+	"strconv"
+	"strings"
 	"time"
 
 	"connectrpc.com/connect"
@@ -901,8 +904,164 @@ func (e *ETLService) GetTransaction(ctx context.Context, req *connect.Request[v1
 }
 
 // Search implements v1connect.ETLServiceHandler.
-func (e *ETLService) Search(context.Context, *connect.Request[v1.SearchRequest]) (*connect.Response[v1.SearchResponse], error) {
-	panic("unimplemented")
+func (e *ETLService) Search(ctx context.Context, req *connect.Request[v1.SearchRequest]) (*connect.Response[v1.SearchResponse], error) {
+	query := req.Msg.Query
+	if query == "" {
+		return connect.NewResponse(&v1.SearchResponse{Results: []*v1.SearchResult{}}), nil
+	}
+
+	limit := req.Msg.Limit
+	if limit <= 0 {
+		limit = 20
+	}
+
+	// Use the unified search query for better results
+	searchResults, err := e.db.SearchUnified(ctx, db.SearchUnifiedParams{
+		Column1: query,
+		Limit:   limit,
+	})
+	if err != nil {
+		e.logger.Error("Error in unified search", "error", err, "query", query)
+		// Fallback to individual searches if unified search fails
+		return e.fallbackSearch(ctx, query, limit)
+	}
+
+	// Convert to protobuf response
+	results := make([]*v1.SearchResult, len(searchResults))
+	for i, result := range searchResults {
+		var url string
+		switch result.Type {
+		case "block":
+			url = "/block/" + result.ID
+		case "transaction":
+			url = "/transaction/" + result.ID
+		case "account":
+			url = "/account/" + result.ID
+		case "validator":
+			url = "/validator/" + result.ID
+		default:
+			url = ""
+		}
+
+		// Safe type assertions with fallbacks
+		title, titleOk := result.Title.(string)
+		if !titleOk {
+			title = fmt.Sprintf("%v", result.Title)
+		}
+
+		subtitle, subtitleOk := result.Subtitle.(string)
+		if !subtitleOk {
+			subtitle = fmt.Sprintf("%v", result.Subtitle)
+		}
+
+		results[i] = &v1.SearchResult{
+			Id:       result.ID,
+			Title:    title,
+			Subtitle: subtitle,
+			Type:     result.Type,
+			Url:      url,
+		}
+	}
+
+	return connect.NewResponse(&v1.SearchResponse{Results: results}), nil
+}
+
+// fallbackSearch provides individual searches if unified search fails
+func (e *ETLService) fallbackSearch(ctx context.Context, query string, limit int32) (*connect.Response[v1.SearchResponse], error) {
+	var results []*v1.SearchResult
+
+	// Search blocks if query looks like a number
+	if blockHeight, err := strconv.ParseInt(query, 10, 64); err == nil && blockHeight > 0 {
+		e.logger.Info("Searching for block height", "blockHeight", blockHeight, "query", query)
+		blockHeights, err := e.db.SearchBlockHeight(ctx, query) // Now passing string
+		if err == nil {
+			e.logger.Info("Block search results", "count", len(blockHeights), "results", blockHeights)
+			for i, bh := range blockHeights {
+				if i >= 5 { // Limit to 5 results per type
+					break
+				}
+				results = append(results, &v1.SearchResult{
+					Id:       strconv.FormatInt(bh, 10),
+					Title:    fmt.Sprintf("Block #%d", bh),
+					Subtitle: "Block",
+					Type:     "block",
+					Url:      fmt.Sprintf("/block/%d", bh),
+				})
+			}
+		} else {
+			e.logger.Error("Error searching block heights", "error", err, "query", query)
+		}
+	}
+
+	// Search transactions if query looks like a hash
+	if strings.HasPrefix(query, "0x") && len(query) > 10 {
+		txHashes, err := e.db.SearchTxHash(ctx, query)
+		if err == nil {
+			for i, hash := range txHashes {
+				if i >= 5 { // Limit to 5 results per type
+					break
+				}
+				results = append(results, &v1.SearchResult{
+					Id:       hash,
+					Title:    hash[:20] + "...",
+					Subtitle: "Transaction",
+					Type:     "transaction",
+					Url:      "/transaction/" + hash,
+				})
+			}
+		} else {
+			e.logger.Error("Error searching transactions", "error", err, "query", query)
+		}
+	}
+
+	// Search addresses
+	if strings.HasPrefix(query, "0x") || len(query) >= 8 {
+		addresses, err := e.db.SearchAddress(ctx, query)
+		if err == nil {
+			for i, addr := range addresses {
+				if i >= 5 { // Limit to 5 results per type
+					break
+				}
+				results = append(results, &v1.SearchResult{
+					Id:       addr,
+					Title:    addr[:20] + "...",
+					Subtitle: "Account address",
+					Type:     "account",
+					Url:      "/account/" + addr,
+				})
+			}
+		} else {
+			e.logger.Error("Error searching addresses", "error", err, "query", query)
+		}
+	}
+
+	// Search validators
+	if len(query) >= 8 {
+		validatorAddresses, err := e.db.SearchValidatorRegistration(ctx, query)
+		if err == nil {
+			for i, addr := range validatorAddresses {
+				if i >= 5 { // Limit to 5 results per type
+					break
+				}
+				results = append(results, &v1.SearchResult{
+					Id:       addr,
+					Title:    addr[:20] + "...",
+					Subtitle: "Validator",
+					Type:     "validator",
+					Url:      "/validator/" + addr,
+				})
+			}
+		} else {
+			e.logger.Error("Error searching validators", "error", err, "query", query)
+		}
+	}
+
+	// Limit total results
+	if len(results) > int(limit) {
+		results = results[:limit]
+	}
+
+	return connect.NewResponse(&v1.SearchResponse{Results: results}), nil
 }
 
 // GetTransactionsForAPI is a method for API endpoints that includes block heights

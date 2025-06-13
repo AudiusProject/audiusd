@@ -408,16 +408,20 @@ message GetAvailableCountries {}
 message GetLocationResponse {}
 
 message SearchRequest {
-  int64 height = 1;
-  string address = 2;
-  string tx_hash = 3;
+  string query = 1;
+  int32 limit = 2;
 }
 
 message SearchResponse {
-  repeated int64 blocks = 1;
-  repeated string transactions = 2;
-  repeated string accounts = 3;
-  repeated string validators = 4;
+  repeated SearchResult results = 1;
+}
+
+message SearchResult {
+  string id = 1;
+  string title = 2;
+  string subtitle = 3;
+  string type = 4;
+  string url = 5;
 }
 
 message StreamRequest {

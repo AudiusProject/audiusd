@@ -1701,14 +1701,14 @@ func (q *Queries) SearchAddress(ctx context.Context, address string) ([]string, 
 const searchBlockHeight = `-- name: SearchBlockHeight :many
 select block_height
 from etl_blocks
-where block_height::text % $1
-    and similarity(block_height::text, $1) > 0.4
-    and block_height::text like $1 || '%'
-order by similarity(block_height::text, $1) desc
+where block_height::text % $1::text
+    and similarity(block_height::text, $1::text) > 0.4
+    and block_height::text like $1::text || '%'
+order by similarity(block_height::text, $1::text) desc
 `
 
-func (q *Queries) SearchBlockHeight(ctx context.Context, blockHeight int64) ([]int64, error) {
-	rows, err := q.db.Query(ctx, searchBlockHeight, blockHeight)
+func (q *Queries) SearchBlockHeight(ctx context.Context, dollar_1 string) ([]int64, error) {
+	rows, err := q.db.Query(ctx, searchBlockHeight, dollar_1)
 	if err != nil {
 		return nil, err
 	}
@@ -1749,6 +1749,141 @@ func (q *Queries) SearchTxHash(ctx context.Context, txHash string) ([]string, er
 			return nil, err
 		}
 		items = append(items, tx_hash)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const searchUnified = `-- name: SearchUnified :many
+with search_blocks as (
+    select 
+        block_height::text as id,
+        'Block #' || block_height as title,
+        'Proposed by ' || substring(proposer_address, 1, 10) || '...' as subtitle,
+        'block' as type
+    from etl_blocks
+    where (
+        -- For numeric searches, use trigram similarity
+        case when $1::text ~ '^[0-9]+$' then
+            block_height::text % $1::text
+            and similarity(block_height::text, $1::text) > 0.4
+            and block_height::text like $1::text || '%'
+        else false end
+    )
+    order by similarity(block_height::text, $1::text) desc
+    limit 5
+),
+search_transactions as (
+    select 
+        tx_hash as id,
+        substring(tx_hash, 1, 20) || '...' as title,
+        tx_type || ' transaction' as subtitle,
+        'transaction' as type
+    from etl_transactions
+    where (
+        -- For hex strings, use both similarity and LIKE for better matching
+        (tx_hash % $1::text and similarity(tx_hash, $1::text) > 0.3)
+        or tx_hash like $1::text || '%'
+    )
+    order by similarity(tx_hash, $1::text) desc
+    limit 5
+),
+search_addresses as (
+    -- Combine accounts and validators, deduplicating by address
+    select 
+        address as id,
+        substring(address, 1, 20) || '...' as title,
+        case 
+            when is_account and is_validator then 'Account & Validator'
+            when is_validator then 'Validator - ' || node_type
+            else 'Account address'
+        end as subtitle,
+        case 
+            when is_validator then 'validator'
+            else 'account'
+        end as type
+    from (
+        select 
+            address,
+            bool_or(is_account) as is_account,
+            bool_or(is_validator) as is_validator,
+            max(node_type) as node_type -- Get any node_type if it's a validator
+        from (
+            -- Accounts from manage entities
+            select distinct
+                address,
+                true as is_account,
+                false as is_validator,
+                null as node_type
+            from etl_manage_entities
+            where (
+                (address % $1::text and similarity(address, $1::text) > 0.3)
+                or address ilike $1::text || '%'
+            )
+            
+            union all
+            
+            -- Validators
+            select 
+                address,
+                false as is_account,
+                true as is_validator,
+                node_type
+            from etl_validator_registrations
+            where (
+                (address % $1::text and similarity(address, $1::text) > 0.3)
+                or address ilike $1::text || '%'
+            )
+        ) combined_addresses
+        group by address
+    ) deduped_addresses
+    order by similarity(address, $1::text) desc
+    limit 5
+)
+select id, title, subtitle, type
+from search_blocks
+union all
+select id, title, subtitle, type
+from search_transactions
+union all
+select id, title, subtitle, type
+from search_addresses
+order by type, title
+limit $2
+`
+
+type SearchUnifiedParams struct {
+	Column1 string `json:"column_1"`
+	Limit   int32  `json:"limit"`
+}
+
+type SearchUnifiedRow struct {
+	ID       string      `json:"id"`
+	Title    interface{} `json:"title"`
+	Subtitle interface{} `json:"subtitle"`
+	Type     string      `json:"type"`
+}
+
+func (q *Queries) SearchUnified(ctx context.Context, arg SearchUnifiedParams) ([]SearchUnifiedRow, error) {
+	rows, err := q.db.Query(ctx, searchUnified, arg.Column1, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []SearchUnifiedRow
+	for rows.Next() {
+		var i SearchUnifiedRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Subtitle,
+			&i.Type,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err

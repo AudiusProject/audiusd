@@ -88,7 +88,7 @@ func (con *Console) SetupRoutes() {
 
 	e.GET("/release/:address", con.stubRoute)
 
-	e.GET("/search", con.stubRoute)
+	e.GET("/search", con.Search)
 
 	// SSE endpoints
 	e.GET("/sse/events", con.LiveEventsSSE)
@@ -688,4 +688,42 @@ func (con *Console) LiveEventsSSE(c echo.Context) error {
 			}
 		}
 	}
+}
+
+func (con *Console) Search(c echo.Context) error {
+	query := c.QueryParam("q")
+	if query == "" {
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"results": []interface{}{},
+		})
+	}
+
+	// Call the ETL service search
+	response, err := con.etl.Search(c.Request().Context(), &connect.Request[v1.SearchRequest]{
+		Msg: &v1.SearchRequest{
+			Query: query,
+			Limit: 20,
+		},
+	})
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "Search failed",
+		})
+	}
+
+	// Convert protobuf results to JSON structure expected by frontend
+	results := make([]map[string]interface{}, len(response.Msg.Results))
+	for i, result := range response.Msg.Results {
+		results[i] = map[string]interface{}{
+			"id":       result.Id,
+			"title":    result.Title,
+			"subtitle": result.Subtitle,
+			"type":     result.Type,
+			"url":      result.Url,
+		}
+	}
+
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"results": results,
+	})
 }
