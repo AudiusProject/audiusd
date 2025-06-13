@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	corev1 "github.com/AudiusProject/audiusd/pkg/api/core/v1"
 	v1 "github.com/AudiusProject/audiusd/pkg/api/core/v1"
 	etlv1 "github.com/AudiusProject/audiusd/pkg/api/etl/v1"
 	"github.com/AudiusProject/audiusd/pkg/etl/db"
@@ -14,6 +15,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/maypok86/otter"
+	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -30,6 +33,20 @@ const (
 	TxTypeRelease                            = "release"
 )
 
+type Stats struct {
+	BPS                  float64
+	TPS                  float64
+	TotalTransactions    int64
+	TotalTransactions24h int64
+	TotalTransactions7d  int64
+	TotalTransactions30d int64
+	IsSyncing            bool
+	LatestIndexedHeight  int64
+	LatestChainHeight    int64
+	BlockDelta           int64
+	ValidatorCount       int64
+}
+
 func (etl *ETLService) Run() error {
 	dbUrl := etl.dbURL
 	if dbUrl == "" {
@@ -45,6 +62,12 @@ func (etl *ETLService) Run() error {
 	if err != nil {
 		return fmt.Errorf("error parsing database config: %v", err)
 	}
+
+	stats, err := otter.MustBuilder[string, Stats](1000).Build()
+	if err != nil {
+		return fmt.Errorf("error building stats cache: %v", err)
+	}
+	etl.stats = stats
 
 	pool, err := pgxpool.NewWithConfig(context.Background(), pgConfig)
 	if err != nil {
@@ -75,12 +98,36 @@ func (etl *ETLService) Run() error {
 		}
 	}
 
-	err = etl.indexBlocks()
-	if err != nil {
-		return fmt.Errorf("indexer crashed: %v", err)
-	}
+	g, _ := errgroup.WithContext(context.Background())
 
-	return nil
+	g.Go(func() error {
+		err := etl.updateStats()
+		if err != nil {
+			etl.logger.Errorf("error updating initial stats: %v", err)
+		}
+
+		ticker := time.NewTicker(30 * time.Second)
+		defer ticker.Stop()
+
+		for range ticker.C {
+			err := etl.updateStats()
+			if err != nil {
+				etl.logger.Errorf("error updating stats: %v", err)
+			}
+		}
+
+		return nil
+	})
+
+	g.Go(func() error {
+		if err := etl.indexBlocks(); err != nil {
+			return fmt.Errorf("error indexing blocks: %v", err)
+		}
+
+		return nil
+	})
+
+	return g.Wait()
 }
 
 func (etl *ETLService) awaitReadiness() error {
@@ -345,4 +392,102 @@ func (etl *ETLService) indexBlocks() error {
 			return nil
 		}
 	}
+}
+
+func (etl *ETLService) updateStats() error {
+	latestRollup, err := etl.db.GetLatestSLARollup(context.Background())
+	if err != nil {
+		return fmt.Errorf("error getting latest SLA rollup: %v", err)
+	}
+
+	blocks, err := etl.db.GetBlocks(context.Background(), db.GetBlocksParams{
+		BlockHeight:   latestRollup.BlockStart,
+		BlockHeight_2: latestRollup.BlockEnd,
+	})
+	if err != nil {
+		return fmt.Errorf("error getting blocks: %v", err)
+	}
+
+	txs, err := etl.db.GetTransactionsCount(context.Background(), db.GetTransactionsCountParams{
+		BlockHeight:   latestRollup.BlockStart,
+		BlockHeight_2: latestRollup.BlockEnd,
+	})
+	if err != nil {
+		return fmt.Errorf("error getting transactions: %v", err)
+	}
+
+	startTime := blocks[len(blocks)-1].BlockTime.Time
+	endTime := blocks[0].BlockTime.Time
+
+	bps := float64(len(blocks)) / endTime.Sub(startTime).Seconds()
+	tps := float64(txs) / endTime.Sub(startTime).Seconds()
+
+	totalTransactions, err := etl.db.GetTotalTransactionsCount(context.Background())
+	if err != nil {
+		return fmt.Errorf("error getting total transactions count: %v", err)
+	}
+
+	now := time.Now()
+
+	// Get transaction counts for different time periods
+	totalTransactions24h, err := etl.db.GetTransactionsCountTimeRange(context.Background(), db.GetTransactionsCountTimeRangeParams{
+		BlockTime:   pgtype.Timestamp{Time: now.Add(-24 * time.Hour), Valid: true},
+		BlockTime_2: pgtype.Timestamp{Time: now, Valid: true},
+	})
+	if err != nil {
+		return fmt.Errorf("error getting 24h transaction count: %v", err)
+	}
+
+	totalTransactions7d, err := etl.db.GetTransactionsCountTimeRange(context.Background(), db.GetTransactionsCountTimeRangeParams{
+		BlockTime:   pgtype.Timestamp{Time: now.Add(-7 * 24 * time.Hour), Valid: true},
+		BlockTime_2: pgtype.Timestamp{Time: now, Valid: true},
+	})
+	if err != nil {
+		return fmt.Errorf("error getting 7d transaction count: %v", err)
+	}
+
+	totalTransactions30d, err := etl.db.GetTransactionsCountTimeRange(context.Background(), db.GetTransactionsCountTimeRangeParams{
+		BlockTime:   pgtype.Timestamp{Time: now.Add(-30 * 24 * time.Hour), Valid: true},
+		BlockTime_2: pgtype.Timestamp{Time: now, Valid: true},
+	})
+	if err != nil {
+		return fmt.Errorf("error getting 30d transaction count: %v", err)
+	}
+
+	currentHeight, err := etl.db.GetLatestIndexedBlock(context.Background())
+	if err != nil {
+		return fmt.Errorf("error getting latest indexed block: %v", err)
+	}
+
+	info, err := etl.core.GetNodeInfo(context.Background(), connect.NewRequest(&corev1.GetNodeInfoRequest{}))
+	if err != nil {
+		return fmt.Errorf("error getting node info: %v", err)
+	}
+
+	validatorCount, err := etl.db.GetActiveValidatorsCount(context.Background())
+	if err != nil {
+		return fmt.Errorf("error getting active validators count: %v", err)
+	}
+
+	// give a little leeway for the sync status
+	isSyncing := currentHeight < info.Msg.CurrentHeight-100
+
+	stats := Stats{
+		BPS:                  bps,
+		TPS:                  tps,
+		TotalTransactions:    totalTransactions,
+		TotalTransactions24h: totalTransactions24h,
+		TotalTransactions7d:  totalTransactions7d,
+		TotalTransactions30d: totalTransactions30d,
+		IsSyncing:            isSyncing,
+		LatestIndexedHeight:  currentHeight,
+		LatestChainHeight:    info.Msg.CurrentHeight,
+		BlockDelta:           info.Msg.CurrentHeight - currentHeight,
+		ValidatorCount:       validatorCount,
+	}
+
+	// Cache the stats
+	etl.stats.Set("current", stats)
+
+	return nil
 }

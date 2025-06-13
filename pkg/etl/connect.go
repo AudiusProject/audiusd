@@ -2,6 +2,7 @@ package etl
 
 import (
 	"context"
+	"fmt"
 	"sort"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/AudiusProject/audiusd/pkg/etl/db"
 	"github.com/AudiusProject/audiusd/pkg/etl/location"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/maypok86/otter"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -26,6 +28,8 @@ type ETLService struct {
 	endingBlockHeight   int64
 	checkReadiness      bool
 	chainID             string
+
+	stats otter.Cache[string, Stats]
 
 	core   corev1connect.CoreServiceClient
 	pool   *pgxpool.Pool
@@ -80,145 +84,24 @@ func (e *ETLService) GetHealth(context.Context, *connect.Request[v1.GetHealthReq
 
 // GetStats implements v1connect.ETLServiceHandler.
 func (e *ETLService) GetStats(ctx context.Context, req *connect.Request[v1.GetStatsRequest]) (*connect.Response[v1.GetStatsResponse], error) {
-	// Get current block height
-	currentHeight, err := e.db.GetLatestIndexedBlock(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	info, err := e.core.GetNodeInfo(ctx, connect.NewRequest(&corev1.GetNodeInfoRequest{}))
-	if err != nil {
-		return nil, err
-	}
-
-	// give a little leeway for the sync status
-	isSyncing := currentHeight < info.Msg.CurrentHeight-100
-
-	syncStatus := &v1.SyncStatus{
-		IsSyncing:           isSyncing,
-		LatestIndexedHeight: currentHeight,
-		LatestChainHeight:   info.Msg.CurrentHeight,
-		BlockDelta:          info.Msg.CurrentHeight - currentHeight,
-	}
-
-	// Use cached chain ID
-	chainID := e.chainID
-
-	recentBlocks, err := e.db.GetLatestBlocks(ctx, db.GetLatestBlocksParams{
-		Limit:  5,
-		Offset: 0,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	recentProposers := make([]string, len(recentBlocks))
-	for i, block := range recentBlocks {
-		recentProposers[i] = block.ProposerAddress
-	}
-
-	bps := 0.0
-	if len(recentBlocks) > 1 {
-		// Calculate average block time: time difference / (number of intervals)
-		// recentBlocks[0] is newest, recentBlocks[len-1] is oldest
-		totalDuration := recentBlocks[0].BlockTime.Time.Sub(recentBlocks[len(recentBlocks)-1].BlockTime.Time)
-		intervals := len(recentBlocks) - 1
-		avgBlockTime := totalDuration.Seconds() / float64(intervals)
-
-		// Convert to blocks per second (if you want bps) or keep as average block time
-		if avgBlockTime > 0 {
-			bps = 1.0 / avgBlockTime // blocks per second
-		}
-	}
-
-	tps := 0.0
-	if len(recentBlocks) > 1 {
-		// Calculate total transactions across all recent blocks
-		totalTransactions := 0
-		for _, block := range recentBlocks {
-			blockTxs, err := e.db.GetBlockTransactions(ctx, block.BlockHeight)
-			if err != nil {
-				// If we can't get transactions for a block, continue with others
-				continue
-			}
-			totalTransactions += len(blockTxs)
-		}
-
-		// Use the same time duration as BPS calculation
-		totalDuration := recentBlocks[0].BlockTime.Time.Sub(recentBlocks[len(recentBlocks)-1].BlockTime.Time)
-		if totalDuration.Seconds() > 0 {
-			tps = float64(totalTransactions) / totalDuration.Seconds()
-		}
-	}
-
-	totalTx, err := e.db.GetTotalTransactionsCount(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	// Get active validators count
-	validatorCount, err := e.db.GetActiveValidatorsCount(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	// Get latest block with transactions
-	latestBlock := recentBlocks[len(recentBlocks)-1]
-
-	// Get transactions for latest block
-	txs, err := e.db.GetBlockTransactions(ctx, currentHeight)
-	if err != nil {
-		return nil, err
-	}
-
-	// Sort by index
-	sort.Slice(txs, func(i, j int) bool {
-		return txs[i].Index < txs[j].Index
-	})
-
-	transactions := make([]*v1.Block_Transaction, len(txs))
-	for i, tx := range txs {
-		transactions[i] = &v1.Block_Transaction{
-			Hash:      tx.TxHash,
-			Type:      tx.TxType,
-			Index:     uint32(tx.Index),
-			Timestamp: timestamppb.New(latestBlock.BlockTime.Time),
-		}
-	}
-
-	protoLatestBlock := &v1.Block{
-		Height:       latestBlock.BlockHeight,
-		Proposer:     latestBlock.ProposerAddress,
-		Timestamp:    timestamppb.New(latestBlock.BlockTime.Time),
-		Transactions: transactions,
-	}
-
-	// Get transaction type breakdown
-	txBreakdownResult, err := e.db.GetTransactionTypeBreakdown(ctx)
-	var transactionBreakdown []*v1.TransactionTypeBreakdown
-	if err == nil {
-		transactionBreakdown = make([]*v1.TransactionTypeBreakdown, len(txBreakdownResult))
-		for i, breakdown := range txBreakdownResult {
-			transactionBreakdown[i] = &v1.TransactionTypeBreakdown{
-				Type:  breakdown.Type,
-				Count: breakdown.Count,
-			}
-		}
-	} else {
-		transactionBreakdown = []*v1.TransactionTypeBreakdown{}
+	stats, ok := e.stats.Get("current")
+	if !ok {
+		return nil, fmt.Errorf("stats not found")
 	}
 
 	return connect.NewResponse(&v1.GetStatsResponse{
-		CurrentBlockHeight:   currentHeight,
-		ChainId:              chainID,
-		Bps:                  bps,
-		Tps:                  tps,
-		TotalTransactions:    totalTx,
-		ValidatorCount:       validatorCount,
-		LatestBlock:          protoLatestBlock,
-		RecentProposers:      recentProposers,
-		TransactionBreakdown: transactionBreakdown,
-		SyncStatus:           syncStatus,
+		CurrentBlockHeight: stats.LatestIndexedHeight,
+		ChainId:            e.chainID,
+		Bps:                stats.BPS,
+		Tps:                stats.TPS,
+		TotalTransactions:  stats.TotalTransactions,
+		ValidatorCount:     stats.ValidatorCount,
+		SyncStatus: &v1.SyncStatus{
+			IsSyncing:           stats.IsSyncing,
+			LatestChainHeight:   stats.LatestChainHeight,
+			LatestIndexedHeight: stats.LatestIndexedHeight,
+			BlockDelta:          stats.LatestChainHeight - stats.LatestIndexedHeight,
+		},
 	}), nil
 }
 
