@@ -476,8 +476,6 @@ func (etl *ETLService) updateStats() error {
 		transactionBreakdown = []db.GetTransactionTypeBreakdownRow{}
 	}
 
-	etl.logger.Infof("Transaction breakdown query result: count=%d, data=%+v", len(transactionBreakdown), transactionBreakdown)
-
 	// give a little leeway for the sync status
 	isSyncing := currentHeight < info.Msg.CurrentHeight-100
 
