@@ -426,7 +426,8 @@ func (etl *ETLService) updateStats() error {
 		return fmt.Errorf("error getting total transactions count: %v", err)
 	}
 
-	now := time.Now()
+	// use the end time for the time range so syncing ETLs have data
+	now := endTime
 
 	// Get transaction counts for different time periods
 	totalTransactions24h, err := etl.db.GetTransactionsCountTimeRange(context.Background(), db.GetTransactionsCountTimeRangeParams{

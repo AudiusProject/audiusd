@@ -24,11 +24,14 @@ message GetStatsResponse {
   double bps = 3;
   double tps = 4;
   int64 total_transactions = 5;
-  int64 validator_count = 6;
-  Block latest_block = 7;
-  repeated string recent_proposers = 8;
-  repeated TransactionTypeBreakdown transaction_breakdown = 9;
-  SyncStatus sync_status = 10;
+  int64 total_transactions_24h = 6;
+  int64 total_transactions_7d = 7;
+  int64 total_transactions_30d = 8;
+  int64 validator_count = 9;
+  Block latest_block = 10;
+  repeated string recent_proposers = 11;
+  repeated TransactionTypeBreakdown transaction_breakdown = 12;
+  SyncStatus sync_status = 13;
 }
 
 message TransactionTypeBreakdown {

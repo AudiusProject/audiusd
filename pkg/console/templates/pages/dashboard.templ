@@ -10,18 +10,21 @@ import (
 )
 
 type DashboardStats struct {
-	CurrentBlockHeight  int64
-	ChainID             string
-	BPS                 float64
-	TPS                 float64
-	TotalTransactions   int64
-	ValidatorCount      int64
-	LatestBlock         *v1.Block
-	RecentProposers     []string
-	IsSyncing           bool
-	LatestIndexedHeight int64
-	LatestChainHeight   int64
-	BlockDelta          int64
+	CurrentBlockHeight   int64
+	ChainID              string
+	BPS                  float64
+	TPS                  float64
+	TotalTransactions    int64
+	ValidatorCount       int64
+	LatestBlock          *v1.Block
+	RecentProposers      []string
+	IsSyncing            bool
+	LatestIndexedHeight  int64
+	LatestChainHeight    int64
+	BlockDelta           int64
+	TotalTransactions24h int64
+	TotalTransactions7d  int64
+	TotalTransactions30d int64
 }
 
 type TransactionTypeBreakdown struct {
@@ -190,22 +193,33 @@ templ Dashboard(
 				</div>
 				<div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
 					<!-- Primary Metrics -->
-					<div class="lg:col-span-2 grid grid-cols-2 gap-6">
-						<div id="tps-fragment" hx-get="/fragments/tps" hx-trigger="every 5s" hx-swap="outerHTML">
-							@TPSFragment(stats)
+					<div class="lg:col-span-2 space-y-6">
+						<!-- Top row: TPS and Total Transactions -->
+						<div class="grid grid-cols-2 gap-6">
+							<div id="tps-fragment" hx-get="/fragments/tps" hx-trigger="every 5s" hx-swap="outerHTML">
+								@TPSFragment(stats)
+							</div>
+							<div id="total-transactions-fragment" hx-get="/fragments/total-transactions" hx-trigger="every 10s" hx-swap="outerHTML">
+								@TotalTransactionsFragment(stats)
+							</div>
 						</div>
-						<div id="total-transactions-fragment" hx-get="/fragments/total-transactions" hx-trigger="every 10s" hx-swap="outerHTML">
-							@TotalTransactionsFragment(stats)
-						</div>
-						<div class="border-r border-gray-200 dark:border-gray-700 pr-6 border-t border-gray-200 dark:border-gray-700 pt-6">
-							<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">24h Volume</div>
-							<div class="text-2xl font-light text-gray-900 dark:text-gray-100 mb-1">{ formatNumber(int64(89432)) }</div>
-							<div class="text-xs text-gray-500 dark:text-gray-400">Avg: 78.2k</div>
-						</div>
-						<div class="border-t border-gray-200 dark:border-gray-700 pt-6">
-							<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Success Rate</div>
-							<div class="text-2xl font-light text-gray-900 dark:text-gray-100 mb-1">99.8%</div>
-							<div class="text-xs text-gray-500 dark:text-gray-400">Last 1k txns</div>
+						<!-- Bottom row: Volume metrics -->
+						<div class="grid grid-cols-3 border-t border-gray-200 dark:border-gray-700 pt-6">
+							<div class="border-r border-gray-200 dark:border-gray-700 pr-6">
+								<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">24h Volume</div>
+								<div class="text-2xl font-light text-gray-900 dark:text-gray-100 mb-1">{ formatNumber(stats.TotalTransactions24h) }</div>
+								<div class="text-xs text-gray-500 dark:text-gray-400">Daily rate</div>
+							</div>
+							<div class="border-r border-gray-200 dark:border-gray-700 pr-6 pl-6">
+								<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">7d Volume</div>
+								<div class="text-2xl font-light text-gray-900 dark:text-gray-100 mb-1">{ formatNumber(stats.TotalTransactions7d) }</div>
+								<div class="text-xs text-gray-500 dark:text-gray-400">Avg: { formatNumber(stats.TotalTransactions7d / 7) }/day</div>
+							</div>
+							<div class="pl-6">
+								<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">30d Volume</div>
+								<div class="text-2xl font-light text-gray-900 dark:text-gray-100 mb-1">{ formatNumber(stats.TotalTransactions30d) }</div>
+								<div class="text-xs text-gray-500 dark:text-gray-400">Avg: { formatNumber(stats.TotalTransactions30d / 30) }/day</div>
+							</div>
 						</div>
 					</div>
 					<!-- Transaction Types -->
