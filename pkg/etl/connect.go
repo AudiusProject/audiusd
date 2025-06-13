@@ -111,11 +111,6 @@ func (e *ETLService) GetStats(ctx context.Context, req *connect.Request[v1.GetSt
 		}
 	}
 
-	e.logger.Info("GetStats: converted transaction breakdown",
-		"cachedCount", len(stats.TransactionBreakdown),
-		"convertedCount", len(transactionBreakdown),
-		"data", transactionBreakdown)
-
 	return connect.NewResponse(&v1.GetStatsResponse{
 		CurrentBlockHeight:    stats.LatestIndexedHeight,
 		ChainId:               e.chainID,

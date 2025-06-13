@@ -180,16 +180,6 @@ func (con *Console) Dashboard(c echo.Context) error {
 		return c.String(http.StatusInternalServerError, "Failed to get dashboard stats")
 	}
 
-	con.logger.Info("Dashboard stats response",
-		"transactionBreakdownCount", len(statsResp.Msg.TransactionBreakdown),
-		"transactionBreakdown", statsResp.Msg.TransactionBreakdown)
-
-	// Calculate exact sync progress percentage
-	var syncProgressPercentage float64
-	if statsResp.Msg.SyncStatus != nil && statsResp.Msg.SyncStatus.GetLatestChainHeight() > 0 {
-		syncProgressPercentage = float64(statsResp.Msg.SyncStatus.GetLatestIndexedHeight()) / float64(statsResp.Msg.SyncStatus.GetLatestChainHeight()) * 100
-	}
-
 	stats := &pages.DashboardStats{
 		CurrentBlockHeight:   statsResp.Msg.CurrentBlockHeight,
 		ChainID:              statsResp.Msg.ChainId,
@@ -221,7 +211,7 @@ func (con *Console) Dashboard(c echo.Context) error {
 	}
 
 	// Calculate sync progress percentage
-	syncProgressPercentage = float64(0)
+	syncProgressPercentage := float64(0)
 	if stats.LatestChainHeight > 0 {
 		syncProgressPercentage = float64(stats.LatestIndexedHeight) / float64(stats.LatestChainHeight) * 100
 	}
@@ -619,11 +609,14 @@ func (con *Console) LiveEventsSSE(c echo.Context) error {
 	c.Response().Header().Set("Content-Type", "text/event-stream")
 	c.Response().Header().Set("Cache-Control", "no-cache")
 	c.Response().Header().Set("Connection", "keep-alive")
+	c.Response().WriteHeader(http.StatusOK)
 
 	flusher, ok := c.Response().Writer.(http.Flusher)
 	if !ok {
 		return nil
 	}
+
+	flusher.Flush()
 
 	// Subscribe to play events from ETL pubsub
 	playChannel := con.etl.GetPlayPubsub().Subscribe(etl.PlayTopic, 100)
