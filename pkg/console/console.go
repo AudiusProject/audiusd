@@ -187,18 +187,21 @@ func (con *Console) Dashboard(c echo.Context) error {
 	}
 
 	stats := &pages.DashboardStats{
-		CurrentBlockHeight:  statsResp.Msg.CurrentBlockHeight,
-		ChainID:             statsResp.Msg.ChainId,
-		BPS:                 statsResp.Msg.Bps,
-		TPS:                 statsResp.Msg.Tps,
-		TotalTransactions:   statsResp.Msg.TotalTransactions,
-		ValidatorCount:      statsResp.Msg.ValidatorCount,
-		LatestBlock:         statsResp.Msg.LatestBlock,
-		RecentProposers:     statsResp.Msg.RecentProposers,
-		IsSyncing:           statsResp.Msg.SyncStatus != nil && statsResp.Msg.SyncStatus.IsSyncing,
-		LatestIndexedHeight: statsResp.Msg.SyncStatus.GetLatestIndexedHeight(),
-		LatestChainHeight:   statsResp.Msg.SyncStatus.GetLatestChainHeight(),
-		BlockDelta:          statsResp.Msg.SyncStatus.GetBlockDelta(),
+		CurrentBlockHeight:   statsResp.Msg.CurrentBlockHeight,
+		ChainID:              statsResp.Msg.ChainId,
+		BPS:                  statsResp.Msg.Bps,
+		TPS:                  statsResp.Msg.Tps,
+		TotalTransactions:    statsResp.Msg.TotalTransactions,
+		ValidatorCount:       statsResp.Msg.ValidatorCount,
+		LatestBlock:          statsResp.Msg.LatestBlock,
+		RecentProposers:      statsResp.Msg.RecentProposers,
+		IsSyncing:            statsResp.Msg.SyncStatus != nil && statsResp.Msg.SyncStatus.IsSyncing,
+		LatestIndexedHeight:  statsResp.Msg.SyncStatus.GetLatestIndexedHeight(),
+		LatestChainHeight:    statsResp.Msg.SyncStatus.GetLatestChainHeight(),
+		BlockDelta:           statsResp.Msg.SyncStatus.GetBlockDelta(),
+		TotalTransactions24h: statsResp.Msg.TotalTransactions_24H,
+		TotalTransactions7d:  statsResp.Msg.TotalTransactions_7D,
+		TotalTransactions30d: statsResp.Msg.TotalTransactions_30D,
 	}
 
 	// Convert transaction breakdown from RPC response
