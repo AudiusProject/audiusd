@@ -3,10 +3,10 @@ package layouts
 templ Frame(pageTitle string) {
 	<div class="px-30">
 		<div class="flex justify-between py-3">
-			<div class="flex justify-center items-center gap-2">
+			<a href="/" class="flex justify-center items-center gap-2 !no-underline hover:opacity-80 transition-opacity">
 				<img src="/assets/images/Glyph_Black.svg" alt="Audius Logo" class="h-10 w-10 dark:invert"/>
 				<div class="text-2xl font-bold text-gray-900 dark:text-gray-100">Audius Console</div>
-			</div>
+			</a>
 		</div>
 		<div class="flex flex-col gap-3">
 			<div class="flex justify-between py-3 bg-white dark:bg-gray-800 -mx-30 px-30">
