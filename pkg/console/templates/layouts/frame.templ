@@ -32,7 +32,7 @@ templ Frame(pageTitle string) {
 							<div class="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-gray-500 dark:text-gray-400 bg-gradient-to-l from-gray-50 via-gray-50 to-transparent dark:from-gray-800 dark:via-gray-800 pl-12 rounded-r-md" x-text="searchType"></div>
 						</div>
 						<div
-							class="absolute w-full mt-1 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 max-h-96 overflow-y-auto"
+							class="absolute w-full mt-1 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 max-h-96 overflow-y-auto z-50"
 							x-show="showSuggestions && suggestions.length > 0"
 							@click.away="showSuggestions = false"
 						>
