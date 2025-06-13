@@ -4420,9 +4420,8 @@ type SearchRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Height  int64  `protobuf:"varint,1,opt,name=height,proto3" json:"height,omitempty"`
-	Address string `protobuf:"bytes,2,opt,name=address,proto3" json:"address,omitempty"`
-	TxHash  string `protobuf:"bytes,3,opt,name=tx_hash,json=txHash,proto3" json:"tx_hash,omitempty"`
+	Query string `protobuf:"bytes,1,opt,name=query,proto3" json:"query,omitempty"`
+	Limit int32  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
 }
 
 func (x *SearchRequest) Reset() {
@@ -4457,25 +4456,18 @@ func (*SearchRequest) Descriptor() ([]byte, []int) {
 	return file_etl_v1_types_proto_rawDescGZIP(), []int{65}
 }
 
-func (x *SearchRequest) GetHeight() int64 {
+func (x *SearchRequest) GetQuery() string {
 	if x != nil {
-		return x.Height
+		return x.Query
+	}
+	return ""
+}
+
+func (x *SearchRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
 	}
 	return 0
-}
-
-func (x *SearchRequest) GetAddress() string {
-	if x != nil {
-		return x.Address
-	}
-	return ""
-}
-
-func (x *SearchRequest) GetTxHash() string {
-	if x != nil {
-		return x.TxHash
-	}
-	return ""
 }
 
 type SearchResponse struct {
@@ -4483,10 +4475,7 @@ type SearchResponse struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Blocks       []int64  `protobuf:"varint,1,rep,packed,name=blocks,proto3" json:"blocks,omitempty"`
-	Transactions []string `protobuf:"bytes,2,rep,name=transactions,proto3" json:"transactions,omitempty"`
-	Accounts     []string `protobuf:"bytes,3,rep,name=accounts,proto3" json:"accounts,omitempty"`
-	Validators   []string `protobuf:"bytes,4,rep,name=validators,proto3" json:"validators,omitempty"`
+	Results []*SearchResult `protobuf:"bytes,1,rep,name=results,proto3" json:"results,omitempty"`
 }
 
 func (x *SearchResponse) Reset() {
@@ -4521,32 +4510,90 @@ func (*SearchResponse) Descriptor() ([]byte, []int) {
 	return file_etl_v1_types_proto_rawDescGZIP(), []int{66}
 }
 
-func (x *SearchResponse) GetBlocks() []int64 {
+func (x *SearchResponse) GetResults() []*SearchResult {
 	if x != nil {
-		return x.Blocks
+		return x.Results
 	}
 	return nil
 }
 
-func (x *SearchResponse) GetTransactions() []string {
-	if x != nil {
-		return x.Transactions
-	}
-	return nil
+type SearchResult struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Id       string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Title    string `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
+	Subtitle string `protobuf:"bytes,3,opt,name=subtitle,proto3" json:"subtitle,omitempty"`
+	Type     string `protobuf:"bytes,4,opt,name=type,proto3" json:"type,omitempty"`
+	Url      string `protobuf:"bytes,5,opt,name=url,proto3" json:"url,omitempty"`
 }
 
-func (x *SearchResponse) GetAccounts() []string {
-	if x != nil {
-		return x.Accounts
+func (x *SearchResult) Reset() {
+	*x = SearchResult{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_etl_v1_types_proto_msgTypes[67]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
 	}
-	return nil
 }
 
-func (x *SearchResponse) GetValidators() []string {
-	if x != nil {
-		return x.Validators
+func (x *SearchResult) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SearchResult) ProtoMessage() {}
+
+func (x *SearchResult) ProtoReflect() protoreflect.Message {
+	mi := &file_etl_v1_types_proto_msgTypes[67]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
 	}
-	return nil
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SearchResult.ProtoReflect.Descriptor instead.
+func (*SearchResult) Descriptor() ([]byte, []int) {
+	return file_etl_v1_types_proto_rawDescGZIP(), []int{67}
+}
+
+func (x *SearchResult) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *SearchResult) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *SearchResult) GetSubtitle() string {
+	if x != nil {
+		return x.Subtitle
+	}
+	return ""
+}
+
+func (x *SearchResult) GetType() string {
+	if x != nil {
+		return x.Type
+	}
+	return ""
+}
+
+func (x *SearchResult) GetUrl() string {
+	if x != nil {
+		return x.Url
+	}
+	return ""
 }
 
 type StreamRequest struct {
@@ -4564,7 +4611,7 @@ type StreamRequest struct {
 func (x *StreamRequest) Reset() {
 	*x = StreamRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_etl_v1_types_proto_msgTypes[67]
+		mi := &file_etl_v1_types_proto_msgTypes[68]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -4577,7 +4624,7 @@ func (x *StreamRequest) String() string {
 func (*StreamRequest) ProtoMessage() {}
 
 func (x *StreamRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_etl_v1_types_proto_msgTypes[67]
+	mi := &file_etl_v1_types_proto_msgTypes[68]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4590,7 +4637,7 @@ func (x *StreamRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StreamRequest.ProtoReflect.Descriptor instead.
 func (*StreamRequest) Descriptor() ([]byte, []int) {
-	return file_etl_v1_types_proto_rawDescGZIP(), []int{67}
+	return file_etl_v1_types_proto_rawDescGZIP(), []int{68}
 }
 
 func (m *StreamRequest) GetQuery() isStreamRequest_Query {
@@ -4645,7 +4692,7 @@ type StreamResponse struct {
 func (x *StreamResponse) Reset() {
 	*x = StreamResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_etl_v1_types_proto_msgTypes[68]
+		mi := &file_etl_v1_types_proto_msgTypes[69]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -4658,7 +4705,7 @@ func (x *StreamResponse) String() string {
 func (*StreamResponse) ProtoMessage() {}
 
 func (x *StreamResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_etl_v1_types_proto_msgTypes[68]
+	mi := &file_etl_v1_types_proto_msgTypes[69]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4671,7 +4718,7 @@ func (x *StreamResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StreamResponse.ProtoReflect.Descriptor instead.
 func (*StreamResponse) Descriptor() ([]byte, []int) {
-	return file_etl_v1_types_proto_rawDescGZIP(), []int{68}
+	return file_etl_v1_types_proto_rawDescGZIP(), []int{69}
 }
 
 func (m *StreamResponse) GetResponse() isStreamResponse_Response {
@@ -4725,7 +4772,7 @@ type Block_Transaction struct {
 func (x *Block_Transaction) Reset() {
 	*x = Block_Transaction{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_etl_v1_types_proto_msgTypes[69]
+		mi := &file_etl_v1_types_proto_msgTypes[70]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -4738,7 +4785,7 @@ func (x *Block_Transaction) String() string {
 func (*Block_Transaction) ProtoMessage() {}
 
 func (x *Block_Transaction) ProtoReflect() protoreflect.Message {
-	mi := &file_etl_v1_types_proto_msgTypes[69]
+	mi := &file_etl_v1_types_proto_msgTypes[70]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4791,7 +4838,7 @@ type StreamRequest_StreamBlocksRequest struct {
 func (x *StreamRequest_StreamBlocksRequest) Reset() {
 	*x = StreamRequest_StreamBlocksRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_etl_v1_types_proto_msgTypes[70]
+		mi := &file_etl_v1_types_proto_msgTypes[71]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -4804,7 +4851,7 @@ func (x *StreamRequest_StreamBlocksRequest) String() string {
 func (*StreamRequest_StreamBlocksRequest) ProtoMessage() {}
 
 func (x *StreamRequest_StreamBlocksRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_etl_v1_types_proto_msgTypes[70]
+	mi := &file_etl_v1_types_proto_msgTypes[71]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4817,7 +4864,7 @@ func (x *StreamRequest_StreamBlocksRequest) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use StreamRequest_StreamBlocksRequest.ProtoReflect.Descriptor instead.
 func (*StreamRequest_StreamBlocksRequest) Descriptor() ([]byte, []int) {
-	return file_etl_v1_types_proto_rawDescGZIP(), []int{67, 0}
+	return file_etl_v1_types_proto_rawDescGZIP(), []int{68, 0}
 }
 
 type StreamRequest_StreamPlaysRequest struct {
@@ -4829,7 +4876,7 @@ type StreamRequest_StreamPlaysRequest struct {
 func (x *StreamRequest_StreamPlaysRequest) Reset() {
 	*x = StreamRequest_StreamPlaysRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_etl_v1_types_proto_msgTypes[71]
+		mi := &file_etl_v1_types_proto_msgTypes[72]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -4842,7 +4889,7 @@ func (x *StreamRequest_StreamPlaysRequest) String() string {
 func (*StreamRequest_StreamPlaysRequest) ProtoMessage() {}
 
 func (x *StreamRequest_StreamPlaysRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_etl_v1_types_proto_msgTypes[71]
+	mi := &file_etl_v1_types_proto_msgTypes[72]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4855,7 +4902,7 @@ func (x *StreamRequest_StreamPlaysRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StreamRequest_StreamPlaysRequest.ProtoReflect.Descriptor instead.
 func (*StreamRequest_StreamPlaysRequest) Descriptor() ([]byte, []int) {
-	return file_etl_v1_types_proto_rawDescGZIP(), []int{67, 1}
+	return file_etl_v1_types_proto_rawDescGZIP(), []int{68, 1}
 }
 
 type StreamResponse_StreamBlocksResponse struct {
@@ -4870,7 +4917,7 @@ type StreamResponse_StreamBlocksResponse struct {
 func (x *StreamResponse_StreamBlocksResponse) Reset() {
 	*x = StreamResponse_StreamBlocksResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_etl_v1_types_proto_msgTypes[72]
+		mi := &file_etl_v1_types_proto_msgTypes[73]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -4883,7 +4930,7 @@ func (x *StreamResponse_StreamBlocksResponse) String() string {
 func (*StreamResponse_StreamBlocksResponse) ProtoMessage() {}
 
 func (x *StreamResponse_StreamBlocksResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_etl_v1_types_proto_msgTypes[72]
+	mi := &file_etl_v1_types_proto_msgTypes[73]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4896,7 +4943,7 @@ func (x *StreamResponse_StreamBlocksResponse) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use StreamResponse_StreamBlocksResponse.ProtoReflect.Descriptor instead.
 func (*StreamResponse_StreamBlocksResponse) Descriptor() ([]byte, []int) {
-	return file_etl_v1_types_proto_rawDescGZIP(), []int{68, 0}
+	return file_etl_v1_types_proto_rawDescGZIP(), []int{69, 0}
 }
 
 func (x *StreamResponse_StreamBlocksResponse) GetHeight() int64 {
@@ -4928,7 +4975,7 @@ type StreamResponse_StreamPlaysResponse struct {
 func (x *StreamResponse_StreamPlaysResponse) Reset() {
 	*x = StreamResponse_StreamPlaysResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_etl_v1_types_proto_msgTypes[73]
+		mi := &file_etl_v1_types_proto_msgTypes[74]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -4941,7 +4988,7 @@ func (x *StreamResponse_StreamPlaysResponse) String() string {
 func (*StreamResponse_StreamPlaysResponse) ProtoMessage() {}
 
 func (x *StreamResponse_StreamPlaysResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_etl_v1_types_proto_msgTypes[73]
+	mi := &file_etl_v1_types_proto_msgTypes[74]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4954,7 +5001,7 @@ func (x *StreamResponse_StreamPlaysResponse) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use StreamResponse_StreamPlaysResponse.ProtoReflect.Descriptor instead.
 func (*StreamResponse_StreamPlaysResponse) Descriptor() ([]byte, []int) {
-	return file_etl_v1_types_proto_rawDescGZIP(), []int{68, 1}
+	return file_etl_v1_types_proto_rawDescGZIP(), []int{69, 1}
 }
 
 func (x *StreamResponse_StreamPlaysResponse) GetCity() string {
@@ -5594,21 +5641,22 @@ var file_etl_v1_types_proto_rawDesc = []byte{
 	0x6e, 0x73, 0x22, 0x17, 0x0a, 0x15, 0x47, 0x65, 0x74, 0x41, 0x76, 0x61, 0x69, 0x6c, 0x61, 0x62,
 	0x6c, 0x65, 0x43, 0x6f, 0x75, 0x6e, 0x74, 0x72, 0x69, 0x65, 0x73, 0x22, 0x15, 0x0a, 0x13, 0x47,
 	0x65, 0x74, 0x4c, 0x6f, 0x63, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e,
-	0x73, 0x65, 0x22, 0x5a, 0x0a, 0x0d, 0x53, 0x65, 0x61, 0x72, 0x63, 0x68, 0x52, 0x65, 0x71, 0x75,
-	0x65, 0x73, 0x74, 0x12, 0x16, 0x0a, 0x06, 0x68, 0x65, 0x69, 0x67, 0x68, 0x74, 0x18, 0x01, 0x20,
-	0x01, 0x28, 0x03, 0x52, 0x06, 0x68, 0x65, 0x69, 0x67, 0x68, 0x74, 0x12, 0x18, 0x0a, 0x07, 0x61,
-	0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x61, 0x64,
-	0x64, 0x72, 0x65, 0x73, 0x73, 0x12, 0x17, 0x0a, 0x07, 0x74, 0x78, 0x5f, 0x68, 0x61, 0x73, 0x68,
-	0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x74, 0x78, 0x48, 0x61, 0x73, 0x68, 0x22, 0x88,
-	0x01, 0x0a, 0x0e, 0x53, 0x65, 0x61, 0x72, 0x63, 0x68, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73,
-	0x65, 0x12, 0x16, 0x0a, 0x06, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28,
-	0x03, 0x52, 0x06, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x73, 0x12, 0x22, 0x0a, 0x0c, 0x74, 0x72, 0x61,
-	0x6e, 0x73, 0x61, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x09, 0x52,
-	0x0c, 0x74, 0x72, 0x61, 0x6e, 0x73, 0x61, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x12, 0x1a, 0x0a,
-	0x08, 0x61, 0x63, 0x63, 0x6f, 0x75, 0x6e, 0x74, 0x73, 0x18, 0x03, 0x20, 0x03, 0x28, 0x09, 0x52,
-	0x08, 0x61, 0x63, 0x63, 0x6f, 0x75, 0x6e, 0x74, 0x73, 0x12, 0x1e, 0x0a, 0x0a, 0x76, 0x61, 0x6c,
-	0x69, 0x64, 0x61, 0x74, 0x6f, 0x72, 0x73, 0x18, 0x04, 0x20, 0x03, 0x28, 0x09, 0x52, 0x0a, 0x76,
-	0x61, 0x6c, 0x69, 0x64, 0x61, 0x74, 0x6f, 0x72, 0x73, 0x22, 0xe6, 0x01, 0x0a, 0x0d, 0x53, 0x74,
+	0x73, 0x65, 0x22, 0x3b, 0x0a, 0x0d, 0x53, 0x65, 0x61, 0x72, 0x63, 0x68, 0x52, 0x65, 0x71, 0x75,
+	0x65, 0x73, 0x74, 0x12, 0x14, 0x0a, 0x05, 0x71, 0x75, 0x65, 0x72, 0x79, 0x18, 0x01, 0x20, 0x01,
+	0x28, 0x09, 0x52, 0x05, 0x71, 0x75, 0x65, 0x72, 0x79, 0x12, 0x14, 0x0a, 0x05, 0x6c, 0x69, 0x6d,
+	0x69, 0x74, 0x18, 0x02, 0x20, 0x01, 0x28, 0x05, 0x52, 0x05, 0x6c, 0x69, 0x6d, 0x69, 0x74, 0x22,
+	0x40, 0x0a, 0x0e, 0x53, 0x65, 0x61, 0x72, 0x63, 0x68, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73,
+	0x65, 0x12, 0x2e, 0x0a, 0x07, 0x72, 0x65, 0x73, 0x75, 0x6c, 0x74, 0x73, 0x18, 0x01, 0x20, 0x03,
+	0x28, 0x0b, 0x32, 0x14, 0x2e, 0x65, 0x74, 0x6c, 0x2e, 0x76, 0x31, 0x2e, 0x53, 0x65, 0x61, 0x72,
+	0x63, 0x68, 0x52, 0x65, 0x73, 0x75, 0x6c, 0x74, 0x52, 0x07, 0x72, 0x65, 0x73, 0x75, 0x6c, 0x74,
+	0x73, 0x22, 0x76, 0x0a, 0x0c, 0x53, 0x65, 0x61, 0x72, 0x63, 0x68, 0x52, 0x65, 0x73, 0x75, 0x6c,
+	0x74, 0x12, 0x0e, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x02, 0x69,
+	0x64, 0x12, 0x14, 0x0a, 0x05, 0x74, 0x69, 0x74, 0x6c, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09,
+	0x52, 0x05, 0x74, 0x69, 0x74, 0x6c, 0x65, 0x12, 0x1a, 0x0a, 0x08, 0x73, 0x75, 0x62, 0x74, 0x69,
+	0x74, 0x6c, 0x65, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x08, 0x73, 0x75, 0x62, 0x74, 0x69,
+	0x74, 0x6c, 0x65, 0x12, 0x12, 0x0a, 0x04, 0x74, 0x79, 0x70, 0x65, 0x18, 0x04, 0x20, 0x01, 0x28,
+	0x09, 0x52, 0x04, 0x74, 0x79, 0x70, 0x65, 0x12, 0x10, 0x0a, 0x03, 0x75, 0x72, 0x6c, 0x18, 0x05,
+	0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x75, 0x72, 0x6c, 0x22, 0xe6, 0x01, 0x0a, 0x0d, 0x53, 0x74,
 	0x72, 0x65, 0x61, 0x6d, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x50, 0x0a, 0x0d, 0x73,
 	0x74, 0x72, 0x65, 0x61, 0x6d, 0x5f, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x73, 0x18, 0x01, 0x20, 0x01,
 	0x28, 0x0b, 0x32, 0x29, 0x2e, 0x65, 0x74, 0x6c, 0x2e, 0x76, 0x31, 0x2e, 0x53, 0x74, 0x72, 0x65,
@@ -5695,7 +5743,7 @@ func file_etl_v1_types_proto_rawDescGZIP() []byte {
 }
 
 var file_etl_v1_types_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_etl_v1_types_proto_msgTypes = make([]protoimpl.MessageInfo, 74)
+var file_etl_v1_types_proto_msgTypes = make([]protoimpl.MessageInfo, 75)
 var file_etl_v1_types_proto_goTypes = []interface{}{
 	(ValidatorStatus)(0),                            // 0: etl.v1.ValidatorStatus
 	(ValidatorEventType)(0),                         // 1: etl.v1.ValidatorEventType
@@ -5766,28 +5814,29 @@ var file_etl_v1_types_proto_goTypes = []interface{}{
 	(*GetLocationResponse)(nil),                     // 66: etl.v1.GetLocationResponse
 	(*SearchRequest)(nil),                           // 67: etl.v1.SearchRequest
 	(*SearchResponse)(nil),                          // 68: etl.v1.SearchResponse
-	(*StreamRequest)(nil),                           // 69: etl.v1.StreamRequest
-	(*StreamResponse)(nil),                          // 70: etl.v1.StreamResponse
-	(*Block_Transaction)(nil),                       // 71: etl.v1.Block.Transaction
-	(*StreamRequest_StreamBlocksRequest)(nil),       // 72: etl.v1.StreamRequest.StreamBlocksRequest
-	(*StreamRequest_StreamPlaysRequest)(nil),        // 73: etl.v1.StreamRequest.StreamPlaysRequest
-	(*StreamResponse_StreamBlocksResponse)(nil),     // 74: etl.v1.StreamResponse.StreamBlocksResponse
-	(*StreamResponse_StreamPlaysResponse)(nil),      // 75: etl.v1.StreamResponse.StreamPlaysResponse
-	(*timestamppb.Timestamp)(nil),                   // 76: google.protobuf.Timestamp
+	(*SearchResult)(nil),                            // 69: etl.v1.SearchResult
+	(*StreamRequest)(nil),                           // 70: etl.v1.StreamRequest
+	(*StreamResponse)(nil),                          // 71: etl.v1.StreamResponse
+	(*Block_Transaction)(nil),                       // 72: etl.v1.Block.Transaction
+	(*StreamRequest_StreamBlocksRequest)(nil),       // 73: etl.v1.StreamRequest.StreamBlocksRequest
+	(*StreamRequest_StreamPlaysRequest)(nil),        // 74: etl.v1.StreamRequest.StreamPlaysRequest
+	(*StreamResponse_StreamBlocksResponse)(nil),     // 75: etl.v1.StreamResponse.StreamBlocksResponse
+	(*StreamResponse_StreamPlaysResponse)(nil),      // 76: etl.v1.StreamResponse.StreamPlaysResponse
+	(*timestamppb.Timestamp)(nil),                   // 77: google.protobuf.Timestamp
 }
 var file_etl_v1_types_proto_depIdxs = []int32{
 	10, // 0: etl.v1.GetStatsResponse.latest_block:type_name -> etl.v1.Block
 	8,  // 1: etl.v1.GetStatsResponse.transaction_breakdown:type_name -> etl.v1.TransactionTypeBreakdown
 	9,  // 2: etl.v1.GetStatsResponse.sync_status:type_name -> etl.v1.SyncStatus
-	76, // 3: etl.v1.Block.timestamp:type_name -> google.protobuf.Timestamp
-	71, // 4: etl.v1.Block.transactions:type_name -> etl.v1.Block.Transaction
+	77, // 3: etl.v1.Block.timestamp:type_name -> google.protobuf.Timestamp
+	72, // 4: etl.v1.Block.transactions:type_name -> etl.v1.Block.Transaction
 	10, // 5: etl.v1.GetBlockResponse.block:type_name -> etl.v1.Block
 	10, // 6: etl.v1.GetBlocksResponse.blocks:type_name -> etl.v1.Block
-	71, // 7: etl.v1.GetTransactionsResponse.transactions:type_name -> etl.v1.Block.Transaction
+	72, // 7: etl.v1.GetTransactionsResponse.transactions:type_name -> etl.v1.Block.Transaction
 	19, // 8: etl.v1.GetTransactionsByAddressResponse.transactions:type_name -> etl.v1.AddressTransaction
-	76, // 9: etl.v1.AddressTransaction.block_time:type_name -> google.protobuf.Timestamp
+	77, // 9: etl.v1.AddressTransaction.block_time:type_name -> google.protobuf.Timestamp
 	22, // 10: etl.v1.GetTransactionResponse.transaction:type_name -> etl.v1.Transaction
-	76, // 11: etl.v1.Transaction.block_time:type_name -> google.protobuf.Timestamp
+	77, // 11: etl.v1.Transaction.block_time:type_name -> google.protobuf.Timestamp
 	23, // 12: etl.v1.Transaction.plays:type_name -> etl.v1.TrackPlaysTransaction
 	25, // 13: etl.v1.Transaction.manage_entity:type_name -> etl.v1.ManageEntityTransaction
 	27, // 14: etl.v1.Transaction.validator_registration:type_name -> etl.v1.ValidatorRegistrationTransaction
@@ -5797,11 +5846,11 @@ var file_etl_v1_types_proto_depIdxs = []int32{
 	34, // 18: etl.v1.Transaction.storage_proof_verification:type_name -> etl.v1.StorageProofVerificationTransaction
 	35, // 19: etl.v1.Transaction.release:type_name -> etl.v1.ReleaseTransaction
 	24, // 20: etl.v1.TrackPlaysTransaction.plays:type_name -> etl.v1.TrackPlay
-	76, // 21: etl.v1.TrackPlay.played_at:type_name -> google.protobuf.Timestamp
+	77, // 21: etl.v1.TrackPlay.played_at:type_name -> google.protobuf.Timestamp
 	26, // 22: etl.v1.ManageEntityTransaction.entities:type_name -> etl.v1.ManageEntity
 	28, // 23: etl.v1.ValidatorRegistrationTransaction.registrations:type_name -> etl.v1.ValidatorRegistration
 	30, // 24: etl.v1.ValidatorDeregistrationTransaction.deregistrations:type_name -> etl.v1.ValidatorDeregistration
-	76, // 25: etl.v1.SlaRollupTransaction.timestamp:type_name -> google.protobuf.Timestamp
+	77, // 25: etl.v1.SlaRollupTransaction.timestamp:type_name -> google.protobuf.Timestamp
 	32, // 26: etl.v1.SlaRollupTransaction.reports:type_name -> etl.v1.SlaNodeReport
 	37, // 27: etl.v1.GetPlaysRequest.get_plays:type_name -> etl.v1.GetPlays
 	38, // 28: etl.v1.GetPlaysRequest.get_plays_by_address:type_name -> etl.v1.GetPlaysByAddress
@@ -5817,10 +5866,10 @@ var file_etl_v1_types_proto_depIdxs = []int32{
 	55, // 38: etl.v1.GetValidatorResponse.validator:type_name -> etl.v1.ValidatorInfo
 	56, // 39: etl.v1.GetValidatorResponse.events:type_name -> etl.v1.ValidatorEvent
 	0,  // 40: etl.v1.ValidatorInfo.status:type_name -> etl.v1.ValidatorStatus
-	76, // 41: etl.v1.ValidatorInfo.registered_at:type_name -> google.protobuf.Timestamp
-	76, // 42: etl.v1.ValidatorInfo.last_activity:type_name -> google.protobuf.Timestamp
+	77, // 41: etl.v1.ValidatorInfo.registered_at:type_name -> google.protobuf.Timestamp
+	77, // 42: etl.v1.ValidatorInfo.last_activity:type_name -> google.protobuf.Timestamp
 	1,  // 43: etl.v1.ValidatorEvent.type:type_name -> etl.v1.ValidatorEventType
-	76, // 44: etl.v1.ValidatorEvent.timestamp:type_name -> google.protobuf.Timestamp
+	77, // 44: etl.v1.ValidatorEvent.timestamp:type_name -> google.protobuf.Timestamp
 	57, // 45: etl.v1.ValidatorEvent.data:type_name -> etl.v1.ValidatorEventData
 	58, // 46: etl.v1.ValidatorEventData.registration:type_name -> etl.v1.ValidatorRegistrationEvent
 	59, // 47: etl.v1.ValidatorEventData.registration_legacy:type_name -> etl.v1.ValidatorRegistrationLegacyEvent
@@ -5829,16 +5878,17 @@ var file_etl_v1_types_proto_depIdxs = []int32{
 	63, // 50: etl.v1.GetLocationRequest.get_available_cities:type_name -> etl.v1.GetAvailableCities
 	64, // 51: etl.v1.GetLocationRequest.get_available_regions:type_name -> etl.v1.GetAvailableRegions
 	65, // 52: etl.v1.GetLocationRequest.get_available_countries:type_name -> etl.v1.GetAvailableCountries
-	72, // 53: etl.v1.StreamRequest.stream_blocks:type_name -> etl.v1.StreamRequest.StreamBlocksRequest
-	73, // 54: etl.v1.StreamRequest.stream_plays:type_name -> etl.v1.StreamRequest.StreamPlaysRequest
-	74, // 55: etl.v1.StreamResponse.stream_blocks:type_name -> etl.v1.StreamResponse.StreamBlocksResponse
-	75, // 56: etl.v1.StreamResponse.stream_plays:type_name -> etl.v1.StreamResponse.StreamPlaysResponse
-	76, // 57: etl.v1.Block.Transaction.timestamp:type_name -> google.protobuf.Timestamp
-	58, // [58:58] is the sub-list for method output_type
-	58, // [58:58] is the sub-list for method input_type
-	58, // [58:58] is the sub-list for extension type_name
-	58, // [58:58] is the sub-list for extension extendee
-	0,  // [0:58] is the sub-list for field type_name
+	69, // 53: etl.v1.SearchResponse.results:type_name -> etl.v1.SearchResult
+	73, // 54: etl.v1.StreamRequest.stream_blocks:type_name -> etl.v1.StreamRequest.StreamBlocksRequest
+	74, // 55: etl.v1.StreamRequest.stream_plays:type_name -> etl.v1.StreamRequest.StreamPlaysRequest
+	75, // 56: etl.v1.StreamResponse.stream_blocks:type_name -> etl.v1.StreamResponse.StreamBlocksResponse
+	76, // 57: etl.v1.StreamResponse.stream_plays:type_name -> etl.v1.StreamResponse.StreamPlaysResponse
+	77, // 58: etl.v1.Block.Transaction.timestamp:type_name -> google.protobuf.Timestamp
+	59, // [59:59] is the sub-list for method output_type
+	59, // [59:59] is the sub-list for method input_type
+	59, // [59:59] is the sub-list for extension type_name
+	59, // [59:59] is the sub-list for extension extendee
+	0,  // [0:59] is the sub-list for field type_name
 }
 
 func init() { file_etl_v1_types_proto_init() }
@@ -6652,7 +6702,7 @@ func file_etl_v1_types_proto_init() {
 			}
 		}
 		file_etl_v1_types_proto_msgTypes[67].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*StreamRequest); i {
+			switch v := v.(*SearchResult); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -6664,7 +6714,7 @@ func file_etl_v1_types_proto_init() {
 			}
 		}
 		file_etl_v1_types_proto_msgTypes[68].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*StreamResponse); i {
+			switch v := v.(*StreamRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -6676,7 +6726,7 @@ func file_etl_v1_types_proto_init() {
 			}
 		}
 		file_etl_v1_types_proto_msgTypes[69].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Block_Transaction); i {
+			switch v := v.(*StreamResponse); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -6688,7 +6738,7 @@ func file_etl_v1_types_proto_init() {
 			}
 		}
 		file_etl_v1_types_proto_msgTypes[70].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*StreamRequest_StreamBlocksRequest); i {
+			switch v := v.(*Block_Transaction); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -6700,7 +6750,7 @@ func file_etl_v1_types_proto_init() {
 			}
 		}
 		file_etl_v1_types_proto_msgTypes[71].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*StreamRequest_StreamPlaysRequest); i {
+			switch v := v.(*StreamRequest_StreamBlocksRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -6712,7 +6762,7 @@ func file_etl_v1_types_proto_init() {
 			}
 		}
 		file_etl_v1_types_proto_msgTypes[72].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*StreamResponse_StreamBlocksResponse); i {
+			switch v := v.(*StreamRequest_StreamPlaysRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -6724,6 +6774,18 @@ func file_etl_v1_types_proto_init() {
 			}
 		}
 		file_etl_v1_types_proto_msgTypes[73].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*StreamResponse_StreamBlocksResponse); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_etl_v1_types_proto_msgTypes[74].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*StreamResponse_StreamPlaysResponse); i {
 			case 0:
 				return &v.state
@@ -6773,11 +6835,11 @@ func file_etl_v1_types_proto_init() {
 		(*GetLocationRequest_GetAvailableRegions)(nil),
 		(*GetLocationRequest_GetAvailableCountries)(nil),
 	}
-	file_etl_v1_types_proto_msgTypes[67].OneofWrappers = []interface{}{
+	file_etl_v1_types_proto_msgTypes[68].OneofWrappers = []interface{}{
 		(*StreamRequest_StreamBlocks)(nil),
 		(*StreamRequest_StreamPlays)(nil),
 	}
-	file_etl_v1_types_proto_msgTypes[68].OneofWrappers = []interface{}{
+	file_etl_v1_types_proto_msgTypes[69].OneofWrappers = []interface{}{
 		(*StreamResponse_StreamBlocks)(nil),
 		(*StreamResponse_StreamPlays)(nil),
 	}
@@ -6787,7 +6849,7 @@ func file_etl_v1_types_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_etl_v1_types_proto_rawDesc,
 			NumEnums:      2,
-			NumMessages:   74,
+			NumMessages:   75,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
