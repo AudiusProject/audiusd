@@ -5,16 +5,10 @@ function searchBar() {
         searchType: '',
         suggestions: [],
         isLoading: false,
+        isSelectingSuggestion: false,
 
         init() {
             console.log('Search component initialized');
-            this.$watch('showSuggestions', (value) => {
-                console.log('showSuggestions changed:', value);
-                if (value && !this.query.trim()) {
-                    console.log('Showing all suggestions');
-                    this.fetchAllSuggestions();
-                }
-            });
         },
 
         async fetchAllSuggestions() {
@@ -38,9 +32,16 @@ function searchBar() {
         async handleInput() {
             console.log('Input changed:', this.query);
 
-            // Clear type and suggestions if query is empty
+            // Skip handling if we're in the middle of selecting a suggestion
+            if (this.isSelectingSuggestion) {
+                return;
+            }
+
+            // Hide suggestions and clear type if query is empty or too short
             if (!this.query.trim()) {
-                await this.fetchAllSuggestions();
+                this.suggestions = [];
+                this.showSuggestions = false;
+                this.searchType = '';
                 return;
             }
 
@@ -162,12 +163,18 @@ function searchBar() {
         selectSuggestion(suggestion) {
             if (suggestion.isHeader) return;
 
+            // Set flag to prevent handleInput from running
+            this.isSelectingSuggestion = true;
+
             const path = this.getNavigationPath(suggestion);
             if (path) {
+                // Navigate immediately without setting query
                 window.location.href = path;
+                return;
             }
 
-            this.query = suggestion.title;
+            // If for some reason navigation fails, reset the flag
+            this.isSelectingSuggestion = false;
             this.showSuggestions = false;
         }
     }
