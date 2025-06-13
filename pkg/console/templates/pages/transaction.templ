@@ -1,11 +1,50 @@
 package pages
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/AudiusProject/audiusd/pkg/api/etl/v1"
 	"github.com/AudiusProject/audiusd/pkg/console/templates"
 	"github.com/AudiusProject/audiusd/pkg/console/templates/layouts"
+	"regexp"
 )
+
+func formatJSON(jsonStr string) string {
+	var obj interface{}
+	if err := json.Unmarshal([]byte(jsonStr), &obj); err != nil {
+		return jsonStr // Return original if not valid JSON
+	}
+
+	formatted, err := json.MarshalIndent(obj, "", "  ")
+	if err != nil {
+		return jsonStr // Return original if formatting fails
+	}
+
+	return string(formatted)
+}
+
+func highlightJSON(jsonStr string) string {
+	formatted := formatJSON(jsonStr)
+
+	// Simple regex-based syntax highlighting
+	// Replace strings (quoted values)
+	formatted = regexp.MustCompile(`"([^"\\]*(\\.[^"\\]*)*)":`).ReplaceAllString(formatted, `<span class="json-key">"$1"</span>:`)
+	formatted = regexp.MustCompile(`:\s*"([^"\\]*(\\.[^"\\]*)*)"([,\}\]])`).ReplaceAllString(formatted, `: <span class="json-string">"$1"</span>$3`)
+
+	// Replace numbers
+	formatted = regexp.MustCompile(`:\s*(-?\d+\.?\d*)([,\}\]])`).ReplaceAllString(formatted, `: <span class="json-number">$1</span>$2`)
+
+	// Replace booleans
+	formatted = regexp.MustCompile(`:\s*(true|false)([,\}\]])`).ReplaceAllString(formatted, `: <span class="json-boolean">$1</span>$2`)
+
+	// Replace null
+	formatted = regexp.MustCompile(`:\s*(null)([,\}\]])`).ReplaceAllString(formatted, `: <span class="json-null">$1</span>$2`)
+
+	// Replace braces and brackets
+	formatted = regexp.MustCompile(`([\{\}\[\]])`).ReplaceAllString(formatted, `<span class="json-brace">$1</span>`)
+
+	return formatted
+}
 
 templ Transaction(tx *v1.Transaction) {
 	@layouts.Base(fmt.Sprintf("Transaction %s", tx.Hash[:8])) {
@@ -136,7 +175,7 @@ templ TrackPlaysSection(plays *v1.TrackPlaysTransaction) {
 
 templ ManageEntitySection(entities *v1.ManageEntityTransaction) {
 	<div class="shadow-xl rounded-lg p-6 bg-white dark:bg-gray-800">
-		<h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Manage Entities ({ fmt.Sprintf("%d", len(entities.Entities)) })</h3>
+		<h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Manage Entity</h3>
 		<div class="overflow-x-auto">
 			<table class="min-w-full table-auto">
 				<thead>
@@ -149,25 +188,36 @@ templ ManageEntitySection(entities *v1.ManageEntityTransaction) {
 					</tr>
 				</thead>
 				<tbody>
-					for _, entity := range entities.Entities {
+					if len(entities.Entities) > 0 {
 						<tr class="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
 							<td class="py-2 px-4">
-								@templates.StringWithTooltip(entity.Address)
+								@templates.StringWithTooltip(entities.Entities[0].Address)
 							</td>
-							<td class="py-2 px-4">{ entity.EntityType }</td>
-							<td class="py-2 px-4">{ fmt.Sprintf("%d", entity.EntityId) }</td>
+							<td class="py-2 px-4">{ entities.Entities[0].EntityType }</td>
+							<td class="py-2 px-4">{ fmt.Sprintf("%d", entities.Entities[0].EntityId) }</td>
 							<td class="py-2 px-4">
 								<span class="px-2 py-1 text-xs rounded bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
-									{ entity.Action }
+									{ entities.Entities[0].Action }
 								</span>
 							</td>
 							<td class="py-2 px-4">
-								@templates.StringWithTooltip(entity.Signer)
+								@templates.StringWithTooltip(entities.Entities[0].Signer)
 							</td>
 						</tr>
 					}
 				</tbody>
 			</table>
+			<!-- JSON View of metadata -->
+			if entities.Entities[0].Metadata != "" {
+				<div class="mt-4">
+					<h4 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Metadata</h4>
+					<div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 overflow-x-auto border border-gray-200 dark:border-gray-700">
+						<pre class="text-sm font-mono leading-relaxed whitespace-pre-wrap">
+							@templ.Raw(highlightJSON(string(entities.Entities[0].Metadata)))
+						</pre>
+					</div>
+				</div>
+			}
 		</div>
 	</div>
 }
