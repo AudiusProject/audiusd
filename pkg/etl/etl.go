@@ -44,6 +44,7 @@ type Stats struct {
 	LatestChainHeight    int64
 	BlockDelta           int64
 	ValidatorCount       int64
+	TransactionBreakdown []db.GetTransactionTypeBreakdownRow
 }
 
 func (etl *ETLService) Run() error {
@@ -469,6 +470,19 @@ func (etl *ETLService) updateStats() error {
 		return fmt.Errorf("error getting active validators count: %v", err)
 	}
 
+	// Get transaction type breakdown for the last 24 hours
+	transactionBreakdown, err := etl.db.GetTransactionTypeBreakdown(context.Background(), db.GetTransactionTypeBreakdownParams{
+		BlockTime:   pgtype.Timestamp{Time: now.Add(-24 * time.Hour), Valid: true},
+		BlockTime_2: pgtype.Timestamp{Time: now, Valid: true},
+	})
+	if err != nil {
+		etl.logger.Errorf("error getting transaction type breakdown: %v", err)
+		// Don't fail the entire stats update if this fails, just use empty slice
+		transactionBreakdown = []db.GetTransactionTypeBreakdownRow{}
+	}
+
+	etl.logger.Infof("Transaction breakdown query result: count=%d, data=%+v", len(transactionBreakdown), transactionBreakdown)
+
 	// give a little leeway for the sync status
 	isSyncing := currentHeight < info.Msg.CurrentHeight-100
 
@@ -484,6 +498,7 @@ func (etl *ETLService) updateStats() error {
 		LatestChainHeight:    info.Msg.CurrentHeight,
 		BlockDelta:           info.Msg.CurrentHeight - currentHeight,
 		ValidatorCount:       validatorCount,
+		TransactionBreakdown: transactionBreakdown,
 	}
 
 	// Cache the stats

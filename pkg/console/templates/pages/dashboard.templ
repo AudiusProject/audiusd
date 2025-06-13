@@ -191,7 +191,7 @@ templ Dashboard(
 				<div class="flex items-center justify-between mb-6">
 					<h3 class="text-xl font-bold text-gray-900 dark:text-gray-100">Network Performance</h3>
 				</div>
-				<div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+				<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 					<!-- Primary Metrics -->
 					<div class="lg:col-span-2 space-y-6">
 						<!-- Top row: TPS and Total Transactions -->
@@ -226,45 +226,16 @@ templ Dashboard(
 					<div class="border-l border-gray-200 dark:border-gray-700 pl-6">
 						<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-4">Transaction Types</div>
 						<div class="space-y-3">
-							for _, breakdown := range transactionBreakdown {
-								<div class="flex items-center justify-between">
-									<span class="text-sm text-gray-700 dark:text-gray-300">{ breakdown.Type }</span>
-									<span class="text-sm font-medium text-gray-900 dark:text-gray-100 tabular-nums">{ formatNumber(breakdown.Count) }</span>
-								</div>
+							if len(transactionBreakdown) > 0 {
+								for _, breakdown := range transactionBreakdown {
+									<div class="flex items-center justify-between">
+										<span class="text-sm text-gray-700 dark:text-gray-300">{ breakdown.Type }</span>
+										<span class="text-sm font-medium text-gray-900 dark:text-gray-100 tabular-nums">{ formatNumber(breakdown.Count) }</span>
+									</div>
+								}
+							} else {
+								<div class="text-sm text-gray-500 dark:text-gray-400">No transaction data available</div>
 							}
-						</div>
-					</div>
-					<!-- Network Health -->
-					<div class="border-l border-gray-200 dark:border-gray-700 pl-6">
-						<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-4">Network Health</div>
-						<div class="space-y-4">
-							<div>
-								<div class="flex items-center justify-between mb-1">
-									<span class="text-xs text-gray-600 dark:text-gray-400">Capacity</span>
-									<span class="text-xs font-medium text-gray-900 dark:text-gray-100">73%</span>
-								</div>
-								<div class="w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full">
-									<div class="w-3/4 h-full bg-gray-900 dark:bg-gray-100 rounded-full"></div>
-								</div>
-							</div>
-							<div>
-								<div class="flex items-center justify-between mb-1">
-									<span class="text-xs text-gray-600 dark:text-gray-400">Avg Confirmation</span>
-									<span class="text-xs font-medium text-gray-900 dark:text-gray-100">6.2s</span>
-								</div>
-							</div>
-							<div>
-								<div class="flex items-center justify-between mb-1">
-									<span class="text-xs text-gray-600 dark:text-gray-400">Queue Depth</span>
-									<span class="text-xs font-medium text-gray-900 dark:text-gray-100">142</span>
-								</div>
-							</div>
-							<div>
-								<div class="flex items-center justify-between mb-1">
-									<span class="text-xs text-gray-600 dark:text-gray-400">Avg Fee</span>
-									<span class="text-xs font-medium text-gray-900 dark:text-gray-100">0.001 AUD</span>
-								</div>
-							</div>
 						</div>
 					</div>
 				</div>

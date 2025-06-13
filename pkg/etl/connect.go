@@ -89,6 +89,20 @@ func (e *ETLService) GetStats(ctx context.Context, req *connect.Request[v1.GetSt
 		return nil, fmt.Errorf("stats not found")
 	}
 
+	// Convert cached transaction breakdown to protobuf format
+	transactionBreakdown := make([]*v1.TransactionTypeBreakdown, len(stats.TransactionBreakdown))
+	for i, row := range stats.TransactionBreakdown {
+		transactionBreakdown[i] = &v1.TransactionTypeBreakdown{
+			Type:  row.Type,
+			Count: row.Count,
+		}
+	}
+
+	e.logger.Info("GetStats: converted transaction breakdown",
+		"cachedCount", len(stats.TransactionBreakdown),
+		"convertedCount", len(transactionBreakdown),
+		"data", transactionBreakdown)
+
 	return connect.NewResponse(&v1.GetStatsResponse{
 		CurrentBlockHeight:    stats.LatestIndexedHeight,
 		ChainId:               e.chainID,
@@ -99,6 +113,7 @@ func (e *ETLService) GetStats(ctx context.Context, req *connect.Request[v1.GetSt
 		TotalTransactions_7D:  stats.TotalTransactions7d,
 		TotalTransactions_30D: stats.TotalTransactions30d,
 		ValidatorCount:        stats.ValidatorCount,
+		TransactionBreakdown:  transactionBreakdown,
 		SyncStatus: &v1.SyncStatus{
 			IsSyncing:           stats.IsSyncing,
 			LatestChainHeight:   stats.LatestChainHeight,

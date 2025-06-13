@@ -1206,18 +1206,24 @@ select tx_type as type,
     count(*) as count
 from etl_transactions t
 join etl_blocks b on t.block_height = b.block_height
-where b.block_time >= now() - interval '24 hours'
+where b.block_time >= $1
+    and b.block_time <= $2
 group by tx_type
 order by count(*) desc
 `
+
+type GetTransactionTypeBreakdownParams struct {
+	BlockTime   pgtype.Timestamp `json:"block_time"`
+	BlockTime_2 pgtype.Timestamp `json:"block_time_2"`
+}
 
 type GetTransactionTypeBreakdownRow struct {
 	Type  string `json:"type"`
 	Count int64  `json:"count"`
 }
 
-func (q *Queries) GetTransactionTypeBreakdown(ctx context.Context) ([]GetTransactionTypeBreakdownRow, error) {
-	rows, err := q.db.Query(ctx, getTransactionTypeBreakdown)
+func (q *Queries) GetTransactionTypeBreakdown(ctx context.Context, arg GetTransactionTypeBreakdownParams) ([]GetTransactionTypeBreakdownRow, error) {
+	rows, err := q.db.Query(ctx, getTransactionTypeBreakdown, arg.BlockTime, arg.BlockTime_2)
 	if err != nil {
 		return nil, err
 	}
