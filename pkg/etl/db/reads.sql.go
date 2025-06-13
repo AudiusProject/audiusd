@@ -1242,6 +1242,159 @@ func (q *Queries) GetTransactionTypeBreakdown(ctx context.Context, arg GetTransa
 	return items, nil
 }
 
+const getTransactionsByAddress = `-- name: GetTransactionsByAddress :many
+with address_transactions as (
+    -- Play transactions
+    select 
+        t.tx_hash,
+        t.tx_type,
+        t.block_height,
+        t.index,
+        p.address,
+        'play' as relation_type,
+        b.block_time
+    from etl_transactions t
+    join etl_plays p on t.tx_hash = p.tx_hash
+    join etl_blocks b on t.block_height = b.block_height
+    where p.address = $1
+    
+    union all
+    
+    -- Manage entity transactions
+    select 
+        t.tx_hash,
+        t.tx_type,
+        t.block_height,
+        t.index,
+        m.address,
+        m.action || m.entity_type as relation_type,
+        b.block_time
+    from etl_transactions t
+    join etl_manage_entities m on t.tx_hash = m.tx_hash
+    join etl_blocks b on t.block_height = b.block_height
+    where m.address = $1
+    
+    union all
+    
+    -- Validator registration transactions
+    select 
+        t.tx_hash,
+        t.tx_type,
+        t.block_height,
+        t.index,
+        v.address,
+        'validator_registration' as relation_type,
+        b.block_time
+    from etl_transactions t
+    join etl_validator_registrations v on t.tx_hash = v.tx_hash
+    join etl_blocks b on t.block_height = b.block_height
+    where v.address = $1
+    
+    union all
+    
+    -- Validator deregistration transactions (by comet_address)
+    select 
+        t.tx_hash,
+        t.tx_type,
+        t.block_height,
+        t.index,
+        vd.comet_address as address,
+        'validator_deregistration' as relation_type,
+        b.block_time
+    from etl_transactions t
+    join etl_validator_deregistrations vd on t.tx_hash = vd.tx_hash
+    join etl_blocks b on t.block_height = b.block_height
+    where vd.comet_address = $1
+    
+    union all
+    
+    -- Storage proof transactions
+    select 
+        t.tx_hash,
+        t.tx_type,
+        t.block_height,
+        t.index,
+        sp.address,
+        'storage_proof' as relation_type,
+        b.block_time
+    from etl_transactions t
+    join etl_storage_proofs sp on t.tx_hash = sp.tx_hash
+    join etl_blocks b on t.block_height = b.block_height
+    where sp.address = $1
+    
+    union all
+    
+    -- SLA node report transactions
+    select 
+        t.tx_hash,
+        t.tx_type,
+        t.block_height,
+        t.index,
+        snr.address,
+        'sla_node_report' as relation_type,
+        b.block_time
+    from etl_transactions t
+    join etl_sla_node_reports snr on t.tx_hash = snr.tx_hash
+    join etl_blocks b on t.block_height = b.block_height
+    where snr.address = $1
+)
+select 
+    tx_hash,
+    tx_type,
+    block_height,
+    index,
+    address,
+    relation_type,
+    block_time
+from address_transactions
+order by block_height desc, index desc
+limit $2 offset $3
+`
+
+type GetTransactionsByAddressParams struct {
+	Address string `json:"address"`
+	Limit   int32  `json:"limit"`
+	Offset  int32  `json:"offset"`
+}
+
+type GetTransactionsByAddressRow struct {
+	TxHash       string           `json:"tx_hash"`
+	TxType       string           `json:"tx_type"`
+	BlockHeight  int64            `json:"block_height"`
+	Index        int64            `json:"index"`
+	Address      string           `json:"address"`
+	RelationType string           `json:"relation_type"`
+	BlockTime    pgtype.Timestamp `json:"block_time"`
+}
+
+func (q *Queries) GetTransactionsByAddress(ctx context.Context, arg GetTransactionsByAddressParams) ([]GetTransactionsByAddressRow, error) {
+	rows, err := q.db.Query(ctx, getTransactionsByAddress, arg.Address, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetTransactionsByAddressRow
+	for rows.Next() {
+		var i GetTransactionsByAddressRow
+		if err := rows.Scan(
+			&i.TxHash,
+			&i.TxType,
+			&i.BlockHeight,
+			&i.Index,
+			&i.Address,
+			&i.RelationType,
+			&i.BlockTime,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getTransactionsCount = `-- name: GetTransactionsCount :one
 select count(*) from etl_transactions where block_height between $1 and $2
 `

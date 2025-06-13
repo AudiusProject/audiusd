@@ -93,6 +93,28 @@ message GetTransactionsResponse {
   int32 total_count = 3;
 }
 
+message GetTransactionsByAddressRequest {
+  string address = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+}
+
+message GetTransactionsByAddressResponse {
+  repeated AddressTransaction transactions = 1;
+  bool has_more = 2;
+  int32 total_count = 3;
+}
+
+message AddressTransaction {
+  string tx_hash = 1;
+  string tx_type = 2;
+  int64 block_height = 3;
+  int64 index = 4;
+  string address = 5;
+  string relation_type = 6;
+  google.protobuf.Timestamp block_time = 7;
+}
+
 message GetTransactionRequest {
   string tx_hash = 1;
 }

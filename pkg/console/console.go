@@ -87,7 +87,7 @@ func (con *Console) SetupRoutes() {
 	e.GET("/transactions", con.Transactions)
 	e.GET("/transaction/:hash", con.Transaction)
 
-	e.GET("/account/:address", con.stubRoute)
+	e.GET("/account/:address", con.Account)
 	e.GET("/account/:address/transactions", con.stubRoute)
 	e.GET("/account/:address/uploads", con.stubRoute)
 	e.GET("/account/:address/releases", con.stubRoute)
@@ -220,10 +220,6 @@ func (con *Console) Dashboard(c echo.Context) error {
 		}
 	}
 
-	con.logger.Info("Converted transaction breakdown for template",
-		"count", len(transactionBreakdown),
-		"items", transactionBreakdown)
-
 	// Calculate sync progress percentage
 	syncProgressPercentage = float64(0)
 	if stats.LatestChainHeight > 0 {
@@ -319,7 +315,15 @@ func (con *Console) Validator(c echo.Context) error {
 		},
 	})
 	if err != nil {
-		return c.String(http.StatusInternalServerError, "Failed to get validator")
+		// try comet validator
+		validator, err = con.etl.GetValidator(c.Request().Context(), &connect.Request[v1.GetValidatorRequest]{
+			Msg: &v1.GetValidatorRequest{
+				Identifier: &v1.GetValidatorRequest_CometAddress{CometAddress: strings.ToUpper(address)},
+			},
+		})
+		if err != nil {
+			return c.String(http.StatusNotFound, "Validator not found")
+		}
 	}
 
 	p := pages.Validator(validator.Msg.Validator, validator.Msg.Events)
@@ -440,6 +444,53 @@ func (con *Console) Transaction(c echo.Context) error {
 	}
 
 	p := pages.Transaction(response.Msg.Transaction)
+	return p.Render(c.Request().Context(), c.Response().Writer)
+}
+
+func (con *Console) Account(c echo.Context) error {
+	address := c.Param("address")
+	if address == "" {
+		return c.String(http.StatusBadRequest, "Account address required")
+	}
+
+	// Parse query parameters for pagination
+	pageParam := c.QueryParam("page")
+	countParam := c.QueryParam("count")
+
+	page := int32(1) // default to page 1
+	if pageParam != "" {
+		if parsedPage, err := strconv.ParseInt(pageParam, 10, 32); err == nil && parsedPage > 0 {
+			page = int32(parsedPage)
+		}
+	}
+
+	count := int32(50) // default to 50 per page
+	if countParam != "" {
+		if parsedCount, err := strconv.ParseInt(countParam, 10, 32); err == nil && parsedCount > 0 && parsedCount <= 200 {
+			count = int32(parsedCount)
+		}
+	}
+
+	// Calculate offset from page number
+	offset := (page - 1) * count
+
+	// Get transactions for this address from ETL service
+	response, err := con.etl.GetTransactionsByAddress(c.Request().Context(), &connect.Request[v1.GetTransactionsByAddressRequest]{
+		Msg: &v1.GetTransactionsByAddressRequest{
+			Address: address,
+			Limit:   count,
+			Offset:  offset,
+		},
+	})
+	if err != nil {
+		return c.String(http.StatusInternalServerError, "Failed to get transactions for address")
+	}
+
+	// Calculate pagination state
+	hasNext := response.Msg.HasMore
+	hasPrev := page > 1
+
+	p := pages.Account(address, response.Msg.Transactions, page, hasNext, hasPrev, count)
 	return p.Render(c.Request().Context(), c.Response().Writer)
 }
 
