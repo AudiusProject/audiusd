@@ -8,7 +8,6 @@ import (
 
 	"connectrpc.com/connect"
 	corev1 "github.com/AudiusProject/audiusd/pkg/api/core/v1"
-	v1 "github.com/AudiusProject/audiusd/pkg/api/core/v1"
 	etlv1 "github.com/AudiusProject/audiusd/pkg/api/etl/v1"
 	"github.com/AudiusProject/audiusd/pkg/etl/db"
 	"github.com/AudiusProject/audiusd/pkg/etl/location"
@@ -143,7 +142,7 @@ func (etl *ETLService) awaitReadiness() error {
 			return fmt.Errorf("timed out waiting for readiness")
 		}
 
-		res, err := etl.core.GetStatus(context.Background(), connect.NewRequest(&v1.GetStatusRequest{}))
+		res, err := etl.core.GetStatus(context.Background(), connect.NewRequest(&corev1.GetStatusRequest{}))
 		if err != nil {
 			continue
 		}
@@ -178,7 +177,7 @@ func (etl *ETLService) indexBlocks() error {
 
 		// Get the next block
 		nextHeight := latestHeight + 1
-		block, err := etl.core.GetBlock(context.Background(), connect.NewRequest(&v1.GetBlockRequest{
+		block, err := etl.core.GetBlock(context.Background(), connect.NewRequest(&corev1.GetBlockRequest{
 			Height: nextHeight,
 		}))
 		if err != nil {
@@ -205,7 +204,7 @@ func (etl *ETLService) indexBlocks() error {
 			txType := ""
 
 			switch signedTx := tx.Transaction.Transaction.(type) {
-			case *v1.SignedTransaction_Plays:
+			case *corev1.SignedTransaction_Plays:
 				txType = TxTypePlay
 				for _, play := range signedTx.Plays.GetPlays() {
 					etl.db.InsertPlay(context.Background(), db.InsertPlayParams{
@@ -243,7 +242,7 @@ func (etl *ETLService) indexBlocks() error {
 						})
 					}()
 				}
-			case *v1.SignedTransaction_ManageEntity:
+			case *corev1.SignedTransaction_ManageEntity:
 				txType = TxTypeManageEntity
 				me := signedTx.ManageEntity
 				etl.db.InsertManageEntity(context.Background(), db.InsertManageEntityParams{
@@ -258,7 +257,7 @@ func (etl *ETLService) indexBlocks() error {
 					BlockHeight: block.Msg.Block.Height,
 					TxHash:      tx.Hash,
 				})
-			case *v1.SignedTransaction_ValidatorRegistration:
+			case *corev1.SignedTransaction_ValidatorRegistration:
 				txType = TxTypeValidatorRegistrationLegacy
 				vr := signedTx.ValidatorRegistration
 				etl.db.InsertValidatorRegistrationLegacy(context.Background(), db.InsertValidatorRegistrationLegacyParams{
@@ -272,7 +271,7 @@ func (etl *ETLService) indexBlocks() error {
 					BlockHeight:  block.Msg.Block.Height,
 					TxHash:       tx.Hash,
 				})
-			case *v1.SignedTransaction_SlaRollup:
+			case *corev1.SignedTransaction_SlaRollup:
 				txType = TxTypeSlaRollup
 				sr := signedTx.SlaRollup
 				slaRollup, err := etl.db.InsertSlaRollup(context.Background(), db.InsertSlaRollupParams{
@@ -296,7 +295,7 @@ func (etl *ETLService) indexBlocks() error {
 						TxHash:            tx.Hash,
 					})
 				}
-			case *v1.SignedTransaction_ValidatorDeregistration:
+			case *corev1.SignedTransaction_ValidatorDeregistration:
 				txType = TxTypeValidatorMisbehaviorDeregistration
 				vd := signedTx.ValidatorDeregistration
 				etl.db.InsertValidatorMisbehaviorDeregistration(context.Background(), db.InsertValidatorMisbehaviorDeregistrationParams{
@@ -305,7 +304,7 @@ func (etl *ETLService) indexBlocks() error {
 					BlockHeight:  block.Msg.Block.Height,
 					TxHash:       tx.Hash,
 				})
-			case *v1.SignedTransaction_StorageProof:
+			case *corev1.SignedTransaction_StorageProof:
 				txType = TxTypeStorageProof
 				sp := signedTx.StorageProof
 				etl.db.InsertStorageProof(context.Background(), db.InsertStorageProofParams{
@@ -317,7 +316,7 @@ func (etl *ETLService) indexBlocks() error {
 					BlockHeight:     block.Msg.Block.Height,
 					TxHash:          tx.Hash,
 				})
-			case *v1.SignedTransaction_StorageProofVerification:
+			case *corev1.SignedTransaction_StorageProofVerification:
 				txType = TxTypeStorageProofVerification
 				spv := signedTx.StorageProofVerification
 				etl.db.InsertStorageProofVerification(context.Background(), db.InsertStorageProofVerificationParams{
@@ -326,7 +325,7 @@ func (etl *ETLService) indexBlocks() error {
 					BlockHeight: block.Msg.Block.Height,
 					TxHash:      tx.Hash,
 				})
-			case *v1.SignedTransaction_Attestation:
+			case *corev1.SignedTransaction_Attestation:
 				at := signedTx.Attestation
 				if at.GetValidatorRegistration() != nil {
 					txType = TxTypeValidatorRegistration
@@ -354,7 +353,7 @@ func (etl *ETLService) indexBlocks() error {
 						TxHash:       tx.Hash,
 					})
 				}
-			case *v1.SignedTransaction_Release:
+			case *corev1.SignedTransaction_Release:
 				txType = TxTypeRelease
 				// Convert the release message to JSON for storage
 				releaseData, err := protojson.Marshal(signedTx.Release)
