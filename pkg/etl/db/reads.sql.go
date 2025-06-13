@@ -226,6 +226,42 @@ func (q *Queries) GetBlockTransactions(ctx context.Context, blockHeight int64) (
 	return items, nil
 }
 
+const getBlocks = `-- name: GetBlocks :many
+select id, proposer_address, block_height, block_time, created_at, updated_at from etl_blocks where block_height between $1 and $2 order by block_height desc
+`
+
+type GetBlocksParams struct {
+	BlockHeight   int64 `json:"block_height"`
+	BlockHeight_2 int64 `json:"block_height_2"`
+}
+
+func (q *Queries) GetBlocks(ctx context.Context, arg GetBlocksParams) ([]EtlBlock, error) {
+	rows, err := q.db.Query(ctx, getBlocks, arg.BlockHeight, arg.BlockHeight_2)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []EtlBlock
+	for rows.Next() {
+		var i EtlBlock
+		if err := rows.Scan(
+			&i.ID,
+			&i.ProposerAddress,
+			&i.BlockHeight,
+			&i.BlockTime,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getBlocksPerSecond = `-- name: GetBlocksPerSecond :one
 select case 
     when extract(epoch from (max(block_time) - min(block_time))) > 0 
@@ -315,6 +351,26 @@ func (q *Queries) GetLatestIndexedBlock(ctx context.Context) (int64, error) {
 	var block_height int64
 	err := row.Scan(&block_height)
 	return block_height, err
+}
+
+const getLatestSLARollup = `-- name: GetLatestSLARollup :one
+select id, timestamp, block_start, block_end, block_height, tx_hash, created_at, updated_at from etl_sla_rollups order by block_height desc limit 1
+`
+
+func (q *Queries) GetLatestSLARollup(ctx context.Context) (EtlSlaRollup, error) {
+	row := q.db.QueryRow(ctx, getLatestSLARollup)
+	var i EtlSlaRollup
+	err := row.Scan(
+		&i.ID,
+		&i.Timestamp,
+		&i.BlockStart,
+		&i.BlockEnd,
+		&i.BlockHeight,
+		&i.TxHash,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
 const getLatestTransactions = `-- name: GetLatestTransactions :many
@@ -1178,6 +1234,64 @@ func (q *Queries) GetTransactionTypeBreakdown(ctx context.Context) ([]GetTransac
 		return nil, err
 	}
 	return items, nil
+}
+
+const getTransactionsCount = `-- name: GetTransactionsCount :one
+select count(*) from etl_transactions where block_height between $1 and $2
+`
+
+type GetTransactionsCountParams struct {
+	BlockHeight   int64 `json:"block_height"`
+	BlockHeight_2 int64 `json:"block_height_2"`
+}
+
+func (q *Queries) GetTransactionsCount(ctx context.Context, arg GetTransactionsCountParams) (int64, error) {
+	row := q.db.QueryRow(ctx, getTransactionsCount, arg.BlockHeight, arg.BlockHeight_2)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const getTransactionsCountTimeRange = `-- name: GetTransactionsCountTimeRange :one
+select count(*) as total
+from etl_transactions t
+join etl_blocks b on t.block_height = b.block_height
+where b.block_time between $1 and $2
+`
+
+type GetTransactionsCountTimeRangeParams struct {
+	BlockTime   pgtype.Timestamp `json:"block_time"`
+	BlockTime_2 pgtype.Timestamp `json:"block_time_2"`
+}
+
+func (q *Queries) GetTransactionsCountTimeRange(ctx context.Context, arg GetTransactionsCountTimeRangeParams) (int64, error) {
+	row := q.db.QueryRow(ctx, getTransactionsCountTimeRange, arg.BlockTime, arg.BlockTime_2)
+	var total int64
+	err := row.Scan(&total)
+	return total, err
+}
+
+const getTransactionsCountTimeRangeSubquery = `-- name: GetTransactionsCountTimeRangeSubquery :one
+select count(*) as total
+from etl_transactions
+where block_height in (
+    select block_height 
+    from etl_blocks 
+    where block_time between $1 and $2
+)
+`
+
+type GetTransactionsCountTimeRangeSubqueryParams struct {
+	BlockTime   pgtype.Timestamp `json:"block_time"`
+	BlockTime_2 pgtype.Timestamp `json:"block_time_2"`
+}
+
+// Alternative subquery approach for transaction count by time range
+func (q *Queries) GetTransactionsCountTimeRangeSubquery(ctx context.Context, arg GetTransactionsCountTimeRangeSubqueryParams) (int64, error) {
+	row := q.db.QueryRow(ctx, getTransactionsCountTimeRangeSubquery, arg.BlockTime, arg.BlockTime_2)
+	var total int64
+	err := row.Scan(&total)
+	return total, err
 }
 
 const getTransactionsPerSecond = `-- name: GetTransactionsPerSecond :one

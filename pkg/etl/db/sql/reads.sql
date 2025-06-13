@@ -390,3 +390,28 @@ join etl_blocks b on t.block_height = b.block_height
 where b.block_time >= now() - interval '24 hours'
 group by tx_type
 order by count(*) desc;
+
+-- name: GetLatestSLARollup :one
+select * from etl_sla_rollups order by block_height desc limit 1;
+
+-- name: GetBlocks :many
+select * from etl_blocks where block_height between $1 and $2 order by block_height desc;
+
+-- name: GetTransactionsCount :one
+select count(*) from etl_transactions where block_height between $1 and $2;
+
+-- name: GetTransactionsCountTimeRange :one
+select count(*) as total
+from etl_transactions t
+join etl_blocks b on t.block_height = b.block_height
+where b.block_time between $1 and $2;
+
+-- Alternative subquery approach for transaction count by time range
+-- name: GetTransactionsCountTimeRangeSubquery :one
+select count(*) as total
+from etl_transactions
+where block_height in (
+    select block_height 
+    from etl_blocks 
+    where block_time between $1 and $2
+);
