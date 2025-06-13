@@ -124,6 +124,27 @@ func (con *Console) Stop() {
 	con.e.Shutdown(context.Background())
 }
 
+// getTransactionsWithBlockHeights is a helper method to get transactions with their block heights
+func (con *Console) getTransactionsWithBlockHeights(ctx context.Context, limit, offset int32) ([]*v1.Block_Transaction, map[string]int64, error) {
+	// Get transactions from ETL service
+	response, err := con.etl.GetTransactions(ctx, &connect.Request[v1.GetTransactionsRequest]{
+		Msg: &v1.GetTransactionsRequest{
+			Limit:  limit,
+			Offset: offset,
+		},
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Create block heights map by getting the latest transactions from DB
+	blockHeights := make(map[string]int64)
+	// We need to add a method to get block heights - for now return empty map
+	// TODO: Add method to get block heights for transactions
+
+	return response.Msg.Transactions, blockHeights, nil
+}
+
 func (con *Console) Hello(c echo.Context) error {
 	param := "sup"
 	if name := c.QueryParam("name"); name != "" {
@@ -146,7 +167,7 @@ func (con *Console) Dashboard(c echo.Context) error {
 	}
 
 	// Get some recent transactions for the dashboard
-	transactions, blockHeights, err := con.etl.GetTransactionsForAPI(c.Request().Context(), 10, 0)
+	transactions, blockHeights, err := con.getTransactionsWithBlockHeights(c.Request().Context(), 10, 0)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, "Failed to get transactions")
 	}
@@ -192,7 +213,13 @@ func (con *Console) Dashboard(c echo.Context) error {
 		}
 	}
 
-	p := pages.Dashboard(stats, transactionBreakdown, blocks.Msg.Blocks, transactions.Transactions, blockHeights, syncProgressPercentage)
+	// Calculate sync progress percentage
+	syncProgressPercentage = float64(0)
+	if stats.LatestChainHeight > 0 {
+		syncProgressPercentage = float64(stats.LatestIndexedHeight) / float64(stats.LatestChainHeight) * 100
+	}
+
+	p := pages.Dashboard(stats, transactionBreakdown, blocks.Msg.Blocks, transactions, blockHeights, syncProgressPercentage)
 	return p.Render(c.Request().Context(), c.Response().Writer)
 }
 
@@ -350,16 +377,16 @@ func (con *Console) Transactions(c echo.Context) error {
 	// Calculate offset from page number
 	offset := (page - 1) * count
 
-	transactions, blockHeights, err := con.etl.GetTransactionsForAPI(c.Request().Context(), count, offset)
+	transactions, blockHeights, err := con.getTransactionsWithBlockHeights(c.Request().Context(), count, offset)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, "Failed to get transactions")
 	}
 
 	// Calculate pagination state
-	hasNext := transactions.HasMore
+	hasNext := len(transactions) == int(count) // Simple check - if we got the full limit, there might be more
 	hasPrev := page > 1
 
-	p := pages.Transactions(transactions.Transactions, blockHeights, page, hasNext, hasPrev, count)
+	p := pages.Transactions(transactions, blockHeights, page, hasNext, hasPrev, count)
 	return p.Render(c.Request().Context(), c.Response().Writer)
 }
 
