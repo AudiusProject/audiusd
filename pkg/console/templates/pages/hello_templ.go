@@ -43,20 +43,20 @@ func Hello(name string) templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"text-3xl font-bold underline text-gray-900 dark:text-gray-100\">Sup, ")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"space-y-4 p-6\"><div class=\"text-3xl font-bold underline text-gray-900 dark:text-gray-100\">Sup, ")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/hello.templ`, Line: 7, Col: 88}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/hello.templ`, Line: 8, Col: 89}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "!</div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "!</div><div class=\"text-lg text-gray-700 dark:text-gray-300\"><p class=\"mb-2\">Test timezone conversion:</p><p>Current time: @templates.TimeWithTooltip(time.Now())</p><p class=\"text-sm text-gray-500 dark:text-gray-400 mt-2\">Hover over the time to see it in your local timezone!</p></div></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
