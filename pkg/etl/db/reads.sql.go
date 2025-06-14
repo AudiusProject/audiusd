@@ -1256,7 +1256,7 @@ with address_transactions as (
     from etl_transactions t
     join etl_plays p on t.tx_hash = p.tx_hash
     join etl_blocks b on t.block_height = b.block_height
-    where p.address = $1
+    where lower(p.address) = lower($1)
     
     union all
     
@@ -1272,7 +1272,7 @@ with address_transactions as (
     from etl_transactions t
     join etl_manage_entities m on t.tx_hash = m.tx_hash
     join etl_blocks b on t.block_height = b.block_height
-    where m.address = $1
+    where lower(m.address) = lower($1)
     
     union all
     
@@ -1288,7 +1288,7 @@ with address_transactions as (
     from etl_transactions t
     join etl_validator_registrations v on t.tx_hash = v.tx_hash
     join etl_blocks b on t.block_height = b.block_height
-    where v.address = $1
+    where lower(v.address) = lower($1)
     
     union all
     
@@ -1304,7 +1304,7 @@ with address_transactions as (
     from etl_transactions t
     join etl_validator_deregistrations vd on t.tx_hash = vd.tx_hash
     join etl_blocks b on t.block_height = b.block_height
-    where vd.comet_address = $1
+    where lower(vd.comet_address) = lower($1)
     
     union all
     
@@ -1320,7 +1320,7 @@ with address_transactions as (
     from etl_transactions t
     join etl_storage_proofs sp on t.tx_hash = sp.tx_hash
     join etl_blocks b on t.block_height = b.block_height
-    where sp.address = $1
+    where lower(sp.address) = lower($1)
     
     union all
     
@@ -1336,7 +1336,7 @@ with address_transactions as (
     from etl_transactions t
     join etl_sla_node_reports snr on t.tx_hash = snr.tx_hash
     join etl_blocks b on t.block_height = b.block_height
-    where snr.address = $1
+    where lower(snr.address) = lower($1)
 )
 select 
     tx_hash,
@@ -1352,9 +1352,9 @@ limit $2 offset $3
 `
 
 type GetTransactionsByAddressParams struct {
-	Address string `json:"address"`
-	Limit   int32  `json:"limit"`
-	Offset  int32  `json:"offset"`
+	Lower  string `json:"lower"`
+	Limit  int32  `json:"limit"`
+	Offset int32  `json:"offset"`
 }
 
 type GetTransactionsByAddressRow struct {
@@ -1368,7 +1368,7 @@ type GetTransactionsByAddressRow struct {
 }
 
 func (q *Queries) GetTransactionsByAddress(ctx context.Context, arg GetTransactionsByAddressParams) ([]GetTransactionsByAddressRow, error) {
-	rows, err := q.db.Query(ctx, getTransactionsByAddress, arg.Address, arg.Limit, arg.Offset)
+	rows, err := q.db.Query(ctx, getTransactionsByAddress, arg.Lower, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}

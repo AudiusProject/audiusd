@@ -325,9 +325,9 @@ func (e *ETLService) GetTransactionsByAddress(ctx context.Context, req *connect.
 
 	// Get transactions by address from the database
 	dbTxs, err := e.db.GetTransactionsByAddress(ctx, db.GetTransactionsByAddressParams{
-		Address: address,
-		Limit:   limit,
-		Offset:  offset,
+		Lower:  address,
+		Limit:  limit,
+		Offset: offset,
 	})
 	if err != nil {
 		return nil, err
