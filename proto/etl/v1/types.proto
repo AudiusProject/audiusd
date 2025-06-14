@@ -98,12 +98,21 @@ message GetTransactionsByAddressRequest {
   string address = 1;
   int32 limit = 2;
   int32 offset = 3;
+  optional string relation_filter = 4;
 }
 
 message GetTransactionsByAddressResponse {
   repeated AddressTransaction transactions = 1;
   bool has_more = 2;
   int32 total_count = 3;
+}
+
+message GetRelationTypesByAddressRequest {
+  string address = 1;
+}
+
+message GetRelationTypesByAddressResponse {
+  repeated string relation_types = 1;
 }
 
 message AddressTransaction {

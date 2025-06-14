@@ -928,6 +928,85 @@ func (q *Queries) GetRecentProposers(ctx context.Context, limit int32) ([]string
 	return items, nil
 }
 
+const getRelationTypesByAddress = `-- name: GetRelationTypesByAddress :many
+with address_transactions as (
+    -- Play transactions
+    select 
+        'play' as relation_type
+    from etl_transactions t
+    join etl_plays p on t.tx_hash = p.tx_hash
+    where lower(p.address) = lower($1)
+    
+    union
+    
+    -- Manage entity transactions
+    select 
+        m.action || m.entity_type as relation_type
+    from etl_transactions t
+    join etl_manage_entities m on t.tx_hash = m.tx_hash
+    where lower(m.address) = lower($1)
+    
+    union
+    
+    -- Validator registration transactions
+    select 
+        'validator_registration' as relation_type
+    from etl_transactions t
+    join etl_validator_registrations v on t.tx_hash = v.tx_hash
+    where lower(v.address) = lower($1)
+    
+    union
+    
+    -- Validator deregistration transactions (by comet_address)
+    select 
+        'validator_deregistration' as relation_type
+    from etl_transactions t
+    join etl_validator_deregistrations vd on t.tx_hash = vd.tx_hash
+    where lower(vd.comet_address) = lower($1)
+    
+    union
+    
+    -- Storage proof transactions
+    select 
+        'storage_proof' as relation_type
+    from etl_transactions t
+    join etl_storage_proofs sp on t.tx_hash = sp.tx_hash
+    where lower(sp.address) = lower($1)
+    
+    union
+    
+    -- SLA node report transactions
+    select 
+        'sla_node_report' as relation_type
+    from etl_transactions t
+    join etl_sla_node_reports snr on t.tx_hash = snr.tx_hash
+    where lower(snr.address) = lower($1)
+)
+select relation_type
+from address_transactions
+order by relation_type
+`
+
+func (q *Queries) GetRelationTypesByAddress(ctx context.Context, lower string) ([]string, error) {
+	rows, err := q.db.Query(ctx, getRelationTypesByAddress, lower)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var relation_type string
+		if err := rows.Scan(&relation_type); err != nil {
+			return nil, err
+		}
+		items = append(items, relation_type)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getReleasesByTxHash = `-- name: GetReleasesByTxHash :many
 select release_data,
     block_height,
@@ -1347,14 +1426,16 @@ select
     relation_type,
     block_time
 from address_transactions
+where ($4 = '' OR relation_type = $4)
 order by block_height desc, index desc
 limit $2 offset $3
 `
 
 type GetTransactionsByAddressParams struct {
-	Lower  string `json:"lower"`
-	Limit  int32  `json:"limit"`
-	Offset int32  `json:"offset"`
+	Lower   string      `json:"lower"`
+	Limit   int32       `json:"limit"`
+	Offset  int32       `json:"offset"`
+	Column4 interface{} `json:"column_4"`
 }
 
 type GetTransactionsByAddressRow struct {
@@ -1368,7 +1449,12 @@ type GetTransactionsByAddressRow struct {
 }
 
 func (q *Queries) GetTransactionsByAddress(ctx context.Context, arg GetTransactionsByAddressParams) ([]GetTransactionsByAddressRow, error) {
-	rows, err := q.db.Query(ctx, getTransactionsByAddress, arg.Lower, arg.Limit, arg.Offset)
+	rows, err := q.db.Query(ctx, getTransactionsByAddress,
+		arg.Lower,
+		arg.Limit,
+		arg.Offset,
+		arg.Column4,
+	)
 	if err != nil {
 		return nil, err
 	}

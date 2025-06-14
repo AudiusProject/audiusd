@@ -323,11 +323,18 @@ func (e *ETLService) GetTransactionsByAddress(ctx context.Context, req *connect.
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("address is required"))
 	}
 
+	// Get relation filter if specified
+	relationFilter := ""
+	if req.Msg.RelationFilter != nil && *req.Msg.RelationFilter != "" {
+		relationFilter = *req.Msg.RelationFilter
+	}
+
 	// Get transactions by address from the database
 	dbTxs, err := e.db.GetTransactionsByAddress(ctx, db.GetTransactionsByAddressParams{
-		Lower:  address,
-		Limit:  limit,
-		Offset: offset,
+		Lower:   address,
+		Limit:   limit,
+		Offset:  offset,
+		Column4: relationFilter,
 	})
 	if err != nil {
 		return nil, err
@@ -355,6 +362,24 @@ func (e *ETLService) GetTransactionsByAddress(ctx context.Context, req *connect.
 		Transactions: transactions,
 		HasMore:      hasMore,
 		TotalCount:   int32(len(dbTxs)), // This is approximate - for exact count we'd need another query
+	}), nil
+}
+
+// GetRelationTypesByAddress implements v1connect.ETLServiceHandler.
+func (e *ETLService) GetRelationTypesByAddress(ctx context.Context, req *connect.Request[v1.GetRelationTypesByAddressRequest]) (*connect.Response[v1.GetRelationTypesByAddressResponse], error) {
+	address := req.Msg.Address
+	if address == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("address is required"))
+	}
+
+	// Get relation types from the database
+	relationTypes, err := e.db.GetRelationTypesByAddress(ctx, address)
+	if err != nil {
+		return nil, err
+	}
+
+	return connect.NewResponse(&v1.GetRelationTypesByAddressResponse{
+		RelationTypes: relationTypes,
 	}), nil
 }
 

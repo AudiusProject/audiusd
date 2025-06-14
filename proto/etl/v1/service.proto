@@ -15,6 +15,7 @@ service ETLService {
   rpc GetTransaction(GetTransactionRequest) returns (GetTransactionResponse) {}
   rpc GetTransactions(GetTransactionsRequest) returns (GetTransactionsResponse) {}
   rpc GetTransactionsByAddress(GetTransactionsByAddressRequest) returns (GetTransactionsByAddressResponse) {}
+  rpc GetRelationTypesByAddress(GetRelationTypesByAddressRequest) returns (GetRelationTypesByAddressResponse) {}
   rpc GetPlays(GetPlaysRequest) returns (GetPlaysResponse) {}
   rpc GetManageEntities(GetManageEntitiesRequest) returns (GetManageEntitiesResponse) {}
   rpc GetValidators(GetValidatorsRequest) returns (GetValidatorsResponse) {}
