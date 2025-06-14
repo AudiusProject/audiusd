@@ -576,7 +576,8 @@ func (con *Console) TPSFragment(c echo.Context) error {
 	}
 
 	stats := &pages.DashboardStats{
-		TPS: statsResp.Msg.Tps,
+		TPS:                  statsResp.Msg.Tps,
+		TotalTransactions30d: statsResp.Msg.TotalTransactions_30D,
 	}
 
 	fragment := pages.TPSFragment(stats)
