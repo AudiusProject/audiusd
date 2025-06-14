@@ -603,6 +603,8 @@ type SSEEvent struct {
 	Data  any    `json:"data"`
 }
 
+const sseConnectionTTL = 1 * time.Minute
+
 func (con *Console) LiveEventsSSE(c echo.Context) error {
 	c.Response().Header().Set("Content-Type", "text/event-stream")
 	c.Response().Header().Set("Cache-Control", "no-cache")
@@ -633,6 +635,8 @@ func (con *Console) LiveEventsSSE(c echo.Context) error {
 
 	flusher.Flush()
 
+	timeout := time.After(sseConnectionTTL)
+
 	for {
 		select {
 		case <-c.Request().Context().Done():
@@ -641,6 +645,8 @@ func (con *Console) LiveEventsSSE(c echo.Context) error {
 			if blockEvent != nil {
 				latestBlock = blockEvent
 			}
+		case <-timeout:
+			return nil
 		case <-blockTicker.C:
 			if latestBlock != nil && latestBlock.Height > lastSentHeight {
 				resp := &v1.StreamResponse_StreamBlocksResponse{
