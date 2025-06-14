@@ -51,22 +51,57 @@ function searchBar() {
 
             this.isLoading = true;
             try {
-                // Call the real search API
-                const response = await fetch(`/search?q=${encodeURIComponent(this.query)}`);
-                const data = await response.json();
+                // Make both API calls in parallel
+                const [localResponse, audiusResponse] = await Promise.all([
+                    fetch(`/search?q=${encodeURIComponent(this.query)}`),
+                    fetch(`https://api.audius.co/v1/users/search?query=${encodeURIComponent(this.query)}&limit=5`)
+                        .catch(error => {
+                            console.warn('Audius API error:', error);
+                            return null; // Don't fail the entire search if Audius is down
+                        })
+                ]);
 
-                if (data.error) {
-                    console.error('Search error:', data.error);
+                const localData = await localResponse.json();
+                let audiusData = null;
+
+                if (audiusResponse && audiusResponse.ok) {
+                    audiusData = await audiusResponse.json();
+                }
+
+                if (localData.error) {
+                    console.error('Search error:', localData.error);
                     this.suggestions = [];
                     this.showSuggestions = false;
                     this.flashNoResults();
                     return;
                 }
 
-                const results = data.results || [];
+                const localResults = localData.results || [];
+                const audiusUsers = audiusData?.data || [];
+
+                // Convert Audius users to our suggestion format
+                const audiusSuggestions = audiusUsers.map(user => ({
+                    id: user.erc_wallet || user.wallet, // Use wallet address as ID for navigation
+                    title: user.name,
+                    subtitle: `@${user.handle} • ${user.follower_count?.toLocaleString() || 0} followers`,
+                    type: 'audius_user',
+                    url: `/account/${user.erc_wallet || user.wallet}`,
+                    audiusData: {
+                        handle: user.handle,
+                        bio: user.bio,
+                        followerCount: user.follower_count,
+                        trackCount: user.track_count,
+                        isVerified: user.is_verified,
+                        profilePicture: user.profile_picture,
+                        wallet: user.erc_wallet || user.wallet
+                    }
+                })).filter(user => user.id); // Filter out users without wallet addresses
+
+                // Combine results
+                const allResults = [...localResults, ...audiusSuggestions];
 
                 // Check if no results found
-                if (results.length === 0) {
+                if (allResults.length === 0) {
                     this.suggestions = [];
                     this.showSuggestions = false;
                     this.searchType = '';
@@ -92,7 +127,7 @@ function searchBar() {
                 }
 
                 // Group suggestions by type
-                this.suggestions = this.groupSuggestionsByType(results);
+                this.suggestions = this.groupSuggestionsByType(allResults);
                 this.showSuggestions = true;
             } catch (error) {
                 console.error('Error handling input:', error);
@@ -138,7 +173,8 @@ function searchBar() {
                 'block': 'Blocks',
                 'account': 'Accounts',
                 'transaction': 'Transactions',
-                'validator': 'Validators'
+                'validator': 'Validators',
+                'audius_user': 'Audius Artists'
             };
             return headers[type] || type.charAt(0).toUpperCase() + type.slice(1) + 's';
         },
@@ -170,6 +206,8 @@ function searchBar() {
                     return `/playlists/${suggestion.id}`;
                 case 'album':
                     return `/albums/${suggestion.id}`;
+                case 'audius_user':
+                    return `/account/${suggestion.id}`;
                 default:
                     return '';
             }

@@ -442,6 +442,9 @@ func (con *Console) Account(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "Account address required")
 	}
 
+	// Normalize address to lowercase for case-insensitive matching
+	address = strings.ToLower(address)
+
 	// Parse query parameters for pagination
 	pageParam := c.QueryParam("page")
 	countParam := c.QueryParam("count")
