@@ -439,26 +439,24 @@ func (con *Console) Transaction(c echo.Context) error {
 func (con *Console) Account(c echo.Context) error {
 	address := c.Param("address")
 	if address == "" {
-		return c.String(http.StatusBadRequest, "Account address required")
+		return c.String(http.StatusBadRequest, "Address parameter is required")
 	}
 
-	// Normalize address to lowercase for case-insensitive matching
-	address = strings.ToLower(address)
-
 	// Parse query parameters for pagination
-	pageParam := c.QueryParam("page")
-	countParam := c.QueryParam("count")
+	pageStr := c.QueryParam("page")
+	countStr := c.QueryParam("count")
+	relationFilter := c.QueryParam("relation") // Get relation filter from query param
 
-	page := int32(1) // default to page 1
-	if pageParam != "" {
-		if parsedPage, err := strconv.ParseInt(pageParam, 10, 32); err == nil && parsedPage > 0 {
+	page := int32(1)
+	if pageStr != "" {
+		if parsedPage, err := strconv.ParseInt(pageStr, 10, 32); err == nil && parsedPage > 0 {
 			page = int32(parsedPage)
 		}
 	}
 
-	count := int32(50) // default to 50 per page
-	if countParam != "" {
-		if parsedCount, err := strconv.ParseInt(countParam, 10, 32); err == nil && parsedCount > 0 && parsedCount <= 200 {
+	count := int32(50)
+	if countStr != "" {
+		if parsedCount, err := strconv.ParseInt(countStr, 10, 32); err == nil && parsedCount > 0 {
 			count = int32(parsedCount)
 		}
 	}
@@ -472,17 +470,34 @@ func (con *Console) Account(c echo.Context) error {
 			Address: address,
 			Limit:   count,
 			Offset:  offset,
+			RelationFilter: func() *string {
+				if relationFilter != "" && relationFilter != "all" {
+					return &relationFilter
+				}
+				return nil
+			}(),
 		},
 	})
 	if err != nil {
 		return c.String(http.StatusInternalServerError, "Failed to get transactions for address")
 	}
 
+	// Get available relation types for this address to populate the dropdown
+	relationTypesResponse, err := con.etl.GetRelationTypesByAddress(c.Request().Context(), &connect.Request[v1.GetRelationTypesByAddressRequest]{
+		Msg: &v1.GetRelationTypesByAddressRequest{
+			Address: address,
+		},
+	})
+	var relationTypes []string
+	if err == nil {
+		relationTypes = relationTypesResponse.Msg.RelationTypes
+	}
+
 	// Calculate pagination state
 	hasNext := response.Msg.HasMore
 	hasPrev := page > 1
 
-	p := pages.Account(address, response.Msg.Transactions, page, hasNext, hasPrev, count)
+	p := pages.Account(address, response.Msg.Transactions, page, hasNext, hasPrev, count, relationTypes, relationFilter)
 	return p.Render(c.Request().Context(), c.Response().Writer)
 }
 

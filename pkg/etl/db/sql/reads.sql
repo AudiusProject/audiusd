@@ -522,8 +522,67 @@ select
     relation_type,
     block_time
 from address_transactions
+where ($4 = '' OR relation_type = $4)
 order by block_height desc, index desc
 limit $2 offset $3;
+
+-- name: GetRelationTypesByAddress :many
+with address_transactions as (
+    -- Play transactions
+    select 
+        'play' as relation_type
+    from etl_transactions t
+    join etl_plays p on t.tx_hash = p.tx_hash
+    where lower(p.address) = lower($1)
+    
+    union
+    
+    -- Manage entity transactions
+    select 
+        m.action || m.entity_type as relation_type
+    from etl_transactions t
+    join etl_manage_entities m on t.tx_hash = m.tx_hash
+    where lower(m.address) = lower($1)
+    
+    union
+    
+    -- Validator registration transactions
+    select 
+        'validator_registration' as relation_type
+    from etl_transactions t
+    join etl_validator_registrations v on t.tx_hash = v.tx_hash
+    where lower(v.address) = lower($1)
+    
+    union
+    
+    -- Validator deregistration transactions (by comet_address)
+    select 
+        'validator_deregistration' as relation_type
+    from etl_transactions t
+    join etl_validator_deregistrations vd on t.tx_hash = vd.tx_hash
+    where lower(vd.comet_address) = lower($1)
+    
+    union
+    
+    -- Storage proof transactions
+    select 
+        'storage_proof' as relation_type
+    from etl_transactions t
+    join etl_storage_proofs sp on t.tx_hash = sp.tx_hash
+    where lower(sp.address) = lower($1)
+    
+    union
+    
+    -- SLA node report transactions
+    select 
+        'sla_node_report' as relation_type
+    from etl_transactions t
+    join etl_sla_node_reports snr on t.tx_hash = snr.tx_hash
+    where lower(snr.address) = lower($1)
+)
+select relation_type
+from address_transactions
+order by relation_type;
 
 -- name: SearchUnified :many
 with search_blocks as (
