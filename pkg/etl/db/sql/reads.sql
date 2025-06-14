@@ -133,6 +133,7 @@ select distinct on (address) address,
     block_height,
     tx_hash
 from etl_validator_registrations
+where ($1::text is null or lower(endpoint) like '%' || lower($1) || '%')
 order by address, block_height desc;
 
 -- get validator deregistrations
