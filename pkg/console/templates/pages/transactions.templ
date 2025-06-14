@@ -24,7 +24,7 @@ templ Transactions(transactions []*v1.Block_Transaction, blockHeights map[string
 								<div class="flex-1">
 									<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Hash</div>
 									<a href={ templ.SafeURL(fmt.Sprintf("/transaction/%s", tx.Hash)) } class="font-mono text-sm text-purple-600 dark:text-purple-400 hover:underline">
-										@templates.StringWithTooltip(tx.Hash)
+										@templates.StringWithTooltipCustom(tx.Hash, 10, 6)
 									</a>
 								</div>
 								<div class="flex-1">

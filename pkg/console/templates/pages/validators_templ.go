@@ -197,7 +197,7 @@ func Validators(validators []*v1.ValidatorInfo, currentPage int32, hasNext bool,
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templates.StringWithTooltip(validator.Address).Render(ctx, templ_7745c5c3_Buffer)
+					templ_7745c5c3_Err = templates.StringWithTooltipCustom(validator.Address, 8, 4).Render(ctx, templ_7745c5c3_Buffer)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
