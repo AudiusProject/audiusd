@@ -465,7 +465,7 @@ templ TPSFragment(stats *DashboardStats) {
 	<div id="tps-fragment" hx-get="/fragments/tps" hx-trigger="every 5s" hx-swap="outerHTML" class="border-r border-gray-200 dark:border-gray-700 pr-6">
 		<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Transactions/sec</div>
 		<div class="text-4xl font-light text-gray-900 dark:text-gray-100 mb-1">{ fmt.Sprintf("%.1f", stats.TPS) }</div>
-		<div class="text-xs text-gray-500 dark:text-gray-400">Peak: 25.3 TPS</div>
+		<div class="text-xs text-gray-500 dark:text-gray-400">30d Avg: { fmt.Sprintf("%.1f", float64(stats.TotalTransactions30d)/(30*24*60*60)) } TPS</div>
 	</div>
 }
 
