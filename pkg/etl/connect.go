@@ -17,6 +17,7 @@ import (
 	"github.com/AudiusProject/audiusd/pkg/common"
 	"github.com/AudiusProject/audiusd/pkg/etl/db"
 	"github.com/AudiusProject/audiusd/pkg/etl/location"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/maypok86/otter"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -329,12 +330,23 @@ func (e *ETLService) GetTransactionsByAddress(ctx context.Context, req *connect.
 		relationFilter = *req.Msg.RelationFilter
 	}
 
+	// Get date filters if specified
+	var startDate, endDate pgtype.Timestamp
+	if req.Msg.StartDate != nil {
+		startDate = pgtype.Timestamp{Time: req.Msg.StartDate.AsTime(), Valid: true}
+	}
+	if req.Msg.EndDate != nil {
+		endDate = pgtype.Timestamp{Time: req.Msg.EndDate.AsTime(), Valid: true}
+	}
+
 	// Get transactions by address from the database
 	dbTxs, err := e.db.GetTransactionsByAddress(ctx, db.GetTransactionsByAddressParams{
 		Lower:   address,
 		Limit:   limit,
 		Offset:  offset,
 		Column4: relationFilter,
+		Column5: startDate,
+		Column6: endDate,
 	})
 	if err != nil {
 		return nil, err

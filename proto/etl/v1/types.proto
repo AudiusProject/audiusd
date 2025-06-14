@@ -99,6 +99,8 @@ message GetTransactionsByAddressRequest {
   int32 limit = 2;
   int32 offset = 3;
   optional string relation_filter = 4;
+  optional google.protobuf.Timestamp start_date = 5;
+  optional google.protobuf.Timestamp end_date = 6;
 }
 
 message GetTransactionsByAddressResponse {
