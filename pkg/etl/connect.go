@@ -115,16 +115,17 @@ func (e *ETLService) GetStats(ctx context.Context, req *connect.Request[v1.GetSt
 	}
 
 	return connect.NewResponse(&v1.GetStatsResponse{
-		CurrentBlockHeight:    stats.LatestIndexedHeight,
-		ChainId:               e.chainID,
-		Bps:                   stats.BPS,
-		Tps:                   stats.TPS,
-		TotalTransactions:     stats.TotalTransactions,
-		TotalTransactions_24H: stats.TotalTransactions24h,
-		TotalTransactions_7D:  stats.TotalTransactions7d,
-		TotalTransactions_30D: stats.TotalTransactions30d,
-		ValidatorCount:        stats.ValidatorCount,
-		TransactionBreakdown:  transactionBreakdown,
+		CurrentBlockHeight:            stats.LatestIndexedHeight,
+		ChainId:                       e.chainID,
+		Bps:                           stats.BPS,
+		Tps:                           stats.TPS,
+		TotalTransactions:             stats.TotalTransactions,
+		TotalTransactions_24H:         stats.TotalTransactions24h,
+		TotalTransactionsPrevious_24H: stats.TotalTransactionsPrevious24h,
+		TotalTransactions_7D:          stats.TotalTransactions7d,
+		TotalTransactions_30D:         stats.TotalTransactions30d,
+		ValidatorCount:                stats.ValidatorCount,
+		TransactionBreakdown:          transactionBreakdown,
 		SyncStatus: &v1.SyncStatus{
 			IsSyncing:           stats.IsSyncing,
 			LatestChainHeight:   stats.LatestChainHeight,

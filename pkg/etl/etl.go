@@ -33,18 +33,19 @@ const (
 )
 
 type Stats struct {
-	BPS                  float64
-	TPS                  float64
-	TotalTransactions    int64
-	TotalTransactions24h int64
-	TotalTransactions7d  int64
-	TotalTransactions30d int64
-	IsSyncing            bool
-	LatestIndexedHeight  int64
-	LatestChainHeight    int64
-	BlockDelta           int64
-	ValidatorCount       int64
-	TransactionBreakdown []db.GetTransactionTypeBreakdownRow
+	BPS                          float64
+	TPS                          float64
+	TotalTransactions            int64
+	TotalTransactions24h         int64
+	TotalTransactionsPrevious24h int64
+	TotalTransactions7d          int64
+	TotalTransactions30d         int64
+	IsSyncing                    bool
+	LatestIndexedHeight          int64
+	LatestChainHeight            int64
+	BlockDelta                   int64
+	ValidatorCount               int64
+	TransactionBreakdown         []db.GetTransactionTypeBreakdownRow
 }
 
 func (etl *ETLService) Run() error {
@@ -434,6 +435,15 @@ func (etl *ETLService) updateStats() error {
 		return fmt.Errorf("error getting 24h transaction count: %v", err)
 	}
 
+	// Get transaction count for the previous 24h period (48h to 24h ago) for percentage comparison
+	totalTransactionsPrevious24h, err := etl.db.GetTransactionsCountTimeRange(context.Background(), db.GetTransactionsCountTimeRangeParams{
+		BlockTime:   pgtype.Timestamp{Time: now.Add(-48 * time.Hour), Valid: true},
+		BlockTime_2: pgtype.Timestamp{Time: now.Add(-24 * time.Hour), Valid: true},
+	})
+	if err != nil {
+		return fmt.Errorf("error getting previous 24h transaction count: %v", err)
+	}
+
 	totalTransactions7d, err := etl.db.GetTransactionsCountTimeRange(context.Background(), db.GetTransactionsCountTimeRangeParams{
 		BlockTime:   pgtype.Timestamp{Time: now.Add(-7 * 24 * time.Hour), Valid: true},
 		BlockTime_2: pgtype.Timestamp{Time: now, Valid: true},
@@ -480,18 +490,19 @@ func (etl *ETLService) updateStats() error {
 	isSyncing := currentHeight < info.Msg.CurrentHeight-100
 
 	stats := Stats{
-		BPS:                  bps,
-		TPS:                  tps,
-		TotalTransactions:    totalTransactions,
-		TotalTransactions24h: totalTransactions24h,
-		TotalTransactions7d:  totalTransactions7d,
-		TotalTransactions30d: totalTransactions30d,
-		IsSyncing:            isSyncing,
-		LatestIndexedHeight:  currentHeight,
-		LatestChainHeight:    info.Msg.CurrentHeight,
-		BlockDelta:           info.Msg.CurrentHeight - currentHeight,
-		ValidatorCount:       validatorCount,
-		TransactionBreakdown: transactionBreakdown,
+		BPS:                          bps,
+		TPS:                          tps,
+		TotalTransactions:            totalTransactions,
+		TotalTransactions24h:         totalTransactions24h,
+		TotalTransactionsPrevious24h: totalTransactionsPrevious24h,
+		TotalTransactions7d:          totalTransactions7d,
+		TotalTransactions30d:         totalTransactions30d,
+		IsSyncing:                    isSyncing,
+		LatestIndexedHeight:          currentHeight,
+		LatestChainHeight:            info.Msg.CurrentHeight,
+		BlockDelta:                   info.Msg.CurrentHeight - currentHeight,
+		ValidatorCount:               validatorCount,
+		TransactionBreakdown:         transactionBreakdown,
 	}
 
 	// Cache the stats

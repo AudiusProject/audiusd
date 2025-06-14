@@ -10,21 +10,22 @@ import (
 )
 
 type DashboardStats struct {
-	CurrentBlockHeight   int64
-	ChainID              string
-	BPS                  float64
-	TPS                  float64
-	TotalTransactions    int64
-	ValidatorCount       int64
-	LatestBlock          *v1.Block
-	RecentProposers      []string
-	IsSyncing            bool
-	LatestIndexedHeight  int64
-	LatestChainHeight    int64
-	BlockDelta           int64
-	TotalTransactions24h int64
-	TotalTransactions7d  int64
-	TotalTransactions30d int64
+	CurrentBlockHeight           int64
+	ChainID                      string
+	BPS                          float64
+	TPS                          float64
+	TotalTransactions            int64
+	ValidatorCount               int64
+	LatestBlock                  *v1.Block
+	RecentProposers              []string
+	IsSyncing                    bool
+	LatestIndexedHeight          int64
+	LatestChainHeight            int64
+	BlockDelta                   int64
+	TotalTransactions24h         int64
+	TotalTransactionsPrevious24h int64
+	TotalTransactions7d          int64
+	TotalTransactions30d         int64
 }
 
 type TransactionTypeBreakdown struct {
@@ -92,6 +93,32 @@ func getProgressBarClass(percentage float64) string {
 		return "w-1/24"
 	default:
 		return "w-px"
+	}
+}
+
+func getPercentageChangeText(current, previous int64) string {
+	if previous == 0 {
+		return "No previous data"
+	}
+
+	change := float64(current-previous) / float64(previous) * 100
+	if change >= 0 {
+		return fmt.Sprintf("+%.1f%% from yesterday", change)
+	} else {
+		return fmt.Sprintf("%.1f%% from yesterday", change)
+	}
+}
+
+func getPercentageChangeColorClass(current, previous int64) string {
+	if previous == 0 {
+		return "text-gray-500 dark:text-gray-400"
+	}
+
+	change := float64(current-previous) / float64(previous) * 100
+	if change >= 0 {
+		return "text-green-600 dark:text-green-400"
+	} else {
+		return "text-red-600 dark:text-red-400"
 	}
 }
 
@@ -446,7 +473,7 @@ templ TotalTransactionsFragment(stats *DashboardStats) {
 	<div id="total-transactions-fragment" hx-get="/fragments/total-transactions" hx-trigger="every 10s" hx-swap="outerHTML" class="pr-6">
 		<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Total Transactions</div>
 		<div class="text-4xl font-light text-gray-900 dark:text-gray-100 mb-1">{ formatNumber(stats.TotalTransactions) }</div>
-		<div class="text-xs text-green-600 dark:text-green-400">+2.3% from yesterday</div>
+		<div class={ fmt.Sprintf("text-xs %s", getPercentageChangeColorClass(stats.TotalTransactions24h, stats.TotalTransactionsPrevious24h)) }>{ getPercentageChangeText(stats.TotalTransactions24h, stats.TotalTransactionsPrevious24h) }</div>
 	</div>
 }
 
