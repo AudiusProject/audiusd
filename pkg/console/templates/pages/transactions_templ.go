@@ -101,7 +101,7 @@ func Transactions(transactions []*v1.Block_Transaction, blockHeights map[string]
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templates.StringWithTooltip(tx.Hash).Render(ctx, templ_7745c5c3_Buffer)
+					templ_7745c5c3_Err = templates.StringWithTooltipCustom(tx.Hash, 10, 6).Render(ctx, templ_7745c5c3_Buffer)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}

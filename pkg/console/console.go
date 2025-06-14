@@ -126,7 +126,7 @@ func (con *Console) Stop() {
 
 // getTransactionsWithBlockHeights is a helper method to get transactions with their block heights
 func (con *Console) getTransactionsWithBlockHeights(ctx context.Context, limit, offset int32) ([]*v1.Block_Transaction, map[string]int64, error) {
-	// Get transactions from ETL service
+	// Get transactions from ETL service using the standard gRPC call
 	response, err := con.etl.GetTransactions(ctx, &connect.Request[v1.GetTransactionsRequest]{
 		Msg: &v1.GetTransactionsRequest{
 			Limit:  limit,
@@ -137,10 +137,21 @@ func (con *Console) getTransactionsWithBlockHeights(ctx context.Context, limit, 
 		return nil, nil, err
 	}
 
-	// Create block heights map by getting the latest transactions from DB
+	// Create block heights map by extracting block height from each transaction
 	blockHeights := make(map[string]int64)
-	// We need to add a method to get block heights - for now return empty map
-	// TODO: Add method to get block heights for transactions
+	for _, tx := range response.Msg.Transactions {
+		// The Block_Transaction should contain the block height information
+		// We need to get this from the transaction data somehow
+		// For now, we'll make individual calls to get the transaction details which include block height
+		txDetails, err := con.etl.GetTransaction(ctx, &connect.Request[v1.GetTransactionRequest]{
+			Msg: &v1.GetTransactionRequest{
+				TxHash: tx.Hash,
+			},
+		})
+		if err == nil && txDetails.Msg.Transaction != nil {
+			blockHeights[tx.Hash] = txDetails.Msg.Transaction.BlockHeight
+		}
+	}
 
 	return response.Msg.Transactions, blockHeights, nil
 }
