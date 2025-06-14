@@ -1427,15 +1427,19 @@ select
     block_time
 from address_transactions
 where ($4 = '' OR relation_type = $4)
+    AND ($5::timestamp IS NULL OR block_time >= $5)
+    AND ($6::timestamp IS NULL OR block_time <= $6)
 order by block_height desc, index desc
 limit $2 offset $3
 `
 
 type GetTransactionsByAddressParams struct {
-	Lower   string      `json:"lower"`
-	Limit   int32       `json:"limit"`
-	Offset  int32       `json:"offset"`
-	Column4 interface{} `json:"column_4"`
+	Lower   string           `json:"lower"`
+	Limit   int32            `json:"limit"`
+	Offset  int32            `json:"offset"`
+	Column4 interface{}      `json:"column_4"`
+	Column5 pgtype.Timestamp `json:"column_5"`
+	Column6 pgtype.Timestamp `json:"column_6"`
 }
 
 type GetTransactionsByAddressRow struct {
@@ -1454,6 +1458,8 @@ func (q *Queries) GetTransactionsByAddress(ctx context.Context, arg GetTransacti
 		arg.Limit,
 		arg.Offset,
 		arg.Column4,
+		arg.Column5,
+		arg.Column6,
 	)
 	if err != nil {
 		return nil, err

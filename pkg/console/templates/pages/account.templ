@@ -7,15 +7,21 @@ import (
 	"github.com/AudiusProject/audiusd/pkg/console/templates/layouts"
 )
 
-func buildPaginationURL(address string, page int32, pageSize int32, currentFilter string) string {
+func buildPaginationURL(address string, page int32, pageSize int32, currentFilter string, startDate string, endDate string) string {
 	baseURL := fmt.Sprintf("/account/%s?page=%d&count=%d", address, page, pageSize)
 	if currentFilter != "" && currentFilter != "all" {
 		baseURL += "&relation=" + currentFilter
 	}
+	if startDate != "" {
+		baseURL += "&start_date=" + startDate
+	}
+	if endDate != "" {
+		baseURL += "&end_date=" + endDate
+	}
 	return baseURL
 }
 
-templ Account(address string, transactions []*v1.AddressTransaction, currentPage int32, hasNext bool, hasPrev bool, pageSize int32, relationTypes []string, currentFilter string) {
+templ Account(address string, transactions []*v1.AddressTransaction, currentPage int32, hasNext bool, hasPrev bool, pageSize int32, relationTypes []string, currentFilter string, startDate string, endDate string) {
 	@layouts.Base(fmt.Sprintf("Account %s", address[:6])) {
 		<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6">
 			<div class="flex justify-between items-center mb-6">
@@ -30,7 +36,7 @@ templ Account(address string, transactions []*v1.AddressTransaction, currentPage
 				</div>
 			</div>
 			<div class="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-				<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
 					<div>
 						<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Address</div>
 						<div class="font-mono text-sm text-gray-900 dark:text-gray-100 break-all">{ address }</div>
@@ -45,7 +51,7 @@ templ Account(address string, transactions []*v1.AddressTransaction, currentPage
 							<select
 								id="relationFilter"
 								class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-								onchange="window.location.href = updateURLParam('relation', this.value)"
+								onchange="updateFilters()"
 							>
 								<option value="all" selected?={ currentFilter == "" || currentFilter == "all" }>All Relations</option>
 								for _, relationType := range relationTypes {
@@ -54,6 +60,26 @@ templ Account(address string, transactions []*v1.AddressTransaction, currentPage
 							</select>
 						</div>
 					}
+					<div>
+						<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">From Date</div>
+						<input
+							type="date"
+							id="startDate"
+							value={ startDate }
+							class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+							onchange="updateFilters()"
+						/>
+					</div>
+					<div>
+						<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">To Date</div>
+						<input
+							type="date"
+							id="endDate"
+							value={ endDate }
+							class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+							onchange="updateFilters()"
+						/>
+					</div>
 				</div>
 			</div>
 			if len(transactions) > 0 {
@@ -98,7 +124,7 @@ templ Account(address string, transactions []*v1.AddressTransaction, currentPage
 				<div class="flex justify-between items-center mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
 					<div class="flex gap-3">
 						if hasPrev {
-							<a href={ templ.SafeURL(buildPaginationURL(address, currentPage-1, pageSize, currentFilter)) } class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors">
+							<a href={ templ.SafeURL(buildPaginationURL(address, currentPage-1, pageSize, currentFilter, startDate, endDate)) } class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors">
 								← Previous
 							</a>
 						} else {
@@ -107,7 +133,7 @@ templ Account(address string, transactions []*v1.AddressTransaction, currentPage
 							</span>
 						}
 						if hasNext {
-							<a href={ templ.SafeURL(buildPaginationURL(address, currentPage+1, pageSize, currentFilter)) } class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors">
+							<a href={ templ.SafeURL(buildPaginationURL(address, currentPage+1, pageSize, currentFilter, startDate, endDate)) } class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors">
 								Next →
 							</a>
 						} else {
@@ -124,18 +150,37 @@ templ Account(address string, transactions []*v1.AddressTransaction, currentPage
 			}
 		</div>
 		<script>
-			function updateURLParam(param, value) {
+			function updateFilters() {
+				const startDate = document.getElementById('startDate').value;
+				const endDate = document.getElementById('endDate').value;
+				const relationFilter = document.getElementById('relationFilter') ? document.getElementById('relationFilter').value : '';
+				
 				const url = new URL(window.location);
-				if (value === 'all' || value === '') {
-					url.searchParams.delete(param);
+				
+				// Handle relation filter
+				if (relationFilter === 'all' || relationFilter === '') {
+					url.searchParams.delete('relation');
 				} else {
-					url.searchParams.set(param, value);
+					url.searchParams.set('relation', relationFilter);
 				}
-				// Reset to page 1 when changing filter
-				if (param === 'relation') {
-					url.searchParams.set('page', '1');
+				
+				// Handle date filters
+				if (startDate) {
+					url.searchParams.set('start_date', startDate);
+				} else {
+					url.searchParams.delete('start_date');
 				}
-				return url.toString();
+				
+				if (endDate) {
+					url.searchParams.set('end_date', endDate);
+				} else {
+					url.searchParams.delete('end_date');
+				}
+				
+				// Reset to page 1 when changing filters
+				url.searchParams.set('page', '1');
+				
+				window.location.href = url.toString();
 			}
 		</script>
 	}

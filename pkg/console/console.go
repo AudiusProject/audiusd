@@ -19,6 +19,8 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"embed"
+
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 //go:embed assets/css
@@ -446,6 +448,8 @@ func (con *Console) Account(c echo.Context) error {
 	pageStr := c.QueryParam("page")
 	countStr := c.QueryParam("count")
 	relationFilter := c.QueryParam("relation") // Get relation filter from query param
+	startDateStr := c.QueryParam("start_date") // Get start date from query param
+	endDateStr := c.QueryParam("end_date")     // Get end date from query param
 
 	page := int32(1)
 	if pageStr != "" {
@@ -458,6 +462,21 @@ func (con *Console) Account(c echo.Context) error {
 	if countStr != "" {
 		if parsedCount, err := strconv.ParseInt(countStr, 10, 32); err == nil && parsedCount > 0 {
 			count = int32(parsedCount)
+		}
+	}
+
+	// Parse date parameters
+	var startDate, endDate *timestamppb.Timestamp
+	if startDateStr != "" {
+		if parsedTime, err := time.Parse("2006-01-02", startDateStr); err == nil {
+			startDate = timestamppb.New(parsedTime)
+		}
+	}
+	if endDateStr != "" {
+		if parsedTime, err := time.Parse("2006-01-02", endDateStr); err == nil {
+			// Set to end of day (23:59:59.999)
+			endOfDay := parsedTime.Add(24*time.Hour - time.Nanosecond)
+			endDate = timestamppb.New(endOfDay)
 		}
 	}
 
@@ -476,6 +495,8 @@ func (con *Console) Account(c echo.Context) error {
 				}
 				return nil
 			}(),
+			StartDate: startDate,
+			EndDate:   endDate,
 		},
 	})
 	if err != nil {
@@ -497,7 +518,7 @@ func (con *Console) Account(c echo.Context) error {
 	hasNext := response.Msg.HasMore
 	hasPrev := page > 1
 
-	p := pages.Account(address, response.Msg.Transactions, page, hasNext, hasPrev, count, relationTypes, relationFilter)
+	p := pages.Account(address, response.Msg.Transactions, page, hasNext, hasPrev, count, relationTypes, relationFilter, startDateStr, endDateStr)
 	return p.Render(c.Request().Context(), c.Response().Writer)
 }
 
