@@ -421,13 +421,26 @@ func (e *ETLService) GetValidators(ctx context.Context, req *connect.Request[v1.
 		offset = 0
 	}
 
+	// Get endpoint filter if specified
+	var endpointFilter *string
+	if req.Msg.EndpointFilter != nil && *req.Msg.EndpointFilter != "" {
+		endpointFilter = req.Msg.EndpointFilter
+	}
+
 	var validators []*v1.ValidatorInfo
 	var totalCount int64
 
 	switch req.Msg.Query.(type) {
 	case *v1.GetValidatorsRequest_GetRegisteredValidators:
-		// Get currently registered validators (not deregistered)
-		dbValidators, err := e.db.GetValidatorRegistrations(ctx)
+		// Get currently registered validators (not deregistered) with endpoint filtering
+		var dbValidators []db.GetValidatorRegistrationsRow
+		var err error
+
+		if endpointFilter != nil {
+			dbValidators, err = e.db.GetValidatorRegistrations(ctx, *endpointFilter)
+		} else {
+			dbValidators, err = e.db.GetValidatorRegistrations(ctx, "")
+		}
 		if err != nil {
 			return nil, err
 		}
@@ -495,8 +508,15 @@ func (e *ETLService) GetValidators(ctx context.Context, req *connect.Request[v1.
 		}
 
 	case *v1.GetValidatorsRequest_GetValidatorRegistrations:
-		// Get all validator registrations with pagination
-		dbValidators, err := e.db.GetValidatorRegistrations(ctx)
+		// Get all validator registrations with pagination and endpoint filtering
+		var dbValidators []db.GetValidatorRegistrationsRow
+		var err error
+
+		if endpointFilter != nil {
+			dbValidators, err = e.db.GetValidatorRegistrations(ctx, *endpointFilter)
+		} else {
+			dbValidators, err = e.db.GetValidatorRegistrations(ctx, "")
+		}
 		if err != nil {
 			return nil, err
 		}
@@ -545,6 +565,7 @@ func (e *ETLService) GetValidators(ctx context.Context, req *connect.Request[v1.
 
 	case *v1.GetValidatorsRequest_GetValidatorDeregistrations:
 		// Get all validator deregistrations with pagination
+		// Note: Deregistrations don't have endpoints, so endpoint filtering doesn't apply here
 		dbDeregistrations, err := e.db.GetValidatorDeregistrations(ctx)
 		if err != nil {
 			return nil, err
@@ -1137,7 +1158,7 @@ func (e *ETLService) GetValidator(ctx context.Context, req *connect.Request[v1.G
 	var events []*v1.ValidatorEvent
 
 	// Get all validator registrations, deregistrations to find the requested validator
-	registrations, err := e.db.GetValidatorRegistrations(ctx)
+	registrations, err := e.db.GetValidatorRegistrations(ctx, "")
 	if err != nil {
 		return nil, err
 	}

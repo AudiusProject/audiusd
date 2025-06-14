@@ -1657,6 +1657,7 @@ select distinct on (address) address,
     block_height,
     tx_hash
 from etl_validator_registrations
+where ($1::text is null or lower(endpoint) like '%' || lower($1) || '%')
 order by address, block_height desc
 `
 
@@ -1674,8 +1675,8 @@ type GetValidatorRegistrationsRow struct {
 }
 
 // get validator registrations (deduplicated by address, keeping latest)
-func (q *Queries) GetValidatorRegistrations(ctx context.Context) ([]GetValidatorRegistrationsRow, error) {
-	rows, err := q.db.Query(ctx, getValidatorRegistrations)
+func (q *Queries) GetValidatorRegistrations(ctx context.Context, dollar_1 string) ([]GetValidatorRegistrationsRow, error) {
+	rows, err := q.db.Query(ctx, getValidatorRegistrations, dollar_1)
 	if err != nil {
 		return nil, err
 	}

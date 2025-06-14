@@ -237,6 +237,7 @@ func (con *Console) Validators(c echo.Context) error {
 	pageParam := c.QueryParam("page")
 	countParam := c.QueryParam("count")
 	queryType := c.QueryParam("type") // "active", "registrations", "deregistrations"
+	endpointFilter := c.QueryParam("endpoint_filter")
 
 	page := int32(1) // default to page 1
 	if pageParam != "" {
@@ -290,6 +291,11 @@ func (con *Console) Validators(c echo.Context) error {
 		}
 	}
 
+	// Add endpoint filter if specified
+	if endpointFilter != "" {
+		validatorsReq.EndpointFilter = &endpointFilter
+	}
+
 	validators, err := con.etl.GetValidators(c.Request().Context(), &connect.Request[v1.GetValidatorsRequest]{
 		Msg: validatorsReq,
 	})
@@ -301,7 +307,7 @@ func (con *Console) Validators(c echo.Context) error {
 	hasNext := validators.Msg.HasMore
 	hasPrev := page > 1
 
-	p := pages.Validators(validators.Msg.Validators, page, hasNext, hasPrev, count, queryType)
+	p := pages.Validators(validators.Msg.Validators, page, hasNext, hasPrev, count, queryType, endpointFilter)
 	return p.Render(c.Request().Context(), c.Response().Writer)
 }
 
