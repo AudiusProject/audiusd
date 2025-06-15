@@ -17,9 +17,9 @@ import (
 	"github.com/AudiusProject/audiusd/pkg/common"
 	"github.com/AudiusProject/audiusd/pkg/etl/db"
 	"github.com/AudiusProject/audiusd/pkg/etl/location"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/maypok86/otter"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -32,8 +32,6 @@ type ETLService struct {
 	endingBlockHeight   int64
 	checkReadiness      bool
 	chainID             string
-
-	stats otter.Cache[string, Stats]
 
 	core   corev1connect.CoreServiceClient
 	pool   *pgxpool.Pool
@@ -88,8 +86,10 @@ func (e *ETLService) GetHealth(context.Context, *connect.Request[v1.GetHealthReq
 
 // GetStats implements v1connect.ETLServiceHandler.
 func (e *ETLService) GetStats(ctx context.Context, req *connect.Request[v1.GetStatsRequest]) (*connect.Response[v1.GetStatsResponse], error) {
-	stats, ok := e.stats.Get("current")
-	if !ok {
+	// Get transaction statistics from views
+	txStats, err := e.db.GetTransactionStats(ctx)
+	if err != nil {
+		e.logger.Error("Failed to get transaction stats", "error", err)
 		return connect.NewResponse(&v1.GetStatsResponse{
 			CurrentBlockHeight:   0,
 			ChainId:              e.chainID,
@@ -106,32 +106,142 @@ func (e *ETLService) GetStats(ctx context.Context, req *connect.Request[v1.GetSt
 		}), nil
 	}
 
-	// Convert cached transaction breakdown to protobuf format
-	transactionBreakdown := make([]*v1.TransactionTypeBreakdown, len(stats.TransactionBreakdown))
-	for i, row := range stats.TransactionBreakdown {
-		transactionBreakdown[i] = &v1.TransactionTypeBreakdown{
+	// Get network rates from views
+	networkRates, err := e.db.GetNetworkRates(ctx)
+	if err != nil {
+		// If no SLA rollup exists yet, use default values
+		if !errors.Is(err, pgx.ErrNoRows) {
+			e.logger.Error("Failed to get network rates", "error", err)
+		}
+		networkRates = db.GetNetworkRatesRow{
+			BlocksPerSecond:       int32(0),
+			TransactionsPerSecond: int32(0),
+		}
+	}
+
+	// Get validator statistics
+	validatorStats, err := e.db.GetValidatorStats(ctx)
+	if err != nil {
+		e.logger.Error("Failed to get validator stats", "error", err)
+		validatorStats = db.VValidatorStat{ActiveValidators: 0}
+	}
+
+	// Get transaction type breakdown
+	transactionBreakdown, err := e.db.GetTransactionTypeBreakdown24h(ctx)
+	if err != nil {
+		e.logger.Error("Failed to get transaction type breakdown", "error", err)
+		transactionBreakdown = []db.VTransactionTypeBreakdown24h{}
+	}
+
+	// Get chain height from core service
+	info, err := e.core.GetNodeInfo(ctx, connect.NewRequest(&corev1.GetNodeInfoRequest{}))
+	if err != nil {
+		e.logger.Error("Failed to get node info", "error", err)
+
+		// Helper function to safely convert interface{} to float64
+		getFloat64 := func(val interface{}) float64 {
+			if val == nil {
+				return 0
+			}
+			switch v := val.(type) {
+			case int:
+				return float64(v)
+			case int32:
+				return float64(v)
+			case int64:
+				return float64(v)
+			case float32:
+				return float64(v)
+			case float64:
+				return v
+			default:
+				return 0
+			}
+		}
+
+		return connect.NewResponse(&v1.GetStatsResponse{
+			CurrentBlockHeight:   txStats.TotalTransactions, // Use total transactions as fallback
+			ChainId:              e.chainID,
+			Bps:                  getFloat64(networkRates.BlocksPerSecond),
+			Tps:                  getFloat64(networkRates.TransactionsPerSecond),
+			TotalTransactions:    txStats.TotalTransactions,
+			TransactionBreakdown: []*v1.TransactionTypeBreakdown{},
+			SyncStatus: &v1.SyncStatus{
+				IsSyncing:           true,
+				LatestChainHeight:   0,
+				LatestIndexedHeight: 0,
+				BlockDelta:          0,
+			},
+		}), nil
+	}
+
+	// Get sync status
+	syncStatus, err := e.db.GetSyncStatus(ctx, info.Msg.CurrentHeight)
+	if err != nil {
+		e.logger.Error("Failed to get sync status", "error", err)
+		syncStatus = db.GetSyncStatusRow{
+			LatestIndexedHeight: 0,
+			IsSyncing:           true,
+			LatestChainHeight:   info.Msg.CurrentHeight,
+			BlockDelta:          int32(info.Msg.CurrentHeight),
+		}
+	}
+
+	// Convert transaction breakdown to protobuf format
+	breakdown := make([]*v1.TransactionTypeBreakdown, len(transactionBreakdown))
+	for i, row := range transactionBreakdown {
+		breakdown[i] = &v1.TransactionTypeBreakdown{
 			Type:  row.Type,
 			Count: row.Count,
 		}
 	}
 
+	// Type conversion for chain height
+	var latestChainHeight int64
+	if chainHeight, ok := syncStatus.LatestChainHeight.(int64); ok {
+		latestChainHeight = chainHeight
+	} else {
+		latestChainHeight = info.Msg.CurrentHeight
+	}
+
+	// Helper function to safely convert interface{} to float64
+	getFloat64 := func(val interface{}) float64 {
+		if val == nil {
+			return 0
+		}
+		switch v := val.(type) {
+		case int:
+			return float64(v)
+		case int32:
+			return float64(v)
+		case int64:
+			return float64(v)
+		case float32:
+			return float64(v)
+		case float64:
+			return v
+		default:
+			return 0
+		}
+	}
+
 	return connect.NewResponse(&v1.GetStatsResponse{
-		CurrentBlockHeight:            stats.LatestIndexedHeight,
+		CurrentBlockHeight:            syncStatus.LatestIndexedHeight,
 		ChainId:                       e.chainID,
-		Bps:                           stats.BPS,
-		Tps:                           stats.TPS,
-		TotalTransactions:             stats.TotalTransactions,
-		TotalTransactions_24H:         stats.TotalTransactions24h,
-		TotalTransactionsPrevious_24H: stats.TotalTransactionsPrevious24h,
-		TotalTransactions_7D:          stats.TotalTransactions7d,
-		TotalTransactions_30D:         stats.TotalTransactions30d,
-		ValidatorCount:                stats.ValidatorCount,
-		TransactionBreakdown:          transactionBreakdown,
+		Bps:                           getFloat64(networkRates.BlocksPerSecond),
+		Tps:                           getFloat64(networkRates.TransactionsPerSecond),
+		TotalTransactions:             txStats.TotalTransactions,
+		TotalTransactions_24H:         txStats.TotalTransactions24h,
+		TotalTransactionsPrevious_24H: txStats.TotalTransactionsPrevious24h,
+		TotalTransactions_7D:          txStats.TotalTransactions7d,
+		TotalTransactions_30D:         txStats.TotalTransactions30d,
+		ValidatorCount:                validatorStats.ActiveValidators,
+		TransactionBreakdown:          breakdown,
 		SyncStatus: &v1.SyncStatus{
-			IsSyncing:           stats.IsSyncing,
-			LatestChainHeight:   stats.LatestChainHeight,
-			LatestIndexedHeight: stats.LatestIndexedHeight,
-			BlockDelta:          stats.LatestChainHeight - stats.LatestIndexedHeight,
+			IsSyncing:           syncStatus.IsSyncing,
+			LatestChainHeight:   latestChainHeight,
+			LatestIndexedHeight: syncStatus.LatestIndexedHeight,
+			BlockDelta:          int64(syncStatus.BlockDelta),
 		},
 	}), nil
 }
@@ -359,7 +469,7 @@ func (e *ETLService) GetTransactionsByAddress(ctx context.Context, req *connect.
 			TxHash:       tx.TxHash,
 			TxType:       tx.TxType,
 			BlockHeight:  tx.BlockHeight,
-			Index:        tx.Index,
+			Index:        int64(tx.Index),
 			Address:      tx.Address,
 			RelationType: tx.RelationType,
 			BlockTime:    timestamppb.New(tx.BlockTime.Time),
@@ -705,7 +815,7 @@ func (e *ETLService) GetTransaction(ctx context.Context, req *connect.Request[v1
 		Hash:            txResult.TxHash,
 		Type:            txResult.TxType,
 		BlockHeight:     txResult.BlockHeight,
-		Index:           txResult.Index,
+		Index:           int64(txResult.Index),
 		BlockTime:       timestamppb.New(txResult.BlockTime.Time),
 		ProposerAddress: txResult.ProposerAddress,
 	}
@@ -724,9 +834,9 @@ func (e *ETLService) GetTransaction(ctx context.Context, req *connect.Request[v1
 				Address:  play.Address,
 				TrackId:  play.TrackID,
 				PlayedAt: timestamppb.New(time.Unix(play.Timestamp, 0)),
-				City:     play.City,
-				Region:   play.Region,
-				Country:  play.Country,
+				City:     getTextValue(play.City),
+				Region:   getTextValue(play.Region),
+				Country:  getTextValue(play.Country),
 			}
 		}
 		transaction.Content = &v1.Transaction_Plays{
@@ -746,7 +856,7 @@ func (e *ETLService) GetTransaction(ctx context.Context, req *connect.Request[v1
 				EntityType: entity.EntityType,
 				EntityId:   entity.EntityID,
 				Action:     entity.Action,
-				Metadata:   entity.Metadata.String,
+				Metadata:   getTextValue(entity.Metadata),
 				Signature:  entity.Signature,
 				Signer:     entity.Signer,
 				Nonce:      entity.Nonce,
@@ -869,7 +979,6 @@ func (e *ETLService) GetTransaction(ctx context.Context, req *connect.Request[v1
 		// For storage proof transaction, we expect one proof record
 		if len(storageProofs) > 0 {
 			proof := storageProofs[0]
-			e.logger.Info("Storage proof data", "height", proof.Height, "address", proof.Address, "cid", proof.Cid)
 			transaction.Content = &v1.Transaction_StorageProof{
 				StorageProof: &v1.StorageProofTransaction{
 					Height:          proof.Height,
@@ -922,10 +1031,10 @@ func (e *ETLService) GetTransaction(ctx context.Context, req *connect.Request[v1
 
 		// For release transaction, we expect one release record
 		if len(releases) > 0 {
-			release := releases[0]
+			releaseData := releases[0]
 			transaction.Content = &v1.Transaction_Release{
 				Release: &v1.ReleaseTransaction{
-					ReleaseData: release.ReleaseData,
+					ReleaseData: releaseData,
 				},
 			}
 		} else {
@@ -976,7 +1085,7 @@ func (e *ETLService) Search(ctx context.Context, req *connect.Request[v1.SearchR
 
 	// Use the unified search query for better results
 	searchResults, err := e.db.SearchUnified(ctx, db.SearchUnifiedParams{
-		Column1: query,
+		Column1: pgtype.Text{String: query, Valid: true},
 		Limit:   limit,
 	})
 	if err != nil {
@@ -1031,51 +1140,43 @@ func (e *ETLService) fallbackSearch(ctx context.Context, query string, limit int
 
 	// Search blocks if query looks like a number
 	if blockHeight, err := strconv.ParseInt(query, 10, 64); err == nil && blockHeight > 0 {
-		e.logger.Info("Searching for block height", "blockHeight", blockHeight, "query", query)
-		blockHeights, err := e.db.SearchBlockHeight(ctx, query) // Now passing string
+		e.logger.Info("Searching for block by height", "blockHeight", blockHeight, "query", query)
+
+		// Check if this block exists by trying to get it directly
+		block, err := e.db.GetIndexedBlock(ctx, blockHeight)
 		if err == nil {
-			e.logger.Info("Block search results", "count", len(blockHeights), "results", blockHeights)
-			for i, bh := range blockHeights {
-				if i >= 5 { // Limit to 5 results per type
-					break
-				}
-				results = append(results, &v1.SearchResult{
-					Id:       strconv.FormatInt(bh, 10),
-					Title:    fmt.Sprintf("Block #%d", bh),
-					Subtitle: "Block",
-					Type:     "block",
-					Url:      fmt.Sprintf("/block/%d", bh),
-				})
-			}
+			results = append(results, &v1.SearchResult{
+				Id:       strconv.FormatInt(blockHeight, 10),
+				Title:    fmt.Sprintf("Block #%d", blockHeight),
+				Subtitle: fmt.Sprintf("Proposed by %s...", block.ProposerAddress[:8]),
+				Type:     "block",
+				Url:      fmt.Sprintf("/block/%d", blockHeight),
+			})
 		} else {
-			e.logger.Error("Error searching block heights", "error", err, "query", query)
+			e.logger.Debug("Block not found", "height", blockHeight, "error", err)
 		}
 	}
 
 	// Search transactions if query looks like a hash
 	if strings.HasPrefix(query, "0x") && len(query) > 10 {
-		txHashes, err := e.db.SearchTxHash(ctx, query)
+		// Check if this transaction exists by trying to get it directly
+		tx, err := e.db.GetTransaction(ctx, query)
 		if err == nil {
-			for i, hash := range txHashes {
-				if i >= 5 { // Limit to 5 results per type
-					break
-				}
-				results = append(results, &v1.SearchResult{
-					Id:       hash,
-					Title:    hash[:20] + "...",
-					Subtitle: "Transaction",
-					Type:     "transaction",
-					Url:      "/transaction/" + hash,
-				})
-			}
+			results = append(results, &v1.SearchResult{
+				Id:       query,
+				Title:    query[:20] + "...",
+				Subtitle: fmt.Sprintf("%s at block %d", tx.TxType, tx.BlockHeight),
+				Type:     "transaction",
+				Url:      "/transaction/" + query,
+			})
 		} else {
-			e.logger.Error("Error searching transactions", "error", err, "query", query)
+			e.logger.Debug("Transaction not found", "hash", query, "error", err)
 		}
 	}
 
 	// Search addresses
 	if strings.HasPrefix(query, "0x") || len(query) >= 8 {
-		addresses, err := e.db.SearchAddress(ctx, query)
+		addresses, err := e.db.SearchAddress(ctx, pgtype.Text{String: query, Valid: true})
 		if err == nil {
 			for i, addr := range addresses {
 				if i >= 5 { // Limit to 5 results per type
@@ -1096,7 +1197,7 @@ func (e *ETLService) fallbackSearch(ctx context.Context, query string, limit int
 
 	// Search validators
 	if len(query) >= 8 {
-		validatorAddresses, err := e.db.SearchValidatorRegistration(ctx, query)
+		validatorAddresses, err := e.db.SearchValidatorRegistration(ctx, pgtype.Text{String: query, Valid: true})
 		if err == nil {
 			for i, addr := range validatorAddresses {
 				if i >= 5 { // Limit to 5 results per type
@@ -1395,4 +1496,12 @@ func (e *ETLService) GetPlayPubsub() *PlayPubsub {
 // GetBlockPubsub returns the block pubsub for external subscribers
 func (e *ETLService) GetBlockPubsub() *BlockPubsub {
 	return e.blockPubsub
+}
+
+// Helper function to handle pgtype.Text fields
+func getTextValue(text pgtype.Text) string {
+	if text.Valid {
+		return text.String
+	}
+	return ""
 }
