@@ -1287,7 +1287,7 @@ func (e *ETLService) GetValidator(ctx context.Context, req *connect.Request[v1.G
 		cometAddress := req.Msg.GetCometAddress()
 		targetCometAddress = cometAddress
 		for _, reg := range registrations {
-			if reg.CometAddress == cometAddress {
+			if strings.EqualFold(reg.CometAddress, cometAddress) {
 				targetRegistration = &reg
 				break
 			}
