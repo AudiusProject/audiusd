@@ -4892,6 +4892,377 @@ func (*StreamResponse_StreamBlocks) isStreamResponse_Response() {}
 
 func (*StreamResponse_StreamPlays) isStreamResponse_Response() {}
 
+// SLA Rollup uptime data structures
+type GetValidatorUptimeRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	ValidatorAddress string `protobuf:"bytes,1,opt,name=validator_address,json=validatorAddress,proto3" json:"validator_address,omitempty"`
+	Limit            int32  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"` // number of recent SLA rollups to return
+}
+
+func (x *GetValidatorUptimeRequest) Reset() {
+	*x = GetValidatorUptimeRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_etl_v1_types_proto_msgTypes[72]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *GetValidatorUptimeRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetValidatorUptimeRequest) ProtoMessage() {}
+
+func (x *GetValidatorUptimeRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_etl_v1_types_proto_msgTypes[72]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetValidatorUptimeRequest.ProtoReflect.Descriptor instead.
+func (*GetValidatorUptimeRequest) Descriptor() ([]byte, []int) {
+	return file_etl_v1_types_proto_rawDescGZIP(), []int{72}
+}
+
+func (x *GetValidatorUptimeRequest) GetValidatorAddress() string {
+	if x != nil {
+		return x.ValidatorAddress
+	}
+	return ""
+}
+
+func (x *GetValidatorUptimeRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+type GetValidatorUptimeResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Rollups []*SlaRollupScore `protobuf:"bytes,1,rep,name=rollups,proto3" json:"rollups,omitempty"`
+}
+
+func (x *GetValidatorUptimeResponse) Reset() {
+	*x = GetValidatorUptimeResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_etl_v1_types_proto_msgTypes[73]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *GetValidatorUptimeResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetValidatorUptimeResponse) ProtoMessage() {}
+
+func (x *GetValidatorUptimeResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_etl_v1_types_proto_msgTypes[73]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetValidatorUptimeResponse.ProtoReflect.Descriptor instead.
+func (*GetValidatorUptimeResponse) Descriptor() ([]byte, []int) {
+	return file_etl_v1_types_proto_rawDescGZIP(), []int{73}
+}
+
+func (x *GetValidatorUptimeResponse) GetRollups() []*SlaRollupScore {
+	if x != nil {
+		return x.Rollups
+	}
+	return nil
+}
+
+type GetValidatorsUptimeRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Limit int32 `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"` // number of recent SLA rollups per validator
+}
+
+func (x *GetValidatorsUptimeRequest) Reset() {
+	*x = GetValidatorsUptimeRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_etl_v1_types_proto_msgTypes[74]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *GetValidatorsUptimeRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetValidatorsUptimeRequest) ProtoMessage() {}
+
+func (x *GetValidatorsUptimeRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_etl_v1_types_proto_msgTypes[74]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetValidatorsUptimeRequest.ProtoReflect.Descriptor instead.
+func (*GetValidatorsUptimeRequest) Descriptor() ([]byte, []int) {
+	return file_etl_v1_types_proto_rawDescGZIP(), []int{74}
+}
+
+func (x *GetValidatorsUptimeRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+type GetValidatorsUptimeResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Validators []*ValidatorUptimeInfo `protobuf:"bytes,1,rep,name=validators,proto3" json:"validators,omitempty"`
+}
+
+func (x *GetValidatorsUptimeResponse) Reset() {
+	*x = GetValidatorsUptimeResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_etl_v1_types_proto_msgTypes[75]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *GetValidatorsUptimeResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetValidatorsUptimeResponse) ProtoMessage() {}
+
+func (x *GetValidatorsUptimeResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_etl_v1_types_proto_msgTypes[75]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetValidatorsUptimeResponse.ProtoReflect.Descriptor instead.
+func (*GetValidatorsUptimeResponse) Descriptor() ([]byte, []int) {
+	return file_etl_v1_types_proto_rawDescGZIP(), []int{75}
+}
+
+func (x *GetValidatorsUptimeResponse) GetValidators() []*ValidatorUptimeInfo {
+	if x != nil {
+		return x.Validators
+	}
+	return nil
+}
+
+type ValidatorUptimeInfo struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	ValidatorAddress string            `protobuf:"bytes,1,opt,name=validator_address,json=validatorAddress,proto3" json:"validator_address,omitempty"`
+	Endpoint         string            `protobuf:"bytes,2,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
+	RecentRollups    []*SlaRollupScore `protobuf:"bytes,3,rep,name=recent_rollups,json=recentRollups,proto3" json:"recent_rollups,omitempty"`
+}
+
+func (x *ValidatorUptimeInfo) Reset() {
+	*x = ValidatorUptimeInfo{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_etl_v1_types_proto_msgTypes[76]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ValidatorUptimeInfo) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ValidatorUptimeInfo) ProtoMessage() {}
+
+func (x *ValidatorUptimeInfo) ProtoReflect() protoreflect.Message {
+	mi := &file_etl_v1_types_proto_msgTypes[76]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ValidatorUptimeInfo.ProtoReflect.Descriptor instead.
+func (*ValidatorUptimeInfo) Descriptor() ([]byte, []int) {
+	return file_etl_v1_types_proto_rawDescGZIP(), []int{76}
+}
+
+func (x *ValidatorUptimeInfo) GetValidatorAddress() string {
+	if x != nil {
+		return x.ValidatorAddress
+	}
+	return ""
+}
+
+func (x *ValidatorUptimeInfo) GetEndpoint() string {
+	if x != nil {
+		return x.Endpoint
+	}
+	return ""
+}
+
+func (x *ValidatorUptimeInfo) GetRecentRollups() []*SlaRollupScore {
+	if x != nil {
+		return x.RecentRollups
+	}
+	return nil
+}
+
+type SlaRollupScore struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	SlaRollupId        int32                  `protobuf:"varint,1,opt,name=sla_rollup_id,json=slaRollupId,proto3" json:"sla_rollup_id,omitempty"`
+	BlocksProposed     int32                  `protobuf:"varint,2,opt,name=blocks_proposed,json=blocksProposed,proto3" json:"blocks_proposed,omitempty"`
+	BlockQuota         int32                  `protobuf:"varint,3,opt,name=block_quota,json=blockQuota,proto3" json:"block_quota,omitempty"`
+	ChallengesReceived int64                  `protobuf:"varint,4,opt,name=challenges_received,json=challengesReceived,proto3" json:"challenges_received,omitempty"`
+	ChallengesFailed   int32                  `protobuf:"varint,5,opt,name=challenges_failed,json=challengesFailed,proto3" json:"challenges_failed,omitempty"`
+	BlockStart         int64                  `protobuf:"varint,6,opt,name=block_start,json=blockStart,proto3" json:"block_start,omitempty"`
+	BlockEnd           int64                  `protobuf:"varint,7,opt,name=block_end,json=blockEnd,proto3" json:"block_end,omitempty"`
+	TxHash             string                 `protobuf:"bytes,8,opt,name=tx_hash,json=txHash,proto3" json:"tx_hash,omitempty"`
+	Timestamp          *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+}
+
+func (x *SlaRollupScore) Reset() {
+	*x = SlaRollupScore{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_etl_v1_types_proto_msgTypes[77]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *SlaRollupScore) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SlaRollupScore) ProtoMessage() {}
+
+func (x *SlaRollupScore) ProtoReflect() protoreflect.Message {
+	mi := &file_etl_v1_types_proto_msgTypes[77]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SlaRollupScore.ProtoReflect.Descriptor instead.
+func (*SlaRollupScore) Descriptor() ([]byte, []int) {
+	return file_etl_v1_types_proto_rawDescGZIP(), []int{77}
+}
+
+func (x *SlaRollupScore) GetSlaRollupId() int32 {
+	if x != nil {
+		return x.SlaRollupId
+	}
+	return 0
+}
+
+func (x *SlaRollupScore) GetBlocksProposed() int32 {
+	if x != nil {
+		return x.BlocksProposed
+	}
+	return 0
+}
+
+func (x *SlaRollupScore) GetBlockQuota() int32 {
+	if x != nil {
+		return x.BlockQuota
+	}
+	return 0
+}
+
+func (x *SlaRollupScore) GetChallengesReceived() int64 {
+	if x != nil {
+		return x.ChallengesReceived
+	}
+	return 0
+}
+
+func (x *SlaRollupScore) GetChallengesFailed() int32 {
+	if x != nil {
+		return x.ChallengesFailed
+	}
+	return 0
+}
+
+func (x *SlaRollupScore) GetBlockStart() int64 {
+	if x != nil {
+		return x.BlockStart
+	}
+	return 0
+}
+
+func (x *SlaRollupScore) GetBlockEnd() int64 {
+	if x != nil {
+		return x.BlockEnd
+	}
+	return 0
+}
+
+func (x *SlaRollupScore) GetTxHash() string {
+	if x != nil {
+		return x.TxHash
+	}
+	return ""
+}
+
+func (x *SlaRollupScore) GetTimestamp() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Timestamp
+	}
+	return nil
+}
+
 type Block_Transaction struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -4906,7 +5277,7 @@ type Block_Transaction struct {
 func (x *Block_Transaction) Reset() {
 	*x = Block_Transaction{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_etl_v1_types_proto_msgTypes[72]
+		mi := &file_etl_v1_types_proto_msgTypes[78]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -4919,7 +5290,7 @@ func (x *Block_Transaction) String() string {
 func (*Block_Transaction) ProtoMessage() {}
 
 func (x *Block_Transaction) ProtoReflect() protoreflect.Message {
-	mi := &file_etl_v1_types_proto_msgTypes[72]
+	mi := &file_etl_v1_types_proto_msgTypes[78]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4972,7 +5343,7 @@ type StreamRequest_StreamBlocksRequest struct {
 func (x *StreamRequest_StreamBlocksRequest) Reset() {
 	*x = StreamRequest_StreamBlocksRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_etl_v1_types_proto_msgTypes[73]
+		mi := &file_etl_v1_types_proto_msgTypes[79]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -4985,7 +5356,7 @@ func (x *StreamRequest_StreamBlocksRequest) String() string {
 func (*StreamRequest_StreamBlocksRequest) ProtoMessage() {}
 
 func (x *StreamRequest_StreamBlocksRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_etl_v1_types_proto_msgTypes[73]
+	mi := &file_etl_v1_types_proto_msgTypes[79]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5010,7 +5381,7 @@ type StreamRequest_StreamPlaysRequest struct {
 func (x *StreamRequest_StreamPlaysRequest) Reset() {
 	*x = StreamRequest_StreamPlaysRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_etl_v1_types_proto_msgTypes[74]
+		mi := &file_etl_v1_types_proto_msgTypes[80]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -5023,7 +5394,7 @@ func (x *StreamRequest_StreamPlaysRequest) String() string {
 func (*StreamRequest_StreamPlaysRequest) ProtoMessage() {}
 
 func (x *StreamRequest_StreamPlaysRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_etl_v1_types_proto_msgTypes[74]
+	mi := &file_etl_v1_types_proto_msgTypes[80]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5051,7 +5422,7 @@ type StreamResponse_StreamBlocksResponse struct {
 func (x *StreamResponse_StreamBlocksResponse) Reset() {
 	*x = StreamResponse_StreamBlocksResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_etl_v1_types_proto_msgTypes[75]
+		mi := &file_etl_v1_types_proto_msgTypes[81]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -5064,7 +5435,7 @@ func (x *StreamResponse_StreamBlocksResponse) String() string {
 func (*StreamResponse_StreamBlocksResponse) ProtoMessage() {}
 
 func (x *StreamResponse_StreamBlocksResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_etl_v1_types_proto_msgTypes[75]
+	mi := &file_etl_v1_types_proto_msgTypes[81]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5109,7 +5480,7 @@ type StreamResponse_StreamPlaysResponse struct {
 func (x *StreamResponse_StreamPlaysResponse) Reset() {
 	*x = StreamResponse_StreamPlaysResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_etl_v1_types_proto_msgTypes[76]
+		mi := &file_etl_v1_types_proto_msgTypes[82]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -5122,7 +5493,7 @@ func (x *StreamResponse_StreamPlaysResponse) String() string {
 func (*StreamResponse_StreamPlaysResponse) ProtoMessage() {}
 
 func (x *StreamResponse_StreamPlaysResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_etl_v1_types_proto_msgTypes[76]
+	mi := &file_etl_v1_types_proto_msgTypes[82]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5862,7 +6233,60 @@ var file_etl_v1_types_proto_rawDesc = []byte{
 	0x20, 0x01, 0x28, 0x01, 0x52, 0x08, 0x6c, 0x61, 0x74, 0x69, 0x74, 0x75, 0x64, 0x65, 0x12, 0x1c,
 	0x0a, 0x09, 0x6c, 0x6f, 0x6e, 0x67, 0x69, 0x74, 0x75, 0x64, 0x65, 0x18, 0x05, 0x20, 0x01, 0x28,
 	0x01, 0x52, 0x09, 0x6c, 0x6f, 0x6e, 0x67, 0x69, 0x74, 0x75, 0x64, 0x65, 0x42, 0x0a, 0x0a, 0x08,
-	0x72, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x2a, 0xaa, 0x01, 0x0a, 0x0f, 0x56, 0x61, 0x6c,
+	0x72, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x5e, 0x0a, 0x19, 0x47, 0x65, 0x74, 0x56,
+	0x61, 0x6c, 0x69, 0x64, 0x61, 0x74, 0x6f, 0x72, 0x55, 0x70, 0x74, 0x69, 0x6d, 0x65, 0x52, 0x65,
+	0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x2b, 0x0a, 0x11, 0x76, 0x61, 0x6c, 0x69, 0x64, 0x61, 0x74,
+	0x6f, 0x72, 0x5f, 0x61, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09,
+	0x52, 0x10, 0x76, 0x61, 0x6c, 0x69, 0x64, 0x61, 0x74, 0x6f, 0x72, 0x41, 0x64, 0x64, 0x72, 0x65,
+	0x73, 0x73, 0x12, 0x14, 0x0a, 0x05, 0x6c, 0x69, 0x6d, 0x69, 0x74, 0x18, 0x02, 0x20, 0x01, 0x28,
+	0x05, 0x52, 0x05, 0x6c, 0x69, 0x6d, 0x69, 0x74, 0x22, 0x4e, 0x0a, 0x1a, 0x47, 0x65, 0x74, 0x56,
+	0x61, 0x6c, 0x69, 0x64, 0x61, 0x74, 0x6f, 0x72, 0x55, 0x70, 0x74, 0x69, 0x6d, 0x65, 0x52, 0x65,
+	0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x30, 0x0a, 0x07, 0x72, 0x6f, 0x6c, 0x6c, 0x75, 0x70,
+	0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x16, 0x2e, 0x65, 0x74, 0x6c, 0x2e, 0x76, 0x31,
+	0x2e, 0x53, 0x6c, 0x61, 0x52, 0x6f, 0x6c, 0x6c, 0x75, 0x70, 0x53, 0x63, 0x6f, 0x72, 0x65, 0x52,
+	0x07, 0x72, 0x6f, 0x6c, 0x6c, 0x75, 0x70, 0x73, 0x22, 0x32, 0x0a, 0x1a, 0x47, 0x65, 0x74, 0x56,
+	0x61, 0x6c, 0x69, 0x64, 0x61, 0x74, 0x6f, 0x72, 0x73, 0x55, 0x70, 0x74, 0x69, 0x6d, 0x65, 0x52,
+	0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x14, 0x0a, 0x05, 0x6c, 0x69, 0x6d, 0x69, 0x74, 0x18,
+	0x02, 0x20, 0x01, 0x28, 0x05, 0x52, 0x05, 0x6c, 0x69, 0x6d, 0x69, 0x74, 0x22, 0x5a, 0x0a, 0x1b,
+	0x47, 0x65, 0x74, 0x56, 0x61, 0x6c, 0x69, 0x64, 0x61, 0x74, 0x6f, 0x72, 0x73, 0x55, 0x70, 0x74,
+	0x69, 0x6d, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x3b, 0x0a, 0x0a, 0x76,
+	0x61, 0x6c, 0x69, 0x64, 0x61, 0x74, 0x6f, 0x72, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32,
+	0x1b, 0x2e, 0x65, 0x74, 0x6c, 0x2e, 0x76, 0x31, 0x2e, 0x56, 0x61, 0x6c, 0x69, 0x64, 0x61, 0x74,
+	0x6f, 0x72, 0x55, 0x70, 0x74, 0x69, 0x6d, 0x65, 0x49, 0x6e, 0x66, 0x6f, 0x52, 0x0a, 0x76, 0x61,
+	0x6c, 0x69, 0x64, 0x61, 0x74, 0x6f, 0x72, 0x73, 0x22, 0x9d, 0x01, 0x0a, 0x13, 0x56, 0x61, 0x6c,
+	0x69, 0x64, 0x61, 0x74, 0x6f, 0x72, 0x55, 0x70, 0x74, 0x69, 0x6d, 0x65, 0x49, 0x6e, 0x66, 0x6f,
+	0x12, 0x2b, 0x0a, 0x11, 0x76, 0x61, 0x6c, 0x69, 0x64, 0x61, 0x74, 0x6f, 0x72, 0x5f, 0x61, 0x64,
+	0x64, 0x72, 0x65, 0x73, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x10, 0x76, 0x61, 0x6c,
+	0x69, 0x64, 0x61, 0x74, 0x6f, 0x72, 0x41, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x12, 0x1a, 0x0a,
+	0x08, 0x65, 0x6e, 0x64, 0x70, 0x6f, 0x69, 0x6e, 0x74, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52,
+	0x08, 0x65, 0x6e, 0x64, 0x70, 0x6f, 0x69, 0x6e, 0x74, 0x12, 0x3d, 0x0a, 0x0e, 0x72, 0x65, 0x63,
+	0x65, 0x6e, 0x74, 0x5f, 0x72, 0x6f, 0x6c, 0x6c, 0x75, 0x70, 0x73, 0x18, 0x03, 0x20, 0x03, 0x28,
+	0x0b, 0x32, 0x16, 0x2e, 0x65, 0x74, 0x6c, 0x2e, 0x76, 0x31, 0x2e, 0x53, 0x6c, 0x61, 0x52, 0x6f,
+	0x6c, 0x6c, 0x75, 0x70, 0x53, 0x63, 0x6f, 0x72, 0x65, 0x52, 0x0d, 0x72, 0x65, 0x63, 0x65, 0x6e,
+	0x74, 0x52, 0x6f, 0x6c, 0x6c, 0x75, 0x70, 0x73, 0x22, 0xed, 0x02, 0x0a, 0x0e, 0x53, 0x6c, 0x61,
+	0x52, 0x6f, 0x6c, 0x6c, 0x75, 0x70, 0x53, 0x63, 0x6f, 0x72, 0x65, 0x12, 0x22, 0x0a, 0x0d, 0x73,
+	0x6c, 0x61, 0x5f, 0x72, 0x6f, 0x6c, 0x6c, 0x75, 0x70, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01,
+	0x28, 0x05, 0x52, 0x0b, 0x73, 0x6c, 0x61, 0x52, 0x6f, 0x6c, 0x6c, 0x75, 0x70, 0x49, 0x64, 0x12,
+	0x27, 0x0a, 0x0f, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x73, 0x5f, 0x70, 0x72, 0x6f, 0x70, 0x6f, 0x73,
+	0x65, 0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x05, 0x52, 0x0e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x73,
+	0x50, 0x72, 0x6f, 0x70, 0x6f, 0x73, 0x65, 0x64, 0x12, 0x1f, 0x0a, 0x0b, 0x62, 0x6c, 0x6f, 0x63,
+	0x6b, 0x5f, 0x71, 0x75, 0x6f, 0x74, 0x61, 0x18, 0x03, 0x20, 0x01, 0x28, 0x05, 0x52, 0x0a, 0x62,
+	0x6c, 0x6f, 0x63, 0x6b, 0x51, 0x75, 0x6f, 0x74, 0x61, 0x12, 0x2f, 0x0a, 0x13, 0x63, 0x68, 0x61,
+	0x6c, 0x6c, 0x65, 0x6e, 0x67, 0x65, 0x73, 0x5f, 0x72, 0x65, 0x63, 0x65, 0x69, 0x76, 0x65, 0x64,
+	0x18, 0x04, 0x20, 0x01, 0x28, 0x03, 0x52, 0x12, 0x63, 0x68, 0x61, 0x6c, 0x6c, 0x65, 0x6e, 0x67,
+	0x65, 0x73, 0x52, 0x65, 0x63, 0x65, 0x69, 0x76, 0x65, 0x64, 0x12, 0x2b, 0x0a, 0x11, 0x63, 0x68,
+	0x61, 0x6c, 0x6c, 0x65, 0x6e, 0x67, 0x65, 0x73, 0x5f, 0x66, 0x61, 0x69, 0x6c, 0x65, 0x64, 0x18,
+	0x05, 0x20, 0x01, 0x28, 0x05, 0x52, 0x10, 0x63, 0x68, 0x61, 0x6c, 0x6c, 0x65, 0x6e, 0x67, 0x65,
+	0x73, 0x46, 0x61, 0x69, 0x6c, 0x65, 0x64, 0x12, 0x1f, 0x0a, 0x0b, 0x62, 0x6c, 0x6f, 0x63, 0x6b,
+	0x5f, 0x73, 0x74, 0x61, 0x72, 0x74, 0x18, 0x06, 0x20, 0x01, 0x28, 0x03, 0x52, 0x0a, 0x62, 0x6c,
+	0x6f, 0x63, 0x6b, 0x53, 0x74, 0x61, 0x72, 0x74, 0x12, 0x1b, 0x0a, 0x09, 0x62, 0x6c, 0x6f, 0x63,
+	0x6b, 0x5f, 0x65, 0x6e, 0x64, 0x18, 0x07, 0x20, 0x01, 0x28, 0x03, 0x52, 0x08, 0x62, 0x6c, 0x6f,
+	0x63, 0x6b, 0x45, 0x6e, 0x64, 0x12, 0x17, 0x0a, 0x07, 0x74, 0x78, 0x5f, 0x68, 0x61, 0x73, 0x68,
+	0x18, 0x08, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x74, 0x78, 0x48, 0x61, 0x73, 0x68, 0x12, 0x38,
+	0x0a, 0x09, 0x74, 0x69, 0x6d, 0x65, 0x73, 0x74, 0x61, 0x6d, 0x70, 0x18, 0x09, 0x20, 0x01, 0x28,
+	0x0b, 0x32, 0x1a, 0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f,
+	0x62, 0x75, 0x66, 0x2e, 0x54, 0x69, 0x6d, 0x65, 0x73, 0x74, 0x61, 0x6d, 0x70, 0x52, 0x09, 0x74,
+	0x69, 0x6d, 0x65, 0x73, 0x74, 0x61, 0x6d, 0x70, 0x2a, 0xaa, 0x01, 0x0a, 0x0f, 0x56, 0x61, 0x6c,
 	0x69, 0x64, 0x61, 0x74, 0x6f, 0x72, 0x53, 0x74, 0x61, 0x74, 0x75, 0x73, 0x12, 0x28, 0x0a, 0x24,
 	0x56, 0x41, 0x4c, 0x49, 0x44, 0x41, 0x54, 0x4f, 0x52, 0x5f, 0x53, 0x54, 0x41, 0x54, 0x55, 0x53,
 	0x5f, 0x55, 0x4e, 0x4b, 0x4e, 0x4f, 0x57, 0x4e, 0x5f, 0x55, 0x4e, 0x53, 0x50, 0x45, 0x43, 0x49,
@@ -5908,7 +6332,7 @@ func file_etl_v1_types_proto_rawDescGZIP() []byte {
 }
 
 var file_etl_v1_types_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_etl_v1_types_proto_msgTypes = make([]protoimpl.MessageInfo, 77)
+var file_etl_v1_types_proto_msgTypes = make([]protoimpl.MessageInfo, 83)
 var file_etl_v1_types_proto_goTypes = []interface{}{
 	(ValidatorStatus)(0),                            // 0: etl.v1.ValidatorStatus
 	(ValidatorEventType)(0),                         // 1: etl.v1.ValidatorEventType
@@ -5984,28 +6408,34 @@ var file_etl_v1_types_proto_goTypes = []interface{}{
 	(*SearchResult)(nil),                            // 71: etl.v1.SearchResult
 	(*StreamRequest)(nil),                           // 72: etl.v1.StreamRequest
 	(*StreamResponse)(nil),                          // 73: etl.v1.StreamResponse
-	(*Block_Transaction)(nil),                       // 74: etl.v1.Block.Transaction
-	(*StreamRequest_StreamBlocksRequest)(nil),       // 75: etl.v1.StreamRequest.StreamBlocksRequest
-	(*StreamRequest_StreamPlaysRequest)(nil),        // 76: etl.v1.StreamRequest.StreamPlaysRequest
-	(*StreamResponse_StreamBlocksResponse)(nil),     // 77: etl.v1.StreamResponse.StreamBlocksResponse
-	(*StreamResponse_StreamPlaysResponse)(nil),      // 78: etl.v1.StreamResponse.StreamPlaysResponse
-	(*timestamppb.Timestamp)(nil),                   // 79: google.protobuf.Timestamp
+	(*GetValidatorUptimeRequest)(nil),               // 74: etl.v1.GetValidatorUptimeRequest
+	(*GetValidatorUptimeResponse)(nil),              // 75: etl.v1.GetValidatorUptimeResponse
+	(*GetValidatorsUptimeRequest)(nil),              // 76: etl.v1.GetValidatorsUptimeRequest
+	(*GetValidatorsUptimeResponse)(nil),             // 77: etl.v1.GetValidatorsUptimeResponse
+	(*ValidatorUptimeInfo)(nil),                     // 78: etl.v1.ValidatorUptimeInfo
+	(*SlaRollupScore)(nil),                          // 79: etl.v1.SlaRollupScore
+	(*Block_Transaction)(nil),                       // 80: etl.v1.Block.Transaction
+	(*StreamRequest_StreamBlocksRequest)(nil),       // 81: etl.v1.StreamRequest.StreamBlocksRequest
+	(*StreamRequest_StreamPlaysRequest)(nil),        // 82: etl.v1.StreamRequest.StreamPlaysRequest
+	(*StreamResponse_StreamBlocksResponse)(nil),     // 83: etl.v1.StreamResponse.StreamBlocksResponse
+	(*StreamResponse_StreamPlaysResponse)(nil),      // 84: etl.v1.StreamResponse.StreamPlaysResponse
+	(*timestamppb.Timestamp)(nil),                   // 85: google.protobuf.Timestamp
 }
 var file_etl_v1_types_proto_depIdxs = []int32{
 	10, // 0: etl.v1.GetStatsResponse.latest_block:type_name -> etl.v1.Block
 	8,  // 1: etl.v1.GetStatsResponse.transaction_breakdown:type_name -> etl.v1.TransactionTypeBreakdown
 	9,  // 2: etl.v1.GetStatsResponse.sync_status:type_name -> etl.v1.SyncStatus
-	79, // 3: etl.v1.Block.timestamp:type_name -> google.protobuf.Timestamp
-	74, // 4: etl.v1.Block.transactions:type_name -> etl.v1.Block.Transaction
+	85, // 3: etl.v1.Block.timestamp:type_name -> google.protobuf.Timestamp
+	80, // 4: etl.v1.Block.transactions:type_name -> etl.v1.Block.Transaction
 	10, // 5: etl.v1.GetBlockResponse.block:type_name -> etl.v1.Block
 	10, // 6: etl.v1.GetBlocksResponse.blocks:type_name -> etl.v1.Block
-	74, // 7: etl.v1.GetTransactionsResponse.transactions:type_name -> etl.v1.Block.Transaction
-	79, // 8: etl.v1.GetTransactionsByAddressRequest.start_date:type_name -> google.protobuf.Timestamp
-	79, // 9: etl.v1.GetTransactionsByAddressRequest.end_date:type_name -> google.protobuf.Timestamp
+	80, // 7: etl.v1.GetTransactionsResponse.transactions:type_name -> etl.v1.Block.Transaction
+	85, // 8: etl.v1.GetTransactionsByAddressRequest.start_date:type_name -> google.protobuf.Timestamp
+	85, // 9: etl.v1.GetTransactionsByAddressRequest.end_date:type_name -> google.protobuf.Timestamp
 	21, // 10: etl.v1.GetTransactionsByAddressResponse.transactions:type_name -> etl.v1.AddressTransaction
-	79, // 11: etl.v1.AddressTransaction.block_time:type_name -> google.protobuf.Timestamp
+	85, // 11: etl.v1.AddressTransaction.block_time:type_name -> google.protobuf.Timestamp
 	24, // 12: etl.v1.GetTransactionResponse.transaction:type_name -> etl.v1.Transaction
-	79, // 13: etl.v1.Transaction.block_time:type_name -> google.protobuf.Timestamp
+	85, // 13: etl.v1.Transaction.block_time:type_name -> google.protobuf.Timestamp
 	25, // 14: etl.v1.Transaction.plays:type_name -> etl.v1.TrackPlaysTransaction
 	27, // 15: etl.v1.Transaction.manage_entity:type_name -> etl.v1.ManageEntityTransaction
 	29, // 16: etl.v1.Transaction.validator_registration:type_name -> etl.v1.ValidatorRegistrationTransaction
@@ -6015,11 +6445,11 @@ var file_etl_v1_types_proto_depIdxs = []int32{
 	36, // 20: etl.v1.Transaction.storage_proof_verification:type_name -> etl.v1.StorageProofVerificationTransaction
 	37, // 21: etl.v1.Transaction.release:type_name -> etl.v1.ReleaseTransaction
 	26, // 22: etl.v1.TrackPlaysTransaction.plays:type_name -> etl.v1.TrackPlay
-	79, // 23: etl.v1.TrackPlay.played_at:type_name -> google.protobuf.Timestamp
+	85, // 23: etl.v1.TrackPlay.played_at:type_name -> google.protobuf.Timestamp
 	28, // 24: etl.v1.ManageEntityTransaction.entities:type_name -> etl.v1.ManageEntity
 	30, // 25: etl.v1.ValidatorRegistrationTransaction.registrations:type_name -> etl.v1.ValidatorRegistration
 	32, // 26: etl.v1.ValidatorDeregistrationTransaction.deregistrations:type_name -> etl.v1.ValidatorDeregistration
-	79, // 27: etl.v1.SlaRollupTransaction.timestamp:type_name -> google.protobuf.Timestamp
+	85, // 27: etl.v1.SlaRollupTransaction.timestamp:type_name -> google.protobuf.Timestamp
 	34, // 28: etl.v1.SlaRollupTransaction.reports:type_name -> etl.v1.SlaNodeReport
 	39, // 29: etl.v1.GetPlaysRequest.get_plays:type_name -> etl.v1.GetPlays
 	40, // 30: etl.v1.GetPlaysRequest.get_plays_by_address:type_name -> etl.v1.GetPlaysByAddress
@@ -6035,10 +6465,10 @@ var file_etl_v1_types_proto_depIdxs = []int32{
 	57, // 40: etl.v1.GetValidatorResponse.validator:type_name -> etl.v1.ValidatorInfo
 	58, // 41: etl.v1.GetValidatorResponse.events:type_name -> etl.v1.ValidatorEvent
 	0,  // 42: etl.v1.ValidatorInfo.status:type_name -> etl.v1.ValidatorStatus
-	79, // 43: etl.v1.ValidatorInfo.registered_at:type_name -> google.protobuf.Timestamp
-	79, // 44: etl.v1.ValidatorInfo.last_activity:type_name -> google.protobuf.Timestamp
+	85, // 43: etl.v1.ValidatorInfo.registered_at:type_name -> google.protobuf.Timestamp
+	85, // 44: etl.v1.ValidatorInfo.last_activity:type_name -> google.protobuf.Timestamp
 	1,  // 45: etl.v1.ValidatorEvent.type:type_name -> etl.v1.ValidatorEventType
-	79, // 46: etl.v1.ValidatorEvent.timestamp:type_name -> google.protobuf.Timestamp
+	85, // 46: etl.v1.ValidatorEvent.timestamp:type_name -> google.protobuf.Timestamp
 	59, // 47: etl.v1.ValidatorEvent.data:type_name -> etl.v1.ValidatorEventData
 	60, // 48: etl.v1.ValidatorEventData.registration:type_name -> etl.v1.ValidatorRegistrationEvent
 	61, // 49: etl.v1.ValidatorEventData.registration_legacy:type_name -> etl.v1.ValidatorRegistrationLegacyEvent
@@ -6048,16 +6478,20 @@ var file_etl_v1_types_proto_depIdxs = []int32{
 	66, // 53: etl.v1.GetLocationRequest.get_available_regions:type_name -> etl.v1.GetAvailableRegions
 	67, // 54: etl.v1.GetLocationRequest.get_available_countries:type_name -> etl.v1.GetAvailableCountries
 	71, // 55: etl.v1.SearchResponse.results:type_name -> etl.v1.SearchResult
-	75, // 56: etl.v1.StreamRequest.stream_blocks:type_name -> etl.v1.StreamRequest.StreamBlocksRequest
-	76, // 57: etl.v1.StreamRequest.stream_plays:type_name -> etl.v1.StreamRequest.StreamPlaysRequest
-	77, // 58: etl.v1.StreamResponse.stream_blocks:type_name -> etl.v1.StreamResponse.StreamBlocksResponse
-	78, // 59: etl.v1.StreamResponse.stream_plays:type_name -> etl.v1.StreamResponse.StreamPlaysResponse
-	79, // 60: etl.v1.Block.Transaction.timestamp:type_name -> google.protobuf.Timestamp
-	61, // [61:61] is the sub-list for method output_type
-	61, // [61:61] is the sub-list for method input_type
-	61, // [61:61] is the sub-list for extension type_name
-	61, // [61:61] is the sub-list for extension extendee
-	0,  // [0:61] is the sub-list for field type_name
+	81, // 56: etl.v1.StreamRequest.stream_blocks:type_name -> etl.v1.StreamRequest.StreamBlocksRequest
+	82, // 57: etl.v1.StreamRequest.stream_plays:type_name -> etl.v1.StreamRequest.StreamPlaysRequest
+	83, // 58: etl.v1.StreamResponse.stream_blocks:type_name -> etl.v1.StreamResponse.StreamBlocksResponse
+	84, // 59: etl.v1.StreamResponse.stream_plays:type_name -> etl.v1.StreamResponse.StreamPlaysResponse
+	79, // 60: etl.v1.GetValidatorUptimeResponse.rollups:type_name -> etl.v1.SlaRollupScore
+	78, // 61: etl.v1.GetValidatorsUptimeResponse.validators:type_name -> etl.v1.ValidatorUptimeInfo
+	79, // 62: etl.v1.ValidatorUptimeInfo.recent_rollups:type_name -> etl.v1.SlaRollupScore
+	85, // 63: etl.v1.SlaRollupScore.timestamp:type_name -> google.protobuf.Timestamp
+	85, // 64: etl.v1.Block.Transaction.timestamp:type_name -> google.protobuf.Timestamp
+	65, // [65:65] is the sub-list for method output_type
+	65, // [65:65] is the sub-list for method input_type
+	65, // [65:65] is the sub-list for extension type_name
+	65, // [65:65] is the sub-list for extension extendee
+	0,  // [0:65] is the sub-list for field type_name
 }
 
 func init() { file_etl_v1_types_proto_init() }
@@ -6931,7 +7365,7 @@ func file_etl_v1_types_proto_init() {
 			}
 		}
 		file_etl_v1_types_proto_msgTypes[72].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Block_Transaction); i {
+			switch v := v.(*GetValidatorUptimeRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -6943,7 +7377,7 @@ func file_etl_v1_types_proto_init() {
 			}
 		}
 		file_etl_v1_types_proto_msgTypes[73].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*StreamRequest_StreamBlocksRequest); i {
+			switch v := v.(*GetValidatorUptimeResponse); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -6955,7 +7389,7 @@ func file_etl_v1_types_proto_init() {
 			}
 		}
 		file_etl_v1_types_proto_msgTypes[74].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*StreamRequest_StreamPlaysRequest); i {
+			switch v := v.(*GetValidatorsUptimeRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -6967,7 +7401,7 @@ func file_etl_v1_types_proto_init() {
 			}
 		}
 		file_etl_v1_types_proto_msgTypes[75].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*StreamResponse_StreamBlocksResponse); i {
+			switch v := v.(*GetValidatorsUptimeResponse); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -6979,6 +7413,78 @@ func file_etl_v1_types_proto_init() {
 			}
 		}
 		file_etl_v1_types_proto_msgTypes[76].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ValidatorUptimeInfo); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_etl_v1_types_proto_msgTypes[77].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*SlaRollupScore); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_etl_v1_types_proto_msgTypes[78].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*Block_Transaction); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_etl_v1_types_proto_msgTypes[79].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*StreamRequest_StreamBlocksRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_etl_v1_types_proto_msgTypes[80].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*StreamRequest_StreamPlaysRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_etl_v1_types_proto_msgTypes[81].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*StreamResponse_StreamBlocksResponse); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_etl_v1_types_proto_msgTypes[82].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*StreamResponse_StreamPlaysResponse); i {
 			case 0:
 				return &v.state
@@ -7043,7 +7549,7 @@ func file_etl_v1_types_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_etl_v1_types_proto_rawDesc,
 			NumEnums:      2,
-			NumMessages:   77,
+			NumMessages:   83,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

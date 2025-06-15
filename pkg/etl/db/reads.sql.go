@@ -28,6 +28,74 @@ func (q *Queries) GetActiveValidatorsCount(ctx context.Context) (int64, error) {
 	return total, err
 }
 
+const getAllValidatorsUptimeData = `-- name: GetAllValidatorsUptimeData :many
+SELECT 
+    vsr.node,
+    vsr.sla_id,
+    vsr.blocks_proposed,
+    vsr.challenges_received,
+    vsr.challenges_failed,
+    vr.block_quota,
+    vr.start_block,
+    vr.end_block,
+    vr.tx,
+    vr.date_finalized
+FROM v_sla_rollup_score vsr
+JOIN v_sla_rollup vr ON vsr.sla_id = vr.id
+WHERE vr.id IN (
+    SELECT DISTINCT vr_inner.id 
+    FROM v_sla_rollup vr_inner 
+    ORDER BY vr_inner.date_finalized DESC 
+    LIMIT $1
+)
+ORDER BY vsr.node, vr.date_finalized DESC
+`
+
+type GetAllValidatorsUptimeDataRow struct {
+	Node               string           `json:"node"`
+	SlaID              int32            `json:"sla_id"`
+	BlocksProposed     int32            `json:"blocks_proposed"`
+	ChallengesReceived int64            `json:"challenges_received"`
+	ChallengesFailed   int32            `json:"challenges_failed"`
+	BlockQuota         int32            `json:"block_quota"`
+	StartBlock         int64            `json:"start_block"`
+	EndBlock           int64            `json:"end_block"`
+	Tx                 string           `json:"tx"`
+	DateFinalized      pgtype.Timestamp `json:"date_finalized"`
+}
+
+// Get all validators uptime data using SLA rollup views
+func (q *Queries) GetAllValidatorsUptimeData(ctx context.Context, limit int32) ([]GetAllValidatorsUptimeDataRow, error) {
+	rows, err := q.db.Query(ctx, getAllValidatorsUptimeData, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAllValidatorsUptimeDataRow
+	for rows.Next() {
+		var i GetAllValidatorsUptimeDataRow
+		if err := rows.Scan(
+			&i.Node,
+			&i.SlaID,
+			&i.BlocksProposed,
+			&i.ChallengesReceived,
+			&i.ChallengesFailed,
+			&i.BlockQuota,
+			&i.StartBlock,
+			&i.EndBlock,
+			&i.Tx,
+			&i.DateFinalized,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getAvailableCities = `-- name: GetAvailableCities :many
 SELECT 
     p.city,
@@ -1734,6 +1802,28 @@ func (q *Queries) GetValidatorDeregistrationsByTxHash(ctx context.Context, txHas
 	return items, nil
 }
 
+const getValidatorEndpointByAddress = `-- name: GetValidatorEndpointByAddress :one
+SELECT endpoint, comet_address
+FROM etl_validator_registrations_v2 vr
+JOIN etl_addresses a ON vr.address_id = a.id
+WHERE a.address = $1 OR vr.comet_address = $1
+ORDER BY vr.id DESC
+LIMIT 1
+`
+
+type GetValidatorEndpointByAddressRow struct {
+	Endpoint     string `json:"endpoint"`
+	CometAddress string `json:"comet_address"`
+}
+
+// Get validator endpoint by address for uptime display
+func (q *Queries) GetValidatorEndpointByAddress(ctx context.Context, address string) (GetValidatorEndpointByAddressRow, error) {
+	row := q.db.QueryRow(ctx, getValidatorEndpointByAddress, address)
+	var i GetValidatorEndpointByAddressRow
+	err := row.Scan(&i.Endpoint, &i.CometAddress)
+	return i, err
+}
+
 const getValidatorRegistrations = `-- name: GetValidatorRegistrations :many
 SELECT DISTINCT ON (a.address) 
     a.address,
@@ -1863,6 +1953,72 @@ func (q *Queries) GetValidatorStats(ctx context.Context) (VValidatorStat, error)
 	var i VValidatorStat
 	err := row.Scan(&i.TotalRegisteredValidators, &i.ActiveValidators, &i.DeregisteredValidators)
 	return i, err
+}
+
+const getValidatorUptimeData = `-- name: GetValidatorUptimeData :many
+SELECT 
+    vsr.sla_id,
+    vsr.blocks_proposed,
+    vsr.challenges_received,
+    vsr.challenges_failed,
+    vr.block_quota,
+    vr.start_block,
+    vr.end_block,
+    vr.tx,
+    vr.date_finalized
+FROM v_sla_rollup_score vsr
+JOIN v_sla_rollup vr ON vsr.sla_id = vr.id
+WHERE vsr.node = $1
+ORDER BY vr.date_finalized DESC
+LIMIT $2
+`
+
+type GetValidatorUptimeDataParams struct {
+	Node  string `json:"node"`
+	Limit int32  `json:"limit"`
+}
+
+type GetValidatorUptimeDataRow struct {
+	SlaID              int32            `json:"sla_id"`
+	BlocksProposed     int32            `json:"blocks_proposed"`
+	ChallengesReceived int64            `json:"challenges_received"`
+	ChallengesFailed   int32            `json:"challenges_failed"`
+	BlockQuota         int32            `json:"block_quota"`
+	StartBlock         int64            `json:"start_block"`
+	EndBlock           int64            `json:"end_block"`
+	Tx                 string           `json:"tx"`
+	DateFinalized      pgtype.Timestamp `json:"date_finalized"`
+}
+
+// Get validator uptime data using SLA rollup views
+func (q *Queries) GetValidatorUptimeData(ctx context.Context, arg GetValidatorUptimeDataParams) ([]GetValidatorUptimeDataRow, error) {
+	rows, err := q.db.Query(ctx, getValidatorUptimeData, arg.Node, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetValidatorUptimeDataRow
+	for rows.Next() {
+		var i GetValidatorUptimeDataRow
+		if err := rows.Scan(
+			&i.SlaID,
+			&i.BlocksProposed,
+			&i.ChallengesReceived,
+			&i.ChallengesFailed,
+			&i.BlockQuota,
+			&i.StartBlock,
+			&i.EndBlock,
+			&i.Tx,
+			&i.DateFinalized,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const searchAddress = `-- name: SearchAddress :many

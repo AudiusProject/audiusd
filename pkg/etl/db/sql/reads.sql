@@ -638,3 +638,53 @@ SELECT
     $1 as latest_chain_height,
     $1 - lbi.latest_indexed_height as block_delta
 FROM v_latest_block_info lbi;
+
+-- Get validator uptime data using SLA rollup views
+-- name: GetValidatorUptimeData :many
+SELECT 
+    vsr.sla_id,
+    vsr.blocks_proposed,
+    vsr.challenges_received,
+    vsr.challenges_failed,
+    vr.block_quota,
+    vr.start_block,
+    vr.end_block,
+    vr.tx,
+    vr.date_finalized
+FROM v_sla_rollup_score vsr
+JOIN v_sla_rollup vr ON vsr.sla_id = vr.id
+WHERE vsr.node = $1
+ORDER BY vr.date_finalized DESC
+LIMIT $2;
+
+-- Get all validators uptime data using SLA rollup views
+-- name: GetAllValidatorsUptimeData :many
+SELECT 
+    vsr.node,
+    vsr.sla_id,
+    vsr.blocks_proposed,
+    vsr.challenges_received,
+    vsr.challenges_failed,
+    vr.block_quota,
+    vr.start_block,
+    vr.end_block,
+    vr.tx,
+    vr.date_finalized
+FROM v_sla_rollup_score vsr
+JOIN v_sla_rollup vr ON vsr.sla_id = vr.id
+WHERE vr.id IN (
+    SELECT DISTINCT vr_inner.id 
+    FROM v_sla_rollup vr_inner 
+    ORDER BY vr_inner.date_finalized DESC 
+    LIMIT $1
+)
+ORDER BY vsr.node, vr.date_finalized DESC;
+
+-- Get validator endpoint by address for uptime display
+-- name: GetValidatorEndpointByAddress :one
+SELECT endpoint, comet_address
+FROM etl_validator_registrations_v2 vr
+JOIN etl_addresses a ON vr.address_id = a.id
+WHERE a.address = $1 OR vr.comet_address = $1
+ORDER BY vr.id DESC
+LIMIT 1;
