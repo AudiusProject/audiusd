@@ -38,9 +38,9 @@ ORDER BY sr.timestamp DESC;
 CREATE OR REPLACE VIEW v_sla_rollup_score AS
 SELECT 
     snr.num_blocks_proposed as blocks_proposed,
-    -- Challenges received: count of storage proofs requested from this address in this rollup's block range
+    -- Challenges received: count distinct storage proof heights where this validator was expected to provide proof in this rollup period
     COALESCE(challenge_counts.challenges_received, 0) as challenges_received,
-    -- Challenges failed: count of storage proofs that were requested but not provided (currently set to 0 as status tracking needs verification)
+    -- Challenges failed: challenges received minus challenges where they actually provided a proof
     COALESCE(challenge_counts.challenges_failed, 0) as challenges_failed,
     sr.id as sla_id,
     a.address as node
@@ -48,17 +48,23 @@ FROM etl_sla_node_reports_v2 snr
 JOIN etl_sla_rollups_v2 sr ON snr.sla_rollup_id = sr.id
 JOIN etl_addresses a ON snr.address_id = a.id
 LEFT JOIN (
-    -- Subquery to count challenges received and failed for each validator in each rollup
-    -- Uses ETL storage proofs table and gets block range from transaction blocks
+    -- For each rollup and validator, count challenges received and failed
     SELECT 
         sr_inner.id as sla_rollup_id,
         a_inner.address,
-        COUNT(*) as challenges_received,
-        -- For now, setting challenges_failed to 0 since we need to verify how failure status is tracked in ETL
-        0 as challenges_failed
+        -- Count distinct heights where this address appears in prover_addresses (expected to prove)
+        COUNT(DISTINCT sp.height) as challenges_received,
+        -- Count distinct heights where they were expected but didn't submit a proof
+        COUNT(DISTINCT sp.height) - COUNT(DISTINCT sp_submitted.height) as challenges_failed
     FROM etl_sla_rollups_v2 sr_inner
-    JOIN etl_storage_proofs_v2 sp ON sp.height BETWEEN sr_inner.block_start AND sr_inner.block_end
-    JOIN etl_addresses a_inner ON sp.address_id = a_inner.id
+    CROSS JOIN etl_addresses a_inner
+    -- Find storage proofs in this rollup's block range where this address was expected to provide proof
+    JOIN etl_storage_proofs_v2 sp ON sp.height BETWEEN sr_inner.block_start AND sr_inner.block_end 
+        AND a_inner.address = ANY(sp.prover_addresses)
+    -- Check if this address actually submitted a proof at that height
+    LEFT JOIN etl_storage_proofs_v2 sp_submitted ON sp_submitted.height = sp.height 
+        AND sp_submitted.address_id = a_inner.id
     GROUP BY sr_inner.id, a_inner.address
+    HAVING COUNT(DISTINCT sp.height) > 0  -- Only include addresses that had challenges
 ) challenge_counts ON challenge_counts.sla_rollup_id = sr.id AND challenge_counts.address = a.address
 ORDER BY sr.timestamp DESC, a.address; 
