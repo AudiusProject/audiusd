@@ -28,10 +28,51 @@ func (q *Queries) GetActiveValidatorsCount(ctx context.Context) (int64, error) {
 	return total, err
 }
 
+const getAllRegisteredValidatorsWithEndpoints = `-- name: GetAllRegisteredValidatorsWithEndpoints :many
+SELECT DISTINCT ON (a.address)
+    a.address,
+    vr.endpoint,
+    vr.comet_address
+FROM etl_validator_registrations_v2 vr 
+JOIN etl_addresses a ON vr.address_id = a.id
+WHERE vr.comet_address NOT IN (
+    SELECT vd.comet_address 
+    FROM etl_validator_deregistrations_v2 vd
+)
+ORDER BY a.address, vr.id DESC
+`
+
+type GetAllRegisteredValidatorsWithEndpointsRow struct {
+	Address      string `json:"address"`
+	Endpoint     string `json:"endpoint"`
+	CometAddress string `json:"comet_address"`
+}
+
+// Get all registered validators with their endpoints (for showing complete validator list)
+func (q *Queries) GetAllRegisteredValidatorsWithEndpoints(ctx context.Context) ([]GetAllRegisteredValidatorsWithEndpointsRow, error) {
+	rows, err := q.db.Query(ctx, getAllRegisteredValidatorsWithEndpoints)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAllRegisteredValidatorsWithEndpointsRow
+	for rows.Next() {
+		var i GetAllRegisteredValidatorsWithEndpointsRow
+		if err := rows.Scan(&i.Address, &i.Endpoint, &i.CometAddress); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getAllValidatorsUptimeData = `-- name: GetAllValidatorsUptimeData :many
 SELECT 
     vsr.node,
-    vsr.sla_id,
+    vr.id as sla_id,
     vsr.blocks_proposed,
     vsr.challenges_received,
     vsr.challenges_failed,
@@ -42,13 +83,8 @@ SELECT
     vr.date_finalized
 FROM v_sla_rollup_score vsr
 JOIN v_sla_rollup vr ON vsr.sla_id = vr.id
-WHERE vr.id IN (
-    SELECT DISTINCT vr_inner.id 
-    FROM v_sla_rollup vr_inner 
-    ORDER BY vr_inner.date_finalized DESC 
-    LIMIT $1
-)
-ORDER BY vsr.node, vr.date_finalized DESC
+ORDER BY vr.date_finalized DESC, vsr.node
+LIMIT $1
 `
 
 type GetAllValidatorsUptimeDataRow struct {
@@ -1957,7 +1993,7 @@ func (q *Queries) GetValidatorStats(ctx context.Context) (VValidatorStat, error)
 
 const getValidatorUptimeData = `-- name: GetValidatorUptimeData :many
 SELECT 
-    vsr.sla_id,
+    vr.id as sla_id,
     vsr.blocks_proposed,
     vsr.challenges_received,
     vsr.challenges_failed,
@@ -2001,6 +2037,69 @@ func (q *Queries) GetValidatorUptimeData(ctx context.Context, arg GetValidatorUp
 	for rows.Next() {
 		var i GetValidatorUptimeDataRow
 		if err := rows.Scan(
+			&i.SlaID,
+			&i.BlocksProposed,
+			&i.ChallengesReceived,
+			&i.ChallengesFailed,
+			&i.BlockQuota,
+			&i.StartBlock,
+			&i.EndBlock,
+			&i.Tx,
+			&i.DateFinalized,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getValidatorsUptimeDataByRollup = `-- name: GetValidatorsUptimeDataByRollup :many
+SELECT 
+    vsr.node,
+    vr.id as sla_id,
+    vsr.blocks_proposed,
+    vsr.challenges_received,
+    vsr.challenges_failed,
+    vr.block_quota,
+    vr.start_block,
+    vr.end_block,
+    vr.tx,
+    vr.date_finalized
+FROM v_sla_rollup_score vsr
+JOIN v_sla_rollup vr ON vsr.sla_id = vr.id
+WHERE vr.id = $1
+ORDER BY vsr.node
+`
+
+type GetValidatorsUptimeDataByRollupRow struct {
+	Node               string           `json:"node"`
+	SlaID              int32            `json:"sla_id"`
+	BlocksProposed     int32            `json:"blocks_proposed"`
+	ChallengesReceived int64            `json:"challenges_received"`
+	ChallengesFailed   int32            `json:"challenges_failed"`
+	BlockQuota         int32            `json:"block_quota"`
+	StartBlock         int64            `json:"start_block"`
+	EndBlock           int64            `json:"end_block"`
+	Tx                 string           `json:"tx"`
+	DateFinalized      pgtype.Timestamp `json:"date_finalized"`
+}
+
+// Get validator uptime data for a specific SLA rollup ID
+func (q *Queries) GetValidatorsUptimeDataByRollup(ctx context.Context, id int32) ([]GetValidatorsUptimeDataByRollupRow, error) {
+	rows, err := q.db.Query(ctx, getValidatorsUptimeDataByRollup, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetValidatorsUptimeDataByRollupRow
+	for rows.Next() {
+		var i GetValidatorsUptimeDataByRollupRow
+		if err := rows.Scan(
+			&i.Node,
 			&i.SlaID,
 			&i.BlocksProposed,
 			&i.ChallengesReceived,

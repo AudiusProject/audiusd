@@ -1574,17 +1574,34 @@ func (e *ETLService) GetValidatorsUptime(ctx context.Context, req *connect.Reque
 	}
 
 	// Get uptime data for all validators
-	uptimeData, err := e.db.GetAllValidatorsUptimeData(ctx, limit)
+	uptimeData, err := e.db.GetAllValidatorsUptimeData(ctx, limit*10) // Get more records to account for multiple rollups per validator
 	if err != nil {
 		return nil, err
 	}
 
-	// Group by validator address
+	// Get all registered validators to ensure we show complete list
+	allValidators, err := e.db.GetAllRegisteredValidatorsWithEndpoints(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create validator map starting with all registered validators
 	validatorMap := make(map[string]*v1.ValidatorUptimeInfo)
+
+	// First, initialize all validators with empty rollup data
+	for _, validator := range allValidators {
+		validatorMap[validator.Address] = &v1.ValidatorUptimeInfo{
+			ValidatorAddress: validator.Address,
+			Endpoint:         validator.Endpoint,
+			RecentRollups:    []*v1.SlaRollupScore{},
+		}
+	}
+
+	// Then, populate with actual rollup data
 	for _, data := range uptimeData {
 		validator, exists := validatorMap[data.Node]
 		if !exists {
-			// Get endpoint for this validator
+			// Create new validator if not in registered list (shouldn't happen but be safe)
 			endpoint := ""
 			endpointData, err := e.db.GetValidatorEndpointByAddress(ctx, data.Node)
 			if err == nil {
@@ -1597,6 +1614,11 @@ func (e *ETLService) GetValidatorsUptime(ctx context.Context, req *connect.Reque
 				RecentRollups:    []*v1.SlaRollupScore{},
 			}
 			validatorMap[data.Node] = validator
+		}
+
+		// Check if we already have enough rollups for this validator
+		if len(validator.RecentRollups) >= int(limit) {
+			continue
 		}
 
 		var timestamp *timestamppb.Timestamp
@@ -1627,5 +1649,86 @@ func (e *ETLService) GetValidatorsUptime(ctx context.Context, req *connect.Reque
 
 	return connect.NewResponse(&v1.GetValidatorsUptimeResponse{
 		Validators: validators,
+	}), nil
+}
+
+// GetValidatorsUptimeByRollup implements v1connect.ETLServiceHandler.
+func (e *ETLService) GetValidatorsUptimeByRollup(ctx context.Context, req *connect.Request[v1.GetValidatorsUptimeByRollupRequest]) (*connect.Response[v1.GetValidatorsUptimeByRollupResponse], error) {
+	rollupId := req.Msg.RollupId
+	if rollupId <= 0 {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("rollup_id must be positive"))
+	}
+
+	// Get uptime data for the specific rollup
+	uptimeData, err := e.db.GetValidatorsUptimeDataByRollup(ctx, rollupId)
+	if err != nil {
+		return nil, err
+	}
+
+	// If no data found for this rollup, get all validators anyway to show complete list
+	var allValidators []db.GetAllRegisteredValidatorsWithEndpointsRow
+	if len(uptimeData) == 0 {
+		allValidators, err = e.db.GetAllRegisteredValidatorsWithEndpoints(ctx)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Create validator map and populate with rollup data
+	validatorMap := make(map[string]*v1.ValidatorUptimeInfo)
+
+	// First, add validators that have rollup data
+	for _, data := range uptimeData {
+		var timestamp *timestamppb.Timestamp
+		if data.DateFinalized.Valid {
+			timestamp = timestamppb.New(data.DateFinalized.Time)
+		}
+
+		rollup := &v1.SlaRollupScore{
+			SlaRollupId:        data.SlaID,
+			BlocksProposed:     data.BlocksProposed,
+			BlockQuota:         data.BlockQuota,
+			ChallengesReceived: data.ChallengesReceived,
+			ChallengesFailed:   data.ChallengesFailed,
+			BlockStart:         data.StartBlock,
+			BlockEnd:           data.EndBlock,
+			TxHash:             data.Tx,
+			Timestamp:          timestamp,
+		}
+
+		// Get endpoint for this validator
+		endpoint := ""
+		endpointData, err := e.db.GetValidatorEndpointByAddress(ctx, data.Node)
+		if err == nil {
+			endpoint = endpointData.Endpoint
+		}
+
+		validatorMap[data.Node] = &v1.ValidatorUptimeInfo{
+			ValidatorAddress: data.Node,
+			Endpoint:         endpoint,
+			RecentRollups:    []*v1.SlaRollupScore{rollup},
+		}
+	}
+
+	// If we didn't get any data, show all validators with empty rollup data
+	if len(uptimeData) == 0 {
+		for _, validator := range allValidators {
+			validatorMap[validator.Address] = &v1.ValidatorUptimeInfo{
+				ValidatorAddress: validator.Address,
+				Endpoint:         validator.Endpoint,
+				RecentRollups:    []*v1.SlaRollupScore{}, // Empty for this rollup
+			}
+		}
+	}
+
+	// Convert map to slice
+	validators := make([]*v1.ValidatorUptimeInfo, 0, len(validatorMap))
+	for _, validator := range validatorMap {
+		validators = append(validators, validator)
+	}
+
+	return connect.NewResponse(&v1.GetValidatorsUptimeByRollupResponse{
+		Validators: validators,
+		RollupId:   rollupId,
 	}), nil
 }

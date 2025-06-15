@@ -74,6 +74,7 @@ func (con *Console) SetupRoutes() {
 	e.GET("/validators", con.Validators)
 	e.GET("/validator/:address", con.Validator)
 	e.GET("/validators/uptime", con.ValidatorsUptime)
+	e.GET("/validators/uptime/:rollupid", con.ValidatorsUptimeByRollup)
 
 	e.GET("/blocks", con.Blocks)
 	e.GET("/block/:height", con.Block)
@@ -340,17 +341,48 @@ func (con *Console) Validator(c echo.Context) error {
 }
 
 func (con *Console) ValidatorsUptime(c echo.Context) error {
-	// Get uptime data for all validators (last 5 rollups each)
+	// Get uptime data for all validators (last 12 rollups each)
 	uptimeResp, err := con.etl.GetValidatorsUptime(c.Request().Context(), &connect.Request[v1.GetValidatorsUptimeRequest]{
 		Msg: &v1.GetValidatorsUptimeRequest{
 			Limit: 12, // Last 12 rollups for the uptime page
 		},
 	})
 	if err != nil {
-		return c.String(http.StatusInternalServerError, "Failed to get validator uptime data")
+		con.logger.Error("Failed to get validator uptime data", "error", err)
+		return c.String(http.StatusInternalServerError, fmt.Sprintf("Failed to get validator uptime data: %v", err))
 	}
 
+	con.logger.Info("Successfully retrieved validator uptime data", "validator_count", len(uptimeResp.Msg.Validators))
+
 	p := pages.ValidatorsUptime(uptimeResp.Msg.Validators)
+	return p.Render(c.Request().Context(), c.Response().Writer)
+}
+
+func (con *Console) ValidatorsUptimeByRollup(c echo.Context) error {
+	rollupIdStr := c.Param("rollupid")
+	if rollupIdStr == "" {
+		return c.String(http.StatusBadRequest, "Rollup ID required")
+	}
+
+	rollupId, err := strconv.ParseInt(rollupIdStr, 10, 32)
+	if err != nil {
+		return c.String(http.StatusBadRequest, "Invalid rollup ID")
+	}
+
+	// Get uptime data for specific rollup
+	uptimeResp, err := con.etl.GetValidatorsUptimeByRollup(c.Request().Context(), &connect.Request[v1.GetValidatorsUptimeByRollupRequest]{
+		Msg: &v1.GetValidatorsUptimeByRollupRequest{
+			RollupId: int32(rollupId),
+		},
+	})
+	if err != nil {
+		con.logger.Error("Failed to get validator uptime data for rollup", "error", err, "rollup_id", rollupId)
+		return c.String(http.StatusInternalServerError, fmt.Sprintf("Failed to get validator uptime data for rollup %d: %v", rollupId, err))
+	}
+
+	con.logger.Info("Successfully retrieved validator uptime data for rollup", "validator_count", len(uptimeResp.Msg.Validators), "rollup_id", rollupId)
+
+	p := pages.ValidatorsUptimeByRollup(uptimeResp.Msg.Validators, int32(rollupId))
 	return p.Render(c.Request().Context(), c.Response().Writer)
 }
 
