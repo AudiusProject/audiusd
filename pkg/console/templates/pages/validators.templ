@@ -136,6 +136,15 @@ templ Validators(validators []*v1.ValidatorInfo, currentPage int32, hasNext bool
 										</div>
 									</div>
 								</div>
+								<div class="flex-1">
+									<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Uptime</div>
+									<div class="flex items-center gap-1">
+										<!-- Placeholder for uptime bars - will be populated after codegen -->
+										for i := 0; i < 5; i++ {
+											<div class="w-3 h-4 bg-gray-300 dark:bg-gray-600 rounded-sm" title="SLA data will be loaded after protobuf generation"></div>
+										}
+									</div>
+								</div>
 							</div>
 						</div>
 					}

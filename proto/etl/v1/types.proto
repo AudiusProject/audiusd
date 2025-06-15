@@ -452,7 +452,7 @@ message StreamResponse {
     int64 height = 1;
     string proposer = 2;
   }
-
+  
   message StreamPlaysResponse {
     string city = 1;
     string country = 2;
@@ -460,8 +460,45 @@ message StreamResponse {
     double latitude = 4;
     double longitude = 5;
   }
+
   oneof response {
     StreamBlocksResponse stream_blocks = 1;
     StreamPlaysResponse stream_plays = 2;
   }
+}
+
+// SLA Rollup uptime data structures
+message GetValidatorUptimeRequest {
+  string validator_address = 1;
+  int32 limit = 2; // number of recent SLA rollups to return
+}
+
+message GetValidatorUptimeResponse {
+  repeated SlaRollupScore rollups = 1;
+}
+
+message GetValidatorsUptimeRequest {
+  int32 limit = 2; // number of recent SLA rollups per validator
+}
+
+message GetValidatorsUptimeResponse {
+  repeated ValidatorUptimeInfo validators = 1;
+}
+
+message ValidatorUptimeInfo {
+  string validator_address = 1;
+  string endpoint = 2;
+  repeated SlaRollupScore recent_rollups = 3;
+}
+
+message SlaRollupScore {
+  int32 sla_rollup_id = 1;
+  int32 blocks_proposed = 2;
+  int32 block_quota = 3;
+  int64 challenges_received = 4;
+  int32 challenges_failed = 5;
+  int64 block_start = 6;
+  int64 block_end = 7;
+  string tx_hash = 8;
+  google.protobuf.Timestamp timestamp = 9;
 }

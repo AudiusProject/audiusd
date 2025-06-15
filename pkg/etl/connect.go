@@ -1518,3 +1518,114 @@ func getTextValue(text pgtype.Text) string {
 	}
 	return ""
 }
+
+// GetValidatorUptime implements v1connect.ETLServiceHandler.
+func (e *ETLService) GetValidatorUptime(ctx context.Context, req *connect.Request[v1.GetValidatorUptimeRequest]) (*connect.Response[v1.GetValidatorUptimeResponse], error) {
+	validatorAddress := req.Msg.ValidatorAddress
+	if validatorAddress == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("validator_address is required"))
+	}
+
+	limit := req.Msg.Limit
+	if limit <= 0 {
+		limit = 12 // default to 12 recent rollups
+	}
+
+	// Get uptime data from database views
+	uptimeData, err := e.db.GetValidatorUptimeData(ctx, db.GetValidatorUptimeDataParams{
+		Node:  validatorAddress,
+		Limit: limit,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert to protobuf format
+	rollups := make([]*v1.SlaRollupScore, len(uptimeData))
+	for i, data := range uptimeData {
+		var timestamp *timestamppb.Timestamp
+		if data.DateFinalized.Valid {
+			timestamp = timestamppb.New(data.DateFinalized.Time)
+		}
+
+		rollups[i] = &v1.SlaRollupScore{
+			SlaRollupId:        data.SlaID,
+			BlocksProposed:     data.BlocksProposed,
+			BlockQuota:         data.BlockQuota,
+			ChallengesReceived: data.ChallengesReceived,
+			ChallengesFailed:   data.ChallengesFailed,
+			BlockStart:         data.StartBlock,
+			BlockEnd:           data.EndBlock,
+			TxHash:             data.Tx,
+			Timestamp:          timestamp,
+		}
+	}
+
+	return connect.NewResponse(&v1.GetValidatorUptimeResponse{
+		Rollups: rollups,
+	}), nil
+}
+
+// GetValidatorsUptime implements v1connect.ETLServiceHandler.
+func (e *ETLService) GetValidatorsUptime(ctx context.Context, req *connect.Request[v1.GetValidatorsUptimeRequest]) (*connect.Response[v1.GetValidatorsUptimeResponse], error) {
+	limit := req.Msg.Limit
+	if limit <= 0 {
+		limit = 5 // default to 5 recent rollups per validator
+	}
+
+	// Get uptime data for all validators
+	uptimeData, err := e.db.GetAllValidatorsUptimeData(ctx, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	// Group by validator address
+	validatorMap := make(map[string]*v1.ValidatorUptimeInfo)
+	for _, data := range uptimeData {
+		validator, exists := validatorMap[data.Node]
+		if !exists {
+			// Get endpoint for this validator
+			endpoint := ""
+			endpointData, err := e.db.GetValidatorEndpointByAddress(ctx, data.Node)
+			if err == nil {
+				endpoint = endpointData.Endpoint
+			}
+
+			validator = &v1.ValidatorUptimeInfo{
+				ValidatorAddress: data.Node,
+				Endpoint:         endpoint,
+				RecentRollups:    []*v1.SlaRollupScore{},
+			}
+			validatorMap[data.Node] = validator
+		}
+
+		var timestamp *timestamppb.Timestamp
+		if data.DateFinalized.Valid {
+			timestamp = timestamppb.New(data.DateFinalized.Time)
+		}
+
+		rollup := &v1.SlaRollupScore{
+			SlaRollupId:        data.SlaID,
+			BlocksProposed:     data.BlocksProposed,
+			BlockQuota:         data.BlockQuota,
+			ChallengesReceived: data.ChallengesReceived,
+			ChallengesFailed:   data.ChallengesFailed,
+			BlockStart:         data.StartBlock,
+			BlockEnd:           data.EndBlock,
+			TxHash:             data.Tx,
+			Timestamp:          timestamp,
+		}
+
+		validator.RecentRollups = append(validator.RecentRollups, rollup)
+	}
+
+	// Convert map to slice
+	validators := make([]*v1.ValidatorUptimeInfo, 0, len(validatorMap))
+	for _, validator := range validatorMap {
+		validators = append(validators, validator)
+	}
+
+	return connect.NewResponse(&v1.GetValidatorsUptimeResponse{
+		Validators: validators,
+	}), nil
+}

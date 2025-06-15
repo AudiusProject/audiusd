@@ -73,6 +73,7 @@ func (con *Console) SetupRoutes() {
 
 	e.GET("/validators", con.Validators)
 	e.GET("/validator/:address", con.Validator)
+	e.GET("/validators/uptime", con.ValidatorsUptime)
 
 	e.GET("/blocks", con.Blocks)
 	e.GET("/block/:height", con.Block)
@@ -335,6 +336,21 @@ func (con *Console) Validator(c echo.Context) error {
 	}
 
 	p := pages.Validator(validator.Msg.Validator, validator.Msg.Events)
+	return p.Render(c.Request().Context(), c.Response().Writer)
+}
+
+func (con *Console) ValidatorsUptime(c echo.Context) error {
+	// Get uptime data for all validators (last 5 rollups each)
+	uptimeResp, err := con.etl.GetValidatorsUptime(c.Request().Context(), &connect.Request[v1.GetValidatorsUptimeRequest]{
+		Msg: &v1.GetValidatorsUptimeRequest{
+			Limit: 12, // Last 12 rollups for the uptime page
+		},
+	})
+	if err != nil {
+		return c.String(http.StatusInternalServerError, "Failed to get validator uptime data")
+	}
+
+	p := pages.ValidatorsUptime(uptimeResp.Msg.Validators)
 	return p.Render(c.Request().Context(), c.Response().Writer)
 }
 

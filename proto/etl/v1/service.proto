@@ -20,6 +20,8 @@ service ETLService {
   rpc GetManageEntities(GetManageEntitiesRequest) returns (GetManageEntitiesResponse) {}
   rpc GetValidators(GetValidatorsRequest) returns (GetValidatorsResponse) {}
   rpc GetValidator(GetValidatorRequest) returns (GetValidatorResponse) {}
+  rpc GetValidatorUptime(GetValidatorUptimeRequest) returns (GetValidatorUptimeResponse) {}
+  rpc GetValidatorsUptime(GetValidatorsUptimeRequest) returns (GetValidatorsUptimeResponse) {}
   rpc GetLocation(GetLocationRequest) returns (GetLocationResponse) {}
   rpc Search(SearchRequest) returns (SearchResponse) {}
   rpc Stream(stream StreamRequest) returns (stream StreamResponse) {}
