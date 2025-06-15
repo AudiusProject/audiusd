@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"connectrpc.com/connect"
@@ -14,7 +15,6 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/maypok86/otter"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/encoding/protojson"
 )
@@ -32,22 +32,6 @@ const (
 	TxTypeRelease                            = "release"
 )
 
-type Stats struct {
-	BPS                          float64
-	TPS                          float64
-	TotalTransactions            int64
-	TotalTransactions24h         int64
-	TotalTransactionsPrevious24h int64
-	TotalTransactions7d          int64
-	TotalTransactions30d         int64
-	IsSyncing                    bool
-	LatestIndexedHeight          int64
-	LatestChainHeight            int64
-	BlockDelta                   int64
-	ValidatorCount               int64
-	TransactionBreakdown         []db.GetTransactionTypeBreakdownRow
-}
-
 func (etl *ETLService) Run() error {
 	dbUrl := etl.dbURL
 	if dbUrl == "" {
@@ -63,12 +47,6 @@ func (etl *ETLService) Run() error {
 	if err != nil {
 		return fmt.Errorf("error parsing database config: %v", err)
 	}
-
-	stats, err := otter.MustBuilder[string, Stats](1000).Build()
-	if err != nil {
-		return fmt.Errorf("error building stats cache: %v", err)
-	}
-	etl.stats = stats
 
 	pool, err := pgxpool.NewWithConfig(context.Background(), pgConfig)
 	if err != nil {
@@ -100,13 +78,6 @@ func (etl *ETLService) Run() error {
 	}
 
 	g, _ := errgroup.WithContext(context.Background())
-	g.Go(func() error {
-		if err := etl.updateStats(); err != nil {
-			return fmt.Errorf("error updating stats: %v", err)
-		}
-		return nil
-	})
-
 	g.Go(func() error {
 		if err := etl.indexBlocks(); err != nil {
 			return fmt.Errorf("error indexing blocks: %v", err)
@@ -178,7 +149,8 @@ func (etl *ETLService) indexBlocks() error {
 			continue
 		}
 
-		_, err = etl.db.InsertBlock(context.Background(), db.InsertBlockParams{
+		// Insert block first
+		blockRecord, err := etl.db.InsertBlock(context.Background(), db.InsertBlockParams{
 			ProposerAddress: block.Msg.Block.Proposer,
 			BlockHeight:     block.Msg.Block.Height,
 			BlockTime:       pgtype.Timestamp{Time: block.Msg.Block.Timestamp.AsTime(), Valid: true},
@@ -188,24 +160,76 @@ func (etl *ETLService) indexBlocks() error {
 			continue
 		}
 
+		// Process transactions
 		txs := block.Msg.Block.Transactions
 		for index, tx := range txs {
 			txType := ""
+
+			// Insert transaction record first
+			transactionRecord, err := etl.db.InsertTransaction(context.Background(), db.InsertTransactionParams{
+				TxHash:  tx.Hash,
+				BlockID: blockRecord.ID,
+				TxIndex: int32(index),
+				TxType:  "", // We'll update this after determining the type
+			})
+			if err != nil {
+				// If insertion failed due to conflict, try to get the existing transaction
+				if strings.Contains(err.Error(), "no rows") {
+					// Transaction already exists, get it
+					existingTx, getErr := etl.db.GetTransaction(context.Background(), tx.Hash)
+					if getErr != nil {
+						etl.logger.Errorf("error getting existing transaction %s: %v", tx.Hash, getErr)
+						continue
+					}
+					// Check if it's in the same block - if so, skip processing
+					if existingTx.BlockHeight == block.Msg.Block.Height {
+						etl.logger.Debugf("transaction %s already processed in block %d, skipping", tx.Hash, block.Msg.Block.Height)
+						continue
+					}
+					// If it's in a different block, we need to create a new record for this block
+					// This should not happen with our composite unique constraint, but log it
+					etl.logger.Warn("transaction exists in different block", "tx_hash", tx.Hash, "existing_block", existingTx.BlockHeight, "current_block", block.Msg.Block.Height)
+					continue
+				}
+				etl.logger.Errorf("error inserting transaction %s: %v", tx.Hash, err)
+				continue
+			}
+
+			// Helper function to get or create address
+			getOrCreateAddress := func(address string) (int32, error) {
+				addressID, err := etl.db.GetOrCreateAddress(context.Background(), db.GetOrCreateAddressParams{
+					Address:          address,
+					FirstSeenBlockID: pgtype.Int4{Int32: blockRecord.ID, Valid: true},
+				})
+				if err != nil {
+					return 0, err
+				}
+				return addressID, nil
+			}
 
 			switch signedTx := tx.Transaction.Transaction.(type) {
 			case *corev1.SignedTransaction_Plays:
 				txType = TxTypePlay
 				for _, play := range signedTx.Plays.GetPlays() {
-					etl.db.InsertPlay(context.Background(), db.InsertPlayParams{
-						Address:     play.UserId,
-						TrackID:     play.TrackId,
-						City:        play.City,
-						Region:      play.Region,
-						Country:     play.Country,
-						PlayedAt:    pgtype.Timestamp{Time: play.Timestamp.AsTime(), Valid: true},
-						BlockHeight: block.Msg.Block.Height,
-						TxHash:      tx.Hash,
+					addressID, err := getOrCreateAddress(play.UserId)
+					if err != nil {
+						etl.logger.Errorf("error getting/creating address for play: %v", err)
+						continue
+					}
+
+					_, err = etl.db.InsertPlay(context.Background(), db.InsertPlayParams{
+						TransactionID: transactionRecord.ID,
+						AddressID:     addressID,
+						TrackID:       play.TrackId,
+						City:          pgtype.Text{String: play.City, Valid: play.City != ""},
+						Region:        pgtype.Text{String: play.Region, Valid: play.Region != ""},
+						Country:       pgtype.Text{String: play.Country, Valid: play.Country != ""},
+						PlayedAt:      pgtype.Timestamp{Time: play.Timestamp.AsTime(), Valid: true},
 					})
+					if err != nil {
+						etl.logger.Errorf("error inserting play: %v", err)
+						continue
+					}
 
 					// TODO: persist lat long in db, only supported in streams
 					go func() {
@@ -231,122 +255,186 @@ func (etl *ETLService) indexBlocks() error {
 						})
 					}()
 				}
+
 			case *corev1.SignedTransaction_ManageEntity:
 				txType = TxTypeManageEntity
 				me := signedTx.ManageEntity
-				etl.db.InsertManageEntity(context.Background(), db.InsertManageEntityParams{
-					Address:     me.GetSigner(),
-					EntityType:  me.GetEntityType(),
-					EntityID:    me.GetEntityId(),
-					Action:      me.GetAction(),
-					Metadata:    pgtype.Text{String: me.GetMetadata(), Valid: true},
-					Signature:   me.GetSignature(),
-					Signer:      me.GetSigner(),
-					Nonce:       me.GetNonce(),
-					BlockHeight: block.Msg.Block.Height,
-					TxHash:      tx.Hash,
+
+				addressID, err := getOrCreateAddress(me.GetSigner())
+				if err != nil {
+					etl.logger.Errorf("error getting/creating address for manage entity: %v", err)
+					continue
+				}
+
+				signerAddressID, err := getOrCreateAddress(me.GetSigner())
+				if err != nil {
+					etl.logger.Errorf("error getting/creating signer address for manage entity: %v", err)
+					continue
+				}
+
+				_, err = etl.db.InsertManageEntity(context.Background(), db.InsertManageEntityParams{
+					TransactionID:   transactionRecord.ID,
+					AddressID:       addressID,
+					EntityType:      me.GetEntityType(),
+					EntityID:        me.GetEntityId(),
+					Action:          me.GetAction(),
+					Metadata:        pgtype.Text{String: me.GetMetadata(), Valid: me.GetMetadata() != ""},
+					Signature:       me.GetSignature(),
+					SignerAddressID: signerAddressID,
+					Nonce:           me.GetNonce(),
 				})
+				if err != nil {
+					etl.logger.Errorf("error inserting manage entity: %v", err)
+					continue
+				}
+
 			case *corev1.SignedTransaction_ValidatorRegistration:
 				txType = TxTypeValidatorRegistrationLegacy
 				vr := signedTx.ValidatorRegistration
-				etl.db.InsertValidatorRegistrationLegacy(context.Background(), db.InsertValidatorRegistrationLegacyParams{
-					Endpoint:     vr.Endpoint,
-					CometAddress: vr.CometAddress,
-					EthBlock:     vr.EthBlock,
-					NodeType:     vr.NodeType,
-					SpID:         vr.SpId,
-					PubKey:       vr.PubKey,
-					Power:        vr.Power,
-					BlockHeight:  block.Msg.Block.Height,
-					TxHash:       tx.Hash,
+
+				_, err = etl.db.InsertValidatorRegistrationLegacy(context.Background(), db.InsertValidatorRegistrationLegacyParams{
+					TransactionID: transactionRecord.ID,
+					Endpoint:      vr.Endpoint,
+					CometAddress:  vr.CometAddress,
+					EthBlock:      vr.EthBlock,
+					NodeType:      vr.NodeType,
+					SpID:          vr.SpId,
+					PubKey:        vr.PubKey,
+					Power:         vr.Power,
 				})
+				if err != nil {
+					etl.logger.Errorf("error inserting legacy validator registration: %v", err)
+					continue
+				}
+
 			case *corev1.SignedTransaction_SlaRollup:
 				txType = TxTypeSlaRollup
 				sr := signedTx.SlaRollup
+
 				slaRollup, err := etl.db.InsertSlaRollup(context.Background(), db.InsertSlaRollupParams{
-					Timestamp:   pgtype.Timestamp{Time: sr.Timestamp.AsTime(), Valid: true},
-					BlockStart:  sr.BlockStart,
-					BlockEnd:    sr.BlockEnd,
-					BlockHeight: block.Msg.Block.Height,
-					TxHash:      tx.Hash,
+					TransactionID: transactionRecord.ID,
+					Timestamp:     pgtype.Timestamp{Time: sr.Timestamp.AsTime(), Valid: true},
+					BlockStart:    sr.BlockStart,
+					BlockEnd:      sr.BlockEnd,
 				})
 				if err != nil {
 					etl.logger.Errorf("error inserting SLA rollup: %v", err)
 					continue
 				}
+
 				// Insert SLA node reports
 				for _, report := range sr.Reports {
-					etl.db.InsertSlaNodeReport(context.Background(), db.InsertSlaNodeReportParams{
-						SlaRollupID:       slaRollup.ID,
-						Address:           report.Address,
-						NumBlocksProposed: report.NumBlocksProposed,
-						BlockHeight:       block.Msg.Block.Height,
-						TxHash:            tx.Hash,
-					})
-				}
-				go func() {
-					if err := etl.updateStats(); err != nil {
-						etl.logger.Errorf("error updating stats: %v", err)
+					addressID, err := getOrCreateAddress(report.Address)
+					if err != nil {
+						etl.logger.Errorf("error getting/creating address for SLA report: %v", err)
+						continue
 					}
-				}()
+
+					_, err = etl.db.InsertSlaNodeReport(context.Background(), db.InsertSlaNodeReportParams{
+						SlaRollupID:       slaRollup.ID,
+						AddressID:         addressID,
+						NumBlocksProposed: report.NumBlocksProposed,
+					})
+					if err != nil {
+						etl.logger.Errorf("error inserting SLA node report: %v", err)
+						continue
+					}
+				}
+
 			case *corev1.SignedTransaction_ValidatorDeregistration:
 				txType = TxTypeValidatorMisbehaviorDeregistration
 				vd := signedTx.ValidatorDeregistration
-				etl.db.InsertValidatorMisbehaviorDeregistration(context.Background(), db.InsertValidatorMisbehaviorDeregistrationParams{
-					CometAddress: vd.CometAddress,
-					PubKey:       vd.PubKey,
-					BlockHeight:  block.Msg.Block.Height,
-					TxHash:       tx.Hash,
+
+				_, err = etl.db.InsertValidatorMisbehaviorDeregistration(context.Background(), db.InsertValidatorMisbehaviorDeregistrationParams{
+					TransactionID: transactionRecord.ID,
+					CometAddress:  vd.CometAddress,
+					PubKey:        vd.PubKey,
 				})
+				if err != nil {
+					etl.logger.Errorf("error inserting validator misbehavior deregistration: %v", err)
+					continue
+				}
+
 			case *corev1.SignedTransaction_StorageProof:
 				txType = TxTypeStorageProof
 				sp := signedTx.StorageProof
-				etl.db.InsertStorageProof(context.Background(), db.InsertStorageProofParams{
+
+				addressID, err := getOrCreateAddress(sp.Address)
+				if err != nil {
+					etl.logger.Errorf("error getting/creating address for storage proof: %v", err)
+					continue
+				}
+
+				_, err = etl.db.InsertStorageProof(context.Background(), db.InsertStorageProofParams{
+					TransactionID:   transactionRecord.ID,
 					Height:          sp.Height,
-					Address:         sp.Address,
+					AddressID:       addressID,
 					ProverAddresses: sp.ProverAddresses,
 					Cid:             sp.Cid,
 					ProofSignature:  sp.ProofSignature,
-					BlockHeight:     block.Msg.Block.Height,
-					TxHash:          tx.Hash,
 				})
+				if err != nil {
+					etl.logger.Errorf("error inserting storage proof: %v", err)
+					continue
+				}
+
 			case *corev1.SignedTransaction_StorageProofVerification:
 				txType = TxTypeStorageProofVerification
 				spv := signedTx.StorageProofVerification
-				etl.db.InsertStorageProofVerification(context.Background(), db.InsertStorageProofVerificationParams{
-					Height:      spv.Height,
-					Proof:       spv.Proof,
-					BlockHeight: block.Msg.Block.Height,
-					TxHash:      tx.Hash,
+
+				_, err = etl.db.InsertStorageProofVerification(context.Background(), db.InsertStorageProofVerificationParams{
+					TransactionID: transactionRecord.ID,
+					Height:        spv.Height,
+					Proof:         spv.Proof,
 				})
+				if err != nil {
+					etl.logger.Errorf("error inserting storage proof verification: %v", err)
+					continue
+				}
+
 			case *corev1.SignedTransaction_Attestation:
 				at := signedTx.Attestation
 				if at.GetValidatorRegistration() != nil {
 					txType = TxTypeValidatorRegistration
 					vr := at.GetValidatorRegistration()
-					etl.db.InsertValidatorRegistration(context.Background(), db.InsertValidatorRegistrationParams{
-						Address:      vr.DelegateWallet,
-						Endpoint:     vr.Endpoint,
-						CometAddress: vr.CometAddress,
-						EthBlock:     fmt.Sprintf("%d", vr.EthBlock),
-						NodeType:     vr.NodeType,
-						Spid:         vr.SpId,
-						CometPubkey:  vr.PubKey,
-						VotingPower:  vr.Power,
-						BlockHeight:  block.Msg.Block.Height,
-						TxHash:       tx.Hash,
+
+					addressID, err := getOrCreateAddress(vr.DelegateWallet)
+					if err != nil {
+						etl.logger.Errorf("error getting/creating address for validator registration: %v", err)
+						continue
+					}
+
+					_, err = etl.db.InsertValidatorRegistration(context.Background(), db.InsertValidatorRegistrationParams{
+						TransactionID: transactionRecord.ID,
+						AddressID:     addressID,
+						Endpoint:      vr.Endpoint,
+						CometAddress:  vr.CometAddress,
+						EthBlock:      fmt.Sprintf("%d", vr.EthBlock),
+						NodeType:      vr.NodeType,
+						Spid:          vr.SpId,
+						CometPubkey:   vr.PubKey,
+						VotingPower:   vr.Power,
 					})
+					if err != nil {
+						etl.logger.Errorf("error inserting validator registration: %v", err)
+						continue
+					}
 				}
 				if at.GetValidatorDeregistration() != nil {
 					txType = TxTypeValidatorDeregistration
 					vd := at.GetValidatorDeregistration()
-					etl.db.InsertValidatorDeregistration(context.Background(), db.InsertValidatorDeregistrationParams{
-						CometAddress: vd.CometAddress,
-						CometPubkey:  vd.PubKey,
-						BlockHeight:  block.Msg.Block.Height,
-						TxHash:       tx.Hash,
+
+					_, err = etl.db.InsertValidatorDeregistration(context.Background(), db.InsertValidatorDeregistrationParams{
+						TransactionID: transactionRecord.ID,
+						CometAddress:  vd.CometAddress,
+						CometPubkey:   vd.PubKey,
 					})
+					if err != nil {
+						etl.logger.Errorf("error inserting validator deregistration: %v", err)
+						continue
+					}
 				}
+
 			case *corev1.SignedTransaction_Release:
 				txType = TxTypeRelease
 				// Convert the release message to JSON for storage
@@ -355,19 +443,27 @@ func (etl *ETLService) indexBlocks() error {
 					etl.logger.Errorf("error marshaling release data: %v", err)
 					continue
 				}
-				etl.db.InsertRelease(context.Background(), db.InsertReleaseParams{
-					ReleaseData: releaseData,
-					BlockHeight: block.Msg.Block.Height,
-					TxHash:      tx.Hash,
+
+				_, err = etl.db.InsertRelease(context.Background(), db.InsertReleaseParams{
+					TransactionID: transactionRecord.ID,
+					ReleaseData:   releaseData,
 				})
+				if err != nil {
+					etl.logger.Errorf("error inserting release: %v", err)
+					continue
+				}
 			}
 
-			etl.db.InsertTransaction(context.Background(), db.InsertTransactionParams{
-				TxHash:      tx.Hash,
-				BlockHeight: block.Msg.Block.Height,
-				Index:       int64(index),
-				TxType:      txType,
-			})
+			// Update transaction type if we determined it
+			if txType != "" {
+				err = etl.db.UpdateTransactionType(context.Background(), db.UpdateTransactionTypeParams{
+					ID:     transactionRecord.ID,
+					TxType: txType,
+				})
+				if err != nil {
+					etl.logger.Errorf("error updating transaction type: %v", err)
+				}
+			}
 		}
 
 		go func() {
@@ -385,128 +481,4 @@ func (etl *ETLService) indexBlocks() error {
 			return nil
 		}
 	}
-}
-
-func (etl *ETLService) updateStats() error {
-	latestRollup, err := etl.db.GetLatestSLARollup(context.Background())
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil
-		}
-		return fmt.Errorf("error getting latest SLA rollup: %v", err)
-	}
-
-	blocks, err := etl.db.GetBlocks(context.Background(), db.GetBlocksParams{
-		BlockHeight:   latestRollup.BlockStart,
-		BlockHeight_2: latestRollup.BlockEnd,
-	})
-	if err != nil {
-		return fmt.Errorf("error getting blocks: %v", err)
-	}
-
-	txs, err := etl.db.GetTransactionsCount(context.Background(), db.GetTransactionsCountParams{
-		BlockHeight:   latestRollup.BlockStart,
-		BlockHeight_2: latestRollup.BlockEnd,
-	})
-	if err != nil {
-		return fmt.Errorf("error getting transactions: %v", err)
-	}
-
-	startTime := blocks[len(blocks)-1].BlockTime.Time
-	endTime := blocks[0].BlockTime.Time
-
-	bps := float64(len(blocks)) / endTime.Sub(startTime).Seconds()
-	tps := float64(txs) / endTime.Sub(startTime).Seconds()
-
-	totalTransactions, err := etl.db.GetTotalTransactionsCount(context.Background())
-	if err != nil {
-		return fmt.Errorf("error getting total transactions count: %v", err)
-	}
-
-	// use the end time for the time range so syncing ETLs have data
-	now := endTime
-
-	// Get transaction counts for different time periods
-	totalTransactions24h, err := etl.db.GetTransactionsCountTimeRange(context.Background(), db.GetTransactionsCountTimeRangeParams{
-		BlockTime:   pgtype.Timestamp{Time: now.Add(-24 * time.Hour), Valid: true},
-		BlockTime_2: pgtype.Timestamp{Time: now, Valid: true},
-	})
-	if err != nil {
-		return fmt.Errorf("error getting 24h transaction count: %v", err)
-	}
-
-	// Get transaction count for the previous 24h period (48h to 24h ago) for percentage comparison
-	totalTransactionsPrevious24h, err := etl.db.GetTransactionsCountTimeRange(context.Background(), db.GetTransactionsCountTimeRangeParams{
-		BlockTime:   pgtype.Timestamp{Time: now.Add(-48 * time.Hour), Valid: true},
-		BlockTime_2: pgtype.Timestamp{Time: now.Add(-24 * time.Hour), Valid: true},
-	})
-	if err != nil {
-		return fmt.Errorf("error getting previous 24h transaction count: %v", err)
-	}
-
-	totalTransactions7d, err := etl.db.GetTransactionsCountTimeRange(context.Background(), db.GetTransactionsCountTimeRangeParams{
-		BlockTime:   pgtype.Timestamp{Time: now.Add(-7 * 24 * time.Hour), Valid: true},
-		BlockTime_2: pgtype.Timestamp{Time: now, Valid: true},
-	})
-	if err != nil {
-		return fmt.Errorf("error getting 7d transaction count: %v", err)
-	}
-
-	totalTransactions30d, err := etl.db.GetTransactionsCountTimeRange(context.Background(), db.GetTransactionsCountTimeRangeParams{
-		BlockTime:   pgtype.Timestamp{Time: now.Add(-30 * 24 * time.Hour), Valid: true},
-		BlockTime_2: pgtype.Timestamp{Time: now, Valid: true},
-	})
-	if err != nil {
-		return fmt.Errorf("error getting 30d transaction count: %v", err)
-	}
-
-	currentHeight, err := etl.db.GetLatestIndexedBlock(context.Background())
-	if err != nil {
-		return fmt.Errorf("error getting latest indexed block: %v", err)
-	}
-
-	info, err := etl.core.GetNodeInfo(context.Background(), connect.NewRequest(&corev1.GetNodeInfoRequest{}))
-	if err != nil {
-		return fmt.Errorf("error getting node info: %v", err)
-	}
-
-	validatorCount, err := etl.db.GetActiveValidatorsCount(context.Background())
-	if err != nil {
-		return fmt.Errorf("error getting active validators count: %v", err)
-	}
-
-	// Get transaction type breakdown for the last 24 hours
-	transactionBreakdown, err := etl.db.GetTransactionTypeBreakdown(context.Background(), db.GetTransactionTypeBreakdownParams{
-		BlockTime:   pgtype.Timestamp{Time: now.Add(-24 * time.Hour), Valid: true},
-		BlockTime_2: pgtype.Timestamp{Time: now, Valid: true},
-	})
-	if err != nil {
-		etl.logger.Errorf("error getting transaction type breakdown: %v", err)
-		// Don't fail the entire stats update if this fails, just use empty slice
-		transactionBreakdown = []db.GetTransactionTypeBreakdownRow{}
-	}
-
-	// give a little leeway for the sync status
-	isSyncing := currentHeight < info.Msg.CurrentHeight-100
-
-	stats := Stats{
-		BPS:                          bps,
-		TPS:                          tps,
-		TotalTransactions:            totalTransactions,
-		TotalTransactions24h:         totalTransactions24h,
-		TotalTransactionsPrevious24h: totalTransactionsPrevious24h,
-		TotalTransactions7d:          totalTransactions7d,
-		TotalTransactions30d:         totalTransactions30d,
-		IsSyncing:                    isSyncing,
-		LatestIndexedHeight:          currentHeight,
-		LatestChainHeight:            info.Msg.CurrentHeight,
-		BlockDelta:                   info.Msg.CurrentHeight - currentHeight,
-		ValidatorCount:               validatorCount,
-		TransactionBreakdown:         transactionBreakdown,
-	}
-
-	// Cache the stats
-	etl.stats.Set("current", stats)
-
-	return nil
 }
