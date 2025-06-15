@@ -171,6 +171,25 @@ type VPlaysStat struct {
 	UniquePlayers24h     int64 `json:"unique_players_24h"`
 }
 
+type VSlaRollup struct {
+	ID            int32            `json:"id"`
+	TotalBlocks   int32            `json:"total_blocks"`
+	AvgBlockTime  int32            `json:"avg_block_time"`
+	StartBlock    int64            `json:"start_block"`
+	EndBlock      int64            `json:"end_block"`
+	BlockQuota    int32            `json:"block_quota"`
+	Tx            string           `json:"tx"`
+	DateFinalized pgtype.Timestamp `json:"date_finalized"`
+}
+
+type VSlaRollupScore struct {
+	BlocksProposed     int32  `json:"blocks_proposed"`
+	ChallengesReceived int64  `json:"challenges_received"`
+	ChallengesFailed   int32  `json:"challenges_failed"`
+	SlaID              int32  `json:"sla_id"`
+	Node               string `json:"node"`
+}
+
 type VTopTracks24h struct {
 	TrackID       string `json:"track_id"`
 	PlayCount     int64  `json:"play_count"`
