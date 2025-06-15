@@ -147,12 +147,12 @@ type VLatestBlockInfo struct {
 }
 
 type VNetworkRate struct {
-	BlocksPerSecond       int32       `json:"blocks_per_second"`
-	TransactionsPerSecond int32       `json:"transactions_per_second"`
-	BlockCount            int64       `json:"block_count"`
-	TransactionCount      int64       `json:"transaction_count"`
-	StartTime             interface{} `json:"start_time"`
-	EndTime               interface{} `json:"end_time"`
+	BlocksPerSecond       pgtype.Numeric `json:"blocks_per_second"`
+	TransactionsPerSecond pgtype.Numeric `json:"transactions_per_second"`
+	BlockCount            int64          `json:"block_count"`
+	TransactionCount      int64          `json:"transaction_count"`
+	StartTime             interface{}    `json:"start_time"`
+	EndTime               interface{}    `json:"end_time"`
 }
 
 type VPlaysByLocation24h struct {

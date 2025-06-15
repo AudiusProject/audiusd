@@ -600,8 +600,8 @@ SELECT * FROM v_validator_stats;
 -- Get network rates (BPS/TPS) based on latest SLA rollup
 -- name: GetNetworkRates :one
 SELECT 
-    COALESCE(ROUND(blocks_per_second)::int, 0) as blocks_per_second,
-    COALESCE(ROUND(transactions_per_second)::int, 0) as transactions_per_second,
+    blocks_per_second,
+    transactions_per_second,
     COALESCE(block_count, 0) as block_count,
     COALESCE(transaction_count, 0) as transaction_count,
     start_time,

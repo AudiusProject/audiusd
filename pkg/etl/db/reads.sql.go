@@ -538,8 +538,8 @@ func (q *Queries) GetManageEntitiesByTxHash(ctx context.Context, txHash string) 
 
 const getNetworkRates = `-- name: GetNetworkRates :one
 SELECT 
-    COALESCE(ROUND(blocks_per_second)::int, 0) as blocks_per_second,
-    COALESCE(ROUND(transactions_per_second)::int, 0) as transactions_per_second,
+    blocks_per_second,
+    transactions_per_second,
     COALESCE(block_count, 0) as block_count,
     COALESCE(transaction_count, 0) as transaction_count,
     start_time,
@@ -547,19 +547,10 @@ SELECT
 FROM v_network_rates
 `
 
-type GetNetworkRatesRow struct {
-	BlocksPerSecond       interface{} `json:"blocks_per_second"`
-	TransactionsPerSecond interface{} `json:"transactions_per_second"`
-	BlockCount            int64       `json:"block_count"`
-	TransactionCount      int64       `json:"transaction_count"`
-	StartTime             interface{} `json:"start_time"`
-	EndTime               interface{} `json:"end_time"`
-}
-
 // Get network rates (BPS/TPS) based on latest SLA rollup
-func (q *Queries) GetNetworkRates(ctx context.Context) (GetNetworkRatesRow, error) {
+func (q *Queries) GetNetworkRates(ctx context.Context) (VNetworkRate, error) {
 	row := q.db.QueryRow(ctx, getNetworkRates)
-	var i GetNetworkRatesRow
+	var i VNetworkRate
 	err := row.Scan(
 		&i.BlocksPerSecond,
 		&i.TransactionsPerSecond,
