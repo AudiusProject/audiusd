@@ -398,17 +398,17 @@ func Validator(validator *v1.ValidatorInfo, events []*v1.ValidatorEvent) templ.C
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 41, "<!-- Uptime History Section - Placeholder for now --><div class=\"shadow-xl rounded-lg p-6 bg-white dark:bg-gray-800\"><h3 class=\"text-xl font-bold text-gray-900 dark:text-gray-100 mb-4\">SLA Rollup History</h3><p class=\"text-gray-500 dark:text-gray-400 text-sm mb-4\">Recent SLA rollup performance for this validator. Green indicates meeting SLA requirements (≥80% PoW and PoS), red indicates missing SLA, and dark gray indicates no activity.</p><div class=\"flex items-center gap-6 text-sm text-gray-600 dark:text-gray-400 mb-6\"><div class=\"flex items-center gap-2\"><div class=\"w-4 h-5 bg-green-500 rounded-sm\"></div><span>Meeting SLA</span></div><div class=\"flex items-center gap-2\"><div class=\"w-4 h-5 bg-red-500 rounded-sm\"></div><span>Missing SLA</span></div><div class=\"flex items-center gap-2\"><div class=\"w-4 h-5 bg-gray-800 rounded-sm\"></div><span>Offline/Dead</span></div></div><!-- Uptime bars placeholder --><div class=\"flex items-center gap-2 mb-6\"><!-- This will be populated with actual uptime data after codegen -->")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 41, "<!-- Uptime History Section --><div class=\"shadow-xl rounded-lg p-6 bg-white dark:bg-gray-800\"><h3 class=\"text-xl font-bold text-gray-900 dark:text-gray-100 mb-4\">SLA Rollup History</h3><p class=\"text-gray-500 dark:text-gray-400 text-sm mb-4\">Recent SLA rollup performance for this validator. Green indicates meeting SLA requirements (≥80% PoW and PoS), red indicates missing SLA, and dark gray indicates no activity.</p><div class=\"flex items-center gap-6 text-sm text-gray-600 dark:text-gray-400 mb-6\"><div class=\"flex items-center gap-2\"><div class=\"w-4 h-5 bg-green-500 rounded-sm\"></div><span>Meeting SLA</span></div><div class=\"flex items-center gap-2\"><div class=\"w-4 h-5 bg-red-500 rounded-sm\"></div><span>Missing SLA</span></div><div class=\"flex items-center gap-2\"><div class=\"w-4 h-5 bg-gray-800 rounded-sm\"></div><span>Offline/Dead</span></div></div><!-- Uptime bars placeholder for now until uptime data is passed --><div class=\"flex items-center gap-2 mb-6\"><!-- TODO: Replace with actual uptime data when available -->")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			for i := 0; i < 12; i++ {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 42, "<div class=\"w-4 h-16 bg-gray-300 dark:bg-gray-600 rounded-lg\" title=\"SLA rollup data will be loaded after protobuf generation\"></div>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 42, "<div class=\"w-4 h-16 bg-gray-300 dark:bg-gray-600 rounded-lg\" title=\"No SLA rollup data available yet\"></div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 43, "</div><div class=\"text-xs text-gray-500 dark:text-gray-400\">Showing last 12 SLA rollups (most recent on left)</div></div></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 43, "</div><div class=\"text-xs text-gray-500 dark:text-gray-400\">Showing last 12 SLA rollups (most recent on left) - Uptime data will be displayed when SLA rollups are available</div></div></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

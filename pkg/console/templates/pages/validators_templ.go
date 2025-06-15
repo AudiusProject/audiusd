@@ -333,12 +333,12 @@ func Validators(validators []*v1.ValidatorInfo, currentPage int32, hasNext bool,
 							return templ_7745c5c3_Err
 						}
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, "</div></div></div><div class=\"flex-1\"><div class=\"text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1\">Uptime</div><div class=\"flex items-center gap-1\"><!-- Placeholder for uptime bars - will be populated after codegen -->")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, "</div></div></div><div class=\"flex-1\"><div class=\"text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1\">Uptime</div><div class=\"flex items-center gap-1\"><!-- Placeholder for uptime bars - will show actual data when SLA rollups are available -->")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					for i := 0; i < 5; i++ {
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "<div class=\"w-3 h-4 bg-gray-300 dark:bg-gray-600 rounded-sm\" title=\"SLA data will be loaded after protobuf generation\"></div>")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "<div class=\"w-3 h-4 bg-gray-300 dark:bg-gray-600 rounded-sm\" title=\"No SLA data available yet\"></div>")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}

@@ -22,6 +22,7 @@ service ETLService {
   rpc GetValidator(GetValidatorRequest) returns (GetValidatorResponse) {}
   rpc GetValidatorUptime(GetValidatorUptimeRequest) returns (GetValidatorUptimeResponse) {}
   rpc GetValidatorsUptime(GetValidatorsUptimeRequest) returns (GetValidatorsUptimeResponse) {}
+  rpc GetValidatorsUptimeByRollup(GetValidatorsUptimeByRollupRequest) returns (GetValidatorsUptimeByRollupResponse) {}
   rpc GetLocation(GetLocationRequest) returns (GetLocationResponse) {}
   rpc Search(SearchRequest) returns (SearchResponse) {}
   rpc Stream(stream StreamRequest) returns (stream StreamResponse) {}

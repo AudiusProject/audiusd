@@ -160,7 +160,7 @@ templ Validator(validator *v1.ValidatorInfo, events []*v1.ValidatorEvent) {
 					</div>
 				</div>
 			}
-			<!-- Uptime History Section - Placeholder for now -->
+			<!-- Uptime History Section -->
 			<div class="shadow-xl rounded-lg p-6 bg-white dark:bg-gray-800">
 				<h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">SLA Rollup History</h3>
 				<p class="text-gray-500 dark:text-gray-400 text-sm mb-4">
@@ -180,15 +180,15 @@ templ Validator(validator *v1.ValidatorInfo, events []*v1.ValidatorEvent) {
 						<span>Offline/Dead</span>
 					</div>
 				</div>
-				<!-- Uptime bars placeholder -->
+				<!-- Uptime bars placeholder for now until uptime data is passed -->
 				<div class="flex items-center gap-2 mb-6">
-					<!-- This will be populated with actual uptime data after codegen -->
+					<!-- TODO: Replace with actual uptime data when available -->
 					for i := 0; i < 12; i++ {
-						<div class="w-4 h-16 bg-gray-300 dark:bg-gray-600 rounded-lg" title="SLA rollup data will be loaded after protobuf generation"></div>
+						<div class="w-4 h-16 bg-gray-300 dark:bg-gray-600 rounded-lg" title="No SLA rollup data available yet"></div>
 					}
 				</div>
 				<div class="text-xs text-gray-500 dark:text-gray-400">
-					Showing last 12 SLA rollups (most recent on left)
+					Showing last 12 SLA rollups (most recent on left) - Uptime data will be displayed when SLA rollups are available
 				</div>
 			</div>
 		</div>

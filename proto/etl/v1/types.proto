@@ -478,11 +478,20 @@ message GetValidatorUptimeResponse {
 }
 
 message GetValidatorsUptimeRequest {
-  int32 limit = 2; // number of recent SLA rollups per validator
+  int32 limit = 1; // Number of recent rollups to include per validator
 }
 
 message GetValidatorsUptimeResponse {
   repeated ValidatorUptimeInfo validators = 1;
+}
+
+message GetValidatorsUptimeByRollupRequest {
+  int32 rollup_id = 1; // Specific SLA rollup ID to get data for
+}
+
+message GetValidatorsUptimeByRollupResponse {
+  repeated ValidatorUptimeInfo validators = 1;
+  int32 rollup_id = 2; // The rollup ID that was requested
 }
 
 message ValidatorUptimeInfo {

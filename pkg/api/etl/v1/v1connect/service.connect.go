@@ -71,6 +71,9 @@ const (
 	// ETLServiceGetValidatorsUptimeProcedure is the fully-qualified name of the ETLService's
 	// GetValidatorsUptime RPC.
 	ETLServiceGetValidatorsUptimeProcedure = "/etl.v1.ETLService/GetValidatorsUptime"
+	// ETLServiceGetValidatorsUptimeByRollupProcedure is the fully-qualified name of the ETLService's
+	// GetValidatorsUptimeByRollup RPC.
+	ETLServiceGetValidatorsUptimeByRollupProcedure = "/etl.v1.ETLService/GetValidatorsUptimeByRollup"
 	// ETLServiceGetLocationProcedure is the fully-qualified name of the ETLService's GetLocation RPC.
 	ETLServiceGetLocationProcedure = "/etl.v1.ETLService/GetLocation"
 	// ETLServiceSearchProcedure is the fully-qualified name of the ETLService's Search RPC.
@@ -96,6 +99,7 @@ type ETLServiceClient interface {
 	GetValidator(context.Context, *connect.Request[v1.GetValidatorRequest]) (*connect.Response[v1.GetValidatorResponse], error)
 	GetValidatorUptime(context.Context, *connect.Request[v1.GetValidatorUptimeRequest]) (*connect.Response[v1.GetValidatorUptimeResponse], error)
 	GetValidatorsUptime(context.Context, *connect.Request[v1.GetValidatorsUptimeRequest]) (*connect.Response[v1.GetValidatorsUptimeResponse], error)
+	GetValidatorsUptimeByRollup(context.Context, *connect.Request[v1.GetValidatorsUptimeByRollupRequest]) (*connect.Response[v1.GetValidatorsUptimeByRollupResponse], error)
 	GetLocation(context.Context, *connect.Request[v1.GetLocationRequest]) (*connect.Response[v1.GetLocationResponse], error)
 	Search(context.Context, *connect.Request[v1.SearchRequest]) (*connect.Response[v1.SearchResponse], error)
 	Stream(context.Context) *connect.BidiStreamForClient[v1.StreamRequest, v1.StreamResponse]
@@ -202,6 +206,12 @@ func NewETLServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			connect.WithSchema(eTLServiceMethods.ByName("GetValidatorsUptime")),
 			connect.WithClientOptions(opts...),
 		),
+		getValidatorsUptimeByRollup: connect.NewClient[v1.GetValidatorsUptimeByRollupRequest, v1.GetValidatorsUptimeByRollupResponse](
+			httpClient,
+			baseURL+ETLServiceGetValidatorsUptimeByRollupProcedure,
+			connect.WithSchema(eTLServiceMethods.ByName("GetValidatorsUptimeByRollup")),
+			connect.WithClientOptions(opts...),
+		),
 		getLocation: connect.NewClient[v1.GetLocationRequest, v1.GetLocationResponse](
 			httpClient,
 			baseURL+ETLServiceGetLocationProcedure,
@@ -225,24 +235,25 @@ func NewETLServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 
 // eTLServiceClient implements ETLServiceClient.
 type eTLServiceClient struct {
-	ping                      *connect.Client[v1.PingRequest, v1.PingResponse]
-	getHealth                 *connect.Client[v1.GetHealthRequest, v1.GetHealthResponse]
-	getStats                  *connect.Client[v1.GetStatsRequest, v1.GetStatsResponse]
-	getBlock                  *connect.Client[v1.GetBlockRequest, v1.GetBlockResponse]
-	getBlocks                 *connect.Client[v1.GetBlocksRequest, v1.GetBlocksResponse]
-	getTransaction            *connect.Client[v1.GetTransactionRequest, v1.GetTransactionResponse]
-	getTransactions           *connect.Client[v1.GetTransactionsRequest, v1.GetTransactionsResponse]
-	getTransactionsByAddress  *connect.Client[v1.GetTransactionsByAddressRequest, v1.GetTransactionsByAddressResponse]
-	getRelationTypesByAddress *connect.Client[v1.GetRelationTypesByAddressRequest, v1.GetRelationTypesByAddressResponse]
-	getPlays                  *connect.Client[v1.GetPlaysRequest, v1.GetPlaysResponse]
-	getManageEntities         *connect.Client[v1.GetManageEntitiesRequest, v1.GetManageEntitiesResponse]
-	getValidators             *connect.Client[v1.GetValidatorsRequest, v1.GetValidatorsResponse]
-	getValidator              *connect.Client[v1.GetValidatorRequest, v1.GetValidatorResponse]
-	getValidatorUptime        *connect.Client[v1.GetValidatorUptimeRequest, v1.GetValidatorUptimeResponse]
-	getValidatorsUptime       *connect.Client[v1.GetValidatorsUptimeRequest, v1.GetValidatorsUptimeResponse]
-	getLocation               *connect.Client[v1.GetLocationRequest, v1.GetLocationResponse]
-	search                    *connect.Client[v1.SearchRequest, v1.SearchResponse]
-	stream                    *connect.Client[v1.StreamRequest, v1.StreamResponse]
+	ping                        *connect.Client[v1.PingRequest, v1.PingResponse]
+	getHealth                   *connect.Client[v1.GetHealthRequest, v1.GetHealthResponse]
+	getStats                    *connect.Client[v1.GetStatsRequest, v1.GetStatsResponse]
+	getBlock                    *connect.Client[v1.GetBlockRequest, v1.GetBlockResponse]
+	getBlocks                   *connect.Client[v1.GetBlocksRequest, v1.GetBlocksResponse]
+	getTransaction              *connect.Client[v1.GetTransactionRequest, v1.GetTransactionResponse]
+	getTransactions             *connect.Client[v1.GetTransactionsRequest, v1.GetTransactionsResponse]
+	getTransactionsByAddress    *connect.Client[v1.GetTransactionsByAddressRequest, v1.GetTransactionsByAddressResponse]
+	getRelationTypesByAddress   *connect.Client[v1.GetRelationTypesByAddressRequest, v1.GetRelationTypesByAddressResponse]
+	getPlays                    *connect.Client[v1.GetPlaysRequest, v1.GetPlaysResponse]
+	getManageEntities           *connect.Client[v1.GetManageEntitiesRequest, v1.GetManageEntitiesResponse]
+	getValidators               *connect.Client[v1.GetValidatorsRequest, v1.GetValidatorsResponse]
+	getValidator                *connect.Client[v1.GetValidatorRequest, v1.GetValidatorResponse]
+	getValidatorUptime          *connect.Client[v1.GetValidatorUptimeRequest, v1.GetValidatorUptimeResponse]
+	getValidatorsUptime         *connect.Client[v1.GetValidatorsUptimeRequest, v1.GetValidatorsUptimeResponse]
+	getValidatorsUptimeByRollup *connect.Client[v1.GetValidatorsUptimeByRollupRequest, v1.GetValidatorsUptimeByRollupResponse]
+	getLocation                 *connect.Client[v1.GetLocationRequest, v1.GetLocationResponse]
+	search                      *connect.Client[v1.SearchRequest, v1.SearchResponse]
+	stream                      *connect.Client[v1.StreamRequest, v1.StreamResponse]
 }
 
 // Ping calls etl.v1.ETLService.Ping.
@@ -320,6 +331,11 @@ func (c *eTLServiceClient) GetValidatorsUptime(ctx context.Context, req *connect
 	return c.getValidatorsUptime.CallUnary(ctx, req)
 }
 
+// GetValidatorsUptimeByRollup calls etl.v1.ETLService.GetValidatorsUptimeByRollup.
+func (c *eTLServiceClient) GetValidatorsUptimeByRollup(ctx context.Context, req *connect.Request[v1.GetValidatorsUptimeByRollupRequest]) (*connect.Response[v1.GetValidatorsUptimeByRollupResponse], error) {
+	return c.getValidatorsUptimeByRollup.CallUnary(ctx, req)
+}
+
 // GetLocation calls etl.v1.ETLService.GetLocation.
 func (c *eTLServiceClient) GetLocation(ctx context.Context, req *connect.Request[v1.GetLocationRequest]) (*connect.Response[v1.GetLocationResponse], error) {
 	return c.getLocation.CallUnary(ctx, req)
@@ -352,6 +368,7 @@ type ETLServiceHandler interface {
 	GetValidator(context.Context, *connect.Request[v1.GetValidatorRequest]) (*connect.Response[v1.GetValidatorResponse], error)
 	GetValidatorUptime(context.Context, *connect.Request[v1.GetValidatorUptimeRequest]) (*connect.Response[v1.GetValidatorUptimeResponse], error)
 	GetValidatorsUptime(context.Context, *connect.Request[v1.GetValidatorsUptimeRequest]) (*connect.Response[v1.GetValidatorsUptimeResponse], error)
+	GetValidatorsUptimeByRollup(context.Context, *connect.Request[v1.GetValidatorsUptimeByRollupRequest]) (*connect.Response[v1.GetValidatorsUptimeByRollupResponse], error)
 	GetLocation(context.Context, *connect.Request[v1.GetLocationRequest]) (*connect.Response[v1.GetLocationResponse], error)
 	Search(context.Context, *connect.Request[v1.SearchRequest]) (*connect.Response[v1.SearchResponse], error)
 	Stream(context.Context, *connect.BidiStream[v1.StreamRequest, v1.StreamResponse]) error
@@ -454,6 +471,12 @@ func NewETLServiceHandler(svc ETLServiceHandler, opts ...connect.HandlerOption) 
 		connect.WithSchema(eTLServiceMethods.ByName("GetValidatorsUptime")),
 		connect.WithHandlerOptions(opts...),
 	)
+	eTLServiceGetValidatorsUptimeByRollupHandler := connect.NewUnaryHandler(
+		ETLServiceGetValidatorsUptimeByRollupProcedure,
+		svc.GetValidatorsUptimeByRollup,
+		connect.WithSchema(eTLServiceMethods.ByName("GetValidatorsUptimeByRollup")),
+		connect.WithHandlerOptions(opts...),
+	)
 	eTLServiceGetLocationHandler := connect.NewUnaryHandler(
 		ETLServiceGetLocationProcedure,
 		svc.GetLocation,
@@ -504,6 +527,8 @@ func NewETLServiceHandler(svc ETLServiceHandler, opts ...connect.HandlerOption) 
 			eTLServiceGetValidatorUptimeHandler.ServeHTTP(w, r)
 		case ETLServiceGetValidatorsUptimeProcedure:
 			eTLServiceGetValidatorsUptimeHandler.ServeHTTP(w, r)
+		case ETLServiceGetValidatorsUptimeByRollupProcedure:
+			eTLServiceGetValidatorsUptimeByRollupHandler.ServeHTTP(w, r)
 		case ETLServiceGetLocationProcedure:
 			eTLServiceGetLocationHandler.ServeHTTP(w, r)
 		case ETLServiceSearchProcedure:
@@ -577,6 +602,10 @@ func (UnimplementedETLServiceHandler) GetValidatorUptime(context.Context, *conne
 
 func (UnimplementedETLServiceHandler) GetValidatorsUptime(context.Context, *connect.Request[v1.GetValidatorsUptimeRequest]) (*connect.Response[v1.GetValidatorsUptimeResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("etl.v1.ETLService.GetValidatorsUptime is not implemented"))
+}
+
+func (UnimplementedETLServiceHandler) GetValidatorsUptimeByRollup(context.Context, *connect.Request[v1.GetValidatorsUptimeByRollupRequest]) (*connect.Response[v1.GetValidatorsUptimeByRollupResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("etl.v1.ETLService.GetValidatorsUptimeByRollup is not implemented"))
 }
 
 func (UnimplementedETLServiceHandler) GetLocation(context.Context, *connect.Request[v1.GetLocationRequest]) (*connect.Response[v1.GetLocationResponse], error) {
