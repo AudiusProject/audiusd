@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/big"
 	"sort"
 	"strconv"
 	"strings"
@@ -113,9 +114,9 @@ func (e *ETLService) GetStats(ctx context.Context, req *connect.Request[v1.GetSt
 		if !errors.Is(err, pgx.ErrNoRows) {
 			e.logger.Error("Failed to get network rates", "error", err)
 		}
-		networkRates = db.GetNetworkRatesRow{
-			BlocksPerSecond:       int32(0),
-			TransactionsPerSecond: int32(0),
+		networkRates = db.VNetworkRate{
+			BlocksPerSecond:       pgtype.Numeric{Int: big.NewInt(0), Exp: -2, Valid: true},
+			TransactionsPerSecond: pgtype.Numeric{Int: big.NewInt(0), Exp: -2, Valid: true},
 		}
 	}
 
@@ -138,32 +139,11 @@ func (e *ETLService) GetStats(ctx context.Context, req *connect.Request[v1.GetSt
 	if err != nil {
 		e.logger.Error("Failed to get node info", "error", err)
 
-		// Helper function to safely convert interface{} to float64
-		getFloat64 := func(val interface{}) float64 {
-			if val == nil {
-				return 0
-			}
-			switch v := val.(type) {
-			case int:
-				return float64(v)
-			case int32:
-				return float64(v)
-			case int64:
-				return float64(v)
-			case float32:
-				return float64(v)
-			case float64:
-				return v
-			default:
-				return 0
-			}
-		}
-
 		return connect.NewResponse(&v1.GetStatsResponse{
 			CurrentBlockHeight:   txStats.TotalTransactions, // Use total transactions as fallback
 			ChainId:              e.chainID,
-			Bps:                  getFloat64(networkRates.BlocksPerSecond),
-			Tps:                  getFloat64(networkRates.TransactionsPerSecond),
+			Bps:                  0.0, // Use 0 for error case
+			Tps:                  0.0, // Use 0 for error case
 			TotalTransactions:    txStats.TotalTransactions,
 			TransactionBreakdown: []*v1.TransactionTypeBreakdown{},
 			SyncStatus: &v1.SyncStatus{
@@ -204,12 +184,45 @@ func (e *ETLService) GetStats(ctx context.Context, req *connect.Request[v1.GetSt
 		latestChainHeight = info.Msg.CurrentHeight
 	}
 
+	// Helper function to safely convert pgtype.Numeric to float64
+	convertNumericToFloat64 := func(numeric pgtype.Numeric) float64 {
+		if !numeric.Valid {
+			return 0.0
+		}
+
+		// Convert pgtype.Numeric to float64
+		if numeric.Int != nil {
+			// Use the Int and Exp to calculate the float value
+			// pgtype.Numeric stores as Int * 10^(-Exp)
+			floatVal := float64(numeric.Int.Int64())
+			if numeric.Exp < 0 {
+				// Divide by 10^(-Exp)
+				divisor := 1.0
+				for i := int32(0); i < -numeric.Exp; i++ {
+					divisor *= 10.0
+				}
+				return floatVal / divisor
+			} else if numeric.Exp > 0 {
+				// Multiple by 10^Exp
+				multiplier := 1.0
+				for i := int32(0); i < numeric.Exp; i++ {
+					multiplier *= 10.0
+				}
+				return floatVal * multiplier
+			}
+			return floatVal
+		}
+		return 0.0
+	}
+
 	// Helper function to safely convert interface{} to float64
 	getFloat64 := func(val interface{}) float64 {
 		if val == nil {
 			return 0
 		}
 		switch v := val.(type) {
+		case pgtype.Numeric:
+			return convertNumericToFloat64(v)
 		case int:
 			return float64(v)
 		case int32:
