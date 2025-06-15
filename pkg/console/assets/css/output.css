@@ -507,9 +507,6 @@
   .flex-2 {
     flex: 2;
   }
-  .flex-\[1\.5\] {
-    flex: 1.5;
-  }
   .flex-none {
     flex: none;
   }
@@ -1256,11 +1253,6 @@
   .md\:col-span-2 {
     @media (width >= 48rem) {
       grid-column: span 2 / span 2;
-    }
-  }
-  .md\:grid-cols-1 {
-    @media (width >= 48rem) {
-      grid-template-columns: repeat(1, minmax(0, 1fr));
     }
   }
   .md\:grid-cols-2 {
