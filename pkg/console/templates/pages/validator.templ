@@ -7,7 +7,7 @@ import (
 	"github.com/AudiusProject/audiusd/pkg/console/templates/layouts"
 )
 
-templ Validator(validator *v1.ValidatorInfo, events []*v1.ValidatorEvent) {
+templ Validator(validator *v1.ValidatorInfo, events []*v1.ValidatorEvent, rollups []*v1.SlaRollupScore) {
 	@layouts.Base(fmt.Sprintf("Validator %s", validator.Address[:8])) {
 		<div class="space-y-6">
 			<!-- Validator Info Card -->
@@ -180,17 +180,79 @@ templ Validator(validator *v1.ValidatorInfo, events []*v1.ValidatorEvent) {
 						<span>Offline/Dead</span>
 					</div>
 				</div>
-				<!-- Uptime bars placeholder for now until uptime data is passed -->
+				<!-- Uptime bars with actual rollup data -->
 				<div class="flex items-center gap-2 mb-6">
-					<!-- TODO: Replace with actual uptime data when available -->
-					for i := 0; i < 12; i++ {
-						<div class="w-4 h-16 bg-gray-300 dark:bg-gray-600 rounded-lg" title="No SLA rollup data available yet"></div>
+					if len(rollups) > 0 {
+						for _, rollup := range rollups {
+							<div class="relative group">
+								<a
+									href={ templ.SafeURL(fmt.Sprintf("/validators/uptime/%d", rollup.SlaRollupId)) }
+									class={ "w-4 h-16 rounded-lg cursor-pointer transition-all hover:opacity-80 hover:scale-110 block", templ.Class(getUptimeBarColor(rollup)) }
+								></a>
+								<!-- Custom tooltip -->
+								<div class="absolute bottom-20 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 min-w-max">
+									<div class="text-center">
+										<div class="font-semibold">SLA Rollup #{ fmt.Sprint(rollup.SlaRollupId) }</div>
+										<div class="mt-1">
+											<div>Blocks: { fmt.Sprint(rollup.BlocksProposed) }/{ fmt.Sprint(rollup.BlockQuota) }</div>
+											<div>Challenges: { fmt.Sprint(rollup.ChallengesFailed) }/{ fmt.Sprint(rollup.ChallengesReceived) } failed</div>
+											<div class="text-gray-300">{ formatRollupTime(rollup) }</div>
+										</div>
+									</div>
+									<!-- Tooltip arrow -->
+									<div class="absolute top-full left-1/2 transform -translate-x-1/2">
+										<div class="border-4 border-transparent border-t-gray-900"></div>
+									</div>
+								</div>
+							</div>
+						}
+					} else {
+						<div class="flex items-center gap-2">
+							for i := 0; i < 12; i++ {
+								<div class="w-4 h-16 bg-gray-300 dark:bg-gray-600 rounded-lg" title="No SLA rollup data available"></div>
+							}
+						</div>
 					}
 				</div>
 				<div class="text-xs text-gray-500 dark:text-gray-400">
-					Showing last 12 SLA rollups (most recent on left) - Uptime data will be displayed when SLA rollups are available
+					if len(rollups) > 0 {
+						Showing last { fmt.Sprint(len(rollups)) } SLA rollups (most recent on right) - Hover over bars to see details, click to view rollup page
+					} else {
+						No SLA rollup data available for this validator yet
+					}
 				</div>
 			</div>
 		</div>
 	}
+}
+
+// Helper function to determine the color of uptime bars based on SLA performance
+func getUptimeBarColor(rollup *v1.SlaRollupScore) string {
+	if rollup.BlockQuota == 0 {
+		return "bg-gray-800" // No activity/dead
+	}
+
+	// Calculate PoW percentage
+	powPercentage := float64(rollup.BlocksProposed) / float64(rollup.BlockQuota) * 100
+
+	// Calculate PoS percentage (if no challenges received, assume 100% success)
+	posPercentage := float64(100)
+	if rollup.ChallengesReceived > 0 {
+		posPercentage = float64(rollup.ChallengesReceived-int64(rollup.ChallengesFailed)) / float64(rollup.ChallengesReceived) * 100
+	}
+
+	// SLA requirements: ≥80% for both PoW and PoS
+	if powPercentage >= 80 && posPercentage >= 80 {
+		return "bg-green-500" // Meeting SLA
+	}
+
+	return "bg-red-500" // Missing SLA
+}
+
+// Helper function to format rollup timestamp for tooltip
+func formatRollupTime(rollup *v1.SlaRollupScore) string {
+	if rollup.Timestamp != nil {
+		return rollup.Timestamp.AsTime().Format("2006-01-02 15:04:05 MST")
+	}
+	return "Unknown time"
 }
