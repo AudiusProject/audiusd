@@ -715,3 +715,22 @@ JOIN etl_addresses a ON vr.address_id = a.id
 WHERE a.address = $1 OR vr.comet_address = $1
 ORDER BY vr.id DESC
 LIMIT 1;
+
+-- Get all SLA rollups with pagination
+-- name: GetAllSlaRollups :many
+SELECT 
+    vr.id,
+    vr.start_block,
+    vr.end_block,
+    vr.tx,
+    vr.date_finalized,
+    COUNT(DISTINCT vsr.node) as validator_count
+FROM v_sla_rollup vr
+LEFT JOIN v_sla_rollup_score vsr ON vr.id = vsr.sla_id
+GROUP BY vr.id, vr.start_block, vr.end_block, vr.tx, vr.date_finalized
+ORDER BY vr.id DESC
+LIMIT $1 OFFSET $2;
+
+-- Count total SLA rollups for pagination
+-- name: CountAllSlaRollups :one
+SELECT COUNT(DISTINCT id) FROM v_sla_rollup;

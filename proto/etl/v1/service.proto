@@ -26,4 +26,5 @@ service ETLService {
   rpc GetLocation(GetLocationRequest) returns (GetLocationResponse) {}
   rpc Search(SearchRequest) returns (SearchResponse) {}
   rpc Stream(stream StreamRequest) returns (stream StreamResponse) {}
+  rpc GetSlaRollups(GetSlaRollupsRequest) returns (GetSlaRollupsResponse) {}
 }

@@ -511,3 +511,27 @@ message SlaRollupScore {
   string tx_hash = 8;
   google.protobuf.Timestamp timestamp = 9;
 }
+
+// Get all SLA rollups with pagination
+message GetSlaRollupsRequest {
+  int32 page = 1; // Page number (1-based)
+  int32 page_size = 2; // Number of rollups per page
+}
+
+message GetSlaRollupsResponse {
+  repeated SlaRollupInfo rollups = 1;
+  int32 current_page = 2;
+  int32 total_pages = 3;
+  int64 total_count = 4;
+  bool has_next = 5;
+  bool has_prev = 6;
+}
+
+message SlaRollupInfo {
+  int32 rollup_id = 1;
+  int64 block_start = 2;
+  int64 block_end = 3;
+  string tx_hash = 4;
+  google.protobuf.Timestamp timestamp = 5;
+  int32 validator_count = 6; // Number of validators that participated
+}
