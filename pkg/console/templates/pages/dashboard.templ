@@ -479,25 +479,69 @@ templ TotalTransactionsFragment(stats *DashboardStats) {
 
 templ SSEEventScript() {
 	<script>
+		let globalEventSource = null;
+
 		function initSSEEventSource() {
-			const eventSource = new EventSource('/sse/events');
+			// Close existing connection if any
+			if (globalEventSource) {
+				globalEventSource.close();
+			}
+
+			globalEventSource = new EventSource('/sse/events');
 
 			// Dispatch custom events for each SSE event
-			eventSource.onmessage = (event) => {
+			globalEventSource.onmessage = (event) => {
 				const data = JSON.parse(event.data);
 				document.dispatchEvent(new CustomEvent(data.event, { detail: data.data }));
 			};
 
-			eventSource.onerror = (error) => {
+			globalEventSource.onerror = (error) => {
 				console.error('SSE connection error:', error);
 			};
 
-			eventSource.onopen = () => {
+			globalEventSource.onopen = () => {
 				console.log('SSE connection opened');
 			};
 
-			return eventSource;
+			// Cleanup on page unload
+			window.addEventListener('beforeunload', () => {
+				if (globalEventSource) {
+					globalEventSource.close();
+					globalEventSource = null;
+				}
+			});
+
+			// Cleanup on page visibility change (mobile browsers)
+			document.addEventListener('visibilitychange', () => {
+				if (document.hidden && globalEventSource) {
+					globalEventSource.close();
+					globalEventSource = null;
+				} else if (!document.hidden && !globalEventSource) {
+					// Reconnect when page becomes visible again
+					setTimeout(() => {
+						initSSEEventSource();
+					}, 1000);
+				}
+			});
+
+			return globalEventSource;
 		}
+
+		// Cleanup when Alpine.js is destroyed
+		document.addEventListener('alpine:init', () => {
+			Alpine.store('cleanup', {
+				eventSource: null,
+				init() {
+					this.eventSource = initSSEEventSource();
+				},
+				destroy() {
+					if (this.eventSource) {
+						this.eventSource.close();
+						this.eventSource = null;
+					}
+				}
+			});
+		});
 	</script>
 }
 
@@ -510,11 +554,16 @@ templ LivePlayMapScript() {
 				eventSource: null,
 				connected: false,
 				playMarkers: [],
+				playEventListener: null,
+				animationFrames: new Set(),
+				timeouts: new Set(),
 				
 				initMap() {
-					document.addEventListener('play', (event) => {
+					// Create bound event listener for proper cleanup
+					this.playEventListener = (event) => {
 						this.addPlayToMap(event.detail);
-					});
+					};
+					document.addEventListener('play', this.playEventListener);
 
 					// Initialize Leaflet map focused on US
 					this.map = L.map('playMap').setView([39.0, -110.0], 5);
@@ -535,6 +584,16 @@ templ LivePlayMapScript() {
 							attribution: '© OpenStreetMap contributors'
 						}).addTo(this.map);
 					}
+
+					// Setup cleanup on page unload
+					window.addEventListener('beforeunload', () => {
+						this.cleanup();
+					});
+
+					// Setup cleanup on Alpine destroy
+					this.$watch('$store.cleanup', () => {
+						// This will be called when Alpine is destroyed
+					});
 				},
 				
 				addPlayToMap(play) {
@@ -547,7 +606,7 @@ templ LivePlayMapScript() {
 					
 					// Create multiple expanding circles for radar effect
 					for (let i = 0; i < 3; i++) {
-						setTimeout(() => {
+						const timeout = setTimeout(() => {
 							const circle = L.circle([play.lat, play.lng], {
 								radius: 0,
 								fillColor: color,
@@ -578,7 +637,8 @@ templ LivePlayMapScript() {
 								});
 								
 								if (progress < 1) {
-									requestAnimationFrame(animate);
+									const frameId = requestAnimationFrame(animate);
+									this.animationFrames.add(frameId);
 								} else {
 									radarGroup.removeLayer(circle);
 								}
@@ -586,6 +646,8 @@ templ LivePlayMapScript() {
 							
 							animate();
 						}, i * 200); // Stagger each circle by 200ms
+						
+						this.timeouts.add(timeout);
 					}
 					
 					// Add center dot
@@ -605,10 +667,14 @@ templ LivePlayMapScript() {
 					this.playMarkers.push(radarGroup);
 					
 					// Remove entire radar group after duration
-					setTimeout(() => {
-						this.map.removeLayer(radarGroup);
+					const cleanupTimeout = setTimeout(() => {
+						if (this.map && this.map.hasLayer(radarGroup)) {
+							this.map.removeLayer(radarGroup);
+						}
 						this.playMarkers = this.playMarkers.filter(m => m !== radarGroup);
 					}, play.duration * 1000);
+					
+					this.timeouts.add(cleanupTimeout);
 				},
 				
 				getRandomColor() {
@@ -617,12 +683,38 @@ templ LivePlayMapScript() {
 				},
 				
 				cleanup() {
-					if (this.eventSource) {
-						this.eventSource.close();
+					// Clear all timeouts
+					this.timeouts.forEach(timeout => clearTimeout(timeout));
+					this.timeouts.clear();
+					
+					// Cancel all animation frames
+					this.animationFrames.forEach(frameId => cancelAnimationFrame(frameId));
+					this.animationFrames.clear();
+					
+					// Remove event listener
+					if (this.playEventListener) {
+						document.removeEventListener('play', this.playEventListener);
+						this.playEventListener = null;
 					}
+					
+					// Clean up map markers
+					this.playMarkers.forEach(marker => {
+						if (this.map && this.map.hasLayer(marker)) {
+							this.map.removeLayer(marker);
+						}
+					});
+					this.playMarkers = [];
+					
+					// Remove map
 					if (this.map) {
 						this.map.remove();
+						this.map = null;
 					}
+				},
+
+				// Alpine.js lifecycle hook
+				destroy() {
+					this.cleanup();
 				}
 			}
 		}
@@ -636,17 +728,22 @@ templ BlockEventsScript() {
 			return {
 				displayValue: 0,
 				digits: [],
+				blockEventListener: null,
+				animationTimeouts: new Set(),
 				
 				init(initialValue) {
 					this.displayValue = initialValue || 0;
 					this.updateDigits(this.displayValue);
 					
-					// Listen directly to block events instead of watching parent data
-					document.addEventListener('block', (event) => {
+					// Create bound event listener for proper cleanup
+					this.blockEventListener = (event) => {
 						if (event.detail && event.detail.height && event.detail.height !== this.displayValue) {
 							this.animateToNewValue(event.detail.height);
 						}
-					});
+					};
+					
+					// Listen directly to block events instead of watching parent data
+					document.addEventListener('block', this.blockEventListener);
 				},
 				
 				updateDigits(value) {
@@ -703,10 +800,13 @@ templ BlockEventsScript() {
 					digit.isAnimating = true;
 					
 					// After animation duration, update the current digit and stop animating
-					setTimeout(() => {
+					const timeout = setTimeout(() => {
 						digit.current = digit.next;
 						digit.isAnimating = false;
+						this.animationTimeouts.delete(timeout);
 					}, 300); // Animation duration
+					
+					this.animationTimeouts.add(timeout);
 				},
 				
 				getCurrentDigitClass(digit) {
@@ -721,6 +821,19 @@ templ BlockEventsScript() {
 						return 'transform translate-y-0 opacity-100 transition-all duration-300 ease-in-out';
 					}
 					return 'transform -translate-y-full opacity-0';
+				},
+
+				// Alpine.js lifecycle hook
+				destroy() {
+					// Clear all animation timeouts
+					this.animationTimeouts.forEach(timeout => clearTimeout(timeout));
+					this.animationTimeouts.clear();
+					
+					// Remove event listener
+					if (this.blockEventListener) {
+						document.removeEventListener('block', this.blockEventListener);
+						this.blockEventListener = null;
+					}
 				}
 			}
 		}
@@ -730,6 +843,7 @@ templ BlockEventsScript() {
 				recentBlocks: [],
 				latestBlock: { height: 0, proposer: '' },
 				validatorCount: 0,
+				blockEventListener: null,
 				
 				init(initialState = {}) {
 					// Set initial state from server-rendered values
@@ -761,9 +875,12 @@ templ BlockEventsScript() {
 						}
 					}
 
-					document.addEventListener('block', (event) => {
+					// Create bound event listener for proper cleanup
+					this.blockEventListener = (event) => {
 						this.handleBlockEvent(event.detail);
-					});
+					};
+					
+					document.addEventListener('block', this.blockEventListener);
 				},
 
 				formatProposer(proposer) {
@@ -783,16 +900,36 @@ templ BlockEventsScript() {
 					// Add new block to the beginning of the array
 					this.recentBlocks.unshift(blockData);
 					
-					// Keep only the last 5 blocks
+					// Keep only the last 5 blocks to prevent memory growth
 					if (this.recentBlocks.length > 5) {
 						this.recentBlocks = this.recentBlocks.slice(0, 5);
 					}
 
 					// Update latest block
 					this.latestBlock = blockData;
+				},
+
+				// Alpine.js lifecycle hook
+				destroy() {
+					// Remove event listener
+					if (this.blockEventListener) {
+						document.removeEventListener('block', this.blockEventListener);
+						this.blockEventListener = null;
+					}
+					
+					// Clear arrays
+					this.recentBlocks = [];
 				}
 			}
 		}
+
+		// Global cleanup on page unload
+		window.addEventListener('beforeunload', () => {
+			// Cleanup any remaining Alpine components
+			if (window.Alpine && window.Alpine.store('cleanup')) {
+				window.Alpine.store('cleanup').destroy();
+			}
+		});
 	</script>
 }
 
