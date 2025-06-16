@@ -953,13 +953,22 @@ SELECT
     COALESCE(transaction_count, 0) as transaction_count,
     start_time,
     end_time
-FROM v_network_rates
+FROM mv_dashboard_network_rates
 `
 
-// Get network rates (BPS/TPS) based on latest SLA rollup
-func (q *Queries) GetNetworkRates(ctx context.Context) (VNetworkRate, error) {
+type GetNetworkRatesRow struct {
+	BlocksPerSecond       pgtype.Numeric `json:"blocks_per_second"`
+	TransactionsPerSecond pgtype.Numeric `json:"transactions_per_second"`
+	BlockCount            int64          `json:"block_count"`
+	TransactionCount      int64          `json:"transaction_count"`
+	StartTime             interface{}    `json:"start_time"`
+	EndTime               interface{}    `json:"end_time"`
+}
+
+// Get network rates (BPS/TPS) from materialized view
+func (q *Queries) GetNetworkRates(ctx context.Context) (GetNetworkRatesRow, error) {
 	row := q.db.QueryRow(ctx, getNetworkRates)
-	var i VNetworkRate
+	var i GetNetworkRatesRow
 	err := row.Scan(
 		&i.BlocksPerSecond,
 		&i.TransactionsPerSecond,
@@ -1816,15 +1825,29 @@ func (q *Queries) GetTransaction(ctx context.Context, txHash string) (GetTransac
 
 const getTransactionStats = `-- name: GetTransactionStats :one
 
-SELECT total_transactions, total_transactions_24h, total_transactions_previous_24h, total_transactions_7d, total_transactions_30d FROM v_transaction_stats
+SELECT 
+    total_transactions,
+    total_transactions_24h,
+    total_transactions_previous_24h,
+    total_transactions_7d,
+    total_transactions_30d
+FROM mv_dashboard_transaction_stats
 `
 
-// Statistics queries using PostgreSQL views
-// These queries leverage database views for efficient stats calculation
-// Get overall transaction statistics
-func (q *Queries) GetTransactionStats(ctx context.Context) (VTransactionStat, error) {
+type GetTransactionStatsRow struct {
+	TotalTransactions            int64 `json:"total_transactions"`
+	TotalTransactions24h         int64 `json:"total_transactions_24h"`
+	TotalTransactionsPrevious24h int64 `json:"total_transactions_previous_24h"`
+	TotalTransactions7d          int64 `json:"total_transactions_7d"`
+	TotalTransactions30d         int64 `json:"total_transactions_30d"`
+}
+
+// Statistics queries using PostgreSQL materialized views for performance
+// These queries leverage database materialized views for efficient stats calculation
+// Get overall transaction statistics (using materialized view)
+func (q *Queries) GetTransactionStats(ctx context.Context) (GetTransactionStatsRow, error) {
 	row := q.db.QueryRow(ctx, getTransactionStats)
-	var i VTransactionStat
+	var i GetTransactionStatsRow
 	err := row.Scan(
 		&i.TotalTransactions,
 		&i.TotalTransactions24h,
@@ -1878,19 +1901,25 @@ func (q *Queries) GetTransactionTypeBreakdown(ctx context.Context, arg GetTransa
 }
 
 const getTransactionTypeBreakdown24h = `-- name: GetTransactionTypeBreakdown24h :many
-SELECT type, count FROM v_transaction_type_breakdown_24h
+SELECT type, count FROM mv_dashboard_transaction_breakdown
+ORDER BY count DESC
 `
 
-// Get transaction type breakdown for last 24h
-func (q *Queries) GetTransactionTypeBreakdown24h(ctx context.Context) ([]VTransactionTypeBreakdown24h, error) {
+type GetTransactionTypeBreakdown24hRow struct {
+	Type  string `json:"type"`
+	Count int64  `json:"count"`
+}
+
+// Get transaction type breakdown for last 24h (using materialized view)
+func (q *Queries) GetTransactionTypeBreakdown24h(ctx context.Context) ([]GetTransactionTypeBreakdown24hRow, error) {
 	rows, err := q.db.Query(ctx, getTransactionTypeBreakdown24h)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []VTransactionTypeBreakdown24h
+	var items []GetTransactionTypeBreakdown24hRow
 	for rows.Next() {
-		var i VTransactionTypeBreakdown24h
+		var i GetTransactionTypeBreakdown24hRow
 		if err := rows.Scan(&i.Type, &i.Count); err != nil {
 			return nil, err
 		}
@@ -2336,13 +2365,23 @@ func (q *Queries) GetValidatorRegistrationsByTxHash(ctx context.Context, txHash 
 }
 
 const getValidatorStats = `-- name: GetValidatorStats :one
-SELECT total_registered_validators, active_validators, deregistered_validators FROM v_validator_stats
+SELECT 
+    total_registered_validators,
+    active_validators,
+    deregistered_validators
+FROM mv_dashboard_validator_stats
 `
 
-// Get validator statistics
-func (q *Queries) GetValidatorStats(ctx context.Context) (VValidatorStat, error) {
+type GetValidatorStatsRow struct {
+	TotalRegisteredValidators int64 `json:"total_registered_validators"`
+	ActiveValidators          int64 `json:"active_validators"`
+	DeregisteredValidators    int64 `json:"deregistered_validators"`
+}
+
+// Get validator statistics (using materialized view)
+func (q *Queries) GetValidatorStats(ctx context.Context) (GetValidatorStatsRow, error) {
 	row := q.db.QueryRow(ctx, getValidatorStats)
-	var i VValidatorStat
+	var i GetValidatorStatsRow
 	err := row.Scan(&i.TotalRegisteredValidators, &i.ActiveValidators, &i.DeregisteredValidators)
 	return i, err
 }

@@ -134,6 +134,38 @@ type EtlValidatorRegistrationsV2 struct {
 	VotingPower   int64  `json:"voting_power"`
 }
 
+type MvDashboardNetworkRate struct {
+	BlocksPerSecond       pgtype.Numeric `json:"blocks_per_second"`
+	TransactionsPerSecond pgtype.Numeric `json:"transactions_per_second"`
+	BlockCount            int64          `json:"block_count"`
+	TransactionCount      int64          `json:"transaction_count"`
+	StartTime             interface{}    `json:"start_time"`
+	EndTime               interface{}    `json:"end_time"`
+	CalculatedAt          interface{}    `json:"calculated_at"`
+}
+
+type MvDashboardTransactionBreakdown struct {
+	Type         string      `json:"type"`
+	Count        int64       `json:"count"`
+	CalculatedAt interface{} `json:"calculated_at"`
+}
+
+type MvDashboardTransactionStat struct {
+	TotalTransactions            int64       `json:"total_transactions"`
+	TotalTransactions24h         int64       `json:"total_transactions_24h"`
+	TotalTransactionsPrevious24h int64       `json:"total_transactions_previous_24h"`
+	TotalTransactions7d          int64       `json:"total_transactions_7d"`
+	TotalTransactions30d         int64       `json:"total_transactions_30d"`
+	CalculatedAt                 interface{} `json:"calculated_at"`
+}
+
+type MvDashboardValidatorStat struct {
+	TotalRegisteredValidators int64       `json:"total_registered_validators"`
+	ActiveValidators          int64       `json:"active_validators"`
+	DeregisteredValidators    int64       `json:"deregistered_validators"`
+	CalculatedAt              interface{} `json:"calculated_at"`
+}
+
 type MvSlaRollup struct {
 	ID            int32            `json:"id"`
 	TotalBlocks   int32            `json:"total_blocks"`

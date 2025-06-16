@@ -62,6 +62,9 @@ func (etl *ETLService) Run() error {
 	}
 	etl.locationDB = locationDB
 
+	// Initialize materialized view refresher
+	etl.mvRefresher = NewMaterializedViewRefresher(etl.pool, etl.logger)
+
 	// Initialize chain ID from core service
 	err = etl.InitializeChainID(context.Background())
 	if err != nil {
@@ -77,7 +80,14 @@ func (etl *ETLService) Run() error {
 		}
 	}
 
-	g, _ := errgroup.WithContext(context.Background())
+	ctx := context.Background()
+	g, _ := errgroup.WithContext(ctx)
+
+	// Start materialized view refresher in errgroup
+	g.Go(func() error {
+		return etl.mvRefresher.Start(ctx)
+	})
+
 	g.Go(func() error {
 		if err := etl.indexBlocks(); err != nil {
 			return fmt.Errorf("error indexing blocks: %v", err)

@@ -130,34 +130,8 @@ func (con *Console) Stop() {
 
 // getTransactionsWithBlockHeights is a helper method to get transactions with their block heights
 func (con *Console) getTransactionsWithBlockHeights(ctx context.Context, limit, offset int32) ([]*v1.Block_Transaction, map[string]int64, error) {
-	// Get transactions from ETL service using the standard gRPC call
-	response, err := con.etl.GetTransactions(ctx, &connect.Request[v1.GetTransactionsRequest]{
-		Msg: &v1.GetTransactionsRequest{
-			Limit:  limit,
-			Offset: offset,
-		},
-	})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	// Create block heights map by extracting block height from each transaction
-	blockHeights := make(map[string]int64)
-	for _, tx := range response.Msg.Transactions {
-		// The Block_Transaction should contain the block height information
-		// We need to get this from the transaction data somehow
-		// For now, we'll make individual calls to get the transaction details which include block height
-		txDetails, err := con.etl.GetTransaction(ctx, &connect.Request[v1.GetTransactionRequest]{
-			Msg: &v1.GetTransactionRequest{
-				TxHash: tx.Hash,
-			},
-		})
-		if err == nil && txDetails.Msg.Transaction != nil {
-			blockHeights[tx.Hash] = txDetails.Msg.Transaction.BlockHeight
-		}
-	}
-
-	return response.Msg.Transactions, blockHeights, nil
+	// Use the optimized method from ETL service that already gets block heights efficiently
+	return con.etl.GetTransactionsWithBlockInfo(ctx, limit, offset)
 }
 
 func (con *Console) Hello(c echo.Context) error {
@@ -451,8 +425,6 @@ func (con *Console) ValidatorsUptime(c echo.Context) error {
 		return c.String(http.StatusInternalServerError, fmt.Sprintf("Failed to get rollups data: %v", err))
 	}
 
-	con.logger.Info("Successfully retrieved rollups data for uptime page", "rollup_count", len(rollupsResp.Msg.Rollups), "page", page)
-
 	// Use the same Rollups template but with a different title context
 	p := pages.UptimeRollups(
 		rollupsResp.Msg.Rollups,
@@ -486,8 +458,6 @@ func (con *Console) ValidatorsUptimeByRollup(c echo.Context) error {
 		con.logger.Error("Failed to get validator uptime data for rollup", "error", err, "rollup_id", rollupId)
 		return c.String(http.StatusInternalServerError, fmt.Sprintf("Failed to get validator uptime data for rollup %d: %v", rollupId, err))
 	}
-
-	con.logger.Info("Successfully retrieved validator uptime data for rollup", "validator_count", len(uptimeResp.Msg.Validators), "rollup_id", rollupId)
 
 	p := pages.ValidatorsUptimeByRollup(uptimeResp.Msg.Validators, int32(rollupId))
 	return p.Render(c.Request().Context(), c.Response().Writer)

@@ -629,26 +629,37 @@ WHERE ($4::text = '' OR relation_type = $4)
 ORDER BY block_height DESC, index DESC
 LIMIT $2 OFFSET $3;
 
--- Statistics queries using PostgreSQL views
--- These queries leverage database views for efficient stats calculation
+-- Statistics queries using PostgreSQL materialized views for performance
+-- These queries leverage database materialized views for efficient stats calculation
 
--- Get overall transaction statistics
+-- Get overall transaction statistics (using materialized view)
 -- name: GetTransactionStats :one
-SELECT * FROM v_transaction_stats;
+SELECT 
+    total_transactions,
+    total_transactions_24h,
+    total_transactions_previous_24h,
+    total_transactions_7d,
+    total_transactions_30d
+FROM mv_dashboard_transaction_stats;
 
--- Get transaction type breakdown for last 24h
+-- Get transaction type breakdown for last 24h (using materialized view)
 -- name: GetTransactionTypeBreakdown24h :many
-SELECT * FROM v_transaction_type_breakdown_24h;
+SELECT type, count FROM mv_dashboard_transaction_breakdown
+ORDER BY count DESC;
 
 -- Get plays statistics
 -- name: GetPlaysStats :one
 SELECT * FROM v_plays_stats;
 
--- Get validator statistics
+-- Get validator statistics (using materialized view)
 -- name: GetValidatorStats :one
-SELECT * FROM v_validator_stats;
+SELECT 
+    total_registered_validators,
+    active_validators,
+    deregistered_validators
+FROM mv_dashboard_validator_stats;
 
--- Get network rates (BPS/TPS) based on latest SLA rollup
+-- Get network rates (BPS/TPS) from materialized view
 -- name: GetNetworkRates :one
 SELECT 
     blocks_per_second,
@@ -657,7 +668,7 @@ SELECT
     COALESCE(transaction_count, 0) as transaction_count,
     start_time,
     end_time
-FROM v_network_rates;
+FROM mv_dashboard_network_rates;
 
 -- Get latest block information
 -- name: GetLatestBlockInfo :one

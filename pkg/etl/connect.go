@@ -43,6 +43,8 @@ type ETLService struct {
 
 	blockPubsub *BlockPubsub
 	playPubsub  *PlayPubsub
+
+	mvRefresher *MaterializedViewRefresher
 }
 
 func (e *ETLService) SetDBURL(dbURL string) {
@@ -114,7 +116,7 @@ func (e *ETLService) GetStats(ctx context.Context, req *connect.Request[v1.GetSt
 		if !errors.Is(err, pgx.ErrNoRows) {
 			e.logger.Error("Failed to get network rates", "error", err)
 		}
-		networkRates = db.VNetworkRate{
+		networkRates = db.GetNetworkRatesRow{
 			BlocksPerSecond:       pgtype.Numeric{Int: big.NewInt(0), Exp: -2, Valid: true},
 			TransactionsPerSecond: pgtype.Numeric{Int: big.NewInt(0), Exp: -2, Valid: true},
 		}
@@ -124,14 +126,14 @@ func (e *ETLService) GetStats(ctx context.Context, req *connect.Request[v1.GetSt
 	validatorStats, err := e.db.GetValidatorStats(ctx)
 	if err != nil {
 		e.logger.Error("Failed to get validator stats", "error", err)
-		validatorStats = db.VValidatorStat{ActiveValidators: 0}
+		validatorStats = db.GetValidatorStatsRow{ActiveValidators: 0}
 	}
 
 	// Get transaction type breakdown
 	transactionBreakdown, err := e.db.GetTransactionTypeBreakdown24h(ctx)
 	if err != nil {
 		e.logger.Error("Failed to get transaction type breakdown", "error", err)
-		transactionBreakdown = []db.VTransactionTypeBreakdown24h{}
+		transactionBreakdown = []db.GetTransactionTypeBreakdown24hRow{}
 	}
 
 	// Get chain height from core service
@@ -410,10 +412,18 @@ func (e *ETLService) GetTransactions(ctx context.Context, req *connect.Request[v
 }
 
 // GetTransactionsWithBlockInfo is a helper method for the console to get transactions with block heights
-func (e *ETLService) GetTransactionsWithBlockInfo(ctx context.Context) ([]*v1.Block_Transaction, map[string]int64, error) {
+func (e *ETLService) GetTransactionsWithBlockInfo(ctx context.Context, limit, offset int32) ([]*v1.Block_Transaction, map[string]int64, error) {
+	// Set defaults if not provided
+	if limit <= 0 {
+		limit = 50
+	}
+	if offset < 0 {
+		offset = 0
+	}
+
 	dbTxs, err := e.db.GetLatestTransactions(ctx, db.GetLatestTransactionsParams{
-		Limit:  50,
-		Offset: 0,
+		Limit:  limit,
+		Offset: offset,
 	})
 	if err != nil {
 		return nil, nil, err
@@ -423,17 +433,13 @@ func (e *ETLService) GetTransactionsWithBlockInfo(ctx context.Context) ([]*v1.Bl
 	blockHeights := make(map[string]int64)
 
 	for i, tx := range dbTxs {
-		// Get the block timestamp for this transaction
-		block, err := e.db.GetIndexedBlock(ctx, tx.BlockHeight)
-		if err != nil {
-			return nil, nil, err
-		}
-
+		// The GetLatestTransactions query already includes block_height and block_time,
+		// so we don't need to make additional queries
 		transactions[i] = &v1.Block_Transaction{
 			Hash:      tx.TxHash,
 			Type:      tx.TxType,
 			Index:     uint32(tx.Index),
-			Timestamp: timestamppb.New(block.BlockTime.Time),
+			Timestamp: timestamppb.New(tx.BlockTime.Time),
 		}
 
 		blockHeights[tx.TxHash] = tx.BlockHeight
@@ -1000,8 +1006,6 @@ func (e *ETLService) GetTransaction(ctx context.Context, req *connect.Request[v1
 			return nil, err
 		}
 
-		e.logger.Info("Storage proof query result", "txHash", txHash, "count", len(storageProofs))
-
 		// For storage proof transaction, we expect one proof record
 		if len(storageProofs) > 0 {
 			proof := storageProofs[0]
@@ -1028,8 +1032,6 @@ func (e *ETLService) GetTransaction(ctx context.Context, req *connect.Request[v1
 			e.logger.Error("Failed to get storage proof verifications", "error", err, "txHash", txHash)
 			return nil, err
 		}
-
-		e.logger.Info("Storage proof verification query result", "txHash", txHash, "count", len(verifications))
 
 		// For storage proof verification transaction, we expect one verification record
 		if len(verifications) > 0 {
