@@ -1426,15 +1426,66 @@ func (q *Queries) GetPlaysStats(ctx context.Context) (VPlaysStat, error) {
 }
 
 const getRelationTypesByAddress = `-- name: GetRelationTypesByAddress :many
-SELECT DISTINCT me.entity_type as relation_type
-FROM etl_manage_entities_v2 me
-JOIN etl_addresses a ON me.address_id = a.id
-WHERE a.address = $1
+WITH address_relation_types AS (
+    -- Play transactions
+    SELECT 'play' as relation_type
+    FROM etl_transactions_v2 t
+    JOIN etl_plays_v2 p ON p.transaction_id = t.id
+    JOIN etl_addresses a ON p.address_id = a.id
+    WHERE LOWER(a.address) = LOWER($1)
+    
+    UNION
+    
+    -- Manage entity transactions
+    SELECT me.action || '_' || me.entity_type as relation_type
+    FROM etl_transactions_v2 t
+    JOIN etl_manage_entities_v2 me ON me.transaction_id = t.id
+    JOIN etl_addresses a ON me.address_id = a.id
+    WHERE LOWER(a.address) = LOWER($1)
+    
+    UNION
+    
+    -- Validator registration transactions
+    SELECT 'validator_registration' as relation_type
+    FROM etl_transactions_v2 t
+    JOIN etl_validator_registrations_v2 vr ON vr.transaction_id = t.id
+    JOIN etl_addresses a ON vr.address_id = a.id
+    WHERE LOWER(a.address) = LOWER($1)
+    
+    UNION
+    
+    -- Validator deregistration transactions (by comet_address)
+    SELECT 'validator_deregistration' as relation_type
+    FROM etl_transactions_v2 t
+    JOIN etl_validator_deregistrations_v2 vd ON vd.transaction_id = t.id
+    WHERE LOWER(vd.comet_address) = LOWER($1)
+    
+    UNION
+    
+    -- Storage proof transactions
+    SELECT 'storage_proof' as relation_type
+    FROM etl_transactions_v2 t
+    JOIN etl_storage_proofs_v2 sp ON sp.transaction_id = t.id
+    JOIN etl_addresses a ON sp.address_id = a.id
+    WHERE LOWER(a.address) = LOWER($1)
+    
+    UNION
+    
+    -- SLA node report transactions
+    SELECT 'sla_node_report' as relation_type
+    FROM etl_transactions_v2 t
+    JOIN etl_sla_rollups_v2 sr ON sr.transaction_id = t.id
+    JOIN etl_sla_node_reports_v2 snr ON snr.sla_rollup_id = sr.id
+    JOIN etl_addresses a ON snr.address_id = a.id
+    WHERE LOWER(a.address) = LOWER($1)
+)
+SELECT relation_type FROM address_relation_types
+ORDER BY relation_type
 `
 
 // Get relation types by address (placeholder for compatibility)
-func (q *Queries) GetRelationTypesByAddress(ctx context.Context, address string) ([]string, error) {
-	rows, err := q.db.Query(ctx, getRelationTypesByAddress, address)
+func (q *Queries) GetRelationTypesByAddress(ctx context.Context, lower string) ([]string, error) {
+	rows, err := q.db.Query(ctx, getRelationTypesByAddress, lower)
 	if err != nil {
 		return nil, err
 	}

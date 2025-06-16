@@ -7,9 +7,27 @@ function searchBar() {
         isLoading: false,
         isSelectingSuggestion: false,
         hasNoResults: false,
+        audiusApiBase: '',
 
         init() {
-            console.log('Search component initialized');
+            // Read environment from data attribute and set appropriate endpoint
+            const env = this.$el.dataset.env || 'prod';
+            switch (env) {
+                case 'stage':
+                case 'staging':
+                    this.audiusApiBase = 'api.staging.audius.co';
+                    break;
+                case 'dev':
+                case 'development':
+                    this.audiusApiBase = 'api.audius.co'; // or whatever dev endpoint you use
+                    break;
+                case 'prod':
+                case 'production':
+                default:
+                    this.audiusApiBase = 'api.audius.co';
+                    break;
+            }
+            console.log('Search component initialized with environment:', env, 'endpoint:', this.audiusApiBase);
         },
 
         async fetchAllSuggestions() {
@@ -54,7 +72,7 @@ function searchBar() {
                 // Make both API calls in parallel
                 const [localResponse, audiusResponse] = await Promise.all([
                     fetch(`/search?q=${encodeURIComponent(this.query)}`),
-                    fetch(`https://api.audius.co/v1/users/search?query=${encodeURIComponent(this.query)}&limit=5`)
+                    fetch(`https://${this.audiusApiBase}/v1/users/search?query=${encodeURIComponent(this.query)}&limit=5`)
                         .catch(error => {
                             console.warn('Audius API error:', error);
                             return null; // Don't fail the entire search if Audius is down
