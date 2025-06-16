@@ -134,6 +134,37 @@ type EtlValidatorRegistrationsV2 struct {
 	VotingPower   int64  `json:"voting_power"`
 }
 
+type MvSlaRollup struct {
+	ID            int32            `json:"id"`
+	TotalBlocks   int32            `json:"total_blocks"`
+	AvgBlockTime  interface{}      `json:"avg_block_time"`
+	StartBlock    int64            `json:"start_block"`
+	EndBlock      int64            `json:"end_block"`
+	BlockQuota    int32            `json:"block_quota"`
+	Tx            string           `json:"tx"`
+	DateFinalized pgtype.Timestamp `json:"date_finalized"`
+	Timestamp     pgtype.Timestamp `json:"timestamp"`
+}
+
+type MvSlaRollupDashboardStat struct {
+	ID             int32            `json:"id"`
+	AvgBlockTime   interface{}      `json:"avg_block_time"`
+	StartBlock     int64            `json:"start_block"`
+	EndBlock       int64            `json:"end_block"`
+	DateFinalized  pgtype.Timestamp `json:"date_finalized"`
+	Timestamp      pgtype.Timestamp `json:"timestamp"`
+	RollupSequence int64            `json:"rollup_sequence"`
+}
+
+type MvSlaRollupScore struct {
+	BlocksProposed     int32            `json:"blocks_proposed"`
+	ChallengesReceived int64            `json:"challenges_received"`
+	ChallengesFailed   int32            `json:"challenges_failed"`
+	SlaID              int32            `json:"sla_id"`
+	Node               string           `json:"node"`
+	Timestamp          pgtype.Timestamp `json:"timestamp"`
+}
+
 type VEntityTypeStats24h struct {
 	EntityType string `json:"entity_type"`
 	Action     string `json:"action"`
@@ -174,7 +205,7 @@ type VPlaysStat struct {
 type VSlaRollup struct {
 	ID            int32            `json:"id"`
 	TotalBlocks   int32            `json:"total_blocks"`
-	AvgBlockTime  int32            `json:"avg_block_time"`
+	AvgBlockTime  interface{}      `json:"avg_block_time"`
 	StartBlock    int64            `json:"start_block"`
 	EndBlock      int64            `json:"end_block"`
 	BlockQuota    int32            `json:"block_quota"`

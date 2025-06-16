@@ -169,7 +169,7 @@ func (e *ETLService) GetStats(ctx context.Context, req *connect.Request[v1.GetSt
 
 	// Get latest SLA rollup for avg block time
 	var slaRollupAvgBlockTime float32 = 0
-	latestSlaRollup, err := e.db.GetLatestSlaRollupForDashboard(ctx)
+	latestSlaRollup, err := e.db.GetLatestSlaRollupForDashboardOptimized(ctx)
 	if err != nil {
 		// It's okay if no SLA rollup exists yet, just log it
 		if !errors.Is(err, pgx.ErrNoRows) {

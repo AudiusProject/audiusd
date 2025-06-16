@@ -138,6 +138,71 @@ func (q *Queries) GetAllSlaRollups(ctx context.Context, arg GetAllSlaRollupsPara
 	return items, nil
 }
 
+const getAllSlaRollupsOptimized = `-- name: GetAllSlaRollupsOptimized :many
+SELECT 
+    sr.id,
+    sr.block_start,
+    sr.block_end,
+    t.tx_hash as tx,
+    b.block_time as date_finalized,
+    validator_counts.validator_count
+FROM etl_sla_rollups_v2 sr
+JOIN etl_transactions_v2 t ON sr.transaction_id = t.id
+JOIN etl_blocks b ON t.block_id = b.id
+LEFT JOIN (
+    SELECT 
+        sla_rollup_id,
+        COUNT(DISTINCT address_id) as validator_count
+    FROM etl_sla_node_reports_v2
+    GROUP BY sla_rollup_id
+) validator_counts ON validator_counts.sla_rollup_id = sr.id
+ORDER BY sr.timestamp DESC
+LIMIT $1 OFFSET $2
+`
+
+type GetAllSlaRollupsOptimizedParams struct {
+	Limit  int32 `json:"limit"`
+	Offset int32 `json:"offset"`
+}
+
+type GetAllSlaRollupsOptimizedRow struct {
+	ID             int32            `json:"id"`
+	BlockStart     int64            `json:"block_start"`
+	BlockEnd       int64            `json:"block_end"`
+	Tx             string           `json:"tx"`
+	DateFinalized  pgtype.Timestamp `json:"date_finalized"`
+	ValidatorCount int64            `json:"validator_count"`
+}
+
+// Get all SLA rollups with pagination (OPTIMIZED)
+// Pre-calculate validator counts for better performance
+func (q *Queries) GetAllSlaRollupsOptimized(ctx context.Context, arg GetAllSlaRollupsOptimizedParams) ([]GetAllSlaRollupsOptimizedRow, error) {
+	rows, err := q.db.Query(ctx, getAllSlaRollupsOptimized, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAllSlaRollupsOptimizedRow
+	for rows.Next() {
+		var i GetAllSlaRollupsOptimizedRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.BlockStart,
+			&i.BlockEnd,
+			&i.Tx,
+			&i.DateFinalized,
+			&i.ValidatorCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getAllValidatorsUptimeData = `-- name: GetAllValidatorsUptimeData :many
 SELECT 
     vsr.node,
@@ -190,6 +255,88 @@ func (q *Queries) GetAllValidatorsUptimeData(ctx context.Context, limit int32) (
 			&i.BlockQuota,
 			&i.StartBlock,
 			&i.EndBlock,
+			&i.Tx,
+			&i.DateFinalized,
+			&i.AvgBlockTime,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getAllValidatorsUptimeDataOptimized = `-- name: GetAllValidatorsUptimeDataOptimized :many
+SELECT 
+    a.address as node,
+    sr.id as sla_id,
+    snr.num_blocks_proposed as blocks_proposed,
+    0::bigint as challenges_received,  -- Simplified for performance
+    0::int as challenges_failed,      -- Simplified for performance
+    -- Calculate block quota directly for better performance
+    CASE 
+        WHEN validator_counts.validator_count > 0 
+        THEN (sr.block_end - sr.block_start + 1) / validator_counts.validator_count
+        ELSE 0
+    END as block_quota,
+    sr.block_start,
+    sr.block_end,
+    t.tx_hash as tx,
+    b.block_time as date_finalized,
+    0::real as avg_block_time  -- Simplified for performance
+FROM etl_sla_node_reports_v2 snr
+JOIN etl_sla_rollups_v2 sr ON snr.sla_rollup_id = sr.id
+JOIN etl_addresses a ON snr.address_id = a.id
+JOIN etl_transactions_v2 t ON sr.transaction_id = t.id
+JOIN etl_blocks b ON t.block_id = b.id
+JOIN (
+    SELECT 
+        sla_rollup_id,
+        COUNT(DISTINCT address_id) as validator_count
+    FROM etl_sla_node_reports_v2
+    GROUP BY sla_rollup_id
+) validator_counts ON validator_counts.sla_rollup_id = sr.id
+ORDER BY sr.timestamp DESC, a.address
+LIMIT $1
+`
+
+type GetAllValidatorsUptimeDataOptimizedRow struct {
+	Node               string           `json:"node"`
+	SlaID              int32            `json:"sla_id"`
+	BlocksProposed     int32            `json:"blocks_proposed"`
+	ChallengesReceived int64            `json:"challenges_received"`
+	ChallengesFailed   int32            `json:"challenges_failed"`
+	BlockQuota         int32            `json:"block_quota"`
+	BlockStart         int64            `json:"block_start"`
+	BlockEnd           int64            `json:"block_end"`
+	Tx                 string           `json:"tx"`
+	DateFinalized      pgtype.Timestamp `json:"date_finalized"`
+	AvgBlockTime       float32          `json:"avg_block_time"`
+}
+
+// Get all validators uptime data using direct table queries (OPTIMIZED)
+// Pre-calculate validator counts for each rollup
+func (q *Queries) GetAllValidatorsUptimeDataOptimized(ctx context.Context, limit int32) ([]GetAllValidatorsUptimeDataOptimizedRow, error) {
+	rows, err := q.db.Query(ctx, getAllValidatorsUptimeDataOptimized, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAllValidatorsUptimeDataOptimizedRow
+	for rows.Next() {
+		var i GetAllValidatorsUptimeDataOptimizedRow
+		if err := rows.Scan(
+			&i.Node,
+			&i.SlaID,
+			&i.BlocksProposed,
+			&i.ChallengesReceived,
+			&i.ChallengesFailed,
+			&i.BlockQuota,
+			&i.BlockStart,
+			&i.BlockEnd,
 			&i.Tx,
 			&i.DateFinalized,
 			&i.AvgBlockTime,
@@ -621,6 +768,58 @@ func (q *Queries) GetLatestSlaRollupForDashboard(ctx context.Context) (GetLatest
 		&i.AvgBlockTime,
 		&i.StartBlock,
 		&i.EndBlock,
+		&i.DateFinalized,
+	)
+	return i, err
+}
+
+const getLatestSlaRollupForDashboardOptimized = `-- name: GetLatestSlaRollupForDashboardOptimized :one
+
+SELECT 
+    sr.id,
+    -- Calculate avg block time more efficiently for just the latest rollup
+    CASE 
+        WHEN sr.block_end > sr.block_start THEN
+            COALESCE(
+                EXTRACT(EPOCH FROM (
+                    (SELECT MAX(b.block_time) FROM etl_blocks b 
+                     WHERE b.block_height BETWEEN sr.block_start AND sr.block_end
+                     LIMIT 1) -
+                    (SELECT MIN(b.block_time) FROM etl_blocks b 
+                     WHERE b.block_height BETWEEN sr.block_start AND sr.block_end
+                     LIMIT 1)
+                ))::float / (sr.block_end - sr.block_start), 0
+            )
+        ELSE 0 
+    END::REAL as avg_block_time,
+    sr.block_start,
+    sr.block_end,
+    b.block_time as date_finalized
+FROM etl_sla_rollups_v2 sr
+JOIN etl_transactions_v2 t ON sr.transaction_id = t.id
+JOIN etl_blocks b ON t.block_id = b.id
+ORDER BY sr.timestamp DESC
+LIMIT 1
+`
+
+type GetLatestSlaRollupForDashboardOptimizedRow struct {
+	ID            int32            `json:"id"`
+	AvgBlockTime  float32          `json:"avg_block_time"`
+	BlockStart    int64            `json:"block_start"`
+	BlockEnd      int64            `json:"block_end"`
+	DateFinalized pgtype.Timestamp `json:"date_finalized"`
+}
+
+// OPTIMIZED ROLLUP QUERIES - These bypass the expensive views for better performance
+// Get latest SLA rollup with avg block time for dashboard stats (OPTIMIZED)
+func (q *Queries) GetLatestSlaRollupForDashboardOptimized(ctx context.Context) (GetLatestSlaRollupForDashboardOptimizedRow, error) {
+	row := q.db.QueryRow(ctx, getLatestSlaRollupForDashboardOptimized)
+	var i GetLatestSlaRollupForDashboardOptimizedRow
+	err := row.Scan(
+		&i.ID,
+		&i.AvgBlockTime,
+		&i.BlockStart,
+		&i.BlockEnd,
 		&i.DateFinalized,
 	)
 	return i, err
@@ -2152,6 +2351,83 @@ func (q *Queries) GetValidatorUptimeData(ctx context.Context, arg GetValidatorUp
 			&i.BlockQuota,
 			&i.StartBlock,
 			&i.EndBlock,
+			&i.Tx,
+			&i.DateFinalized,
+			&i.AvgBlockTime,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getValidatorUptimeDataOptimized = `-- name: GetValidatorUptimeDataOptimized :many
+SELECT 
+    sr.id as sla_id,
+    snr.num_blocks_proposed as blocks_proposed,
+    0::bigint as challenges_received,  -- Simplified for performance
+    0::int as challenges_failed,      -- Simplified for performance
+    -- Calculate block quota directly
+    CASE 
+        WHEN (SELECT COUNT(DISTINCT snr2.address_id) FROM etl_sla_node_reports_v2 snr2 WHERE snr2.sla_rollup_id = sr.id) > 0 
+        THEN (sr.block_end - sr.block_start + 1) / (SELECT COUNT(DISTINCT snr2.address_id) FROM etl_sla_node_reports_v2 snr2 WHERE snr2.sla_rollup_id = sr.id)
+        ELSE 0
+    END as block_quota,
+    sr.block_start,
+    sr.block_end,
+    t.tx_hash as tx,
+    b.block_time as date_finalized,
+    0::real as avg_block_time  -- Simplified for performance
+FROM etl_sla_node_reports_v2 snr
+JOIN etl_sla_rollups_v2 sr ON snr.sla_rollup_id = sr.id
+JOIN etl_addresses a ON snr.address_id = a.id
+JOIN etl_transactions_v2 t ON sr.transaction_id = t.id
+JOIN etl_blocks b ON t.block_id = b.id
+WHERE a.address = $1
+ORDER BY sr.timestamp DESC
+LIMIT $2
+`
+
+type GetValidatorUptimeDataOptimizedParams struct {
+	Address string `json:"address"`
+	Limit   int32  `json:"limit"`
+}
+
+type GetValidatorUptimeDataOptimizedRow struct {
+	SlaID              int32            `json:"sla_id"`
+	BlocksProposed     int32            `json:"blocks_proposed"`
+	ChallengesReceived int64            `json:"challenges_received"`
+	ChallengesFailed   int32            `json:"challenges_failed"`
+	BlockQuota         int32            `json:"block_quota"`
+	BlockStart         int64            `json:"block_start"`
+	BlockEnd           int64            `json:"block_end"`
+	Tx                 string           `json:"tx"`
+	DateFinalized      pgtype.Timestamp `json:"date_finalized"`
+	AvgBlockTime       float32          `json:"avg_block_time"`
+}
+
+// Get validator uptime data using direct table queries (OPTIMIZED)
+func (q *Queries) GetValidatorUptimeDataOptimized(ctx context.Context, arg GetValidatorUptimeDataOptimizedParams) ([]GetValidatorUptimeDataOptimizedRow, error) {
+	rows, err := q.db.Query(ctx, getValidatorUptimeDataOptimized, arg.Address, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetValidatorUptimeDataOptimizedRow
+	for rows.Next() {
+		var i GetValidatorUptimeDataOptimizedRow
+		if err := rows.Scan(
+			&i.SlaID,
+			&i.BlocksProposed,
+			&i.ChallengesReceived,
+			&i.ChallengesFailed,
+			&i.BlockQuota,
+			&i.BlockStart,
+			&i.BlockEnd,
 			&i.Tx,
 			&i.DateFinalized,
 			&i.AvgBlockTime,

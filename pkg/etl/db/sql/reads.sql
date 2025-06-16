@@ -639,6 +639,121 @@ SELECT
     $1 - lbi.latest_indexed_height as block_delta
 FROM v_latest_block_info lbi;
 
+-- OPTIMIZED ROLLUP QUERIES - These bypass the expensive views for better performance
+
+-- Get latest SLA rollup with avg block time for dashboard stats (OPTIMIZED)
+-- name: GetLatestSlaRollupForDashboardOptimized :one
+SELECT 
+    sr.id,
+    -- Calculate avg block time more efficiently for just the latest rollup
+    CASE 
+        WHEN sr.block_end > sr.block_start THEN
+            COALESCE(
+                EXTRACT(EPOCH FROM (
+                    (SELECT MAX(b.block_time) FROM etl_blocks b 
+                     WHERE b.block_height BETWEEN sr.block_start AND sr.block_end
+                     LIMIT 1) -
+                    (SELECT MIN(b.block_time) FROM etl_blocks b 
+                     WHERE b.block_height BETWEEN sr.block_start AND sr.block_end
+                     LIMIT 1)
+                ))::float / (sr.block_end - sr.block_start), 0
+            )
+        ELSE 0 
+    END::REAL as avg_block_time,
+    sr.block_start,
+    sr.block_end,
+    b.block_time as date_finalized
+FROM etl_sla_rollups_v2 sr
+JOIN etl_transactions_v2 t ON sr.transaction_id = t.id
+JOIN etl_blocks b ON t.block_id = b.id
+ORDER BY sr.timestamp DESC
+LIMIT 1;
+
+-- Get validator uptime data using direct table queries (OPTIMIZED)
+-- name: GetValidatorUptimeDataOptimized :many
+SELECT 
+    sr.id as sla_id,
+    snr.num_blocks_proposed as blocks_proposed,
+    0::bigint as challenges_received,  -- Simplified for performance
+    0::int as challenges_failed,      -- Simplified for performance
+    -- Calculate block quota directly
+    CASE 
+        WHEN (SELECT COUNT(DISTINCT snr2.address_id) FROM etl_sla_node_reports_v2 snr2 WHERE snr2.sla_rollup_id = sr.id) > 0 
+        THEN (sr.block_end - sr.block_start + 1) / (SELECT COUNT(DISTINCT snr2.address_id) FROM etl_sla_node_reports_v2 snr2 WHERE snr2.sla_rollup_id = sr.id)
+        ELSE 0
+    END as block_quota,
+    sr.block_start,
+    sr.block_end,
+    t.tx_hash as tx,
+    b.block_time as date_finalized,
+    0::real as avg_block_time  -- Simplified for performance
+FROM etl_sla_node_reports_v2 snr
+JOIN etl_sla_rollups_v2 sr ON snr.sla_rollup_id = sr.id
+JOIN etl_addresses a ON snr.address_id = a.id
+JOIN etl_transactions_v2 t ON sr.transaction_id = t.id
+JOIN etl_blocks b ON t.block_id = b.id
+WHERE a.address = $1
+ORDER BY sr.timestamp DESC
+LIMIT $2;
+
+-- Get all validators uptime data using direct table queries (OPTIMIZED)
+-- name: GetAllValidatorsUptimeDataOptimized :many
+SELECT 
+    a.address as node,
+    sr.id as sla_id,
+    snr.num_blocks_proposed as blocks_proposed,
+    0::bigint as challenges_received,  -- Simplified for performance
+    0::int as challenges_failed,      -- Simplified for performance
+    -- Calculate block quota directly for better performance
+    CASE 
+        WHEN validator_counts.validator_count > 0 
+        THEN (sr.block_end - sr.block_start + 1) / validator_counts.validator_count
+        ELSE 0
+    END as block_quota,
+    sr.block_start,
+    sr.block_end,
+    t.tx_hash as tx,
+    b.block_time as date_finalized,
+    0::real as avg_block_time  -- Simplified for performance
+FROM etl_sla_node_reports_v2 snr
+JOIN etl_sla_rollups_v2 sr ON snr.sla_rollup_id = sr.id
+JOIN etl_addresses a ON snr.address_id = a.id
+JOIN etl_transactions_v2 t ON sr.transaction_id = t.id
+JOIN etl_blocks b ON t.block_id = b.id
+-- Pre-calculate validator counts for each rollup
+JOIN (
+    SELECT 
+        sla_rollup_id,
+        COUNT(DISTINCT address_id) as validator_count
+    FROM etl_sla_node_reports_v2
+    GROUP BY sla_rollup_id
+) validator_counts ON validator_counts.sla_rollup_id = sr.id
+ORDER BY sr.timestamp DESC, a.address
+LIMIT $1;
+
+-- Get all SLA rollups with pagination (OPTIMIZED)
+-- name: GetAllSlaRollupsOptimized :many
+SELECT 
+    sr.id,
+    sr.block_start,
+    sr.block_end,
+    t.tx_hash as tx,
+    b.block_time as date_finalized,
+    validator_counts.validator_count
+FROM etl_sla_rollups_v2 sr
+JOIN etl_transactions_v2 t ON sr.transaction_id = t.id
+JOIN etl_blocks b ON t.block_id = b.id
+-- Pre-calculate validator counts for better performance
+LEFT JOIN (
+    SELECT 
+        sla_rollup_id,
+        COUNT(DISTINCT address_id) as validator_count
+    FROM etl_sla_node_reports_v2
+    GROUP BY sla_rollup_id
+) validator_counts ON validator_counts.sla_rollup_id = sr.id
+ORDER BY sr.timestamp DESC
+LIMIT $1 OFFSET $2;
+
 -- Get validator uptime data using SLA rollup views
 -- name: GetValidatorUptimeData :many
 SELECT 
