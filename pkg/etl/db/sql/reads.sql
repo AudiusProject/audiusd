@@ -650,7 +650,8 @@ SELECT
     vr.start_block,
     vr.end_block,
     vr.tx,
-    vr.date_finalized
+    vr.date_finalized,
+    vr.avg_block_time::REAL as avg_block_time
 FROM v_sla_rollup_score vsr
 JOIN v_sla_rollup vr ON vsr.sla_id = vr.id
 WHERE vsr.node = $1
@@ -669,7 +670,8 @@ SELECT
     vr.start_block,
     vr.end_block,
     vr.tx,
-    vr.date_finalized
+    vr.date_finalized,
+    vr.avg_block_time::REAL as avg_block_time
 FROM v_sla_rollup_score vsr
 JOIN v_sla_rollup vr ON vsr.sla_id = vr.id
 ORDER BY vr.date_finalized DESC, vsr.node
@@ -687,7 +689,8 @@ SELECT
     vr.start_block,
     vr.end_block,
     vr.tx,
-    vr.date_finalized
+    vr.date_finalized,
+    vr.avg_block_time::REAL as avg_block_time
 FROM v_sla_rollup_score vsr
 JOIN v_sla_rollup vr ON vsr.sla_id = vr.id
 WHERE vr.id = $1

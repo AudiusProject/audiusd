@@ -149,7 +149,8 @@ SELECT
     vr.start_block,
     vr.end_block,
     vr.tx,
-    vr.date_finalized
+    vr.date_finalized,
+    vr.avg_block_time::REAL as avg_block_time
 FROM v_sla_rollup_score vsr
 JOIN v_sla_rollup vr ON vsr.sla_id = vr.id
 ORDER BY vr.date_finalized DESC, vsr.node
@@ -167,6 +168,7 @@ type GetAllValidatorsUptimeDataRow struct {
 	EndBlock           int64            `json:"end_block"`
 	Tx                 string           `json:"tx"`
 	DateFinalized      pgtype.Timestamp `json:"date_finalized"`
+	AvgBlockTime       float32          `json:"avg_block_time"`
 }
 
 // Get all validators uptime data using SLA rollup views
@@ -190,6 +192,7 @@ func (q *Queries) GetAllValidatorsUptimeData(ctx context.Context, limit int32) (
 			&i.EndBlock,
 			&i.Tx,
 			&i.DateFinalized,
+			&i.AvgBlockTime,
 		); err != nil {
 			return nil, err
 		}
@@ -2070,7 +2073,8 @@ SELECT
     vr.start_block,
     vr.end_block,
     vr.tx,
-    vr.date_finalized
+    vr.date_finalized,
+    vr.avg_block_time::REAL as avg_block_time
 FROM v_sla_rollup_score vsr
 JOIN v_sla_rollup vr ON vsr.sla_id = vr.id
 WHERE vsr.node = $1
@@ -2093,6 +2097,7 @@ type GetValidatorUptimeDataRow struct {
 	EndBlock           int64            `json:"end_block"`
 	Tx                 string           `json:"tx"`
 	DateFinalized      pgtype.Timestamp `json:"date_finalized"`
+	AvgBlockTime       float32          `json:"avg_block_time"`
 }
 
 // Get validator uptime data using SLA rollup views
@@ -2115,6 +2120,7 @@ func (q *Queries) GetValidatorUptimeData(ctx context.Context, arg GetValidatorUp
 			&i.EndBlock,
 			&i.Tx,
 			&i.DateFinalized,
+			&i.AvgBlockTime,
 		); err != nil {
 			return nil, err
 		}
@@ -2137,7 +2143,8 @@ SELECT
     vr.start_block,
     vr.end_block,
     vr.tx,
-    vr.date_finalized
+    vr.date_finalized,
+    vr.avg_block_time::REAL as avg_block_time
 FROM v_sla_rollup_score vsr
 JOIN v_sla_rollup vr ON vsr.sla_id = vr.id
 WHERE vr.id = $1
@@ -2155,6 +2162,7 @@ type GetValidatorsUptimeDataByRollupRow struct {
 	EndBlock           int64            `json:"end_block"`
 	Tx                 string           `json:"tx"`
 	DateFinalized      pgtype.Timestamp `json:"date_finalized"`
+	AvgBlockTime       float32          `json:"avg_block_time"`
 }
 
 // Get validator uptime data for a specific SLA rollup ID
@@ -2178,6 +2186,7 @@ func (q *Queries) GetValidatorsUptimeDataByRollup(ctx context.Context, id int32)
 			&i.EndBlock,
 			&i.Tx,
 			&i.DateFinalized,
+			&i.AvgBlockTime,
 		); err != nil {
 			return nil, err
 		}
