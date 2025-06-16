@@ -338,7 +338,28 @@ func (con *Console) Validator(c echo.Context) error {
 		}
 	}
 
-	p := pages.Validator(validator.Msg.Validator, validator.Msg.Events)
+	// Get uptime data for this validator (last 12 rollups)
+	var rollups []*v1.SlaRollupScore
+	uptimeResp, err := con.etl.GetValidatorUptime(c.Request().Context(), &connect.Request[v1.GetValidatorUptimeRequest]{
+		Msg: &v1.GetValidatorUptimeRequest{
+			ValidatorAddress: validator.Msg.Validator.CometAddress, // Use comet address for uptime lookup
+			Limit:            12,                                   // Last 12 rollups
+		},
+	})
+	if err != nil {
+		con.logger.Warn("Failed to get validator uptime data", "error", err, "validator", validator.Msg.Validator.CometAddress)
+		// Continue without uptime data rather than fail the whole page
+		rollups = []*v1.SlaRollupScore{}
+	} else {
+		rollups = uptimeResp.Msg.Rollups
+		con.logger.Info("Retrieved validator uptime data", "validator", validator.Msg.Validator.CometAddress, "rollup_count", len(rollups))
+		// Reverse the rollups slice so most recent appears on the right
+		for i, j := 0, len(rollups)-1; i < j; i, j = i+1, j-1 {
+			rollups[i], rollups[j] = rollups[j], rollups[i]
+		}
+	}
+
+	p := pages.Validator(validator.Msg.Validator, validator.Msg.Events, rollups)
 	return p.Render(c.Request().Context(), c.Response().Writer)
 }
 
