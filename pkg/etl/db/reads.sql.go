@@ -592,6 +592,40 @@ func (q *Queries) GetLatestSLARollup(ctx context.Context) (GetLatestSLARollupRow
 	return i, err
 }
 
+const getLatestSlaRollupForDashboard = `-- name: GetLatestSlaRollupForDashboard :one
+SELECT 
+    vr.id,
+    vr.avg_block_time::REAL as avg_block_time,
+    vr.start_block,
+    vr.end_block,
+    vr.date_finalized
+FROM v_sla_rollup vr
+ORDER BY vr.date_finalized DESC
+LIMIT 1
+`
+
+type GetLatestSlaRollupForDashboardRow struct {
+	ID            int32            `json:"id"`
+	AvgBlockTime  float32          `json:"avg_block_time"`
+	StartBlock    int64            `json:"start_block"`
+	EndBlock      int64            `json:"end_block"`
+	DateFinalized pgtype.Timestamp `json:"date_finalized"`
+}
+
+// Get latest SLA rollup with avg block time for dashboard stats
+func (q *Queries) GetLatestSlaRollupForDashboard(ctx context.Context) (GetLatestSlaRollupForDashboardRow, error) {
+	row := q.db.QueryRow(ctx, getLatestSlaRollupForDashboard)
+	var i GetLatestSlaRollupForDashboardRow
+	err := row.Scan(
+		&i.ID,
+		&i.AvgBlockTime,
+		&i.StartBlock,
+		&i.EndBlock,
+		&i.DateFinalized,
+	)
+	return i, err
+}
+
 const getLatestTransactions = `-- name: GetLatestTransactions :many
 SELECT 
     t.id,

@@ -750,3 +750,15 @@ SELECT
     challenges_failed
 FROM v_validator_uptime_summary
 ORDER BY date_finalized DESC, node;
+
+-- Get latest SLA rollup with avg block time for dashboard stats
+-- name: GetLatestSlaRollupForDashboard :one
+SELECT 
+    vr.id,
+    vr.avg_block_time::REAL as avg_block_time,
+    vr.start_block,
+    vr.end_block,
+    vr.date_finalized
+FROM v_sla_rollup vr
+ORDER BY vr.date_finalized DESC
+LIMIT 1;

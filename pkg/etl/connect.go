@@ -167,6 +167,18 @@ func (e *ETLService) GetStats(ctx context.Context, req *connect.Request[v1.GetSt
 		}
 	}
 
+	// Get latest SLA rollup for avg block time
+	var slaRollupAvgBlockTime float32 = 0
+	latestSlaRollup, err := e.db.GetLatestSlaRollupForDashboard(ctx)
+	if err != nil {
+		// It's okay if no SLA rollup exists yet, just log it
+		if !errors.Is(err, pgx.ErrNoRows) {
+			e.logger.Error("Failed to get latest SLA rollup for dashboard", "error", err)
+		}
+	} else {
+		slaRollupAvgBlockTime = latestSlaRollup.AvgBlockTime
+	}
+
 	// Convert transaction breakdown to protobuf format
 	breakdown := make([]*v1.TransactionTypeBreakdown, len(transactionBreakdown))
 	for i, row := range transactionBreakdown {
@@ -250,6 +262,7 @@ func (e *ETLService) GetStats(ctx context.Context, req *connect.Request[v1.GetSt
 		TotalTransactions_30D:         txStats.TotalTransactions30d,
 		ValidatorCount:                validatorStats.ActiveValidators,
 		TransactionBreakdown:          breakdown,
+		AvgBlockTime:                  slaRollupAvgBlockTime,
 		SyncStatus: &v1.SyncStatus{
 			IsSyncing:           syncStatus.IsSyncing,
 			LatestChainHeight:   latestChainHeight,

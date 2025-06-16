@@ -33,6 +33,7 @@ message GetStatsResponse {
   repeated string recent_proposers = 12;
   repeated TransactionTypeBreakdown transaction_breakdown = 13;
   SyncStatus sync_status = 14;
+  float avg_block_time = 15; // Average block time from latest SLA rollup in seconds
 }
 
 message TransactionTypeBreakdown {

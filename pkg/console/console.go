@@ -212,6 +212,7 @@ func (con *Console) Dashboard(c echo.Context) error {
 		TotalTransactionsPrevious24h: statsResp.Msg.TotalTransactionsPrevious_24H,
 		TotalTransactions7d:          statsResp.Msg.TotalTransactions_7D,
 		TotalTransactions30d:         statsResp.Msg.TotalTransactions_30D,
+		AvgBlockTime:                 statsResp.Msg.AvgBlockTime,
 	}
 
 	// Convert transaction breakdown from RPC response
@@ -776,6 +777,7 @@ func (con *Console) StatsHeaderFragment(c echo.Context) error {
 		LatestIndexedHeight: statsResp.Msg.SyncStatus.GetLatestIndexedHeight(),
 		LatestChainHeight:   statsResp.Msg.SyncStatus.GetLatestChainHeight(),
 		BlockDelta:          statsResp.Msg.SyncStatus.GetBlockDelta(),
+		AvgBlockTime:        statsResp.Msg.AvgBlockTime,
 	}
 
 	fragment := pages.StatsHeaderFragment(stats, syncProgressPercentage)
