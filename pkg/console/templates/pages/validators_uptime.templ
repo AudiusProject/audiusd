@@ -237,7 +237,7 @@ templ ValidatorsUptimeTable(validators []*v1.ValidatorUptimeInfo) {
 }
 
 templ ValidatorUptimeRow(validator *v1.ValidatorUptimeInfo) {
-	<tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+	<tr class="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer" onclick={ templ.ComponentScript{Call: fmt.Sprintf("window.location.href='/validator/%s'", validator.ValidatorAddress)} }>
 		<td class="px-6 py-4 whitespace-nowrap">
 			<div class="flex flex-col">
 				<div class="text-sm font-mono text-gray-900 dark:text-gray-100">
@@ -330,44 +330,46 @@ templ UptimeRollups(rollups []*v1.SlaRollupInfo, currentPage int32, hasNext bool
 			if len(rollups) > 0 {
 				<div class="space-y-2">
 					for _, rollup := range rollups {
-						<div class="flex items-center justify-between py-4 px-6 border border-gray-200 dark:border-gray-700 rounded hover:bg-purple-50 hover:border-purple-200 dark:hover:bg-gray-700 transition-colors">
-							<div class="flex items-center gap-6 flex-1">
-								<div class="flex-1">
-									<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Rollup ID</div>
-									<a href={ templ.SafeURL(fmt.Sprintf("/validators/uptime/%d", rollup.RollupId)) } class="font-semibold text-purple-600 dark:text-purple-400 hover:underline">
-										#{ fmt.Sprintf("%d", rollup.RollupId) }
-									</a>
-								</div>
-								<div class="flex-1">
-									<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Block Range</div>
-									<div class="text-sm text-gray-900 dark:text-gray-100">
-										{ fmt.Sprintf("%d - %d", rollup.BlockStart, rollup.BlockEnd) }
+						<a href={ templ.SafeURL(fmt.Sprintf("/validators/uptime/%d", rollup.RollupId)) } class="block">
+							<div class="flex items-center justify-between py-4 px-6 border border-gray-200 dark:border-gray-700 rounded hover:bg-purple-50 hover:border-purple-200 dark:hover:bg-gray-700 transition-colors cursor-pointer">
+								<div class="flex items-center gap-6 flex-1">
+									<div class="flex-1">
+										<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Rollup ID</div>
+										<div class="font-semibold text-purple-600 dark:text-purple-400">
+											#{ fmt.Sprintf("%d", rollup.RollupId) }
+										</div>
+									</div>
+									<div class="flex-1">
+										<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Block Range</div>
+										<div class="text-sm text-gray-900 dark:text-gray-100">
+											{ fmt.Sprintf("%d - %d", rollup.BlockStart, rollup.BlockEnd) }
+										</div>
+									</div>
+									<div class="flex-1">
+										<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Validators</div>
+										<div class="text-sm text-gray-900 dark:text-gray-100">
+											{ fmt.Sprintf("%d", rollup.ValidatorCount) }
+										</div>
+									</div>
+									<div class="flex-1">
+										<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Transaction</div>
+										<div class="font-mono text-xs text-purple-600 dark:text-purple-400">
+											@templates.StringWithTooltipCustom(rollup.TxHash, 8, 4)
+										</div>
 									</div>
 								</div>
-								<div class="flex-1">
-									<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Validators</div>
-									<div class="text-sm text-gray-900 dark:text-gray-100">
-										{ fmt.Sprintf("%d", rollup.ValidatorCount) }
+								<div class="text-right flex-shrink-0">
+									<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Finalized</div>
+									<div class="text-sm text-gray-700 dark:text-gray-300">
+										if rollup.Timestamp != nil {
+											@templates.TimeWithTooltip(rollup.Timestamp.AsTime())
+										} else {
+											—
+										}
 									</div>
 								</div>
-								<div class="flex-1">
-									<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Transaction</div>
-									<a href={ templ.SafeURL(fmt.Sprintf("/transaction/%s", rollup.TxHash)) } class="font-mono text-xs text-purple-600 dark:text-purple-400 hover:underline">
-										@templates.StringWithTooltipCustom(rollup.TxHash, 8, 4)
-									</a>
-								</div>
 							</div>
-							<div class="text-right flex-shrink-0">
-								<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Finalized</div>
-								<div class="text-sm text-gray-700 dark:text-gray-300">
-									if rollup.Timestamp != nil {
-										@templates.TimeWithTooltip(rollup.Timestamp.AsTime())
-									} else {
-										—
-									}
-								</div>
-							</div>
-						</div>
+						</a>
 					}
 				</div>
 				<div class="flex justify-between items-center mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
