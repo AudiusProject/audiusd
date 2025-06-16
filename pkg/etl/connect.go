@@ -1558,6 +1558,7 @@ func (e *ETLService) GetValidatorUptime(ctx context.Context, req *connect.Reques
 			BlockEnd:           data.EndBlock,
 			TxHash:             data.Tx,
 			Timestamp:          timestamp,
+			AvgBlockTime:       data.AvgBlockTime,
 		}
 	}
 
@@ -1636,6 +1637,7 @@ func (e *ETLService) GetValidatorsUptime(ctx context.Context, req *connect.Reque
 			BlockEnd:           data.EndBlock,
 			TxHash:             data.Tx,
 			Timestamp:          timestamp,
+			AvgBlockTime:       data.AvgBlockTime,
 		}
 
 		validator.RecentRollups = append(validator.RecentRollups, rollup)
@@ -1699,6 +1701,7 @@ func (e *ETLService) GetValidatorsUptimeByRollup(ctx context.Context, req *conne
 			BlockEnd:           data.EndBlock,
 			TxHash:             data.Tx,
 			Timestamp:          timestamp,
+			AvgBlockTime:       data.AvgBlockTime,
 		}
 
 		// Get endpoint for this validator

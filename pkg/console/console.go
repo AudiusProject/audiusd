@@ -364,20 +364,48 @@ func (con *Console) Validator(c echo.Context) error {
 }
 
 func (con *Console) ValidatorsUptime(c echo.Context) error {
-	// Get uptime data for all validators (last 12 rollups each)
-	uptimeResp, err := con.etl.GetValidatorsUptime(c.Request().Context(), &connect.Request[v1.GetValidatorsUptimeRequest]{
-		Msg: &v1.GetValidatorsUptimeRequest{
-			Limit: 12, // Last 12 rollups for the uptime page
+	// Parse query parameters
+	pageStr := c.QueryParam("page")
+	countStr := c.QueryParam("count")
+
+	var page int32 = 1
+	var pageSize int32 = 20
+
+	if pageStr != "" {
+		if p, err := strconv.ParseInt(pageStr, 10, 32); err == nil && p > 0 {
+			page = int32(p)
+		}
+	}
+
+	if countStr != "" {
+		if ps, err := strconv.ParseInt(countStr, 10, 32); err == nil && ps > 0 && ps <= 100 {
+			pageSize = int32(ps)
+		}
+	}
+
+	// Get rollups data
+	rollupsResp, err := con.etl.GetSlaRollups(c.Request().Context(), &connect.Request[v1.GetSlaRollupsRequest]{
+		Msg: &v1.GetSlaRollupsRequest{
+			Page:     page,
+			PageSize: pageSize,
 		},
 	})
 	if err != nil {
-		con.logger.Error("Failed to get validator uptime data", "error", err)
-		return c.String(http.StatusInternalServerError, fmt.Sprintf("Failed to get validator uptime data: %v", err))
+		con.logger.Error("Failed to get rollups data", "error", err)
+		return c.String(http.StatusInternalServerError, fmt.Sprintf("Failed to get rollups data: %v", err))
 	}
 
-	con.logger.Info("Successfully retrieved validator uptime data", "validator_count", len(uptimeResp.Msg.Validators))
+	con.logger.Info("Successfully retrieved rollups data for uptime page", "rollup_count", len(rollupsResp.Msg.Rollups), "page", page)
 
-	p := pages.ValidatorsUptime(uptimeResp.Msg.Validators)
+	// Use the same Rollups template but with a different title context
+	p := pages.UptimeRollups(
+		rollupsResp.Msg.Rollups,
+		rollupsResp.Msg.CurrentPage,
+		rollupsResp.Msg.HasNext,
+		rollupsResp.Msg.HasPrev,
+		pageSize,
+		rollupsResp.Msg.TotalCount,
+	)
 	return p.Render(c.Request().Context(), c.Response().Writer)
 }
 

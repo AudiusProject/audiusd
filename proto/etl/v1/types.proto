@@ -510,6 +510,7 @@ message SlaRollupScore {
   int64 block_end = 7;
   string tx_hash = 8;
   google.protobuf.Timestamp timestamp = 9;
+  float avg_block_time = 10; // Average block time in seconds
 }
 
 // Get all SLA rollups with pagination
