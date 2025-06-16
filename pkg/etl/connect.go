@@ -1791,48 +1791,66 @@ func (e *ETLService) GetSlaRollups(ctx context.Context, req *connect.Request[v1.
 
 // GetValidatorsUptimeSummary returns a lightweight summary of validator uptime status
 func (e *ETLService) GetValidatorsUptimeSummary(ctx context.Context, req *connect.Request[v1.GetValidatorsUptimeSummaryRequest]) (*connect.Response[v1.GetValidatorsUptimeSummaryResponse], error) {
-	// Get uptime summary data directly from the database view
-	summaryData, err := e.db.GetValidatorUptimeSummary(ctx)
+	// Use the existing optimized query instead of the missing view
+	// Limit to recent rollups for summary (5 most recent)
+	uptimeData, err := e.db.GetAllValidatorsUptimeDataOptimized(ctx, 50) // Get data for top 50 records to cover recent rollups
 	if err != nil {
-		return nil, fmt.Errorf("failed to get validator uptime summary: %w", err)
+		return nil, fmt.Errorf("failed to get validator uptime data: %w", err)
 	}
 
-	// Group by validator address
+	// Group by validator address and limit to recent rollups per validator
 	validatorMap := make(map[string]*v1.ValidatorUptimeSummary)
-	for _, data := range summaryData {
-		if validator, exists := validatorMap[data.Node]; exists {
-			// Add to existing validator
-			validator.RecentRollups = append(validator.RecentRollups, &v1.UptimeSummaryEntry{
-				RollupId:           data.RollupID,
-				Status:             data.SlaStatus,
-				BlocksProposed:     data.BlocksProposed,
-				BlockQuota:         data.BlockQuota,
-				ChallengesReceived: data.ChallengesReceived,
-				ChallengesFailed:   data.ChallengesFailed,
-			})
-		} else {
-			// Create new validator entry
-			validatorMap[data.Node] = &v1.ValidatorUptimeSummary{
+	for _, data := range uptimeData {
+		validator, exists := validatorMap[data.Node]
+		if !exists {
+			validator = &v1.ValidatorUptimeSummary{
 				ValidatorAddress: data.Node,
-				RecentRollups: []*v1.UptimeSummaryEntry{
-					{
-						RollupId:           data.RollupID,
-						Status:             data.SlaStatus,
-						BlocksProposed:     data.BlocksProposed,
-						BlockQuota:         data.BlockQuota,
-						ChallengesReceived: data.ChallengesReceived,
-						ChallengesFailed:   data.ChallengesFailed,
-					},
-				},
+				RecentRollups:    []*v1.UptimeSummaryEntry{},
 			}
+			validatorMap[data.Node] = validator
 		}
+
+		// Limit to 5 most recent rollups per validator
+		if len(validator.RecentRollups) >= 5 {
+			continue
+		}
+
+		// Calculate SLA status based on performance
+		var slaStatus string
+		if data.BlocksProposed == 0 {
+			slaStatus = "offline"
+		} else if data.BlockQuota > 0 {
+			blockPerformance := float64(data.BlocksProposed) / float64(data.BlockQuota)
+			// For optimized query, we simplified challenge stats, so just use block performance
+			if blockPerformance >= 0.8 {
+				slaStatus = "pass"
+			} else {
+				slaStatus = "fail"
+			}
+		} else {
+			slaStatus = "unknown"
+		}
+
+		validator.RecentRollups = append(validator.RecentRollups, &v1.UptimeSummaryEntry{
+			RollupId:           data.SlaID,
+			Status:             slaStatus,
+			BlocksProposed:     data.BlocksProposed,
+			BlockQuota:         data.BlockQuota,
+			ChallengesReceived: data.ChallengesReceived,
+			ChallengesFailed:   data.ChallengesFailed,
+		})
 	}
 
-	// Convert map to slice
+	// Convert map to slice and sort by validator address
 	validators := make([]*v1.ValidatorUptimeSummary, 0, len(validatorMap))
 	for _, validator := range validatorMap {
 		validators = append(validators, validator)
 	}
+
+	// Sort validators by address for deterministic ordering
+	sort.Slice(validators, func(i, j int) bool {
+		return validators[i].ValidatorAddress < validators[j].ValidatorAddress
+	})
 
 	return connect.NewResponse(&v1.GetValidatorsUptimeSummaryResponse{
 		Validators: validators,

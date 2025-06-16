@@ -246,6 +246,7 @@ type VValidatorStat struct {
 	DeregisteredValidators    int64 `json:"deregistered_validators"`
 }
 
+// Lightweight validator uptime summary using materialized views. Refreshes automatically when mv_sla_rollup and mv_sla_rollup_score are refreshed.
 type VValidatorUptimeSummary struct {
 	Node               string           `json:"node"`
 	RollupID           int32            `json:"rollup_id"`
