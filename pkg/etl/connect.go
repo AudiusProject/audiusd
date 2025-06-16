@@ -1641,11 +1641,16 @@ func (e *ETLService) GetValidatorsUptime(ctx context.Context, req *connect.Reque
 		validator.RecentRollups = append(validator.RecentRollups, rollup)
 	}
 
-	// Convert map to slice
+	// Convert map to slice and sort by address for deterministic ordering
 	validators := make([]*v1.ValidatorUptimeInfo, 0, len(validatorMap))
 	for _, validator := range validatorMap {
 		validators = append(validators, validator)
 	}
+
+	// Sort validators by address for deterministic ordering
+	sort.Slice(validators, func(i, j int) bool {
+		return validators[i].ValidatorAddress < validators[j].ValidatorAddress
+	})
 
 	return connect.NewResponse(&v1.GetValidatorsUptimeResponse{
 		Validators: validators,
@@ -1727,8 +1732,76 @@ func (e *ETLService) GetValidatorsUptimeByRollup(ctx context.Context, req *conne
 		validators = append(validators, validator)
 	}
 
+	// Sort validators by address for deterministic ordering
+	sort.Slice(validators, func(i, j int) bool {
+		return validators[i].ValidatorAddress < validators[j].ValidatorAddress
+	})
+
 	return connect.NewResponse(&v1.GetValidatorsUptimeByRollupResponse{
 		Validators: validators,
 		RollupId:   rollupId,
+	}), nil
+}
+
+// GetSlaRollups implements v1connect.ETLServiceHandler.
+func (e *ETLService) GetSlaRollups(ctx context.Context, req *connect.Request[v1.GetSlaRollupsRequest]) (*connect.Response[v1.GetSlaRollupsResponse], error) {
+	page := req.Msg.Page
+	if page <= 0 {
+		page = 1
+	}
+
+	pageSize := req.Msg.PageSize
+	if pageSize <= 0 {
+		pageSize = 20 // default page size
+	}
+
+	// Calculate offset
+	offset := (page - 1) * pageSize
+
+	// Get total count for pagination
+	totalCount, err := e.db.CountAllSlaRollups(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Calculate pagination info
+	totalPages := int32((totalCount + int64(pageSize) - 1) / int64(pageSize))
+	hasNext := page < totalPages
+	hasPrev := page > 1
+
+	// Get rollups for current page
+	rollupData, err := e.db.GetAllSlaRollups(ctx, db.GetAllSlaRollupsParams{
+		Limit:  pageSize,
+		Offset: offset,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert to protobuf format
+	rollups := make([]*v1.SlaRollupInfo, len(rollupData))
+	for i, data := range rollupData {
+		var timestamp *timestamppb.Timestamp
+		if data.DateFinalized.Valid {
+			timestamp = timestamppb.New(data.DateFinalized.Time)
+		}
+
+		rollups[i] = &v1.SlaRollupInfo{
+			RollupId:       data.ID,
+			BlockStart:     data.StartBlock,
+			BlockEnd:       data.EndBlock,
+			TxHash:         data.Tx,
+			Timestamp:      timestamp,
+			ValidatorCount: int32(data.ValidatorCount),
+		}
+	}
+
+	return connect.NewResponse(&v1.GetSlaRollupsResponse{
+		Rollups:     rollups,
+		CurrentPage: page,
+		TotalPages:  totalPages,
+		TotalCount:  totalCount,
+		HasNext:     hasNext,
+		HasPrev:     hasPrev,
 	}), nil
 }

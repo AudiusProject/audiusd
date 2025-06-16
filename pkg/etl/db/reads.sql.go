@@ -11,6 +11,18 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const countAllSlaRollups = `-- name: CountAllSlaRollups :one
+SELECT COUNT(DISTINCT id) FROM v_sla_rollup
+`
+
+// Count total SLA rollups for pagination
+func (q *Queries) CountAllSlaRollups(ctx context.Context) (int64, error) {
+	row := q.db.QueryRow(ctx, countAllSlaRollups)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const getActiveValidatorsCount = `-- name: GetActiveValidatorsCount :one
 SELECT count(DISTINCT vr.comet_address) as total
 FROM etl_validator_registrations_v2 vr
@@ -59,6 +71,63 @@ func (q *Queries) GetAllRegisteredValidatorsWithEndpoints(ctx context.Context) (
 	for rows.Next() {
 		var i GetAllRegisteredValidatorsWithEndpointsRow
 		if err := rows.Scan(&i.Address, &i.Endpoint, &i.CometAddress); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getAllSlaRollups = `-- name: GetAllSlaRollups :many
+SELECT 
+    vr.id,
+    vr.start_block,
+    vr.end_block,
+    vr.tx,
+    vr.date_finalized,
+    COUNT(DISTINCT vsr.node) as validator_count
+FROM v_sla_rollup vr
+LEFT JOIN v_sla_rollup_score vsr ON vr.id = vsr.sla_id
+GROUP BY vr.id, vr.start_block, vr.end_block, vr.tx, vr.date_finalized
+ORDER BY vr.id DESC
+LIMIT $1 OFFSET $2
+`
+
+type GetAllSlaRollupsParams struct {
+	Limit  int32 `json:"limit"`
+	Offset int32 `json:"offset"`
+}
+
+type GetAllSlaRollupsRow struct {
+	ID             int32            `json:"id"`
+	StartBlock     int64            `json:"start_block"`
+	EndBlock       int64            `json:"end_block"`
+	Tx             string           `json:"tx"`
+	DateFinalized  pgtype.Timestamp `json:"date_finalized"`
+	ValidatorCount int64            `json:"validator_count"`
+}
+
+// Get all SLA rollups with pagination
+func (q *Queries) GetAllSlaRollups(ctx context.Context, arg GetAllSlaRollupsParams) ([]GetAllSlaRollupsRow, error) {
+	rows, err := q.db.Query(ctx, getAllSlaRollups, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAllSlaRollupsRow
+	for rows.Next() {
+		var i GetAllSlaRollupsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.StartBlock,
+			&i.EndBlock,
+			&i.Tx,
+			&i.DateFinalized,
+			&i.ValidatorCount,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

@@ -80,6 +80,9 @@ const (
 	ETLServiceSearchProcedure = "/etl.v1.ETLService/Search"
 	// ETLServiceStreamProcedure is the fully-qualified name of the ETLService's Stream RPC.
 	ETLServiceStreamProcedure = "/etl.v1.ETLService/Stream"
+	// ETLServiceGetSlaRollupsProcedure is the fully-qualified name of the ETLService's GetSlaRollups
+	// RPC.
+	ETLServiceGetSlaRollupsProcedure = "/etl.v1.ETLService/GetSlaRollups"
 )
 
 // ETLServiceClient is a client for the etl.v1.ETLService service.
@@ -103,6 +106,7 @@ type ETLServiceClient interface {
 	GetLocation(context.Context, *connect.Request[v1.GetLocationRequest]) (*connect.Response[v1.GetLocationResponse], error)
 	Search(context.Context, *connect.Request[v1.SearchRequest]) (*connect.Response[v1.SearchResponse], error)
 	Stream(context.Context) *connect.BidiStreamForClient[v1.StreamRequest, v1.StreamResponse]
+	GetSlaRollups(context.Context, *connect.Request[v1.GetSlaRollupsRequest]) (*connect.Response[v1.GetSlaRollupsResponse], error)
 }
 
 // NewETLServiceClient constructs a client for the etl.v1.ETLService service. By default, it uses
@@ -230,6 +234,12 @@ func NewETLServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			connect.WithSchema(eTLServiceMethods.ByName("Stream")),
 			connect.WithClientOptions(opts...),
 		),
+		getSlaRollups: connect.NewClient[v1.GetSlaRollupsRequest, v1.GetSlaRollupsResponse](
+			httpClient,
+			baseURL+ETLServiceGetSlaRollupsProcedure,
+			connect.WithSchema(eTLServiceMethods.ByName("GetSlaRollups")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -254,6 +264,7 @@ type eTLServiceClient struct {
 	getLocation                 *connect.Client[v1.GetLocationRequest, v1.GetLocationResponse]
 	search                      *connect.Client[v1.SearchRequest, v1.SearchResponse]
 	stream                      *connect.Client[v1.StreamRequest, v1.StreamResponse]
+	getSlaRollups               *connect.Client[v1.GetSlaRollupsRequest, v1.GetSlaRollupsResponse]
 }
 
 // Ping calls etl.v1.ETLService.Ping.
@@ -351,6 +362,11 @@ func (c *eTLServiceClient) Stream(ctx context.Context) *connect.BidiStreamForCli
 	return c.stream.CallBidiStream(ctx)
 }
 
+// GetSlaRollups calls etl.v1.ETLService.GetSlaRollups.
+func (c *eTLServiceClient) GetSlaRollups(ctx context.Context, req *connect.Request[v1.GetSlaRollupsRequest]) (*connect.Response[v1.GetSlaRollupsResponse], error) {
+	return c.getSlaRollups.CallUnary(ctx, req)
+}
+
 // ETLServiceHandler is an implementation of the etl.v1.ETLService service.
 type ETLServiceHandler interface {
 	Ping(context.Context, *connect.Request[v1.PingRequest]) (*connect.Response[v1.PingResponse], error)
@@ -372,6 +388,7 @@ type ETLServiceHandler interface {
 	GetLocation(context.Context, *connect.Request[v1.GetLocationRequest]) (*connect.Response[v1.GetLocationResponse], error)
 	Search(context.Context, *connect.Request[v1.SearchRequest]) (*connect.Response[v1.SearchResponse], error)
 	Stream(context.Context, *connect.BidiStream[v1.StreamRequest, v1.StreamResponse]) error
+	GetSlaRollups(context.Context, *connect.Request[v1.GetSlaRollupsRequest]) (*connect.Response[v1.GetSlaRollupsResponse], error)
 }
 
 // NewETLServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -495,6 +512,12 @@ func NewETLServiceHandler(svc ETLServiceHandler, opts ...connect.HandlerOption) 
 		connect.WithSchema(eTLServiceMethods.ByName("Stream")),
 		connect.WithHandlerOptions(opts...),
 	)
+	eTLServiceGetSlaRollupsHandler := connect.NewUnaryHandler(
+		ETLServiceGetSlaRollupsProcedure,
+		svc.GetSlaRollups,
+		connect.WithSchema(eTLServiceMethods.ByName("GetSlaRollups")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/etl.v1.ETLService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case ETLServicePingProcedure:
@@ -535,6 +558,8 @@ func NewETLServiceHandler(svc ETLServiceHandler, opts ...connect.HandlerOption) 
 			eTLServiceSearchHandler.ServeHTTP(w, r)
 		case ETLServiceStreamProcedure:
 			eTLServiceStreamHandler.ServeHTTP(w, r)
+		case ETLServiceGetSlaRollupsProcedure:
+			eTLServiceGetSlaRollupsHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -618,4 +643,8 @@ func (UnimplementedETLServiceHandler) Search(context.Context, *connect.Request[v
 
 func (UnimplementedETLServiceHandler) Stream(context.Context, *connect.BidiStream[v1.StreamRequest, v1.StreamResponse]) error {
 	return connect.NewError(connect.CodeUnimplemented, errors.New("etl.v1.ETLService.Stream is not implemented"))
+}
+
+func (UnimplementedETLServiceHandler) GetSlaRollups(context.Context, *connect.Request[v1.GetSlaRollupsRequest]) (*connect.Response[v1.GetSlaRollupsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("etl.v1.ETLService.GetSlaRollups is not implemented"))
 }

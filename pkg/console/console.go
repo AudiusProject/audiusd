@@ -76,6 +76,8 @@ func (con *Console) SetupRoutes() {
 	e.GET("/validators/uptime", con.ValidatorsUptime)
 	e.GET("/validators/uptime/:rollupid", con.ValidatorsUptimeByRollup)
 
+	e.GET("/rollups", con.Rollups)
+
 	e.GET("/blocks", con.Blocks)
 	e.GET("/block/:height", con.Block)
 
@@ -383,6 +385,51 @@ func (con *Console) ValidatorsUptimeByRollup(c echo.Context) error {
 	con.logger.Info("Successfully retrieved validator uptime data for rollup", "validator_count", len(uptimeResp.Msg.Validators), "rollup_id", rollupId)
 
 	p := pages.ValidatorsUptimeByRollup(uptimeResp.Msg.Validators, int32(rollupId))
+	return p.Render(c.Request().Context(), c.Response().Writer)
+}
+
+func (con *Console) Rollups(c echo.Context) error {
+	// Parse query parameters
+	pageStr := c.QueryParam("page")
+	countStr := c.QueryParam("count")
+
+	var page int32 = 1
+	var pageSize int32 = 20
+
+	if pageStr != "" {
+		if p, err := strconv.ParseInt(pageStr, 10, 32); err == nil && p > 0 {
+			page = int32(p)
+		}
+	}
+
+	if countStr != "" {
+		if ps, err := strconv.ParseInt(countStr, 10, 32); err == nil && ps > 0 && ps <= 100 {
+			pageSize = int32(ps)
+		}
+	}
+
+	// Get rollups data
+	rollupsResp, err := con.etl.GetSlaRollups(c.Request().Context(), &connect.Request[v1.GetSlaRollupsRequest]{
+		Msg: &v1.GetSlaRollupsRequest{
+			Page:     page,
+			PageSize: pageSize,
+		},
+	})
+	if err != nil {
+		con.logger.Error("Failed to get rollups data", "error", err)
+		return c.String(http.StatusInternalServerError, fmt.Sprintf("Failed to get rollups data: %v", err))
+	}
+
+	con.logger.Info("Successfully retrieved rollups data", "rollup_count", len(rollupsResp.Msg.Rollups), "page", page)
+
+	p := pages.Rollups(
+		rollupsResp.Msg.Rollups,
+		rollupsResp.Msg.CurrentPage,
+		rollupsResp.Msg.HasNext,
+		rollupsResp.Msg.HasPrev,
+		pageSize,
+		rollupsResp.Msg.TotalCount,
+	)
 	return p.Render(c.Request().Context(), c.Response().Writer)
 }
 

@@ -25,7 +25,7 @@ var file_etl_v1_service_proto_rawDesc = []byte{
 	0x0a, 0x14, 0x65, 0x74, 0x6c, 0x2f, 0x76, 0x31, 0x2f, 0x73, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65,
 	0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x12, 0x06, 0x65, 0x74, 0x6c, 0x2e, 0x76, 0x31, 0x1a, 0x12,
 	0x65, 0x74, 0x6c, 0x2f, 0x76, 0x31, 0x2f, 0x74, 0x79, 0x70, 0x65, 0x73, 0x2e, 0x70, 0x72, 0x6f,
-	0x74, 0x6f, 0x32, 0x92, 0x0c, 0x0a, 0x0a, 0x45, 0x54, 0x4c, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63,
+	0x74, 0x6f, 0x32, 0xe2, 0x0c, 0x0a, 0x0a, 0x45, 0x54, 0x4c, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63,
 	0x65, 0x12, 0x33, 0x0a, 0x04, 0x50, 0x69, 0x6e, 0x67, 0x12, 0x13, 0x2e, 0x65, 0x74, 0x6c, 0x2e,
 	0x76, 0x31, 0x2e, 0x50, 0x69, 0x6e, 0x67, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x14,
 	0x2e, 0x65, 0x74, 0x6c, 0x2e, 0x76, 0x31, 0x2e, 0x50, 0x69, 0x6e, 0x67, 0x52, 0x65, 0x73, 0x70,
@@ -122,7 +122,12 @@ var file_etl_v1_service_proto_rawDesc = []byte{
 	0x61, 0x6d, 0x12, 0x15, 0x2e, 0x65, 0x74, 0x6c, 0x2e, 0x76, 0x31, 0x2e, 0x53, 0x74, 0x72, 0x65,
 	0x61, 0x6d, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x16, 0x2e, 0x65, 0x74, 0x6c, 0x2e,
 	0x76, 0x31, 0x2e, 0x53, 0x74, 0x72, 0x65, 0x61, 0x6d, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73,
-	0x65, 0x22, 0x00, 0x28, 0x01, 0x30, 0x01, 0x42, 0x31, 0x5a, 0x2f, 0x67, 0x69, 0x74, 0x68, 0x75,
+	0x65, 0x22, 0x00, 0x28, 0x01, 0x30, 0x01, 0x12, 0x4e, 0x0a, 0x0d, 0x47, 0x65, 0x74, 0x53, 0x6c,
+	0x61, 0x52, 0x6f, 0x6c, 0x6c, 0x75, 0x70, 0x73, 0x12, 0x1c, 0x2e, 0x65, 0x74, 0x6c, 0x2e, 0x76,
+	0x31, 0x2e, 0x47, 0x65, 0x74, 0x53, 0x6c, 0x61, 0x52, 0x6f, 0x6c, 0x6c, 0x75, 0x70, 0x73, 0x52,
+	0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x1d, 0x2e, 0x65, 0x74, 0x6c, 0x2e, 0x76, 0x31, 0x2e,
+	0x47, 0x65, 0x74, 0x53, 0x6c, 0x61, 0x52, 0x6f, 0x6c, 0x6c, 0x75, 0x70, 0x73, 0x52, 0x65, 0x73,
+	0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x00, 0x42, 0x31, 0x5a, 0x2f, 0x67, 0x69, 0x74, 0x68, 0x75,
 	0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x41, 0x75, 0x64, 0x69, 0x75, 0x73, 0x50, 0x72, 0x6f, 0x6a,
 	0x65, 0x63, 0x74, 0x2f, 0x61, 0x75, 0x64, 0x69, 0x75, 0x73, 0x64, 0x2f, 0x70, 0x6b, 0x67, 0x2f,
 	0x61, 0x70, 0x69, 0x2f, 0x65, 0x74, 0x6c, 0x2f, 0x76, 0x31, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74,
@@ -149,25 +154,27 @@ var file_etl_v1_service_proto_goTypes = []interface{}{
 	(*GetLocationRequest)(nil),                  // 16: etl.v1.GetLocationRequest
 	(*SearchRequest)(nil),                       // 17: etl.v1.SearchRequest
 	(*StreamRequest)(nil),                       // 18: etl.v1.StreamRequest
-	(*PingResponse)(nil),                        // 19: etl.v1.PingResponse
-	(*GetHealthResponse)(nil),                   // 20: etl.v1.GetHealthResponse
-	(*GetStatsResponse)(nil),                    // 21: etl.v1.GetStatsResponse
-	(*GetBlockResponse)(nil),                    // 22: etl.v1.GetBlockResponse
-	(*GetBlocksResponse)(nil),                   // 23: etl.v1.GetBlocksResponse
-	(*GetTransactionResponse)(nil),              // 24: etl.v1.GetTransactionResponse
-	(*GetTransactionsResponse)(nil),             // 25: etl.v1.GetTransactionsResponse
-	(*GetTransactionsByAddressResponse)(nil),    // 26: etl.v1.GetTransactionsByAddressResponse
-	(*GetRelationTypesByAddressResponse)(nil),   // 27: etl.v1.GetRelationTypesByAddressResponse
-	(*GetPlaysResponse)(nil),                    // 28: etl.v1.GetPlaysResponse
-	(*GetManageEntitiesResponse)(nil),           // 29: etl.v1.GetManageEntitiesResponse
-	(*GetValidatorsResponse)(nil),               // 30: etl.v1.GetValidatorsResponse
-	(*GetValidatorResponse)(nil),                // 31: etl.v1.GetValidatorResponse
-	(*GetValidatorUptimeResponse)(nil),          // 32: etl.v1.GetValidatorUptimeResponse
-	(*GetValidatorsUptimeResponse)(nil),         // 33: etl.v1.GetValidatorsUptimeResponse
-	(*GetValidatorsUptimeByRollupResponse)(nil), // 34: etl.v1.GetValidatorsUptimeByRollupResponse
-	(*GetLocationResponse)(nil),                 // 35: etl.v1.GetLocationResponse
-	(*SearchResponse)(nil),                      // 36: etl.v1.SearchResponse
-	(*StreamResponse)(nil),                      // 37: etl.v1.StreamResponse
+	(*GetSlaRollupsRequest)(nil),                // 19: etl.v1.GetSlaRollupsRequest
+	(*PingResponse)(nil),                        // 20: etl.v1.PingResponse
+	(*GetHealthResponse)(nil),                   // 21: etl.v1.GetHealthResponse
+	(*GetStatsResponse)(nil),                    // 22: etl.v1.GetStatsResponse
+	(*GetBlockResponse)(nil),                    // 23: etl.v1.GetBlockResponse
+	(*GetBlocksResponse)(nil),                   // 24: etl.v1.GetBlocksResponse
+	(*GetTransactionResponse)(nil),              // 25: etl.v1.GetTransactionResponse
+	(*GetTransactionsResponse)(nil),             // 26: etl.v1.GetTransactionsResponse
+	(*GetTransactionsByAddressResponse)(nil),    // 27: etl.v1.GetTransactionsByAddressResponse
+	(*GetRelationTypesByAddressResponse)(nil),   // 28: etl.v1.GetRelationTypesByAddressResponse
+	(*GetPlaysResponse)(nil),                    // 29: etl.v1.GetPlaysResponse
+	(*GetManageEntitiesResponse)(nil),           // 30: etl.v1.GetManageEntitiesResponse
+	(*GetValidatorsResponse)(nil),               // 31: etl.v1.GetValidatorsResponse
+	(*GetValidatorResponse)(nil),                // 32: etl.v1.GetValidatorResponse
+	(*GetValidatorUptimeResponse)(nil),          // 33: etl.v1.GetValidatorUptimeResponse
+	(*GetValidatorsUptimeResponse)(nil),         // 34: etl.v1.GetValidatorsUptimeResponse
+	(*GetValidatorsUptimeByRollupResponse)(nil), // 35: etl.v1.GetValidatorsUptimeByRollupResponse
+	(*GetLocationResponse)(nil),                 // 36: etl.v1.GetLocationResponse
+	(*SearchResponse)(nil),                      // 37: etl.v1.SearchResponse
+	(*StreamResponse)(nil),                      // 38: etl.v1.StreamResponse
+	(*GetSlaRollupsResponse)(nil),               // 39: etl.v1.GetSlaRollupsResponse
 }
 var file_etl_v1_service_proto_depIdxs = []int32{
 	0,  // 0: etl.v1.ETLService.Ping:input_type -> etl.v1.PingRequest
@@ -189,27 +196,29 @@ var file_etl_v1_service_proto_depIdxs = []int32{
 	16, // 16: etl.v1.ETLService.GetLocation:input_type -> etl.v1.GetLocationRequest
 	17, // 17: etl.v1.ETLService.Search:input_type -> etl.v1.SearchRequest
 	18, // 18: etl.v1.ETLService.Stream:input_type -> etl.v1.StreamRequest
-	19, // 19: etl.v1.ETLService.Ping:output_type -> etl.v1.PingResponse
-	20, // 20: etl.v1.ETLService.GetHealth:output_type -> etl.v1.GetHealthResponse
-	21, // 21: etl.v1.ETLService.GetStats:output_type -> etl.v1.GetStatsResponse
-	22, // 22: etl.v1.ETLService.GetBlock:output_type -> etl.v1.GetBlockResponse
-	23, // 23: etl.v1.ETLService.GetBlocks:output_type -> etl.v1.GetBlocksResponse
-	24, // 24: etl.v1.ETLService.GetTransaction:output_type -> etl.v1.GetTransactionResponse
-	25, // 25: etl.v1.ETLService.GetTransactions:output_type -> etl.v1.GetTransactionsResponse
-	26, // 26: etl.v1.ETLService.GetTransactionsByAddress:output_type -> etl.v1.GetTransactionsByAddressResponse
-	27, // 27: etl.v1.ETLService.GetRelationTypesByAddress:output_type -> etl.v1.GetRelationTypesByAddressResponse
-	28, // 28: etl.v1.ETLService.GetPlays:output_type -> etl.v1.GetPlaysResponse
-	29, // 29: etl.v1.ETLService.GetManageEntities:output_type -> etl.v1.GetManageEntitiesResponse
-	30, // 30: etl.v1.ETLService.GetValidators:output_type -> etl.v1.GetValidatorsResponse
-	31, // 31: etl.v1.ETLService.GetValidator:output_type -> etl.v1.GetValidatorResponse
-	32, // 32: etl.v1.ETLService.GetValidatorUptime:output_type -> etl.v1.GetValidatorUptimeResponse
-	33, // 33: etl.v1.ETLService.GetValidatorsUptime:output_type -> etl.v1.GetValidatorsUptimeResponse
-	34, // 34: etl.v1.ETLService.GetValidatorsUptimeByRollup:output_type -> etl.v1.GetValidatorsUptimeByRollupResponse
-	35, // 35: etl.v1.ETLService.GetLocation:output_type -> etl.v1.GetLocationResponse
-	36, // 36: etl.v1.ETLService.Search:output_type -> etl.v1.SearchResponse
-	37, // 37: etl.v1.ETLService.Stream:output_type -> etl.v1.StreamResponse
-	19, // [19:38] is the sub-list for method output_type
-	0,  // [0:19] is the sub-list for method input_type
+	19, // 19: etl.v1.ETLService.GetSlaRollups:input_type -> etl.v1.GetSlaRollupsRequest
+	20, // 20: etl.v1.ETLService.Ping:output_type -> etl.v1.PingResponse
+	21, // 21: etl.v1.ETLService.GetHealth:output_type -> etl.v1.GetHealthResponse
+	22, // 22: etl.v1.ETLService.GetStats:output_type -> etl.v1.GetStatsResponse
+	23, // 23: etl.v1.ETLService.GetBlock:output_type -> etl.v1.GetBlockResponse
+	24, // 24: etl.v1.ETLService.GetBlocks:output_type -> etl.v1.GetBlocksResponse
+	25, // 25: etl.v1.ETLService.GetTransaction:output_type -> etl.v1.GetTransactionResponse
+	26, // 26: etl.v1.ETLService.GetTransactions:output_type -> etl.v1.GetTransactionsResponse
+	27, // 27: etl.v1.ETLService.GetTransactionsByAddress:output_type -> etl.v1.GetTransactionsByAddressResponse
+	28, // 28: etl.v1.ETLService.GetRelationTypesByAddress:output_type -> etl.v1.GetRelationTypesByAddressResponse
+	29, // 29: etl.v1.ETLService.GetPlays:output_type -> etl.v1.GetPlaysResponse
+	30, // 30: etl.v1.ETLService.GetManageEntities:output_type -> etl.v1.GetManageEntitiesResponse
+	31, // 31: etl.v1.ETLService.GetValidators:output_type -> etl.v1.GetValidatorsResponse
+	32, // 32: etl.v1.ETLService.GetValidator:output_type -> etl.v1.GetValidatorResponse
+	33, // 33: etl.v1.ETLService.GetValidatorUptime:output_type -> etl.v1.GetValidatorUptimeResponse
+	34, // 34: etl.v1.ETLService.GetValidatorsUptime:output_type -> etl.v1.GetValidatorsUptimeResponse
+	35, // 35: etl.v1.ETLService.GetValidatorsUptimeByRollup:output_type -> etl.v1.GetValidatorsUptimeByRollupResponse
+	36, // 36: etl.v1.ETLService.GetLocation:output_type -> etl.v1.GetLocationResponse
+	37, // 37: etl.v1.ETLService.Search:output_type -> etl.v1.SearchResponse
+	38, // 38: etl.v1.ETLService.Stream:output_type -> etl.v1.StreamResponse
+	39, // 39: etl.v1.ETLService.GetSlaRollups:output_type -> etl.v1.GetSlaRollupsResponse
+	20, // [20:40] is the sub-list for method output_type
+	0,  // [0:20] is the sub-list for method input_type
 	0,  // [0:0] is the sub-list for extension type_name
 	0,  // [0:0] is the sub-list for extension extendee
 	0,  // [0:0] is the sub-list for field type_name
