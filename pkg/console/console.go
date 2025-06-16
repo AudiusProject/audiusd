@@ -307,11 +307,45 @@ func (con *Console) Validators(c echo.Context) error {
 		return c.String(http.StatusInternalServerError, "Failed to get validators")
 	}
 
+	// Get lightweight uptime summary for all validators (just pass/fail status for recent rollups)
+	// This is much faster than the full GetValidatorsUptime which fetches all detailed SLA data
+	var validatorUptimeMap map[string][]*v1.SlaRollupScore
+	uptimeResp, err := con.etl.GetValidatorsUptimeSummary(c.Request().Context(), &connect.Request[v1.GetValidatorsUptimeSummaryRequest]{
+		Msg: &v1.GetValidatorsUptimeSummaryRequest{},
+	})
+	if err != nil {
+		con.logger.Warn("Failed to get validators uptime summary", "error", err)
+		// Continue without uptime data rather than fail the whole page
+		validatorUptimeMap = make(map[string][]*v1.SlaRollupScore)
+	} else {
+		// Convert the ValidatorUptimeSummary array to a map for quick lookup
+		// We need to convert the lightweight UptimeSummaryEntry to SlaRollupScore for template compatibility
+		validatorUptimeMap = make(map[string][]*v1.SlaRollupScore)
+		for _, validator := range uptimeResp.Msg.Validators {
+			rollups := make([]*v1.SlaRollupScore, len(validator.RecentRollups))
+			for i, entry := range validator.RecentRollups {
+				// Convert from lightweight summary entry to full SlaRollupScore format
+				// The database view pre-calculates the pass/fail status, so this is very efficient
+				rollups[i] = &v1.SlaRollupScore{
+					SlaRollupId:        entry.RollupId,
+					BlocksProposed:     entry.BlocksProposed,
+					BlockQuota:         entry.BlockQuota,
+					ChallengesReceived: entry.ChallengesReceived,
+					ChallengesFailed:   entry.ChallengesFailed,
+					// Note: We have pre-calculated pass/fail in entry.Status ("pass", "fail", "offline", "unknown")
+					// but the template calculates it from the metrics above, which is fine for compatibility
+				}
+			}
+			validatorUptimeMap[validator.ValidatorAddress] = rollups
+		}
+		con.logger.Info("Retrieved validators uptime summary", "validator_count", len(uptimeResp.Msg.Validators))
+	}
+
 	// Calculate pagination state
 	hasNext := validators.Msg.HasMore
 	hasPrev := page > 1
 
-	p := pages.Validators(validators.Msg.Validators, page, hasNext, hasPrev, count, queryType, endpointFilter)
+	p := pages.Validators(validators.Msg.Validators, validatorUptimeMap, page, hasNext, hasPrev, count, queryType, endpointFilter)
 	return p.Render(c.Request().Context(), c.Response().Writer)
 }
 

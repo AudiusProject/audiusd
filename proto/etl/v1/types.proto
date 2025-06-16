@@ -536,3 +536,24 @@ message SlaRollupInfo {
   google.protobuf.Timestamp timestamp = 5;
   int32 validator_count = 6; // Number of validators that participated
 }
+
+// Lightweight uptime summary (just pass/fail status for recent rollups)
+message GetValidatorsUptimeSummaryRequest {}
+
+message GetValidatorsUptimeSummaryResponse {
+  repeated ValidatorUptimeSummary validators = 1;
+}
+
+message ValidatorUptimeSummary {
+  string validator_address = 1;
+  repeated UptimeSummaryEntry recent_rollups = 2;
+}
+
+message UptimeSummaryEntry {
+  int32 rollup_id = 1;
+  string status = 2; // "pass", "fail", "offline", "unknown"
+  int32 blocks_proposed = 3; // For tooltip
+  int32 block_quota = 4; // For tooltip
+  int64 challenges_received = 5; // For tooltip
+  int32 challenges_failed = 6; // For tooltip
+}

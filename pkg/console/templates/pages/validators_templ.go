@@ -45,7 +45,32 @@ func buildValidatorsPaginationURL(page int32, pageSize int32, queryType string, 
 	return baseURL
 }
 
-func Validators(validators []*v1.ValidatorInfo, currentPage int32, hasNext bool, hasPrev bool, pageSize int32, queryType string, endpointFilter string) templ.Component {
+// Helper functions for uptime display
+func validatorMeetsSlaThreshold(report *v1.SlaRollupScore) bool {
+	if report.BlockQuota == 0 {
+		return true
+	}
+
+	powRatio := float64(report.BlocksProposed) / float64(report.BlockQuota)
+	posRatio := 1.0
+	if report.ChallengesReceived > 0 {
+		posRatio = 1.0 - (float64(report.ChallengesFailed) / float64(report.ChallengesReceived))
+	}
+
+	return powRatio >= 0.8 && posRatio >= 0.8
+}
+
+func validatorUptimeColor(report *v1.SlaRollupScore) string {
+	if report.BlocksProposed == 0 {
+		return "bg-gray-800"
+	}
+	if validatorMeetsSlaThreshold(report) {
+		return "bg-green-500"
+	}
+	return "bg-red-500"
+}
+
+func Validators(validators []*v1.ValidatorInfo, validatorUptimeMap map[string][]*v1.SlaRollupScore, currentPage int32, hasNext bool, hasPrev bool, pageSize int32, queryType string, endpointFilter string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -85,7 +110,7 @@ func Validators(validators []*v1.ValidatorInfo, currentPage int32, hasNext bool,
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(endpointFilter)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 50, Col: 28}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 75, Col: 28}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {
@@ -98,7 +123,7 @@ func Validators(validators []*v1.ValidatorInfo, currentPage int32, hasNext bool,
 			var templ_7745c5c3_Var4 string
 			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprint(currentPage))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 57, Col: 36}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 82, Col: 36}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 			if templ_7745c5c3_Err != nil {
@@ -111,7 +136,7 @@ func Validators(validators []*v1.ValidatorInfo, currentPage int32, hasNext bool,
 			var templ_7745c5c3_Var5 string
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprint(pageSize))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 57, Col: 65}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 82, Col: 65}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 			if templ_7745c5c3_Err != nil {
@@ -133,7 +158,7 @@ func Validators(validators []*v1.ValidatorInfo, currentPage int32, hasNext bool,
 			var templ_7745c5c3_Var7 templ.SafeURL
 			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(fmt.Sprintf("?type=active&endpoint_filter=%s", endpointFilter)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 61, Col: 91}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 86, Col: 91}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 			if templ_7745c5c3_Err != nil {
@@ -168,7 +193,7 @@ func Validators(validators []*v1.ValidatorInfo, currentPage int32, hasNext bool,
 			var templ_7745c5c3_Var10 templ.SafeURL
 			templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(fmt.Sprintf("?type=registrations&endpoint_filter=%s", endpointFilter)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 67, Col: 98}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 92, Col: 98}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 			if templ_7745c5c3_Err != nil {
@@ -203,7 +228,7 @@ func Validators(validators []*v1.ValidatorInfo, currentPage int32, hasNext bool,
 			var templ_7745c5c3_Var13 templ.SafeURL
 			templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(fmt.Sprintf("?type=deregistrations&endpoint_filter=%s", endpointFilter)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 73, Col: 100}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 98, Col: 100}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 			if templ_7745c5c3_Err != nil {
@@ -239,7 +264,7 @@ func Validators(validators []*v1.ValidatorInfo, currentPage int32, hasNext bool,
 					var templ_7745c5c3_Var15 templ.SafeURL
 					templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(fmt.Sprintf("/validator/%s", validator.Address)))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 84, Col: 78}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 109, Col: 78}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 					if templ_7745c5c3_Err != nil {
@@ -252,7 +277,7 @@ func Validators(validators []*v1.ValidatorInfo, currentPage int32, hasNext bool,
 					var templ_7745c5c3_Var16 string
 					templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(extractHost(validator.Endpoint))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 91, Col: 45}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 116, Col: 45}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
 					if templ_7745c5c3_Err != nil {
@@ -273,7 +298,7 @@ func Validators(validators []*v1.ValidatorInfo, currentPage int32, hasNext bool,
 					var templ_7745c5c3_Var17 string
 					templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinStringErrs(validator.NodeType)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 105, Col: 31}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 130, Col: 31}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
 					if templ_7745c5c3_Err != nil {
@@ -286,7 +311,7 @@ func Validators(validators []*v1.ValidatorInfo, currentPage int32, hasNext bool,
 					var templ_7745c5c3_Var18 string
 					templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", validator.VotingPower))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 111, Col: 53}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 136, Col: 53}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 					if templ_7745c5c3_Err != nil {
@@ -333,84 +358,134 @@ func Validators(validators []*v1.ValidatorInfo, currentPage int32, hasNext bool,
 							return templ_7745c5c3_Err
 						}
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, "</div></div></div><div class=\"flex-1\"><div class=\"text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1\">Uptime</div><div class=\"flex items-center gap-1\"><!-- Placeholder for uptime bars - will show actual data when SLA rollups are available -->")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, "</div></div></div><div class=\"flex-1\"><div class=\"text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1\">Uptime</div><div class=\"flex items-center gap-1\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					for i := 0; i < 5; i++ {
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "<div class=\"w-3 h-4 bg-gray-300 dark:bg-gray-600 rounded-sm\" title=\"No SLA data available yet\"></div>")
+					if rollups, exists := validatorUptimeMap[validator.CometAddress]; exists && len(rollups) > 0 {
+						for i := len(rollups) - 1; i >= 0; i-- {
+							var templ_7745c5c3_Var19 = []any{"w-3 h-4 rounded-sm", validatorUptimeColor(rollups[i])}
+							templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var19...)
+							if templ_7745c5c3_Err != nil {
+								return templ_7745c5c3_Err
+							}
+							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "<div class=\"")
+							if templ_7745c5c3_Err != nil {
+								return templ_7745c5c3_Err
+							}
+							var templ_7745c5c3_Var20 string
+							templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.JoinStringErrs(templ.CSSClasses(templ_7745c5c3_Var19).String())
+							if templ_7745c5c3_Err != nil {
+								return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 1, Col: 0}
+							}
+							_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var20))
+							if templ_7745c5c3_Err != nil {
+								return templ_7745c5c3_Err
+							}
+							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 29, "\" title=\"")
+							if templ_7745c5c3_Err != nil {
+								return templ_7745c5c3_Err
+							}
+							var templ_7745c5c3_Var21 string
+							templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("SLA #%d: %d/%d blocks, %d/%d challenges", rollups[i].SlaRollupId, rollups[i].BlocksProposed, rollups[i].BlockQuota, rollups[i].ChallengesFailed, rollups[i].ChallengesReceived))
+							if templ_7745c5c3_Err != nil {
+								return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 170, Col: 210}
+							}
+							_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
+							if templ_7745c5c3_Err != nil {
+								return templ_7745c5c3_Err
+							}
+							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "\"></div>")
+							if templ_7745c5c3_Err != nil {
+								return templ_7745c5c3_Err
+							}
+						}
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 31, " ")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
+						for i := len(rollups); i < 5; i++ {
+							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 32, "<div class=\"w-3 h-4 bg-gray-200 dark:bg-gray-700 rounded-sm\" title=\"No data available\"></div>")
+							if templ_7745c5c3_Err != nil {
+								return templ_7745c5c3_Err
+							}
+						}
+					} else {
+						for i := 0; i < 5; i++ {
+							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 33, "<div class=\"w-3 h-4 bg-gray-200 dark:bg-gray-700 rounded-sm\" title=\"No uptime data available\"></div>")
+							if templ_7745c5c3_Err != nil {
+								return templ_7745c5c3_Err
+							}
+						}
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 29, "</div></div></div></div></a>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 34, "</div></div></div></div></a>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "</div><div class=\"flex justify-between items-center mt-6 pt-6 border-t border-gray-200 dark:border-gray-700\"><div class=\"flex gap-3\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 35, "</div><div class=\"flex justify-between items-center mt-6 pt-6 border-t border-gray-200 dark:border-gray-700\"><div class=\"flex gap-3\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				if hasPrev {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 31, "<a href=\"")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 36, "<a href=\"")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					var templ_7745c5c3_Var19 templ.SafeURL
-					templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(buildValidatorsPaginationURL(currentPage-1, pageSize, queryType, endpointFilter)))
+					var templ_7745c5c3_Var22 templ.SafeURL
+					templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(buildValidatorsPaginationURL(currentPage-1, pageSize, queryType, endpointFilter)))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 155, Col: 110}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 194, Col: 110}
 					}
-					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
+					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var22))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 32, "\" class=\"px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors\">← Previous</a> ")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 37, "\" class=\"px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors\">← Previous</a> ")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 				} else {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 33, "<span class=\"px-4 py-2 text-sm font-medium text-gray-400 dark:text-gray-600 bg-gray-50 dark:bg-gray-700 rounded cursor-not-allowed\">← Previous</span> ")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 38, "<span class=\"px-4 py-2 text-sm font-medium text-gray-400 dark:text-gray-600 bg-gray-50 dark:bg-gray-700 rounded cursor-not-allowed\">← Previous</span> ")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 				}
 				if hasNext {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 34, "<a href=\"")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 39, "<a href=\"")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					var templ_7745c5c3_Var20 templ.SafeURL
-					templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(buildValidatorsPaginationURL(currentPage+1, pageSize, queryType, endpointFilter)))
+					var templ_7745c5c3_Var23 templ.SafeURL
+					templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(buildValidatorsPaginationURL(currentPage+1, pageSize, queryType, endpointFilter)))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 167, Col: 110}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 206, Col: 110}
 					}
-					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var20))
+					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var23))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 35, "\" class=\"px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors\">Next →</a>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 40, "\" class=\"px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors\">Next →</a>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 				} else {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 36, "<span class=\"px-4 py-2 text-sm font-medium text-gray-400 dark:text-gray-600 bg-gray-50 dark:bg-gray-700 rounded cursor-not-allowed\">Next →</span>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 41, "<span class=\"px-4 py-2 text-sm font-medium text-gray-400 dark:text-gray-600 bg-gray-50 dark:bg-gray-700 rounded cursor-not-allowed\">Next →</span>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 37, "</div></div>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 42, "</div></div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			} else {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 38, "<div class=\"text-center py-12\"><p class=\"text-gray-500 dark:text-gray-400\">No validators found</p></div>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 43, "<div class=\"text-center py-12\"><p class=\"text-gray-500 dark:text-gray-400\">No validators found</p></div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 39, "</div><style>\n\t\t\t.scrollbar-hide {\n\t\t\t\t-ms-overflow-style: none;  /* Internet Explorer 10+ */\n\t\t\t\tscrollbar-width: none;  /* Firefox */\n\t\t\t}\n\t\t\t.scrollbar-hide::-webkit-scrollbar {\n\t\t\t\tdisplay: none;  /* Safari and Chrome */\n\t\t\t}\n\t\t</style> <script>\n\t\t\tfunction updateFilters() {\n\t\t\t\tconst endpointFilter = document.getElementById('endpointFilter').value;\n\t\t\t\t\n\t\t\t\tconst url = new URL(window.location);\n\t\t\t\t\n\t\t\t\t// Handle endpoint filter\n\t\t\t\tif (endpointFilter) {\n\t\t\t\t\turl.searchParams.set('endpoint_filter', endpointFilter);\n\t\t\t\t} else {\n\t\t\t\t\turl.searchParams.delete('endpoint_filter');\n\t\t\t\t}\n\t\t\t\t\n\t\t\t\t// Reset to page 1 when changing filters\n\t\t\t\turl.searchParams.set('page', '1');\n\t\t\t\t\n\t\t\t\twindow.location.href = url.toString();\n\t\t\t}\n\t\t</script>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 44, "</div><style>\n\t\t\t.scrollbar-hide {\n\t\t\t\t-ms-overflow-style: none;  /* Internet Explorer 10+ */\n\t\t\t\tscrollbar-width: none;  /* Firefox */\n\t\t\t}\n\t\t\t.scrollbar-hide::-webkit-scrollbar {\n\t\t\t\tdisplay: none;  /* Safari and Chrome */\n\t\t\t}\n\t\t</style> <script>\n\t\t\tfunction updateFilters() {\n\t\t\t\tconst endpointFilter = document.getElementById('endpointFilter').value;\n\t\t\t\t\n\t\t\t\tconst url = new URL(window.location);\n\t\t\t\t\n\t\t\t\t// Handle endpoint filter\n\t\t\t\tif (endpointFilter) {\n\t\t\t\t\turl.searchParams.set('endpoint_filter', endpointFilter);\n\t\t\t\t} else {\n\t\t\t\t\turl.searchParams.delete('endpoint_filter');\n\t\t\t\t}\n\t\t\t\t\n\t\t\t\t// Reset to page 1 when changing filters\n\t\t\t\turl.searchParams.set('page', '1');\n\t\t\t\t\n\t\t\t\twindow.location.href = url.toString();\n\t\t\t}\n\t\t</script>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

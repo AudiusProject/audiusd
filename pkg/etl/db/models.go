@@ -214,3 +214,14 @@ type VValidatorStat struct {
 	ActiveValidators          int64 `json:"active_validators"`
 	DeregisteredValidators    int64 `json:"deregistered_validators"`
 }
+
+type VValidatorUptimeSummary struct {
+	Node               string           `json:"node"`
+	RollupID           int32            `json:"rollup_id"`
+	DateFinalized      pgtype.Timestamp `json:"date_finalized"`
+	SlaStatus          string           `json:"sla_status"`
+	BlocksProposed     int32            `json:"blocks_proposed"`
+	BlockQuota         int32            `json:"block_quota"`
+	ChallengesReceived int64            `json:"challenges_received"`
+	ChallengesFailed   int32            `json:"challenges_failed"`
+}

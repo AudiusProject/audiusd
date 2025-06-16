@@ -737,3 +737,16 @@ LIMIT $1 OFFSET $2;
 -- Count total SLA rollups for pagination
 -- name: CountAllSlaRollups :one
 SELECT COUNT(DISTINCT id) FROM v_sla_rollup;
+
+-- Get efficient validator uptime summary (just pass/fail status for recent rollups)
+-- name: GetValidatorUptimeSummary :many
+SELECT 
+    node,
+    rollup_id,
+    sla_status,
+    blocks_proposed,
+    block_quota,
+    challenges_received,
+    challenges_failed
+FROM v_validator_uptime_summary
+ORDER BY date_finalized DESC, node;

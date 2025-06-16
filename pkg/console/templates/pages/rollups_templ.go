@@ -55,7 +55,7 @@ func Rollups(rollups []*v1.SlaRollupInfo, currentPage int32, hasNext bool, hasPr
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprint(currentPage))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `pkg/console/templates/pages/rollups.templ`, Line: 16, Col: 35}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/rollups.templ`, Line: 16, Col: 35}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {
@@ -68,7 +68,7 @@ func Rollups(rollups []*v1.SlaRollupInfo, currentPage int32, hasNext bool, hasPr
 			var templ_7745c5c3_Var4 string
 			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprint(pageSize))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `pkg/console/templates/pages/rollups.templ`, Line: 16, Col: 64}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/rollups.templ`, Line: 16, Col: 64}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 			if templ_7745c5c3_Err != nil {
@@ -81,7 +81,7 @@ func Rollups(rollups []*v1.SlaRollupInfo, currentPage int32, hasNext bool, hasPr
 			var templ_7745c5c3_Var5 string
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprint(totalCount))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `pkg/console/templates/pages/rollups.templ`, Line: 16, Col: 112}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/rollups.templ`, Line: 16, Col: 112}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 			if templ_7745c5c3_Err != nil {
@@ -104,7 +104,7 @@ func Rollups(rollups []*v1.SlaRollupInfo, currentPage int32, hasNext bool, hasPr
 					var templ_7745c5c3_Var6 templ.SafeURL
 					templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(fmt.Sprintf("/validators/uptime/%d", rollup.RollupId)))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `pkg/console/templates/pages/rollups.templ`, Line: 26, Col: 87}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/rollups.templ`, Line: 26, Col: 87}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 					if templ_7745c5c3_Err != nil {
@@ -117,7 +117,7 @@ func Rollups(rollups []*v1.SlaRollupInfo, currentPage int32, hasNext bool, hasPr
 					var templ_7745c5c3_Var7 string
 					templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("#%d", rollup.RollupId))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `pkg/console/templates/pages/rollups.templ`, Line: 27, Col: 47}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/rollups.templ`, Line: 27, Col: 47}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 					if templ_7745c5c3_Err != nil {
@@ -130,7 +130,7 @@ func Rollups(rollups []*v1.SlaRollupInfo, currentPage int32, hasNext bool, hasPr
 					var templ_7745c5c3_Var8 string
 					templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d - %d", rollup.BlockStart, rollup.BlockEnd))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `pkg/console/templates/pages/rollups.templ`, Line: 33, Col: 70}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/rollups.templ`, Line: 33, Col: 70}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 					if templ_7745c5c3_Err != nil {
@@ -143,7 +143,7 @@ func Rollups(rollups []*v1.SlaRollupInfo, currentPage int32, hasNext bool, hasPr
 					var templ_7745c5c3_Var9 string
 					templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", rollup.ValidatorCount))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `pkg/console/templates/pages/rollups.templ`, Line: 39, Col: 52}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/rollups.templ`, Line: 39, Col: 52}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 					if templ_7745c5c3_Err != nil {
@@ -156,7 +156,7 @@ func Rollups(rollups []*v1.SlaRollupInfo, currentPage int32, hasNext bool, hasPr
 					var templ_7745c5c3_Var10 templ.SafeURL
 					templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(fmt.Sprintf("/transaction/%s", rollup.TxHash)))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `pkg/console/templates/pages/rollups.templ`, Line: 44, Col: 79}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/rollups.templ`, Line: 44, Col: 79}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 					if templ_7745c5c3_Err != nil {
@@ -202,7 +202,7 @@ func Rollups(rollups []*v1.SlaRollupInfo, currentPage int32, hasNext bool, hasPr
 					var templ_7745c5c3_Var11 templ.SafeURL
 					templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(fmt.Sprintf("/rollups?page=%d&count=%d", currentPage-1, pageSize)))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `pkg/console/templates/pages/rollups.templ`, Line: 65, Col: 97}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/rollups.templ`, Line: 65, Col: 97}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 					if templ_7745c5c3_Err != nil {
@@ -226,7 +226,7 @@ func Rollups(rollups []*v1.SlaRollupInfo, currentPage int32, hasNext bool, hasPr
 					var templ_7745c5c3_Var12 templ.SafeURL
 					templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(fmt.Sprintf("/rollups?page=%d&count=%d", currentPage+1, pageSize)))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `pkg/console/templates/pages/rollups.templ`, Line: 74, Col: 97}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/rollups.templ`, Line: 74, Col: 97}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 					if templ_7745c5c3_Err != nil {

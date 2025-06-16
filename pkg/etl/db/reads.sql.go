@@ -2132,6 +2132,58 @@ func (q *Queries) GetValidatorUptimeData(ctx context.Context, arg GetValidatorUp
 	return items, nil
 }
 
+const getValidatorUptimeSummary = `-- name: GetValidatorUptimeSummary :many
+SELECT 
+    node,
+    rollup_id,
+    sla_status,
+    blocks_proposed,
+    block_quota,
+    challenges_received,
+    challenges_failed
+FROM v_validator_uptime_summary
+ORDER BY date_finalized DESC, node
+`
+
+type GetValidatorUptimeSummaryRow struct {
+	Node               string `json:"node"`
+	RollupID           int32  `json:"rollup_id"`
+	SlaStatus          string `json:"sla_status"`
+	BlocksProposed     int32  `json:"blocks_proposed"`
+	BlockQuota         int32  `json:"block_quota"`
+	ChallengesReceived int64  `json:"challenges_received"`
+	ChallengesFailed   int32  `json:"challenges_failed"`
+}
+
+// Get efficient validator uptime summary (just pass/fail status for recent rollups)
+func (q *Queries) GetValidatorUptimeSummary(ctx context.Context) ([]GetValidatorUptimeSummaryRow, error) {
+	rows, err := q.db.Query(ctx, getValidatorUptimeSummary)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetValidatorUptimeSummaryRow
+	for rows.Next() {
+		var i GetValidatorUptimeSummaryRow
+		if err := rows.Scan(
+			&i.Node,
+			&i.RollupID,
+			&i.SlaStatus,
+			&i.BlocksProposed,
+			&i.BlockQuota,
+			&i.ChallengesReceived,
+			&i.ChallengesFailed,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getValidatorsUptimeDataByRollup = `-- name: GetValidatorsUptimeDataByRollup :many
 SELECT 
     vsr.node,

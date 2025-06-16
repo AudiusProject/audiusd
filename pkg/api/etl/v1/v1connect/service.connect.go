@@ -71,6 +71,9 @@ const (
 	// ETLServiceGetValidatorsUptimeProcedure is the fully-qualified name of the ETLService's
 	// GetValidatorsUptime RPC.
 	ETLServiceGetValidatorsUptimeProcedure = "/etl.v1.ETLService/GetValidatorsUptime"
+	// ETLServiceGetValidatorsUptimeSummaryProcedure is the fully-qualified name of the ETLService's
+	// GetValidatorsUptimeSummary RPC.
+	ETLServiceGetValidatorsUptimeSummaryProcedure = "/etl.v1.ETLService/GetValidatorsUptimeSummary"
 	// ETLServiceGetValidatorsUptimeByRollupProcedure is the fully-qualified name of the ETLService's
 	// GetValidatorsUptimeByRollup RPC.
 	ETLServiceGetValidatorsUptimeByRollupProcedure = "/etl.v1.ETLService/GetValidatorsUptimeByRollup"
@@ -102,6 +105,7 @@ type ETLServiceClient interface {
 	GetValidator(context.Context, *connect.Request[v1.GetValidatorRequest]) (*connect.Response[v1.GetValidatorResponse], error)
 	GetValidatorUptime(context.Context, *connect.Request[v1.GetValidatorUptimeRequest]) (*connect.Response[v1.GetValidatorUptimeResponse], error)
 	GetValidatorsUptime(context.Context, *connect.Request[v1.GetValidatorsUptimeRequest]) (*connect.Response[v1.GetValidatorsUptimeResponse], error)
+	GetValidatorsUptimeSummary(context.Context, *connect.Request[v1.GetValidatorsUptimeSummaryRequest]) (*connect.Response[v1.GetValidatorsUptimeSummaryResponse], error)
 	GetValidatorsUptimeByRollup(context.Context, *connect.Request[v1.GetValidatorsUptimeByRollupRequest]) (*connect.Response[v1.GetValidatorsUptimeByRollupResponse], error)
 	GetLocation(context.Context, *connect.Request[v1.GetLocationRequest]) (*connect.Response[v1.GetLocationResponse], error)
 	Search(context.Context, *connect.Request[v1.SearchRequest]) (*connect.Response[v1.SearchResponse], error)
@@ -210,6 +214,12 @@ func NewETLServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			connect.WithSchema(eTLServiceMethods.ByName("GetValidatorsUptime")),
 			connect.WithClientOptions(opts...),
 		),
+		getValidatorsUptimeSummary: connect.NewClient[v1.GetValidatorsUptimeSummaryRequest, v1.GetValidatorsUptimeSummaryResponse](
+			httpClient,
+			baseURL+ETLServiceGetValidatorsUptimeSummaryProcedure,
+			connect.WithSchema(eTLServiceMethods.ByName("GetValidatorsUptimeSummary")),
+			connect.WithClientOptions(opts...),
+		),
 		getValidatorsUptimeByRollup: connect.NewClient[v1.GetValidatorsUptimeByRollupRequest, v1.GetValidatorsUptimeByRollupResponse](
 			httpClient,
 			baseURL+ETLServiceGetValidatorsUptimeByRollupProcedure,
@@ -260,6 +270,7 @@ type eTLServiceClient struct {
 	getValidator                *connect.Client[v1.GetValidatorRequest, v1.GetValidatorResponse]
 	getValidatorUptime          *connect.Client[v1.GetValidatorUptimeRequest, v1.GetValidatorUptimeResponse]
 	getValidatorsUptime         *connect.Client[v1.GetValidatorsUptimeRequest, v1.GetValidatorsUptimeResponse]
+	getValidatorsUptimeSummary  *connect.Client[v1.GetValidatorsUptimeSummaryRequest, v1.GetValidatorsUptimeSummaryResponse]
 	getValidatorsUptimeByRollup *connect.Client[v1.GetValidatorsUptimeByRollupRequest, v1.GetValidatorsUptimeByRollupResponse]
 	getLocation                 *connect.Client[v1.GetLocationRequest, v1.GetLocationResponse]
 	search                      *connect.Client[v1.SearchRequest, v1.SearchResponse]
@@ -342,6 +353,11 @@ func (c *eTLServiceClient) GetValidatorsUptime(ctx context.Context, req *connect
 	return c.getValidatorsUptime.CallUnary(ctx, req)
 }
 
+// GetValidatorsUptimeSummary calls etl.v1.ETLService.GetValidatorsUptimeSummary.
+func (c *eTLServiceClient) GetValidatorsUptimeSummary(ctx context.Context, req *connect.Request[v1.GetValidatorsUptimeSummaryRequest]) (*connect.Response[v1.GetValidatorsUptimeSummaryResponse], error) {
+	return c.getValidatorsUptimeSummary.CallUnary(ctx, req)
+}
+
 // GetValidatorsUptimeByRollup calls etl.v1.ETLService.GetValidatorsUptimeByRollup.
 func (c *eTLServiceClient) GetValidatorsUptimeByRollup(ctx context.Context, req *connect.Request[v1.GetValidatorsUptimeByRollupRequest]) (*connect.Response[v1.GetValidatorsUptimeByRollupResponse], error) {
 	return c.getValidatorsUptimeByRollup.CallUnary(ctx, req)
@@ -384,6 +400,7 @@ type ETLServiceHandler interface {
 	GetValidator(context.Context, *connect.Request[v1.GetValidatorRequest]) (*connect.Response[v1.GetValidatorResponse], error)
 	GetValidatorUptime(context.Context, *connect.Request[v1.GetValidatorUptimeRequest]) (*connect.Response[v1.GetValidatorUptimeResponse], error)
 	GetValidatorsUptime(context.Context, *connect.Request[v1.GetValidatorsUptimeRequest]) (*connect.Response[v1.GetValidatorsUptimeResponse], error)
+	GetValidatorsUptimeSummary(context.Context, *connect.Request[v1.GetValidatorsUptimeSummaryRequest]) (*connect.Response[v1.GetValidatorsUptimeSummaryResponse], error)
 	GetValidatorsUptimeByRollup(context.Context, *connect.Request[v1.GetValidatorsUptimeByRollupRequest]) (*connect.Response[v1.GetValidatorsUptimeByRollupResponse], error)
 	GetLocation(context.Context, *connect.Request[v1.GetLocationRequest]) (*connect.Response[v1.GetLocationResponse], error)
 	Search(context.Context, *connect.Request[v1.SearchRequest]) (*connect.Response[v1.SearchResponse], error)
@@ -488,6 +505,12 @@ func NewETLServiceHandler(svc ETLServiceHandler, opts ...connect.HandlerOption) 
 		connect.WithSchema(eTLServiceMethods.ByName("GetValidatorsUptime")),
 		connect.WithHandlerOptions(opts...),
 	)
+	eTLServiceGetValidatorsUptimeSummaryHandler := connect.NewUnaryHandler(
+		ETLServiceGetValidatorsUptimeSummaryProcedure,
+		svc.GetValidatorsUptimeSummary,
+		connect.WithSchema(eTLServiceMethods.ByName("GetValidatorsUptimeSummary")),
+		connect.WithHandlerOptions(opts...),
+	)
 	eTLServiceGetValidatorsUptimeByRollupHandler := connect.NewUnaryHandler(
 		ETLServiceGetValidatorsUptimeByRollupProcedure,
 		svc.GetValidatorsUptimeByRollup,
@@ -550,6 +573,8 @@ func NewETLServiceHandler(svc ETLServiceHandler, opts ...connect.HandlerOption) 
 			eTLServiceGetValidatorUptimeHandler.ServeHTTP(w, r)
 		case ETLServiceGetValidatorsUptimeProcedure:
 			eTLServiceGetValidatorsUptimeHandler.ServeHTTP(w, r)
+		case ETLServiceGetValidatorsUptimeSummaryProcedure:
+			eTLServiceGetValidatorsUptimeSummaryHandler.ServeHTTP(w, r)
 		case ETLServiceGetValidatorsUptimeByRollupProcedure:
 			eTLServiceGetValidatorsUptimeByRollupHandler.ServeHTTP(w, r)
 		case ETLServiceGetLocationProcedure:
@@ -627,6 +652,10 @@ func (UnimplementedETLServiceHandler) GetValidatorUptime(context.Context, *conne
 
 func (UnimplementedETLServiceHandler) GetValidatorsUptime(context.Context, *connect.Request[v1.GetValidatorsUptimeRequest]) (*connect.Response[v1.GetValidatorsUptimeResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("etl.v1.ETLService.GetValidatorsUptime is not implemented"))
+}
+
+func (UnimplementedETLServiceHandler) GetValidatorsUptimeSummary(context.Context, *connect.Request[v1.GetValidatorsUptimeSummaryRequest]) (*connect.Response[v1.GetValidatorsUptimeSummaryResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("etl.v1.ETLService.GetValidatorsUptimeSummary is not implemented"))
 }
 
 func (UnimplementedETLServiceHandler) GetValidatorsUptimeByRollup(context.Context, *connect.Request[v1.GetValidatorsUptimeByRollupRequest]) (*connect.Response[v1.GetValidatorsUptimeByRollupResponse], error) {
