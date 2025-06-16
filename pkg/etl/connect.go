@@ -1792,53 +1792,63 @@ func (e *ETLService) GetSlaRollups(ctx context.Context, req *connect.Request[v1.
 // GetValidatorsUptimeSummary returns a lightweight summary of validator uptime status
 func (e *ETLService) GetValidatorsUptimeSummary(ctx context.Context, req *connect.Request[v1.GetValidatorsUptimeSummaryRequest]) (*connect.Response[v1.GetValidatorsUptimeSummaryResponse], error) {
 	// Use the existing optimized query instead of the missing view
-	// Limit to recent rollups for summary (5 most recent)
-	uptimeData, err := e.db.GetAllValidatorsUptimeDataOptimized(ctx, 50) // Get data for top 50 records to cover recent rollups
+	// Get more records to ensure we get enough data for all validators
+	// The query returns records ordered by rollup timestamp desc, then by address
+	uptimeData, err := e.db.GetAllValidatorsUptimeDataOptimized(ctx, 1000) // Increased to ensure we get all recent rollups
 	if err != nil {
 		return nil, fmt.Errorf("failed to get validator uptime data: %w", err)
 	}
 
-	// Group by validator address and limit to recent rollups per validator
-	validatorMap := make(map[string]*v1.ValidatorUptimeSummary)
+	// Group all rollups by validator address first
+	allRollupsByValidator := make(map[string][]db.GetAllValidatorsUptimeDataOptimizedRow)
 	for _, data := range uptimeData {
-		validator, exists := validatorMap[data.Node]
-		if !exists {
-			validator = &v1.ValidatorUptimeSummary{
-				ValidatorAddress: data.Node,
-				RecentRollups:    []*v1.UptimeSummaryEntry{},
-			}
-			validatorMap[data.Node] = validator
+		allRollupsByValidator[data.Node] = append(allRollupsByValidator[data.Node], data)
+	}
+
+	// Now process each validator and take only their 5 most recent rollups
+	validatorMap := make(map[string]*v1.ValidatorUptimeSummary)
+	for validatorAddress, rollups := range allRollupsByValidator {
+		validator := &v1.ValidatorUptimeSummary{
+			ValidatorAddress: validatorAddress,
+			RecentRollups:    []*v1.UptimeSummaryEntry{},
+		}
+		validatorMap[validatorAddress] = validator
+
+		// Rollups are already ordered by timestamp desc from the SQL query
+		// Take only the first 5 (most recent) for this validator
+		maxRollups := 5
+		if len(rollups) < maxRollups {
+			maxRollups = len(rollups)
 		}
 
-		// Limit to 5 most recent rollups per validator
-		if len(validator.RecentRollups) >= 5 {
-			continue
-		}
+		for i := 0; i < maxRollups; i++ {
+			data := rollups[i]
 
-		// Calculate SLA status based on performance
-		var slaStatus string
-		if data.BlocksProposed == 0 {
-			slaStatus = "offline"
-		} else if data.BlockQuota > 0 {
-			blockPerformance := float64(data.BlocksProposed) / float64(data.BlockQuota)
-			// For optimized query, we simplified challenge stats, so just use block performance
-			if blockPerformance >= 0.8 {
-				slaStatus = "pass"
+			// Calculate SLA status based on performance
+			var slaStatus string
+			if data.BlocksProposed == 0 {
+				slaStatus = "offline"
+			} else if data.BlockQuota > 0 {
+				blockPerformance := float64(data.BlocksProposed) / float64(data.BlockQuota)
+				// For optimized query, we simplified challenge stats, so just use block performance
+				if blockPerformance >= 0.8 {
+					slaStatus = "pass"
+				} else {
+					slaStatus = "fail"
+				}
 			} else {
-				slaStatus = "fail"
+				slaStatus = "unknown"
 			}
-		} else {
-			slaStatus = "unknown"
-		}
 
-		validator.RecentRollups = append(validator.RecentRollups, &v1.UptimeSummaryEntry{
-			RollupId:           data.SlaID,
-			Status:             slaStatus,
-			BlocksProposed:     data.BlocksProposed,
-			BlockQuota:         data.BlockQuota,
-			ChallengesReceived: data.ChallengesReceived,
-			ChallengesFailed:   data.ChallengesFailed,
-		})
+			validator.RecentRollups = append(validator.RecentRollups, &v1.UptimeSummaryEntry{
+				RollupId:           data.SlaID,
+				Status:             slaStatus,
+				BlocksProposed:     data.BlocksProposed,
+				BlockQuota:         data.BlockQuota,
+				ChallengesReceived: data.ChallengesReceived,
+				ChallengesFailed:   data.ChallengesFailed,
+			})
+		}
 	}
 
 	// Convert map to slice and sort by validator address

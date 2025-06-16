@@ -322,6 +322,9 @@ func (con *Console) Validators(c echo.Context) error {
 		// Convert the ValidatorUptimeSummary array to a map for quick lookup
 		// We need to convert the lightweight UptimeSummaryEntry to SlaRollupScore for template compatibility
 		validatorUptimeMap = make(map[string][]*v1.SlaRollupScore)
+
+		// Create a mapping from uptime validator address to rollups first
+		uptimeDataMap := make(map[string][]*v1.SlaRollupScore)
 		for _, validator := range uptimeResp.Msg.Validators {
 			rollups := make([]*v1.SlaRollupScore, len(validator.RecentRollups))
 			for i, entry := range validator.RecentRollups {
@@ -337,9 +340,27 @@ func (con *Console) Validators(c echo.Context) error {
 					// but the template calculates it from the metrics above, which is fine for compatibility
 				}
 			}
-			validatorUptimeMap[validator.ValidatorAddress] = rollups
+			uptimeDataMap[validator.ValidatorAddress] = rollups
+			con.logger.Debug("Collected uptime data for validator", "validator_address", validator.ValidatorAddress, "rollup_count", len(rollups))
 		}
-		con.logger.Info("Retrieved validators uptime summary", "validator_count", len(uptimeResp.Msg.Validators))
+
+		// Now map from the actual validators list using their CometAddress
+		// This ensures we use the correct key format that the template expects
+		for _, val := range validators.Msg.Validators {
+			// Try to find uptime data for this validator
+			// The uptime data should use comet addresses, so try both the comet address and regular address
+			if rollups, exists := uptimeDataMap[val.CometAddress]; exists {
+				validatorUptimeMap[val.CometAddress] = rollups
+				con.logger.Debug("Mapped uptime data using CometAddress", "comet_address", val.CometAddress, "rollup_count", len(rollups))
+			} else if rollups, exists := uptimeDataMap[val.Address]; exists {
+				validatorUptimeMap[val.CometAddress] = rollups
+				con.logger.Debug("Mapped uptime data using Address", "address", val.Address, "comet_address", val.CometAddress, "rollup_count", len(rollups))
+			} else {
+				con.logger.Debug("No uptime data found for validator", "address", val.Address, "comet_address", val.CometAddress)
+			}
+		}
+
+		con.logger.Info("Retrieved validators uptime summary", "uptime_entries", len(uptimeResp.Msg.Validators), "mapped_entries", len(validatorUptimeMap))
 	}
 
 	// Calculate pagination state
