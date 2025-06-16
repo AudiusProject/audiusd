@@ -669,14 +669,15 @@ JOIN etl_blocks b ON t.block_id = b.id
 ORDER BY sr.timestamp DESC
 LIMIT 1;
 
--- Get validator uptime data using direct table queries (OPTIMIZED)
+-- Get validator uptime data using direct table queries (single validator)
 -- name: GetValidatorUptimeDataOptimized :many
 SELECT 
+    a.address as node,
     sr.id as sla_id,
     snr.num_blocks_proposed as blocks_proposed,
-    0::bigint as challenges_received,  -- Simplified for performance
-    0::int as challenges_failed,      -- Simplified for performance
-    -- Calculate block quota directly
+    0::bigint as challenges_received,
+    0::bigint as challenges_failed,
+    -- Calculate block quota directly for better performance
     CASE 
         WHEN (SELECT COUNT(DISTINCT snr2.address_id) FROM etl_sla_node_reports_v2 snr2 WHERE snr2.sla_rollup_id = sr.id) > 0 
         THEN (sr.block_end - sr.block_start + 1) / (SELECT COUNT(DISTINCT snr2.address_id) FROM etl_sla_node_reports_v2 snr2 WHERE snr2.sla_rollup_id = sr.id)
@@ -702,8 +703,8 @@ SELECT
     a.address as node,
     sr.id as sla_id,
     snr.num_blocks_proposed as blocks_proposed,
-    0::bigint as challenges_received,  -- Simplified for performance
-    0::int as challenges_failed,      -- Simplified for performance
+    0::bigint as challenges_received,
+    0::bigint as challenges_failed,
     -- Calculate block quota directly for better performance
     CASE 
         WHEN validator_counts.validator_count > 0 

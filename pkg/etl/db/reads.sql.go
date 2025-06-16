@@ -274,8 +274,8 @@ SELECT
     a.address as node,
     sr.id as sla_id,
     snr.num_blocks_proposed as blocks_proposed,
-    0::bigint as challenges_received,  -- Simplified for performance
-    0::int as challenges_failed,      -- Simplified for performance
+    0::bigint as challenges_received,
+    0::bigint as challenges_failed,
     -- Calculate block quota directly for better performance
     CASE 
         WHEN validator_counts.validator_count > 0 
@@ -308,7 +308,7 @@ type GetAllValidatorsUptimeDataOptimizedRow struct {
 	SlaID              int32            `json:"sla_id"`
 	BlocksProposed     int32            `json:"blocks_proposed"`
 	ChallengesReceived int64            `json:"challenges_received"`
-	ChallengesFailed   int32            `json:"challenges_failed"`
+	ChallengesFailed   int64            `json:"challenges_failed"`
 	BlockQuota         int32            `json:"block_quota"`
 	BlockStart         int64            `json:"block_start"`
 	BlockEnd           int64            `json:"block_end"`
@@ -2367,11 +2367,12 @@ func (q *Queries) GetValidatorUptimeData(ctx context.Context, arg GetValidatorUp
 
 const getValidatorUptimeDataOptimized = `-- name: GetValidatorUptimeDataOptimized :many
 SELECT 
+    a.address as node,
     sr.id as sla_id,
     snr.num_blocks_proposed as blocks_proposed,
-    0::bigint as challenges_received,  -- Simplified for performance
-    0::int as challenges_failed,      -- Simplified for performance
-    -- Calculate block quota directly
+    0::bigint as challenges_received,
+    0::bigint as challenges_failed,
+    -- Calculate block quota directly for better performance
     CASE 
         WHEN (SELECT COUNT(DISTINCT snr2.address_id) FROM etl_sla_node_reports_v2 snr2 WHERE snr2.sla_rollup_id = sr.id) > 0 
         THEN (sr.block_end - sr.block_start + 1) / (SELECT COUNT(DISTINCT snr2.address_id) FROM etl_sla_node_reports_v2 snr2 WHERE snr2.sla_rollup_id = sr.id)
@@ -2398,10 +2399,11 @@ type GetValidatorUptimeDataOptimizedParams struct {
 }
 
 type GetValidatorUptimeDataOptimizedRow struct {
+	Node               string           `json:"node"`
 	SlaID              int32            `json:"sla_id"`
 	BlocksProposed     int32            `json:"blocks_proposed"`
 	ChallengesReceived int64            `json:"challenges_received"`
-	ChallengesFailed   int32            `json:"challenges_failed"`
+	ChallengesFailed   int64            `json:"challenges_failed"`
 	BlockQuota         int32            `json:"block_quota"`
 	BlockStart         int64            `json:"block_start"`
 	BlockEnd           int64            `json:"block_end"`
@@ -2410,7 +2412,7 @@ type GetValidatorUptimeDataOptimizedRow struct {
 	AvgBlockTime       float32          `json:"avg_block_time"`
 }
 
-// Get validator uptime data using direct table queries (OPTIMIZED)
+// Get validator uptime data using direct table queries (single validator)
 func (q *Queries) GetValidatorUptimeDataOptimized(ctx context.Context, arg GetValidatorUptimeDataOptimizedParams) ([]GetValidatorUptimeDataOptimizedRow, error) {
 	rows, err := q.db.Query(ctx, getValidatorUptimeDataOptimized, arg.Address, arg.Limit)
 	if err != nil {
@@ -2421,6 +2423,7 @@ func (q *Queries) GetValidatorUptimeDataOptimized(ctx context.Context, arg GetVa
 	for rows.Next() {
 		var i GetValidatorUptimeDataOptimizedRow
 		if err := rows.Scan(
+			&i.Node,
 			&i.SlaID,
 			&i.BlocksProposed,
 			&i.ChallengesReceived,

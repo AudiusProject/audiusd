@@ -1566,7 +1566,7 @@ func (e *ETLService) GetValidatorUptime(ctx context.Context, req *connect.Reques
 			BlocksProposed:     data.BlocksProposed,
 			BlockQuota:         data.BlockQuota,
 			ChallengesReceived: data.ChallengesReceived,
-			ChallengesFailed:   data.ChallengesFailed,
+			ChallengesFailed:   int32(data.ChallengesFailed),
 			BlockStart:         data.StartBlock,
 			BlockEnd:           data.EndBlock,
 			TxHash:             data.Tx,
@@ -1645,7 +1645,7 @@ func (e *ETLService) GetValidatorsUptime(ctx context.Context, req *connect.Reque
 			BlocksProposed:     data.BlocksProposed,
 			BlockQuota:         data.BlockQuota,
 			ChallengesReceived: data.ChallengesReceived,
-			ChallengesFailed:   data.ChallengesFailed,
+			ChallengesFailed:   int32(data.ChallengesFailed),
 			BlockStart:         data.StartBlock,
 			BlockEnd:           data.EndBlock,
 			TxHash:             data.Tx,
@@ -1697,7 +1697,7 @@ func (e *ETLService) GetValidatorsUptimeByRollup(ctx context.Context, req *conne
 			BlocksProposed:     data.BlocksProposed,
 			BlockQuota:         data.BlockQuota,
 			ChallengesReceived: data.ChallengesReceived,
-			ChallengesFailed:   data.ChallengesFailed,
+			ChallengesFailed:   int32(data.ChallengesFailed),
 			BlockStart:         data.StartBlock,
 			BlockEnd:           data.EndBlock,
 			TxHash:             data.Tx,
@@ -1791,16 +1791,15 @@ func (e *ETLService) GetSlaRollups(ctx context.Context, req *connect.Request[v1.
 
 // GetValidatorsUptimeSummary returns a lightweight summary of validator uptime status
 func (e *ETLService) GetValidatorsUptimeSummary(ctx context.Context, req *connect.Request[v1.GetValidatorsUptimeSummaryRequest]) (*connect.Response[v1.GetValidatorsUptimeSummaryResponse], error) {
-	// Use the existing optimized query instead of the missing view
-	// Get more records to ensure we get enough data for all validators
-	// The query returns records ordered by rollup timestamp desc, then by address
-	uptimeData, err := e.db.GetAllValidatorsUptimeDataOptimized(ctx, 1000) // Increased to ensure we get all recent rollups
+	// Use the SAME data source as individual validator pages to ensure consistency
+	// This uses the original views with real challenge data, not the optimized query
+	uptimeData, err := e.db.GetAllValidatorsUptimeData(ctx, 1000) // Use original view-based query
 	if err != nil {
 		return nil, fmt.Errorf("failed to get validator uptime data: %w", err)
 	}
 
 	// Group all rollups by validator address first
-	allRollupsByValidator := make(map[string][]db.GetAllValidatorsUptimeDataOptimizedRow)
+	allRollupsByValidator := make(map[string][]db.GetAllValidatorsUptimeDataRow)
 	for _, data := range uptimeData {
 		allRollupsByValidator[data.Node] = append(allRollupsByValidator[data.Node], data)
 	}
@@ -1814,7 +1813,16 @@ func (e *ETLService) GetValidatorsUptimeSummary(ctx context.Context, req *connec
 		}
 		validatorMap[validatorAddress] = validator
 
-		// Rollups are already ordered by timestamp desc from the SQL query
+		// Sort rollups by timestamp desc to ensure most recent first within each validator
+		sort.Slice(rollups, func(i, j int) bool {
+			// Sort by date finalized desc (most recent first)
+			if rollups[i].DateFinalized.Valid && rollups[j].DateFinalized.Valid {
+				return rollups[i].DateFinalized.Time.After(rollups[j].DateFinalized.Time)
+			}
+			// Fallback to rollup ID desc if timestamps are not valid
+			return rollups[i].SlaID > rollups[j].SlaID
+		})
+
 		// Take only the first 5 (most recent) for this validator
 		maxRollups := 5
 		if len(rollups) < maxRollups {
@@ -1824,20 +1832,27 @@ func (e *ETLService) GetValidatorsUptimeSummary(ctx context.Context, req *connec
 		for i := 0; i < maxRollups; i++ {
 			data := rollups[i]
 
-			// Calculate SLA status based on performance
+			// Use the SAME SLA calculation logic as individual validator pages
+			// Calculate PoW percentage (block proposal performance)
+			powPercentage := float64(0)
+			if data.BlockQuota > 0 {
+				powPercentage = float64(data.BlocksProposed) / float64(data.BlockQuota) * 100
+			}
+
+			// Calculate PoS percentage (challenge performance)
+			posPercentage := float64(100)
+			if data.ChallengesReceived > 0 {
+				posPercentage = float64(data.ChallengesReceived-int64(data.ChallengesFailed)) / float64(data.ChallengesReceived) * 100
+			}
+
+			// SLA requirements: ≥80% for both PoW and PoS (same as individual validator page)
 			var slaStatus string
-			if data.BlocksProposed == 0 {
+			if powPercentage >= 80 && posPercentage >= 80 {
+				slaStatus = "pass"
+			} else if data.BlocksProposed == 0 {
 				slaStatus = "offline"
-			} else if data.BlockQuota > 0 {
-				blockPerformance := float64(data.BlocksProposed) / float64(data.BlockQuota)
-				// For optimized query, we simplified challenge stats, so just use block performance
-				if blockPerformance >= 0.8 {
-					slaStatus = "pass"
-				} else {
-					slaStatus = "fail"
-				}
 			} else {
-				slaStatus = "unknown"
+				slaStatus = "fail"
 			}
 
 			validator.RecentRollups = append(validator.RecentRollups, &v1.UptimeSummaryEntry{
@@ -1846,7 +1861,7 @@ func (e *ETLService) GetValidatorsUptimeSummary(ctx context.Context, req *connec
 				BlocksProposed:     data.BlocksProposed,
 				BlockQuota:         data.BlockQuota,
 				ChallengesReceived: data.ChallengesReceived,
-				ChallengesFailed:   data.ChallengesFailed,
+				ChallengesFailed:   data.ChallengesFailed, // Now using real challenge data
 			})
 		}
 	}
