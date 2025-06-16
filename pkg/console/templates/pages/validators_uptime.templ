@@ -1,0 +1,404 @@
+package pages
+
+import (
+	"fmt"
+	"github.com/AudiusProject/audiusd/pkg/api/etl/v1"
+	"github.com/AudiusProject/audiusd/pkg/console/templates"
+	"github.com/AudiusProject/audiusd/pkg/console/templates/layouts"
+	"strings"
+)
+
+func extractHostname(endpoint string) string {
+	// Remove protocol if present
+	if strings.HasPrefix(endpoint, "http://") {
+		endpoint = endpoint[7:]
+	} else if strings.HasPrefix(endpoint, "https://") {
+		endpoint = endpoint[8:]
+	}
+
+	// Remove path if present
+	if idx := strings.Index(endpoint, "/"); idx != -1 {
+		endpoint = endpoint[:idx]
+	}
+
+	// Remove port if present (optional, remove this if you want to keep ports)
+	if idx := strings.Index(endpoint, ":"); idx != -1 {
+		endpoint = endpoint[:idx]
+	}
+
+	return endpoint
+}
+
+func meetsSlaThreshold(report *v1.SlaRollupScore) bool {
+	if report.BlockQuota == 0 {
+		return true
+	}
+
+	powRatio := float64(report.BlocksProposed) / float64(report.BlockQuota)
+	posRatio := 1.0
+	if report.ChallengesReceived > 0 {
+		posRatio = 1.0 - (float64(report.ChallengesFailed) / float64(report.ChallengesReceived))
+	}
+
+	return powRatio >= 0.8 && posRatio >= 0.8
+}
+
+func getUptimeColor(report *v1.SlaRollupScore) string {
+	if report.BlocksProposed == 0 {
+		return "bg-gray-800"
+	}
+	if meetsSlaThreshold(report) {
+		return "bg-green-500"
+	}
+	return "bg-red-500"
+}
+
+func getLatestRollupInfo(validators []*v1.ValidatorUptimeInfo) *v1.SlaRollupScore {
+	if len(validators) == 0 {
+		return nil
+	}
+
+	for _, validator := range validators {
+		if len(validator.RecentRollups) > 0 {
+			return validator.RecentRollups[0] // Most recent rollup
+		}
+	}
+	return nil
+}
+
+func getRollupInfo(validators []*v1.ValidatorUptimeInfo, rollupId int32) *v1.SlaRollupScore {
+	if len(validators) == 0 {
+		return nil
+	}
+
+	for _, validator := range validators {
+		for _, rollup := range validator.RecentRollups {
+			if rollup.SlaRollupId == rollupId {
+				return rollup
+			}
+		}
+	}
+	return nil
+}
+
+func getTotalValidatorsCount(validators []*v1.ValidatorUptimeInfo) int {
+	return len(validators)
+}
+
+templ ValidatorsUptime(validators []*v1.ValidatorUptimeInfo) {
+	@layouts.Base("Validators Uptime") {
+		<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6">
+			<div class="flex items-center justify-between mb-6">
+				<div>
+					<h2 class="text-2xl font-light text-gray-900 dark:text-gray-100">Validators Uptime</h2>
+					<p class="text-gray-500 dark:text-gray-400 text-sm mt-1">
+						Recent SLA rollup performance across all validators. Green indicates meeting SLA requirements (≥80% PoW and PoS), red indicates missing SLA.
+					</p>
+				</div>
+				<div class="flex items-center gap-6 text-sm text-gray-600 dark:text-gray-400">
+					<div class="flex items-center gap-2">
+						<div class="w-4 h-4 bg-green-500 rounded"></div>
+						<span>Meeting SLA (≥80%)</span>
+					</div>
+					<div class="flex items-center gap-2">
+						<div class="w-4 h-4 bg-red-500 rounded"></div>
+						<span>Missing SLA (&lt;80%)</span>
+					</div>
+					<div class="flex items-center gap-2">
+						<div class="w-4 h-4 bg-gray-800 rounded"></div>
+						<span>Offline/Dead</span>
+					</div>
+				</div>
+			</div>
+			@ValidatorsUptimeTable(validators)
+		</div>
+	}
+}
+
+templ ValidatorsUptimeByRollup(validators []*v1.ValidatorUptimeInfo, rollupId int32) {
+	@layouts.Base(fmt.Sprintf("SLA Rollup #%d Uptime", rollupId)) {
+		<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6">
+			<div class="flex items-center justify-between mb-6">
+				<div>
+					<h2 class="text-2xl font-light text-gray-900 dark:text-gray-100">SLA Rollup #{ fmt.Sprint(rollupId) } Uptime</h2>
+					<p class="text-gray-500 dark:text-gray-400 text-sm mt-1">
+						Validator performance for SLA rollup { fmt.Sprint(rollupId) }
+					</p>
+				</div>
+				<div class="text-sm text-gray-500 dark:text-gray-400">
+					{ fmt.Sprint(len(validators)) } validators
+				</div>
+			</div>
+			// Add summary cards section for the specific rollup
+			@ValidatorsUptimeSummaryForRollup(validators, rollupId)
+			@ValidatorsUptimeTable(validators)
+		</div>
+	}
+}
+
+templ ValidatorsUptimeSummaryForRollup(validators []*v1.ValidatorUptimeInfo, rollupId int32) {
+	if rollupInfo := getRollupInfo(validators, rollupId); rollupInfo != nil {
+		<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+			<div class="bg-slate-100 dark:bg-gray-700 rounded-md p-4 text-center">
+				<dt class="text-lg font-semibold text-gray-900 dark:text-gray-100">
+					if rollupInfo.Timestamp != nil {
+						{ rollupInfo.Timestamp.AsTime().Format("06-01-02") }
+						<br/>
+						{ rollupInfo.Timestamp.AsTime().Format("15:04:05 MST") }
+					} else {
+						—
+					}
+				</dt>
+				<dd class="text-sm text-gray-500 dark:text-gray-400 mt-1">Date Finalized</dd>
+			</div>
+			<div class="bg-slate-100 dark:bg-gray-700 rounded-md p-4 text-center">
+				<dt class="text-2xl font-bold text-gray-900 dark:text-gray-100">
+					if rollupInfo.AvgBlockTime > 0 {
+						{ fmt.Sprintf("%.1fs", rollupInfo.AvgBlockTime) }
+					} else {
+						—
+					}
+				</dt>
+				<dd class="text-sm text-gray-500 dark:text-gray-400 mt-1">Avg Block Time</dd>
+			</div>
+			<div class="bg-slate-100 dark:bg-gray-700 rounded-md p-4 text-center">
+				<dt class="text-2xl font-bold text-gray-900 dark:text-gray-100">
+					{ fmt.Sprintf("%d", rollupInfo.BlockEnd - rollupInfo.BlockStart + 1) }
+				</dt>
+				<dd class="text-sm text-gray-500 dark:text-gray-400 mt-1">Total Blocks in Rollup</dd>
+			</div>
+			<div class="bg-slate-100 dark:bg-gray-700 rounded-md p-4 text-center">
+				<dt class="text-2xl font-bold text-gray-900 dark:text-gray-100">
+					{ fmt.Sprintf("%d", getTotalValidatorsCount(validators)) }
+				</dt>
+				<dd class="text-sm text-gray-500 dark:text-gray-400 mt-1">Active Validators</dd>
+			</div>
+		</div>
+		// Add additional metrics row
+		<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+			<div class="bg-slate-100 dark:bg-gray-700 rounded-md p-4 text-center">
+				<dt class="text-2xl font-bold text-gray-900 dark:text-gray-100">
+					SLA #{ fmt.Sprintf("%d", rollupInfo.SlaRollupId) }
+				</dt>
+				<dd class="text-sm text-gray-500 dark:text-gray-400 mt-1">Current Rollup</dd>
+			</div>
+			<div class="bg-slate-100 dark:bg-gray-700 rounded-md p-4 text-center">
+				<dt class="text-2xl font-bold text-gray-900 dark:text-gray-100">
+					{ fmt.Sprintf("%d", rollupInfo.BlockQuota) }
+				</dt>
+				<dd class="text-sm text-gray-500 dark:text-gray-400 mt-1">Block Quota</dd>
+			</div>
+			<div class="bg-slate-100 dark:bg-gray-700 rounded-md p-4 text-center">
+				<dt class="text-sm font-mono text-gray-900 dark:text-gray-100 break-all">
+					if rollupInfo.TxHash != "" {
+						@templates.StringWithTooltipCustom(rollupInfo.TxHash, 8, 4)
+					} else {
+						—
+					}
+				</dt>
+				<dd class="text-sm text-gray-500 dark:text-gray-400 mt-1">Transaction Hash</dd>
+			</div>
+		</div>
+	}
+}
+
+templ ValidatorsUptimeTable(validators []*v1.ValidatorUptimeInfo) {
+	<div class="overflow-x-auto">
+		<table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+			<thead class="bg-gray-50 dark:bg-gray-700">
+				<tr>
+					<th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+						Validator
+					</th>
+					<th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+						Endpoint
+					</th>
+					<th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+						PoW Performance 
+					</th>
+					<th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+						PoS Performance
+					</th>
+					<th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+						Latest SLA
+					</th>
+					<th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+						Uptime History
+					</th>
+				</tr>
+			</thead>
+			<tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+				for _, validator := range validators {
+					@ValidatorUptimeRow(validator)
+				}
+			</tbody>
+		</table>
+	</div>
+}
+
+templ ValidatorUptimeRow(validator *v1.ValidatorUptimeInfo) {
+	<tr class="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer" onclick={ templ.ComponentScript{Call: fmt.Sprintf("window.location.href='/validator/%s'", validator.ValidatorAddress)} }>
+		<td class="px-6 py-4 whitespace-nowrap">
+			<div class="flex flex-col">
+				<div class="text-sm font-mono text-gray-900 dark:text-gray-100">
+					@templates.StringWithTooltipCustom(validator.ValidatorAddress, 8, 4)
+				</div>
+			</div>
+		</td>
+		<td class="px-6 py-4 whitespace-nowrap">
+			<div class="text-sm text-gray-900 dark:text-gray-100">
+				if validator.Endpoint != "" {
+					{ extractHostname(validator.Endpoint) }
+				} else {
+					<span class="text-gray-400 dark:text-gray-600">—</span>
+				}
+			</div>
+		</td>
+		<td class="px-6 py-4 whitespace-nowrap">
+			if len(validator.RecentRollups) > 0 {
+				<div class="text-sm text-gray-900 dark:text-gray-100">
+					{ fmt.Sprintf("%d/%d blocks", validator.RecentRollups[0].BlocksProposed, validator.RecentRollups[0].BlockQuota) }
+				</div>
+				<div class="text-xs text-gray-500 dark:text-gray-400">
+					{ fmt.Sprintf("%.1f%%", float64(validator.RecentRollups[0].BlocksProposed)/float64(validator.RecentRollups[0].BlockQuota)*100) }
+				</div>
+			} else {
+				<span class="text-gray-400 dark:text-gray-600">—</span>
+			}
+		</td>
+		<td class="px-6 py-4 whitespace-nowrap">
+			if len(validator.RecentRollups) > 0 {
+				<div class="text-sm text-gray-900 dark:text-gray-100">
+					{ fmt.Sprintf("%d/%d challenges", validator.RecentRollups[0].ChallengesFailed, validator.RecentRollups[0].ChallengesReceived) }
+				</div>
+				<div class="text-xs text-gray-500 dark:text-gray-400">
+					if validator.RecentRollups[0].ChallengesReceived > 0 {
+						{ fmt.Sprintf("%.1f%% failed", float64(validator.RecentRollups[0].ChallengesFailed)/float64(validator.RecentRollups[0].ChallengesReceived)*100) }
+					} else {
+						No challenges
+					}
+				</div>
+			} else {
+				<span class="text-gray-400 dark:text-gray-600">—</span>
+			}
+		</td>
+		<td class="px-6 py-4 whitespace-nowrap">
+			if len(validator.RecentRollups) > 0 {
+				if meetsSlaThreshold(validator.RecentRollups[0]) {
+					<span class="px-2 py-1 text-xs font-semibold bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded-full">
+						Met
+					</span>
+				} else {
+					<span class="px-2 py-1 text-xs font-semibold bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 rounded-full">
+						Miss
+					</span>
+				}
+			} else {
+				<span class="text-gray-400 dark:text-gray-600">—</span>
+			}
+		</td>
+		<td class="px-6 py-4 whitespace-nowrap">
+			<div class="flex items-center gap-1">
+				for _, rollup := range validator.RecentRollups {
+					<div
+						class={ "w-4 h-5 rounded-sm", templ.Class(getUptimeColor(rollup)) }
+						title={ fmt.Sprintf("SLA #%d: %d/%d blocks, %d/%d challenges", rollup.SlaRollupId, rollup.BlocksProposed, rollup.BlockQuota, rollup.ChallengesFailed, rollup.ChallengesReceived) }
+					></div>
+				}
+				if len(validator.RecentRollups) == 0 {
+					<span class="text-gray-400 dark:text-gray-600 text-sm">No recent rollups</span>
+				}
+			</div>
+		</td>
+	</tr>
+}
+
+templ UptimeRollups(rollups []*v1.SlaRollupInfo, currentPage int32, hasNext bool, hasPrev bool, pageSize int32, totalCount int64) {
+	@layouts.Base("SLA Rollups - Uptime") {
+		<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6">
+			<div class="flex justify-between items-center mb-6">
+				<div>
+					<h2 class="text-2xl font-light text-gray-900 dark:text-gray-100">SLA Rollups</h2>
+					<p class="text-gray-500 dark:text-gray-400 text-sm mt-1">
+						Browse SLA rollups to view validator uptime performance. Click on any rollup to see detailed validator performance.
+					</p>
+				</div>
+				<div class="text-sm text-gray-500 dark:text-gray-400">
+					Page { fmt.Sprint(currentPage) } • { fmt.Sprint(pageSize) } rollups per page • { fmt.Sprint(totalCount) } total
+				</div>
+			</div>
+			if len(rollups) > 0 {
+				<div class="space-y-2">
+					for _, rollup := range rollups {
+						<a href={ templ.SafeURL(fmt.Sprintf("/validators/uptime/%d", rollup.RollupId)) } class="block">
+							<div class="flex items-center justify-between py-4 px-6 border border-gray-200 dark:border-gray-700 rounded hover:bg-purple-50 hover:border-purple-200 dark:hover:bg-gray-700 transition-colors cursor-pointer">
+								<div class="flex items-center gap-6 flex-1">
+									<div class="flex-1">
+										<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Rollup ID</div>
+										<div class="font-semibold text-purple-600 dark:text-purple-400">
+											#{ fmt.Sprintf("%d", rollup.RollupId) }
+										</div>
+									</div>
+									<div class="flex-1">
+										<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Block Range</div>
+										<div class="text-sm text-gray-900 dark:text-gray-100">
+											{ fmt.Sprintf("%d - %d", rollup.BlockStart, rollup.BlockEnd) }
+										</div>
+									</div>
+									<div class="flex-1">
+										<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Validators</div>
+										<div class="text-sm text-gray-900 dark:text-gray-100">
+											{ fmt.Sprintf("%d", rollup.ValidatorCount) }
+										</div>
+									</div>
+									<div class="flex-1">
+										<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Transaction</div>
+										<div class="font-mono text-xs text-purple-600 dark:text-purple-400">
+											@templates.StringWithTooltipCustom(rollup.TxHash, 8, 4)
+										</div>
+									</div>
+								</div>
+								<div class="text-right flex-shrink-0">
+									<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Finalized</div>
+									<div class="text-sm text-gray-700 dark:text-gray-300">
+										if rollup.Timestamp != nil {
+											@templates.TimeWithTooltip(rollup.Timestamp.AsTime())
+										} else {
+											—
+										}
+									</div>
+								</div>
+							</div>
+						</a>
+					}
+				</div>
+				<div class="flex justify-between items-center mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+					<div class="flex gap-3">
+						if hasPrev {
+							<a href={ templ.SafeURL(fmt.Sprintf("/validators/uptime?page=%d&count=%d", currentPage-1, pageSize)) } class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors">
+								← Previous
+							</a>
+						} else {
+							<span class="px-4 py-2 text-sm font-medium text-gray-400 dark:text-gray-600 bg-gray-50 dark:bg-gray-700 rounded cursor-not-allowed">
+								← Previous
+							</span>
+						}
+						if hasNext {
+							<a href={ templ.SafeURL(fmt.Sprintf("/validators/uptime?page=%d&count=%d", currentPage+1, pageSize)) } class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors">
+								Next →
+							</a>
+						} else {
+							<span class="px-4 py-2 text-sm font-medium text-gray-400 dark:text-gray-600 bg-gray-50 dark:bg-gray-700 rounded cursor-not-allowed">
+								Next →
+							</span>
+						}
+					</div>
+				</div>
+			} else {
+				<div class="text-center py-12">
+					<p class="text-gray-500 dark:text-gray-400">No SLA rollups found</p>
+				</div>
+			}
+		</div>
+	}
+}

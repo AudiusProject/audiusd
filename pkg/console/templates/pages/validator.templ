@@ -1,0 +1,258 @@
+package pages
+
+import (
+	"fmt"
+	"github.com/AudiusProject/audiusd/pkg/api/etl/v1"
+	"github.com/AudiusProject/audiusd/pkg/console/templates"
+	"github.com/AudiusProject/audiusd/pkg/console/templates/layouts"
+)
+
+templ Validator(validator *v1.ValidatorInfo, events []*v1.ValidatorEvent, rollups []*v1.SlaRollupScore) {
+	@layouts.Base(fmt.Sprintf("Validator %s", validator.Address[:8])) {
+		<div class="space-y-6">
+			<!-- Validator Info Card -->
+			<div class="shadow-xl rounded-lg p-6 bg-white dark:bg-gray-800">
+				<div class="flex justify-between items-start mb-4">
+					<div>
+						<h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Validator Details</h2>
+						<p class="text-gray-500 dark:text-gray-400 font-mono text-sm mt-1">{ validator.Address }</p>
+					</div>
+					<div>
+						switch validator.Status {
+							case v1.ValidatorStatus_VALIDATOR_STATUS_ACTIVE:
+								<span class="px-3 py-1 text-sm rounded-full bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">Active</span>
+							case v1.ValidatorStatus_VALIDATOR_STATUS_DEREGISTERED:
+								<span class="px-3 py-1 text-sm rounded-full bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200">Deregistered</span>
+							case v1.ValidatorStatus_VALIDATOR_STATUS_MISBEHAVIOR_DEREGISTERED:
+								<span class="px-3 py-1 text-sm rounded-full bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200">Misbehavior</span>
+							default:
+								<span class="px-3 py-1 text-sm rounded-full bg-gray-100 dark:bg-gray-600 text-gray-800 dark:text-gray-200">Unknown</span>
+						}
+					</div>
+				</div>
+				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+					<div>
+						<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Comet Address</label>
+						<p class="text-gray-900 dark:text-gray-100 font-mono text-sm break-all">{ validator.CometAddress }</p>
+					</div>
+					<div>
+						<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Endpoint</label>
+						<p class="text-gray-900 dark:text-gray-100 font-mono text-sm break-all">
+							{ extractHost(validator.Endpoint) }
+						</p>
+					</div>
+					<div>
+						<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Node Type</label>
+						<p class="text-gray-900 dark:text-gray-100">{ validator.NodeType }</p>
+					</div>
+					<div>
+						<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">SPID</label>
+						<p class="text-gray-900 dark:text-gray-100">{ validator.Spid }</p>
+					</div>
+					<div>
+						<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Voting Power</label>
+						<p class="text-gray-900 dark:text-gray-100 font-semibold">{ fmt.Sprintf("%d", validator.VotingPower) }</p>
+					</div>
+					<div>
+						<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">ETH Block</label>
+						<p class="text-gray-900 dark:text-gray-100 font-mono text-sm">{ validator.EthBlock }</p>
+					</div>
+					<div>
+						<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Registration Block</label>
+						<p class="text-gray-900 dark:text-gray-100">
+							<a
+								href={ templ.SafeURL(fmt.Sprintf("/block/%d", validator.RegistrationBlockHeight)) }
+								class="text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 hover:underline"
+							>
+								{ fmt.Sprintf("%d", validator.RegistrationBlockHeight) }
+							</a>
+						</p>
+					</div>
+					if validator.RegisteredAt != nil {
+						<div>
+							<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Registered</label>
+							<p class="text-gray-900 dark:text-gray-100">
+								@templates.TimeWithTooltip(validator.RegisteredAt.AsTime())
+							</p>
+						</div>
+					}
+					if validator.LastActivity != nil {
+						<div>
+							<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Last Activity</label>
+							<p class="text-gray-900 dark:text-gray-100">
+								@templates.TimeWithTooltip(validator.LastActivity.AsTime())
+							</p>
+						</div>
+					}
+					<div>
+						<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Registration Tx</label>
+						<p class="text-gray-900 dark:text-gray-100 font-mono text-sm">
+							<a
+								href={ templ.SafeURL(fmt.Sprintf("/transaction/%s", validator.RegistrationTxHash)) }
+								class="text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 hover:underline"
+							>
+								{ validator.RegistrationTxHash[:8] }...{ validator.RegistrationTxHash[len(validator.RegistrationTxHash)-8:] }
+							</a>
+						</p>
+					</div>
+				</div>
+				if len(validator.CometPubkey) > 0 {
+					<div class="mt-6">
+						<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Comet Public Key</label>
+						<div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
+							<p class="text-gray-900 dark:text-gray-100 font-mono text-xs break-all">
+								{ fmt.Sprintf("%x", validator.CometPubkey) }
+							</p>
+						</div>
+					</div>
+				}
+			</div>
+			<!-- Events History -->
+			if len(events) > 0 {
+				<div class="shadow-xl rounded-lg p-6 bg-white dark:bg-gray-800">
+					<h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Event History</h3>
+					<div class="space-y-4">
+						for _, event := range events {
+							<div class="border border-gray-200 dark:border-gray-600 rounded-lg p-4 hover:bg-purple-50 hover:border-purple-200 dark:hover:bg-gray-700 transition-colors">
+								<div class="flex justify-between items-start mb-2">
+									<div>
+										switch event.Type {
+											case v1.ValidatorEventType_VALIDATOR_EVENT_TYPE_REGISTRATION:
+												<span class="px-2 py-1 text-xs rounded bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">Registration</span>
+											case v1.ValidatorEventType_VALIDATOR_EVENT_TYPE_REGISTRATION_LEGACY:
+												<span class="px-2 py-1 text-xs rounded bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200">Legacy Registration</span>
+											case v1.ValidatorEventType_VALIDATOR_EVENT_TYPE_DEREGISTRATION:
+												<span class="px-2 py-1 text-xs rounded bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200">Deregistration</span>
+											case v1.ValidatorEventType_VALIDATOR_EVENT_TYPE_MISBEHAVIOR_DEREGISTRATION:
+												<span class="px-2 py-1 text-xs rounded bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200">Misbehavior Deregistration</span>
+											default:
+												<span class="px-2 py-1 text-xs rounded bg-gray-100 dark:bg-gray-600 text-gray-800 dark:text-gray-200">Unknown</span>
+										}
+									</div>
+									<div class="text-sm text-gray-500 dark:text-gray-400">
+										if event.Timestamp != nil {
+											@templates.TimeWithTooltip(event.Timestamp.AsTime())
+										}
+									</div>
+								</div>
+								<div class="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+									<div>
+										Block: 
+										<a
+											href={ templ.SafeURL(fmt.Sprintf("/block/%d", event.BlockHeight)) }
+											class="text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 hover:underline"
+										>
+											{ fmt.Sprintf("%d", event.BlockHeight) }
+										</a>
+									</div>
+									<div>
+										Tx: 
+										<a
+											href={ templ.SafeURL(fmt.Sprintf("/transaction/%s", event.TxHash)) }
+											class="text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 hover:underline font-mono"
+										>
+											{ event.TxHash }
+										</a>
+									</div>
+								</div>
+							</div>
+						}
+					</div>
+				</div>
+			}
+			<!-- Uptime History Section -->
+			<div class="shadow-xl rounded-lg p-6 bg-white dark:bg-gray-800">
+				<h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">SLA Rollup History</h3>
+				<p class="text-gray-500 dark:text-gray-400 text-sm mb-4">
+					Recent SLA rollup performance for this validator. Green indicates meeting SLA requirements (≥80% PoW and PoS), red indicates missing SLA, and dark gray indicates no activity.
+				</p>
+				<div class="flex items-center gap-6 text-sm text-gray-600 dark:text-gray-400 mb-6">
+					<div class="flex items-center gap-2">
+						<div class="w-4 h-5 bg-green-500 rounded-sm"></div>
+						<span>Meeting SLA</span>
+					</div>
+					<div class="flex items-center gap-2">
+						<div class="w-4 h-5 bg-red-500 rounded-sm"></div>
+						<span>Missing SLA</span>
+					</div>
+					<div class="flex items-center gap-2">
+						<div class="w-4 h-5 bg-gray-800 rounded-sm"></div>
+						<span>Offline/Dead</span>
+					</div>
+				</div>
+				<!-- Uptime bars with actual rollup data -->
+				<div class="flex items-center gap-2 mb-6">
+					if len(rollups) > 0 {
+						for _, rollup := range rollups {
+							<div class="relative group">
+								<a
+									href={ templ.SafeURL(fmt.Sprintf("/validators/uptime/%d", rollup.SlaRollupId)) }
+									class={ "w-4 h-16 rounded-lg cursor-pointer transition-all hover:opacity-80 hover:scale-110 block", templ.Class(getUptimeBarColor(rollup)) }
+								></a>
+								<!-- Custom tooltip -->
+								<div class="absolute bottom-20 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 min-w-max">
+									<div class="text-center">
+										<div class="font-semibold">SLA Rollup #{ fmt.Sprint(rollup.SlaRollupId) }</div>
+										<div class="mt-1">
+											<div>Blocks: { fmt.Sprint(rollup.BlocksProposed) }/{ fmt.Sprint(rollup.BlockQuota) }</div>
+											<div>Challenges: { fmt.Sprint(rollup.ChallengesFailed) }/{ fmt.Sprint(rollup.ChallengesReceived) } failed</div>
+											<div class="text-gray-300">{ formatRollupTime(rollup) }</div>
+										</div>
+									</div>
+									<!-- Tooltip arrow -->
+									<div class="absolute top-full left-1/2 transform -translate-x-1/2">
+										<div class="border-4 border-transparent border-t-gray-900"></div>
+									</div>
+								</div>
+							</div>
+						}
+					} else {
+						<div class="flex items-center gap-2">
+							for i := 0; i < 12; i++ {
+								<div class="w-4 h-16 bg-gray-300 dark:bg-gray-600 rounded-lg" title="No SLA rollup data available"></div>
+							}
+						</div>
+					}
+				</div>
+				<div class="text-xs text-gray-500 dark:text-gray-400">
+					if len(rollups) > 0 {
+						Showing last { fmt.Sprint(len(rollups)) } SLA rollups (most recent on right) - Hover over bars to see details, click to view rollup page
+					} else {
+						No SLA rollup data available for this validator yet
+					}
+				</div>
+			</div>
+		</div>
+	}
+}
+
+// Helper function to determine the color of uptime bars based on SLA performance
+func getUptimeBarColor(rollup *v1.SlaRollupScore) string {
+	if rollup.BlockQuota == 0 {
+		return "bg-gray-800" // No activity/dead
+	}
+
+	// Calculate PoW percentage
+	powPercentage := float64(rollup.BlocksProposed) / float64(rollup.BlockQuota) * 100
+
+	// Calculate PoS percentage (if no challenges received, assume 100% success)
+	posPercentage := float64(100)
+	if rollup.ChallengesReceived > 0 {
+		posPercentage = float64(rollup.ChallengesReceived-int64(rollup.ChallengesFailed)) / float64(rollup.ChallengesReceived) * 100
+	}
+
+	// SLA requirements: ≥80% for both PoW and PoS
+	if powPercentage >= 80 && posPercentage >= 80 {
+		return "bg-green-500" // Meeting SLA
+	}
+
+	return "bg-red-500" // Missing SLA
+}
+
+// Helper function to format rollup timestamp for tooltip
+func formatRollupTime(rollup *v1.SlaRollupScore) string {
+	if rollup.Timestamp != nil {
+		return rollup.Timestamp.AsTime().Format("2006-01-02 15:04:05 MST")
+	}
+	return "Unknown time"
+}

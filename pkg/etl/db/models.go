@@ -8,6 +8,13 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type EtlAddress struct {
+	ID               int32            `json:"id"`
+	Address          string           `json:"address"`
+	FirstSeenBlockID pgtype.Int4      `json:"first_seen_block_id"`
+	CreatedAt        pgtype.Timestamp `json:"created_at"`
+}
+
 type EtlBlock struct {
 	ID              int32            `json:"id"`
 	ProposerAddress string           `json:"proposer_address"`
@@ -17,58 +24,268 @@ type EtlBlock struct {
 	UpdatedAt       pgtype.Timestamp `json:"updated_at"`
 }
 
-type EtlManageEntity struct {
-	ID          int32            `json:"id"`
-	Address     string           `json:"address"`
-	EntityType  string           `json:"entity_type"`
-	EntityID    int64            `json:"entity_id"`
-	Action      string           `json:"action"`
-	Metadata    pgtype.Text      `json:"metadata"`
-	Signature   string           `json:"signature"`
-	Signer      string           `json:"signer"`
-	Nonce       string           `json:"nonce"`
-	BlockHeight int64            `json:"block_height"`
-	TxHash      string           `json:"tx_hash"`
-	CreatedAt   pgtype.Timestamp `json:"created_at"`
-	UpdatedAt   pgtype.Timestamp `json:"updated_at"`
+type EtlManageEntitiesV2 struct {
+	ID              int32       `json:"id"`
+	TransactionID   int32       `json:"transaction_id"`
+	AddressID       int32       `json:"address_id"`
+	EntityType      string      `json:"entity_type"`
+	EntityID        int64       `json:"entity_id"`
+	Action          string      `json:"action"`
+	Metadata        pgtype.Text `json:"metadata"`
+	Signature       string      `json:"signature"`
+	SignerAddressID int32       `json:"signer_address_id"`
+	Nonce           string      `json:"nonce"`
 }
 
-type EtlPlay struct {
-	ID          int32            `json:"id"`
-	Address     string           `json:"address"`
-	TrackID     string           `json:"track_id"`
-	City        string           `json:"city"`
-	Region      string           `json:"region"`
-	Country     string           `json:"country"`
-	PlayedAt    pgtype.Timestamp `json:"played_at"`
-	BlockHeight int64            `json:"block_height"`
-	TxHash      string           `json:"tx_hash"`
-	CreatedAt   pgtype.Timestamp `json:"created_at"`
-	UpdatedAt   pgtype.Timestamp `json:"updated_at"`
+type EtlPlaysV2 struct {
+	ID            int32            `json:"id"`
+	TransactionID int32            `json:"transaction_id"`
+	AddressID     int32            `json:"address_id"`
+	TrackID       string           `json:"track_id"`
+	City          pgtype.Text      `json:"city"`
+	Region        pgtype.Text      `json:"region"`
+	Country       pgtype.Text      `json:"country"`
+	PlayedAt      pgtype.Timestamp `json:"played_at"`
 }
 
-type EtlValidatorDeregistration struct {
-	ID           int32            `json:"id"`
-	CometAddress string           `json:"comet_address"`
-	CometPubkey  []byte           `json:"comet_pubkey"`
-	BlockHeight  int64            `json:"block_height"`
-	TxHash       string           `json:"tx_hash"`
-	CreatedAt    pgtype.Timestamp `json:"created_at"`
-	UpdatedAt    pgtype.Timestamp `json:"updated_at"`
+type EtlReleasesV2 struct {
+	ID            int32  `json:"id"`
+	TransactionID int32  `json:"transaction_id"`
+	ReleaseData   []byte `json:"release_data"`
 }
 
-type EtlValidatorRegistration struct {
-	ID           int32            `json:"id"`
-	Address      string           `json:"address"`
-	Endpoint     string           `json:"endpoint"`
-	CometAddress string           `json:"comet_address"`
-	EthBlock     string           `json:"eth_block"`
-	NodeType     string           `json:"node_type"`
-	Spid         string           `json:"spid"`
-	CometPubkey  []byte           `json:"comet_pubkey"`
-	VotingPower  int64            `json:"voting_power"`
-	BlockHeight  int64            `json:"block_height"`
-	TxHash       string           `json:"tx_hash"`
-	CreatedAt    pgtype.Timestamp `json:"created_at"`
-	UpdatedAt    pgtype.Timestamp `json:"updated_at"`
+type EtlSlaNodeReportsV2 struct {
+	ID                int32 `json:"id"`
+	SlaRollupID       int32 `json:"sla_rollup_id"`
+	AddressID         int32 `json:"address_id"`
+	NumBlocksProposed int32 `json:"num_blocks_proposed"`
+}
+
+type EtlSlaRollupsV2 struct {
+	ID            int32            `json:"id"`
+	TransactionID int32            `json:"transaction_id"`
+	Timestamp     pgtype.Timestamp `json:"timestamp"`
+	BlockStart    int64            `json:"block_start"`
+	BlockEnd      int64            `json:"block_end"`
+}
+
+type EtlStorageProofVerificationsV2 struct {
+	ID            int32  `json:"id"`
+	TransactionID int32  `json:"transaction_id"`
+	Height        int64  `json:"height"`
+	Proof         []byte `json:"proof"`
+}
+
+type EtlStorageProofsV2 struct {
+	ID              int32    `json:"id"`
+	TransactionID   int32    `json:"transaction_id"`
+	Height          int64    `json:"height"`
+	AddressID       int32    `json:"address_id"`
+	ProverAddresses []string `json:"prover_addresses"`
+	Cid             string   `json:"cid"`
+	ProofSignature  []byte   `json:"proof_signature"`
+}
+
+type EtlTransactionsV2 struct {
+	ID        int32            `json:"id"`
+	TxHash    string           `json:"tx_hash"`
+	BlockID   int32            `json:"block_id"`
+	TxIndex   int32            `json:"tx_index"`
+	TxType    string           `json:"tx_type"`
+	CreatedAt pgtype.Timestamp `json:"created_at"`
+}
+
+type EtlValidatorDeregistrationsV2 struct {
+	ID            int32  `json:"id"`
+	TransactionID int32  `json:"transaction_id"`
+	CometAddress  string `json:"comet_address"`
+	CometPubkey   []byte `json:"comet_pubkey"`
+}
+
+type EtlValidatorMisbehaviorDeregistrationsV2 struct {
+	ID            int32  `json:"id"`
+	TransactionID int32  `json:"transaction_id"`
+	CometAddress  string `json:"comet_address"`
+	PubKey        []byte `json:"pub_key"`
+}
+
+type EtlValidatorRegistrationsLegacyV2 struct {
+	ID            int32  `json:"id"`
+	TransactionID int32  `json:"transaction_id"`
+	Endpoint      string `json:"endpoint"`
+	CometAddress  string `json:"comet_address"`
+	EthBlock      string `json:"eth_block"`
+	NodeType      string `json:"node_type"`
+	SpID          string `json:"sp_id"`
+	PubKey        []byte `json:"pub_key"`
+	Power         int64  `json:"power"`
+}
+
+type EtlValidatorRegistrationsV2 struct {
+	ID            int32  `json:"id"`
+	TransactionID int32  `json:"transaction_id"`
+	AddressID     int32  `json:"address_id"`
+	Endpoint      string `json:"endpoint"`
+	CometAddress  string `json:"comet_address"`
+	EthBlock      string `json:"eth_block"`
+	NodeType      string `json:"node_type"`
+	Spid          string `json:"spid"`
+	CometPubkey   []byte `json:"comet_pubkey"`
+	VotingPower   int64  `json:"voting_power"`
+}
+
+type MvDashboardNetworkRate struct {
+	BlocksPerSecond       pgtype.Numeric `json:"blocks_per_second"`
+	TransactionsPerSecond pgtype.Numeric `json:"transactions_per_second"`
+	BlockCount            int64          `json:"block_count"`
+	TransactionCount      int64          `json:"transaction_count"`
+	StartTime             interface{}    `json:"start_time"`
+	EndTime               interface{}    `json:"end_time"`
+	CalculatedAt          interface{}    `json:"calculated_at"`
+}
+
+type MvDashboardTransactionBreakdown struct {
+	Type         string      `json:"type"`
+	Count        int64       `json:"count"`
+	CalculatedAt interface{} `json:"calculated_at"`
+}
+
+type MvDashboardTransactionStat struct {
+	TotalTransactions            int64       `json:"total_transactions"`
+	TotalTransactions24h         int64       `json:"total_transactions_24h"`
+	TotalTransactionsPrevious24h int64       `json:"total_transactions_previous_24h"`
+	TotalTransactions7d          int64       `json:"total_transactions_7d"`
+	TotalTransactions30d         int64       `json:"total_transactions_30d"`
+	CalculatedAt                 interface{} `json:"calculated_at"`
+}
+
+type MvDashboardValidatorStat struct {
+	TotalRegisteredValidators int64       `json:"total_registered_validators"`
+	ActiveValidators          int64       `json:"active_validators"`
+	DeregisteredValidators    int64       `json:"deregistered_validators"`
+	CalculatedAt              interface{} `json:"calculated_at"`
+}
+
+type MvSlaRollup struct {
+	ID            int32            `json:"id"`
+	TotalBlocks   int32            `json:"total_blocks"`
+	AvgBlockTime  interface{}      `json:"avg_block_time"`
+	StartBlock    int64            `json:"start_block"`
+	EndBlock      int64            `json:"end_block"`
+	BlockQuota    int32            `json:"block_quota"`
+	Tx            string           `json:"tx"`
+	DateFinalized pgtype.Timestamp `json:"date_finalized"`
+	Timestamp     pgtype.Timestamp `json:"timestamp"`
+}
+
+type MvSlaRollupDashboardStat struct {
+	ID             int32            `json:"id"`
+	AvgBlockTime   interface{}      `json:"avg_block_time"`
+	StartBlock     int64            `json:"start_block"`
+	EndBlock       int64            `json:"end_block"`
+	DateFinalized  pgtype.Timestamp `json:"date_finalized"`
+	Timestamp      pgtype.Timestamp `json:"timestamp"`
+	RollupSequence int64            `json:"rollup_sequence"`
+}
+
+type MvSlaRollupScore struct {
+	BlocksProposed     int32            `json:"blocks_proposed"`
+	ChallengesReceived int64            `json:"challenges_received"`
+	ChallengesFailed   int32            `json:"challenges_failed"`
+	SlaID              int32            `json:"sla_id"`
+	Node               string           `json:"node"`
+	Timestamp          pgtype.Timestamp `json:"timestamp"`
+}
+
+type VEntityTypeStats24h struct {
+	EntityType string `json:"entity_type"`
+	Action     string `json:"action"`
+	Count      int64  `json:"count"`
+}
+
+type VLatestBlockInfo struct {
+	LatestIndexedHeight int64            `json:"latest_indexed_height"`
+	LatestBlockTime     pgtype.Timestamp `json:"latest_block_time"`
+	LatestProposer      string           `json:"latest_proposer"`
+}
+
+type VNetworkRate struct {
+	BlocksPerSecond       pgtype.Numeric `json:"blocks_per_second"`
+	TransactionsPerSecond pgtype.Numeric `json:"transactions_per_second"`
+	BlockCount            int64          `json:"block_count"`
+	TransactionCount      int64          `json:"transaction_count"`
+	StartTime             interface{}    `json:"start_time"`
+	EndTime               interface{}    `json:"end_time"`
+}
+
+type VPlaysByLocation24h struct {
+	Country   pgtype.Text `json:"country"`
+	Region    pgtype.Text `json:"region"`
+	City      pgtype.Text `json:"city"`
+	PlayCount int64       `json:"play_count"`
+}
+
+type VPlaysStat struct {
+	TotalPlays           int64 `json:"total_plays"`
+	TotalPlays24h        int64 `json:"total_plays_24h"`
+	TotalPlays7d         int64 `json:"total_plays_7d"`
+	TotalPlays30d        int64 `json:"total_plays_30d"`
+	UniquePlayersAllTime int64 `json:"unique_players_all_time"`
+	UniquePlayers24h     int64 `json:"unique_players_24h"`
+}
+
+type VSlaRollup struct {
+	ID            int32            `json:"id"`
+	TotalBlocks   int32            `json:"total_blocks"`
+	AvgBlockTime  interface{}      `json:"avg_block_time"`
+	StartBlock    int64            `json:"start_block"`
+	EndBlock      int64            `json:"end_block"`
+	BlockQuota    int32            `json:"block_quota"`
+	Tx            string           `json:"tx"`
+	DateFinalized pgtype.Timestamp `json:"date_finalized"`
+}
+
+type VSlaRollupScore struct {
+	BlocksProposed     int32  `json:"blocks_proposed"`
+	ChallengesReceived int64  `json:"challenges_received"`
+	ChallengesFailed   int32  `json:"challenges_failed"`
+	SlaID              int32  `json:"sla_id"`
+	Node               string `json:"node"`
+}
+
+type VTopTracks24h struct {
+	TrackID       string `json:"track_id"`
+	PlayCount     int64  `json:"play_count"`
+	UniquePlayers int64  `json:"unique_players"`
+}
+
+type VTransactionStat struct {
+	TotalTransactions            int64 `json:"total_transactions"`
+	TotalTransactions24h         int64 `json:"total_transactions_24h"`
+	TotalTransactionsPrevious24h int64 `json:"total_transactions_previous_24h"`
+	TotalTransactions7d          int64 `json:"total_transactions_7d"`
+	TotalTransactions30d         int64 `json:"total_transactions_30d"`
+}
+
+type VTransactionTypeBreakdown24h struct {
+	Type  string `json:"type"`
+	Count int64  `json:"count"`
+}
+
+type VValidatorStat struct {
+	TotalRegisteredValidators int64 `json:"total_registered_validators"`
+	ActiveValidators          int64 `json:"active_validators"`
+	DeregisteredValidators    int64 `json:"deregistered_validators"`
+}
+
+// Lightweight validator uptime summary using materialized views. Refreshes automatically when mv_sla_rollup and mv_sla_rollup_score are refreshed.
+type VValidatorUptimeSummary struct {
+	Node               string           `json:"node"`
+	RollupID           int32            `json:"rollup_id"`
+	DateFinalized      pgtype.Timestamp `json:"date_finalized"`
+	SlaStatus          string           `json:"sla_status"`
+	BlocksProposed     int32            `json:"blocks_proposed"`
+	BlockQuota         int32            `json:"block_quota"`
+	ChallengesReceived int64            `json:"challenges_received"`
+	ChallengesFailed   int32            `json:"challenges_failed"`
 }

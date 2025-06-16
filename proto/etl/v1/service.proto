@@ -9,10 +9,23 @@ option go_package = "github.com/AudiusProject/audiusd/pkg/api/etl/v1";
 service ETLService {
   rpc Ping(PingRequest) returns (PingResponse) {}
   rpc GetHealth(GetHealthRequest) returns (GetHealthResponse) {}
+  rpc GetStats(GetStatsRequest) returns (GetStatsResponse) {}
+  rpc GetBlock(GetBlockRequest) returns (GetBlockResponse) {}
   rpc GetBlocks(GetBlocksRequest) returns (GetBlocksResponse) {}
+  rpc GetTransaction(GetTransactionRequest) returns (GetTransactionResponse) {}
   rpc GetTransactions(GetTransactionsRequest) returns (GetTransactionsResponse) {}
+  rpc GetTransactionsByAddress(GetTransactionsByAddressRequest) returns (GetTransactionsByAddressResponse) {}
+  rpc GetRelationTypesByAddress(GetRelationTypesByAddressRequest) returns (GetRelationTypesByAddressResponse) {}
   rpc GetPlays(GetPlaysRequest) returns (GetPlaysResponse) {}
   rpc GetManageEntities(GetManageEntitiesRequest) returns (GetManageEntitiesResponse) {}
   rpc GetValidators(GetValidatorsRequest) returns (GetValidatorsResponse) {}
+  rpc GetValidator(GetValidatorRequest) returns (GetValidatorResponse) {}
+  rpc GetValidatorUptime(GetValidatorUptimeRequest) returns (GetValidatorUptimeResponse) {}
+  rpc GetValidatorsUptime(GetValidatorsUptimeRequest) returns (GetValidatorsUptimeResponse) {}
+  rpc GetValidatorsUptimeSummary(GetValidatorsUptimeSummaryRequest) returns (GetValidatorsUptimeSummaryResponse) {}
+  rpc GetValidatorsUptimeByRollup(GetValidatorsUptimeByRollupRequest) returns (GetValidatorsUptimeByRollupResponse) {}
   rpc GetLocation(GetLocationRequest) returns (GetLocationResponse) {}
+  rpc Search(SearchRequest) returns (SearchResponse) {}
+  rpc Stream(stream StreamRequest) returns (stream StreamResponse) {}
+  rpc GetSlaRollups(GetSlaRollupsRequest) returns (GetSlaRollupsResponse) {}
 }
