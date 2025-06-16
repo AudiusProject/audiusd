@@ -20,7 +20,7 @@ func main() {
 	etl.SetDBURL("postgres://postgres:postgres@0.0.0.0:5433/audiusd?sslmode=disable")
 	etl.SetCheckReadiness(false)
 
-	console := console.NewConsole(etl)
+	console := console.NewConsole(etl, nil, "prod")
 	console.SetupRoutes()
 
 	defer console.Stop()

@@ -33,13 +33,25 @@ var imagesFS embed.FS
 var jsFS embed.FS
 
 type Console struct {
+	env    string
 	e      *echo.Echo
 	etl    *etl.ETLService
 	logger *common.Logger
 }
 
-func NewConsole(etl *etl.ETLService) *Console {
-	return &Console{etl: etl, e: echo.New(), logger: common.NewLogger(nil).Child("console")}
+func NewConsole(etl *etl.ETLService, e *echo.Echo, env string) *Console {
+	if e == nil {
+		e = echo.New()
+	}
+	if env == "" {
+		env = "prod"
+	}
+	return &Console{etl: etl, e: e, logger: common.NewLogger(nil).Child("console"), env: env}
+}
+
+// contextWithEnv adds the environment to the context
+func (con *Console) contextWithEnv(c echo.Context) context.Context {
+	return context.WithValue(c.Request().Context(), "env", con.env)
 }
 
 func (con *Console) SetupRoutes() {
@@ -140,7 +152,10 @@ func (con *Console) Hello(c echo.Context) error {
 		param = name
 	}
 	p := pages.Hello(param)
-	return p.Render(c.Request().Context(), c.Response().Writer)
+
+	// Use context with environment
+	ctx := con.contextWithEnv(c)
+	return p.Render(ctx, c.Response().Writer)
 }
 
 func (con *Console) Dashboard(c echo.Context) error {
@@ -208,7 +223,10 @@ func (con *Console) Dashboard(c echo.Context) error {
 	}
 
 	p := pages.Dashboard(stats, transactionBreakdown, blocks.Msg.Blocks, transactions, blockHeights, syncProgressPercentage)
-	return p.Render(c.Request().Context(), c.Response().Writer)
+
+	// Use context with environment
+	ctx := con.contextWithEnv(c)
+	return p.Render(ctx, c.Response().Writer)
 }
 
 func (con *Console) Validators(c echo.Context) error {

@@ -8,6 +8,15 @@ package layouts
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
+import "context"
+
+func getEnvFromContext(ctx context.Context) string {
+	if env, ok := ctx.Value("env").(string); ok {
+		return env
+	}
+	return "prod" // fallback
+}
+
 func Frame(pageTitle string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -36,13 +45,26 @@ func Frame(pageTitle string) templ.Component {
 		var templ_7745c5c3_Var2 string
 		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(pageTitle)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/layouts/frame.templ`, Line: 21, Col: 91}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/layouts/frame.templ`, Line: 30, Col: 91}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</div><div class=\"w-2/3\"><div class=\"relative\" x-data=\"searchBar()\" x-init=\"init()\" @navigate.window=\"window.location.href = $event.detail.path\" data-env=\"prod\"><div class=\"relative\"><input type=\"text\" placeholder=\"Search for blocks, accounts, transactions, and content...\" class=\"w-full rounded-md border-2 p-2 pr-24 bg-gray-50 dark:bg-gray-800 dark:text-gray-100 focus:ring-1 focus:ring-purple-500\" :class=\"hasNoResults ? 'border-red-500 dark:border-red-500 focus:border-red-500 dark:focus:border-red-500' : 'border-gray-300 dark:border-gray-600 focus:border-purple-500 dark:focus:border-purple-500'\" x-model=\"query\" @input=\"handleInput\" @keydown=\"handleKeydown\" @focus=\"if (query.trim()) { showSuggestions = true }\"><div class=\"absolute right-2 top-1/2 -translate-y-1/2 text-sm text-gray-500 dark:text-gray-400 bg-gradient-to-l from-gray-50 via-gray-50 to-transparent dark:from-gray-800 dark:via-gray-800 pl-12 rounded-r-md\" x-text=\"searchType\"></div></div><div class=\"absolute w-full mt-1 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 max-h-96 overflow-y-auto z-50\" x-show=\"showSuggestions && suggestions.length > 0\" @click.away=\"showSuggestions = false\"><div class=\"py-1\"><template x-for=\"suggestion in suggestions\" :key=\"suggestion.id\"><div class=\"px-4 py-2 hover:bg-purple-50 dark:hover:bg-purple-700 cursor-pointer\" :class=\"{ 'bg-gray-50 dark:bg-gray-700 font-medium': suggestion.isHeader }\" @click=\"selectSuggestion(suggestion)\"><div class=\"text-sm truncate\" :class=\"suggestion.isHeader ? 'text-gray-500 dark:text-gray-400' : 'text-gray-900 dark:text-gray-100'\" x-text=\"suggestion.title\"></div><div x-show=\"!suggestion.isHeader\" class=\"text-xs text-gray-500 dark:text-gray-400 truncate\" x-text=\"suggestion.subtitle\"></div></div></template></div></div></div></div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</div><div class=\"w-2/3\"><div class=\"relative\" x-data=\"searchBar()\" x-init=\"init()\" @navigate.window=\"window.location.href = $event.detail.path\" data-env=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var3 string
+		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(getEnvFromContext(ctx))
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/layouts/frame.templ`, Line: 32, Col: 158}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\"><div class=\"relative\"><input type=\"text\" placeholder=\"Search for blocks, accounts, transactions, and content...\" class=\"w-full rounded-md border-2 p-2 pr-24 bg-gray-50 dark:bg-gray-800 dark:text-gray-100 focus:ring-1 focus:ring-purple-500\" :class=\"hasNoResults ? 'border-red-500 dark:border-red-500 focus:border-red-500 dark:focus:border-red-500' : 'border-gray-300 dark:border-gray-600 focus:border-purple-500 dark:focus:border-purple-500'\" x-model=\"query\" @input=\"handleInput\" @keydown=\"handleKeydown\" @focus=\"if (query.trim()) { showSuggestions = true }\"><div class=\"absolute right-2 top-1/2 -translate-y-1/2 text-sm text-gray-500 dark:text-gray-400 bg-gradient-to-l from-gray-50 via-gray-50 to-transparent dark:from-gray-800 dark:via-gray-800 pl-12 rounded-r-md\" x-text=\"searchType\"></div></div><div class=\"absolute w-full mt-1 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 max-h-96 overflow-y-auto z-50\" x-show=\"showSuggestions && suggestions.length > 0\" @click.away=\"showSuggestions = false\"><div class=\"py-1\"><template x-for=\"suggestion in suggestions\" :key=\"suggestion.id\"><div class=\"px-4 py-2 hover:bg-purple-50 dark:hover:bg-purple-700 cursor-pointer\" :class=\"{ 'bg-gray-50 dark:bg-gray-700 font-medium': suggestion.isHeader }\" @click=\"selectSuggestion(suggestion)\"><div class=\"text-sm truncate\" :class=\"suggestion.isHeader ? 'text-gray-500 dark:text-gray-400' : 'text-gray-900 dark:text-gray-100'\" x-text=\"suggestion.title\"></div><div x-show=\"!suggestion.isHeader\" class=\"text-xs text-gray-500 dark:text-gray-400 truncate\" x-text=\"suggestion.subtitle\"></div></div></template></div></div></div></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -50,7 +72,7 @@ func Frame(pageTitle string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</div><div class=\"mt-8 border-t border-gray-200 dark:border-gray-700 py-4\"><div class=\"flex justify-between items-center text-sm text-gray-500 dark:text-gray-400\"><div class=\"flex items-center gap-4\"><a href=\"https://github.com/audiusproject\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"!text-gray-500 dark:!text-gray-400 !no-underline hover:!text-gray-700 dark:hover:!text-gray-300\">GitHub</a> <a href=\"https://docs.audius.org\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"!text-gray-500 dark:!text-gray-400 !no-underline hover:!text-gray-700 dark:hover:!text-gray-300\">Docs</a> <a href=\"https://api.audius.org\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"!text-gray-500 dark:!text-gray-400 !no-underline hover:!text-gray-700 dark:hover:!text-gray-300\">API</a></div><div class=\"flex items-center gap-4\"><span>Made with ⚡️ by the Protocol Team | © 2025 Audius</span></div></div></div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</div><div class=\"mt-8 border-t border-gray-200 dark:border-gray-700 py-4\"><div class=\"flex justify-between items-center text-sm text-gray-500 dark:text-gray-400\"><div class=\"flex items-center gap-4\"><a href=\"https://github.com/audiusproject\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"!text-gray-500 dark:!text-gray-400 !no-underline hover:!text-gray-700 dark:hover:!text-gray-300\">GitHub</a> <a href=\"https://docs.audius.org\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"!text-gray-500 dark:!text-gray-400 !no-underline hover:!text-gray-700 dark:hover:!text-gray-300\">Docs</a> <a href=\"https://api.audius.org\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"!text-gray-500 dark:!text-gray-400 !no-underline hover:!text-gray-700 dark:hover:!text-gray-300\">API</a></div><div class=\"flex items-center gap-4\"><span>Made with ⚡️ by the Protocol Team | © 2025 Audius</span></div></div></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
