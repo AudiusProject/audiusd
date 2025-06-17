@@ -1,0 +1,253 @@
+package pages
+
+import (
+	"fmt"
+	"github.com/AudiusProject/audiusd/pkg/api/etl/v1"
+	"github.com/AudiusProject/audiusd/pkg/console/templates"
+	"github.com/AudiusProject/audiusd/pkg/console/templates/layouts"
+	"strings"
+)
+
+func extractHost(endpoint string) string {
+	// Remove protocol if present
+	if strings.HasPrefix(endpoint, "http://") {
+		endpoint = endpoint[7:]
+	} else if strings.HasPrefix(endpoint, "https://") {
+		endpoint = endpoint[8:]
+	}
+
+	// Remove path if present
+	if idx := strings.Index(endpoint, "/"); idx != -1 {
+		endpoint = endpoint[:idx]
+	}
+
+	// Remove port if present (optional, remove this if you want to keep ports)
+	if idx := strings.Index(endpoint, ":"); idx != -1 {
+		endpoint = endpoint[:idx]
+	}
+
+	return endpoint
+}
+
+func buildValidatorsPaginationURL(page int32, pageSize int32, queryType string, endpointFilter string) string {
+	baseURL := fmt.Sprintf("?page=%d&count=%d&type=%s", page, pageSize, queryType)
+	if endpointFilter != "" {
+		baseURL += "&endpoint_filter=" + endpointFilter
+	}
+	return baseURL
+}
+
+// Helper functions for uptime display
+func validatorMeetsSlaThreshold(report *v1.SlaRollupScore) bool {
+	if report.BlockQuota == 0 {
+		return true
+	}
+
+	powRatio := float64(report.BlocksProposed) / float64(report.BlockQuota)
+	posRatio := 1.0
+	if report.ChallengesReceived > 0 {
+		posRatio = 1.0 - (float64(report.ChallengesFailed) / float64(report.ChallengesReceived))
+	}
+
+	return powRatio >= 0.8 && posRatio >= 0.8
+}
+
+func validatorUptimeColor(report *v1.SlaRollupScore) string {
+	if report.BlocksProposed == 0 {
+		return "bg-gray-800"
+	}
+	if validatorMeetsSlaThreshold(report) {
+		return "bg-green-500"
+	}
+	return "bg-red-500"
+}
+
+templ Validators(validators []*v1.ValidatorInfo, validatorUptimeMap map[string][]*v1.SlaRollupScore, currentPage int32, hasNext bool, hasPrev bool, pageSize int32, queryType string, endpointFilter string) {
+	@layouts.Base("Validators") {
+		<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6">
+			<div class="flex items-center gap-6 mb-6">
+				<h2 class="text-2xl font-light text-gray-900 dark:text-gray-100">Validators</h2>
+				<div class="flex-1 max-w-md">
+					<input
+						type="text"
+						id="endpointFilter"
+						placeholder="Filter by endpoint (e.g. audius.co)..."
+						value={ endpointFilter }
+						class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+						onchange="updateFilters()"
+					/>
+				</div>
+				<div class="flex items-center gap-4 ml-auto">
+					<div class="text-sm text-gray-500 dark:text-gray-400">
+						Page { fmt.Sprint(currentPage) } • { fmt.Sprint(pageSize) } per page
+					</div>
+					<div class="flex border border-gray-200 dark:border-gray-700 rounded overflow-hidden">
+						<a
+							href={ templ.SafeURL(fmt.Sprintf("?type=active&endpoint_filter=%s", endpointFilter)) }
+							class={ "px-4 py-2 text-sm font-medium transition-colors", templ.KV("bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900", queryType == "active"), templ.KV("text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700", queryType != "active") }
+						>
+							Active
+						</a>
+						<a
+							href={ templ.SafeURL(fmt.Sprintf("?type=registrations&endpoint_filter=%s", endpointFilter)) }
+							class={ "px-4 py-2 text-sm font-medium border-l border-gray-200 dark:border-gray-700 transition-colors", templ.KV("bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900", queryType == "registrations"), templ.KV("text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700", queryType != "registrations") }
+						>
+							Registrations
+						</a>
+						<a
+							href={ templ.SafeURL(fmt.Sprintf("?type=deregistrations&endpoint_filter=%s", endpointFilter)) }
+							class={ "px-4 py-2 text-sm font-medium border-l border-gray-200 dark:border-gray-700 transition-colors", templ.KV("bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900", queryType == "deregistrations"), templ.KV("text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700", queryType != "deregistrations") }
+						>
+							Deregistrations
+						</a>
+					</div>
+				</div>
+			</div>
+			if len(validators) > 0 {
+				<div class="space-y-2">
+					for _, validator := range validators {
+						<a href={ templ.SafeURL(fmt.Sprintf("/validator/%s", validator.Address)) } class="block">
+							<div class="flex items-center justify-between py-4 px-6 border border-gray-200 dark:border-gray-700 rounded hover:bg-purple-50 hover:border-purple-200 dark:hover:bg-gray-700 transition-colors cursor-pointer">
+								<div class="flex items-center gap-6 flex-1">
+									<div class="flex-2">
+										<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Endpoint</div>
+										<div class="relative">
+											<div class="font-mono text-sm text-gray-700 dark:text-gray-300 overflow-x-auto scrollbar-hide whitespace-nowrap pb-1">
+												{ extractHost(validator.Endpoint) }
+											</div>
+											<div class="absolute top-0 right-0 w-8 h-full bg-gradient-to-l from-white dark:from-gray-800 to-transparent pointer-events-none"></div>
+										</div>
+									</div>
+									<div class="flex-1">
+										<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Address</div>
+										<div class="font-mono text-sm text-purple-600 dark:text-purple-400">
+											@templates.StringWithTooltipCustom(validator.Address, 8, 4)
+										</div>
+									</div>
+									<div class="flex-1">
+										<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Node Type</div>
+										<span class="px-3 py-1 text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded">
+											{ validator.NodeType }
+										</span>
+									</div>
+									<div class="flex-1">
+										<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Voting Power</div>
+										<div class="text-xl font-light text-gray-900 dark:text-gray-100 tabular-nums">
+											{ fmt.Sprintf("%d", validator.VotingPower) }
+										</div>
+									</div>
+									<div class="flex-1">
+										<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Status</div>
+										<div class="flex items-center gap-2 text-sm">
+											switch validator.Status {
+												case v1.ValidatorStatus_VALIDATOR_STATUS_ACTIVE:
+													<span class="px-2 py-1 text-xs font-medium bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded">Active</span>
+												case v1.ValidatorStatus_VALIDATOR_STATUS_DEREGISTERED:
+													<span class="px-2 py-1 text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded">Deregistered</span>
+												case v1.ValidatorStatus_VALIDATOR_STATUS_MISBEHAVIOR_DEREGISTERED:
+													<span class="px-2 py-1 text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded">Misbehavior</span>
+												default:
+													<span class="px-2 py-1 text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded">Unknown</span>
+											}
+											<span class="text-gray-400 dark:text-gray-500">|</span>
+											<div class="text-xs text-gray-500 dark:text-gray-400">
+												if validator.RegisteredAt != nil {
+													@templates.TimeWithTooltip(validator.RegisteredAt.AsTime())
+												} else {
+													<span class="text-gray-400 dark:text-gray-600">—</span>
+												}
+											</div>
+										</div>
+									</div>
+									<div class="flex-1">
+										<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Uptime</div>
+										<div class="flex items-center gap-1">
+											if rollups, exists := validatorUptimeMap[validator.CometAddress]; exists && len(rollups) > 0 {
+												// Show actual uptime data (reverse order so most recent is on the right)
+												for i := len(rollups) - 1; i >= 0; i-- {
+													<div
+														class={ "w-3 h-4 rounded-sm", validatorUptimeColor(rollups[i]) }
+														title={ fmt.Sprintf("SLA #%d: %d/%d blocks, %d/%d challenges", rollups[i].SlaRollupId, rollups[i].BlocksProposed, rollups[i].BlockQuota, rollups[i].ChallengesFailed, rollups[i].ChallengesReceived) }
+													></div>
+												}
+												// Fill remaining slots with empty bars if less than 5 rollups
+												for i := len(rollups); i < 5; i++ {
+													<div class="w-3 h-4 bg-gray-200 dark:bg-gray-700 rounded-sm" title="No data available"></div>
+												}
+											} else {
+												// Show placeholder bars if no uptime data available
+												for i := 0; i < 5; i++ {
+													<div class="w-3 h-4 bg-gray-200 dark:bg-gray-700 rounded-sm" title="No uptime data available"></div>
+												}
+											}
+										</div>
+									</div>
+								</div>
+							</div>
+						</a>
+					}
+				</div>
+				<div class="flex justify-between items-center mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+					<div class="flex gap-3">
+						if hasPrev {
+							<a
+								href={ templ.SafeURL(buildValidatorsPaginationURL(currentPage-1, pageSize, queryType, endpointFilter)) }
+								class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors"
+							>
+								← Previous
+							</a>
+						} else {
+							<span class="px-4 py-2 text-sm font-medium text-gray-400 dark:text-gray-600 bg-gray-50 dark:bg-gray-700 rounded cursor-not-allowed">
+								← Previous
+							</span>
+						}
+						if hasNext {
+							<a
+								href={ templ.SafeURL(buildValidatorsPaginationURL(currentPage+1, pageSize, queryType, endpointFilter)) }
+								class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors"
+							>
+								Next →
+							</a>
+						} else {
+							<span class="px-4 py-2 text-sm font-medium text-gray-400 dark:text-gray-600 bg-gray-50 dark:bg-gray-700 rounded cursor-not-allowed">
+								Next →
+							</span>
+						}
+					</div>
+				</div>
+			} else {
+				<div class="text-center py-12">
+					<p class="text-gray-500 dark:text-gray-400">No validators found</p>
+				</div>
+			}
+		</div>
+		<style>
+			.scrollbar-hide {
+				-ms-overflow-style: none;  /* Internet Explorer 10+ */
+				scrollbar-width: none;  /* Firefox */
+			}
+			.scrollbar-hide::-webkit-scrollbar {
+				display: none;  /* Safari and Chrome */
+			}
+		</style>
+		<script>
+			function updateFilters() {
+				const endpointFilter = document.getElementById('endpointFilter').value;
+				
+				const url = new URL(window.location);
+				
+				// Handle endpoint filter
+				if (endpointFilter) {
+					url.searchParams.set('endpoint_filter', endpointFilter);
+				} else {
+					url.searchParams.delete('endpoint_filter');
+				}
+				
+				// Reset to page 1 when changing filters
+				url.searchParams.set('page', '1');
+				
+				window.location.href = url.toString();
+			}
+		</script>
+	}
+}
