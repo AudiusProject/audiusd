@@ -387,6 +387,8 @@ func startEchoProxy(hostUrl *url.URL, logger *common.Logger, coreService *coreSe
 	rpcGroup.GET(corev1connect.CoreServiceGetStoredSnapshotsProcedure, connectGET(coreService.GetStoredSnapshots))
 
 	if consoleEnabled {
+		// start indexing immediately
+		etlService.SetCheckReadiness(false)
 		c := consolev2.NewConsole(etlService, e, network)
 		c.SetupRoutes()
 	}
