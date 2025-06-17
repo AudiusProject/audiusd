@@ -311,11 +311,17 @@ func GetEthRPC() string {
 
 func GetDbURL() string {
 	isDiscovery := os.Getenv("audius_delegate_private_key") != ""
+	var dbUrl string
 	if isDiscovery {
-		return GetEnvWithDefault("audius_db_url", DiscoveryDbURL)
+		dbUrl = GetEnvWithDefault("audius_db_url", DiscoveryDbURL)
 	} else {
-		return GetEnvWithDefault("dbUrl", ContentDbURL)
+		dbUrl = GetEnvWithDefault("dbUrl", ContentDbURL)
 	}
+
+	if !strings.HasSuffix(dbUrl, "?sslmode=disable") && isLocalDbUrlRegex.MatchString(dbUrl) {
+		dbUrl += "?sslmode=disable"
+	}
+	return dbUrl
 }
 
 func GetRegistryAddress() string {
