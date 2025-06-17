@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -64,7 +65,11 @@ func (eth *EthService) Run(ctx context.Context) error {
 	eth.db = db.New(pool)
 
 	// Init eth rpc
-	ethrpc, err := ethclient.Dial(eth.rpcURL)
+	wsRpcUrl := eth.rpcURL
+	if strings.HasPrefix(eth.rpcURL, "https") {
+		wsRpcUrl = "wss" + strings.TrimPrefix(eth.rpcURL, "https")
+	}
+	ethrpc, err := ethclient.Dial(wsRpcUrl)
 	if err != nil {
 		return fmt.Errorf("eth client dial err: %v", err)
 	}
@@ -135,12 +140,7 @@ func (eth *EthService) startEthEndpointManager() error {
 		return fmt.Errorf("failed to subscribe to endpoint update events: %v", err)
 	}
 
-	ticker := time.NewTicker(6 * time.Hour)
-	switch eth.env {
-	case "dev", "devnet", "development", "local", "sandbox":
-		// query eth chain more aggressively on dev
-		ticker = time.NewTicker(5 * time.Second)
-	}
+	ticker := time.NewTicker(24 * time.Hour)
 	defer ticker.Stop()
 
 	for {
