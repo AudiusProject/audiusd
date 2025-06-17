@@ -47,8 +47,8 @@ const (
 	StageAcdcAddress = "0x1Cd8a543596D499B9b6E7a6eC15ECd2B7857Fd64"
 	DevAcdcAddress   = "0x254dffcd3277C0b1660F6d42EFbB754edaBAbC2B"
 
-	ProdEthRpc  = "https://eth.audius.co"
-	StageEthRpc = "https://eth.staging.audius.co"
+	ProdEthRpc  = "wss://eth.audius.co"
+	StageEthRpc = "wss://eth.staging.audius.co"
 	DevEthRpc   = "ws://eth-ganache:8545"
 
 	DiscoveryDbURL = "postgresql://postgres:postgres@localhost:5432/audius_discovery"
