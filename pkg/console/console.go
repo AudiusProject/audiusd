@@ -49,14 +49,19 @@ func NewConsole(etl *etl.ETLService, e *echo.Echo, env string) *Console {
 	return &Console{etl: etl, e: e, logger: common.NewLogger(nil).Child("console"), env: env}
 }
 
-// contextWithEnv adds the environment to the context
-func (con *Console) contextWithEnv(c echo.Context) context.Context {
-	return context.WithValue(c.Request().Context(), "env", con.env)
-}
-
 func (con *Console) SetupRoutes() {
 	e := con.e
 	e.HideBanner = true
+
+	// Add environment context middleware
+	envMiddleware := func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			// Add environment to the request context
+			ctx := context.WithValue(c.Request().Context(), "env", con.env)
+			c.SetRequest(c.Request().WithContext(ctx))
+			return next(c)
+		}
+	}
 
 	// Add cache control middleware for static assets
 	cacheControl := func(next echo.HandlerFunc) echo.HandlerFunc {
@@ -77,8 +82,9 @@ func (con *Console) SetupRoutes() {
 	e.StaticFS("/assets/images", imagesHandler)
 	e.StaticFS("/assets/js", jsHandler)
 
-	// Apply cache control middleware to static asset routes
+	// Apply middlewares
 	e.Use(cacheControl)
+	e.Use(envMiddleware)
 
 	e.GET("/", con.Dashboard)
 	e.GET("/hello", con.Hello)
@@ -154,7 +160,7 @@ func (con *Console) Hello(c echo.Context) error {
 	p := pages.Hello(param)
 
 	// Use context with environment
-	ctx := con.contextWithEnv(c)
+	ctx := c.Request().Context()
 	return p.Render(ctx, c.Response().Writer)
 }
 
@@ -225,7 +231,7 @@ func (con *Console) Dashboard(c echo.Context) error {
 	p := pages.Dashboard(stats, transactionBreakdown, blocks.Msg.Blocks, transactions, blockHeights, syncProgressPercentage)
 
 	// Use context with environment
-	ctx := con.contextWithEnv(c)
+	ctx := c.Request().Context()
 	return p.Render(ctx, c.Response().Writer)
 }
 
@@ -360,7 +366,8 @@ func (con *Console) Validators(c echo.Context) error {
 	hasPrev := page > 1
 
 	p := pages.Validators(validators.Msg.Validators, validatorUptimeMap, page, hasNext, hasPrev, count, queryType, endpointFilter)
-	return p.Render(c.Request().Context(), c.Response().Writer)
+	ctx := c.Request().Context()
+	return p.Render(ctx, c.Response().Writer)
 }
 
 func (con *Console) Validator(c echo.Context) error {
@@ -408,7 +415,8 @@ func (con *Console) Validator(c echo.Context) error {
 	}
 
 	p := pages.Validator(validator.Msg.Validator, validator.Msg.Events, rollups)
-	return p.Render(c.Request().Context(), c.Response().Writer)
+	ctx := c.Request().Context()
+	return p.Render(ctx, c.Response().Writer)
 }
 
 func (con *Console) ValidatorsUptime(c echo.Context) error {
@@ -452,7 +460,8 @@ func (con *Console) ValidatorsUptime(c echo.Context) error {
 		pageSize,
 		rollupsResp.Msg.TotalCount,
 	)
-	return p.Render(c.Request().Context(), c.Response().Writer)
+	ctx := c.Request().Context()
+	return p.Render(ctx, c.Response().Writer)
 }
 
 func (con *Console) ValidatorsUptimeByRollup(c echo.Context) error {
@@ -478,7 +487,8 @@ func (con *Console) ValidatorsUptimeByRollup(c echo.Context) error {
 	}
 
 	p := pages.ValidatorsUptimeByRollup(uptimeResp.Msg.Validators, int32(rollupId))
-	return p.Render(c.Request().Context(), c.Response().Writer)
+	ctx := c.Request().Context()
+	return p.Render(ctx, c.Response().Writer)
 }
 
 func (con *Console) Rollups(c echo.Context) error {
@@ -523,7 +533,8 @@ func (con *Console) Rollups(c echo.Context) error {
 		pageSize,
 		rollupsResp.Msg.TotalCount,
 	)
-	return p.Render(c.Request().Context(), c.Response().Writer)
+	ctx := c.Request().Context()
+	return p.Render(ctx, c.Response().Writer)
 }
 
 func (con *Console) Blocks(c echo.Context) error {
@@ -563,7 +574,8 @@ func (con *Console) Blocks(c echo.Context) error {
 	hasPrev := page > 1
 
 	p := pages.Blocks(blocks.Msg.Blocks, page, hasNext, hasPrev, count)
-	return p.Render(c.Request().Context(), c.Response().Writer)
+	ctx := c.Request().Context()
+	return p.Render(ctx, c.Response().Writer)
 }
 
 func (con *Console) Transactions(c echo.Context) error {
@@ -598,12 +610,14 @@ func (con *Console) Transactions(c echo.Context) error {
 	hasPrev := page > 1
 
 	p := pages.Transactions(transactions, blockHeights, page, hasNext, hasPrev, count)
-	return p.Render(c.Request().Context(), c.Response().Writer)
+	ctx := c.Request().Context()
+	return p.Render(ctx, c.Response().Writer)
 }
 
 func (con *Console) Content(c echo.Context) error {
 	p := pages.Content()
-	return p.Render(c.Request().Context(), c.Response().Writer)
+	ctx := c.Request().Context()
+	return p.Render(ctx, c.Response().Writer)
 }
 
 func (con *Console) Block(c echo.Context) error {
@@ -620,7 +634,8 @@ func (con *Console) Block(c echo.Context) error {
 		return c.String(http.StatusInternalServerError, "Failed to get block")
 	}
 	p := pages.Block(block.Msg.Block)
-	return p.Render(c.Request().Context(), c.Response().Writer)
+	ctx := c.Request().Context()
+	return p.Render(ctx, c.Response().Writer)
 }
 
 func (con *Console) Transaction(c echo.Context) error {
@@ -640,7 +655,8 @@ func (con *Console) Transaction(c echo.Context) error {
 	}
 
 	p := pages.Transaction(response.Msg.Transaction)
-	return p.Render(c.Request().Context(), c.Response().Writer)
+	ctx := c.Request().Context()
+	return p.Render(ctx, c.Response().Writer)
 }
 
 func (con *Console) Account(c echo.Context) error {
@@ -724,7 +740,8 @@ func (con *Console) Account(c echo.Context) error {
 	hasPrev := page > 1
 
 	p := pages.Account(address, response.Msg.Transactions, page, hasNext, hasPrev, count, relationTypes, relationFilter, startDateStr, endDateStr)
-	return p.Render(c.Request().Context(), c.Response().Writer)
+	ctx := c.Request().Context()
+	return p.Render(ctx, c.Response().Writer)
 }
 
 func (con *Console) stubRoute(c echo.Context) error {
@@ -790,7 +807,8 @@ func (con *Console) StatsHeaderFragment(c echo.Context) error {
 	}
 
 	fragment := pages.StatsHeaderFragment(stats, syncProgressPercentage)
-	return fragment.Render(c.Request().Context(), c.Response().Writer)
+	ctx := c.Request().Context()
+	return fragment.Render(ctx, c.Response().Writer)
 }
 
 func (con *Console) NetworkSidebarFragment(c echo.Context) error {
@@ -809,7 +827,8 @@ func (con *Console) NetworkSidebarFragment(c echo.Context) error {
 	}
 
 	fragment := pages.NetworkSidebarFragment(stats)
-	return fragment.Render(c.Request().Context(), c.Response().Writer)
+	ctx := c.Request().Context()
+	return fragment.Render(ctx, c.Response().Writer)
 }
 
 func (con *Console) TPSFragment(c echo.Context) error {
@@ -826,7 +845,8 @@ func (con *Console) TPSFragment(c echo.Context) error {
 	}
 
 	fragment := pages.TPSFragment(stats)
-	return fragment.Render(c.Request().Context(), c.Response().Writer)
+	ctx := c.Request().Context()
+	return fragment.Render(ctx, c.Response().Writer)
 }
 
 func (con *Console) TotalTransactionsFragment(c echo.Context) error {
@@ -844,7 +864,8 @@ func (con *Console) TotalTransactionsFragment(c echo.Context) error {
 	}
 
 	fragment := pages.TotalTransactionsFragment(stats)
-	return fragment.Render(c.Request().Context(), c.Response().Writer)
+	ctx := c.Request().Context()
+	return fragment.Render(ctx, c.Response().Writer)
 }
 
 type SSEEvent struct {
