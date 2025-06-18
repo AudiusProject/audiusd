@@ -3,7 +3,7 @@ select * from eth_registered_endpoints;
 
 -- name: GetRegisteredEndpoint :one
 select * from eth_registered_endpoints
-where delegate_wallet = $1 and endpoint = $2;
+where endpoint = $1;
 
 -- name: GetServiceProviders :many
 select * from eth_service_providers;

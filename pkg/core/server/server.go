@@ -7,12 +7,13 @@ import (
 	"time"
 
 	corev1connect "github.com/AudiusProject/audiusd/pkg/api/core/v1/v1connect"
-	ethv1connect "github.com/AudiusProject/audiusd/pkg/api/eth/v1/v1connect"
 	"github.com/AudiusProject/audiusd/pkg/common"
 	"github.com/AudiusProject/audiusd/pkg/core/config"
 	"github.com/AudiusProject/audiusd/pkg/core/db"
+	"github.com/AudiusProject/audiusd/pkg/eth"
 	aLogger "github.com/AudiusProject/audiusd/pkg/logger"
 	"github.com/AudiusProject/audiusd/pkg/pos"
+	"github.com/AudiusProject/audiusd/pkg/pubsub"
 	"github.com/AudiusProject/audiusd/pkg/rewards"
 	cconfig "github.com/cometbft/cometbft/config"
 	nm "github.com/cometbft/cometbft/node"
@@ -24,13 +25,17 @@ import (
 	"google.golang.org/grpc"
 )
 
+// subscribes by tx hash, pubsub completes once tx
+// is committed
+type TransactionHashPubsub = pubsub.Pubsub[struct{}]
+
 type Server struct {
 	config         *config.Config
 	cometbftConfig *cconfig.Config
 	logger         *common.Logger
 	z              *zap.Logger
 	self           corev1connect.CoreServiceClient
-	eth            ethv1connect.EthServiceClient
+	eth            *eth.EthService
 
 	httpServer         *echo.Echo
 	grpcServer         *grpc.Server
@@ -57,12 +62,12 @@ type Server struct {
 	awaitEthReady        chan struct{}
 }
 
-func NewServer(config *config.Config, cconfig *cconfig.Config, logger *common.Logger, pool *pgxpool.Pool, ethService ethv1connect.EthServiceClient, posChannel chan pos.PoSRequest) (*Server, error) {
+func NewServer(config *config.Config, cconfig *cconfig.Config, logger *common.Logger, pool *pgxpool.Pool, ethService *eth.EthService, posChannel chan pos.PoSRequest) (*Server, error) {
 	// create mempool
 	mempl := NewMempool(logger, config, db.New(pool), cconfig.Mempool.Size)
 
 	// create pubsubs
-	txPubsub := NewPubsub[struct{}]()
+	txPubsub := pubsub.NewPubsub[struct{}]()
 
 	httpServer := echo.New()
 	grpcServer := grpc.NewServer()

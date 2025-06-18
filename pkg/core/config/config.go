@@ -48,7 +48,7 @@ const (
 	DevAcdcAddress   = "0x254dffcd3277C0b1660F6d42EFbB754edaBAbC2B"
 
 	ProdEthRpc  = "https://eth.audius.co"
-	StageEthRpc = "https://eth.staging.audius.co"
+	StageEthRpc = "https://eth-validator.staging.audius.co"
 	DevEthRpc   = "http://eth-ganache:8545"
 
 	DiscoveryDbURL = "postgresql://postgres:postgres@localhost:5432/audius_discovery"
@@ -300,13 +300,11 @@ func getEnvIntWithDefault(key string, defaultValue int) int {
 }
 
 func GetEthRPC() string {
-	return GetEnvWithDefault(
-		"ethProviderUrl",
-		GetEnvWithDefault(
-			"audius_web3_eth_provider_url",
-			DefaultEthRPC(),
-		),
-	)
+	isDiscovery := os.Getenv("audius_delegate_private_key") != ""
+	if isDiscovery {
+		return GetEnvWithDefault("audius_web3_eth_provider_url", DefaultEthRPC())
+	}
+	return GetEnvWithDefault("ethProviderUrl", DefaultEthRPC())
 }
 
 func GetDbURL() string {

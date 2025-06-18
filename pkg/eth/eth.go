@@ -8,14 +8,22 @@ import (
 	"sync/atomic"
 	"time"
 
+	v1 "github.com/AudiusProject/audiusd/pkg/api/eth/v1"
 	"github.com/AudiusProject/audiusd/pkg/common"
 	"github.com/AudiusProject/audiusd/pkg/eth/contracts"
 	"github.com/AudiusProject/audiusd/pkg/eth/contracts/gen"
 	"github.com/AudiusProject/audiusd/pkg/eth/db"
+	"github.com/AudiusProject/audiusd/pkg/pubsub"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+const (
+	DeregistrationTopic = "deregistration-subscriber"
+)
+
+type DeregistrationPubsub = pubsub.Pubsub[*v1.ServiceEndpoint]
 
 type EthService struct {
 	rpcURL          string
@@ -23,11 +31,12 @@ type EthService struct {
 	registryAddress string
 	env             string
 
-	rpc    *ethclient.Client
-	db     *db.Queries
-	pool   *pgxpool.Pool
-	logger *common.Logger
-	c      *contracts.AudiusContracts
+	rpc         *ethclient.Client
+	db          *db.Queries
+	pool        *pgxpool.Pool
+	logger      *common.Logger
+	c           *contracts.AudiusContracts
+	deregPubsub *DeregistrationPubsub
 
 	isReady atomic.Bool
 }
@@ -64,10 +73,15 @@ func (eth *EthService) Run(ctx context.Context) error {
 	eth.pool = pool
 	eth.db = db.New(pool)
 
+	// Init pubsub
+	eth.deregPubsub = pubsub.NewPubsub[*v1.ServiceEndpoint]()
+
 	// Init eth rpc
 	wsRpcUrl := eth.rpcURL
 	if strings.HasPrefix(eth.rpcURL, "https") {
 		wsRpcUrl = "wss" + strings.TrimPrefix(eth.rpcURL, "https")
+	} else if strings.HasPrefix(eth.rpcURL, "http:") { // local devnet
+		wsRpcUrl = "ws" + strings.TrimPrefix(eth.rpcURL, "http")
 	}
 	ethrpc, err := ethclient.Dial(wsRpcUrl)
 	if err != nil {
@@ -181,6 +195,11 @@ func (eth *EthService) startEthEndpointManager() error {
 				eth.logger.Error("could not handle deregistration event: %v", err)
 				continue
 			}
+			ep, err := eth.db.GetRegisteredEndpoint(ctx, dereg.Endpoint)
+			if err != nil {
+				eth.logger.Error("could not fetch endpoint %s from db: %v", dereg.Endpoint, err)
+				continue
+			}
 			if err := eth.db.DeleteRegisteredEndpoint(
 				ctx,
 				db.DeleteRegisteredEndpointParams{
@@ -193,14 +212,29 @@ func (eth *EthService) startEthEndpointManager() error {
 				eth.logger.Error("could not handle deregistration event: %v", err)
 				continue
 			}
+			eth.deregPubsub.Publish(
+				ctx,
+				DeregistrationTopic,
+				&v1.ServiceEndpoint{
+					Id:             dereg.SpID.Int64(),
+					Owner:          dereg.Owner.Hex(),
+					Endpoint:       dereg.Endpoint,
+					DelegateWallet: ep.DelegateWallet,
+				},
+			)
 		case <-ticker.C:
 			if err := eth.refreshEndpoints(ctx); err != nil {
-				eth.logger.Errorf("error gathering eth endpoints: %v", err)
+				// crash if periodic updates fail - it may be necessary to reestablish connections
+				return fmt.Errorf("error gathering eth endpoints: %v", err)
 			}
 		}
 	}
 
 	return nil
+}
+
+func (eth *EthService) SubscribeToDeregistrationEvents() chan *v1.ServiceEndpoint {
+	return eth.deregPubsub.Subscribe(DeregistrationTopic, 10)
 }
 
 func (eth *EthService) refreshEndpoints(ctx context.Context) error {

@@ -53,6 +53,8 @@ const (
 	// EthServiceRegisterOnEthereumProcedure is the fully-qualified name of the EthService's
 	// RegisterOnEthereum RPC.
 	EthServiceRegisterOnEthereumProcedure = "/eth.v1.EthService/RegisterOnEthereum"
+	// EthServiceSubscribeProcedure is the fully-qualified name of the EthService's Subscribe RPC.
+	EthServiceSubscribeProcedure = "/eth.v1.EthService/Subscribe"
 )
 
 // EthServiceClient is a client for the eth.v1.EthService service.
@@ -64,6 +66,7 @@ type EthServiceClient interface {
 	GetLatestFundingRound(context.Context, *connect.Request[v1.GetLatestFundingRoundRequest]) (*connect.Response[v1.GetLatestFundingRoundResponse], error)
 	IsDuplicateDelegateWallet(context.Context, *connect.Request[v1.IsDuplicateDelegateWalletRequest]) (*connect.Response[v1.IsDuplicateDelegateWalletResponse], error)
 	RegisterOnEthereum(context.Context, *connect.Request[v1.RegisterOnEthereumRequest]) (*connect.Response[v1.RegisterOnEthereumResponse], error)
+	Subscribe(context.Context, *connect.Request[v1.SubscriptionRequest]) (*connect.ServerStreamForClient[v1.SubscriptionResponse], error)
 }
 
 // NewEthServiceClient constructs a client for the eth.v1.EthService service. By default, it uses
@@ -119,6 +122,12 @@ func NewEthServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			connect.WithSchema(ethServiceMethods.ByName("RegisterOnEthereum")),
 			connect.WithClientOptions(opts...),
 		),
+		subscribe: connect.NewClient[v1.SubscriptionRequest, v1.SubscriptionResponse](
+			httpClient,
+			baseURL+EthServiceSubscribeProcedure,
+			connect.WithSchema(ethServiceMethods.ByName("Subscribe")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -131,6 +140,7 @@ type ethServiceClient struct {
 	getLatestFundingRound     *connect.Client[v1.GetLatestFundingRoundRequest, v1.GetLatestFundingRoundResponse]
 	isDuplicateDelegateWallet *connect.Client[v1.IsDuplicateDelegateWalletRequest, v1.IsDuplicateDelegateWalletResponse]
 	registerOnEthereum        *connect.Client[v1.RegisterOnEthereumRequest, v1.RegisterOnEthereumResponse]
+	subscribe                 *connect.Client[v1.SubscriptionRequest, v1.SubscriptionResponse]
 }
 
 // IsReady calls eth.v1.EthService.IsReady.
@@ -168,6 +178,11 @@ func (c *ethServiceClient) RegisterOnEthereum(ctx context.Context, req *connect.
 	return c.registerOnEthereum.CallUnary(ctx, req)
 }
 
+// Subscribe calls eth.v1.EthService.Subscribe.
+func (c *ethServiceClient) Subscribe(ctx context.Context, req *connect.Request[v1.SubscriptionRequest]) (*connect.ServerStreamForClient[v1.SubscriptionResponse], error) {
+	return c.subscribe.CallServerStream(ctx, req)
+}
+
 // EthServiceHandler is an implementation of the eth.v1.EthService service.
 type EthServiceHandler interface {
 	IsReady(context.Context, *connect.Request[v1.IsReadyRequest]) (*connect.Response[v1.IsReadyResponse], error)
@@ -177,6 +192,7 @@ type EthServiceHandler interface {
 	GetLatestFundingRound(context.Context, *connect.Request[v1.GetLatestFundingRoundRequest]) (*connect.Response[v1.GetLatestFundingRoundResponse], error)
 	IsDuplicateDelegateWallet(context.Context, *connect.Request[v1.IsDuplicateDelegateWalletRequest]) (*connect.Response[v1.IsDuplicateDelegateWalletResponse], error)
 	RegisterOnEthereum(context.Context, *connect.Request[v1.RegisterOnEthereumRequest]) (*connect.Response[v1.RegisterOnEthereumResponse], error)
+	Subscribe(context.Context, *connect.Request[v1.SubscriptionRequest], *connect.ServerStream[v1.SubscriptionResponse]) error
 }
 
 // NewEthServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -228,6 +244,12 @@ func NewEthServiceHandler(svc EthServiceHandler, opts ...connect.HandlerOption) 
 		connect.WithSchema(ethServiceMethods.ByName("RegisterOnEthereum")),
 		connect.WithHandlerOptions(opts...),
 	)
+	ethServiceSubscribeHandler := connect.NewServerStreamHandler(
+		EthServiceSubscribeProcedure,
+		svc.Subscribe,
+		connect.WithSchema(ethServiceMethods.ByName("Subscribe")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/eth.v1.EthService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case EthServiceIsReadyProcedure:
@@ -244,6 +266,8 @@ func NewEthServiceHandler(svc EthServiceHandler, opts ...connect.HandlerOption) 
 			ethServiceIsDuplicateDelegateWalletHandler.ServeHTTP(w, r)
 		case EthServiceRegisterOnEthereumProcedure:
 			ethServiceRegisterOnEthereumHandler.ServeHTTP(w, r)
+		case EthServiceSubscribeProcedure:
+			ethServiceSubscribeHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -279,4 +303,8 @@ func (UnimplementedEthServiceHandler) IsDuplicateDelegateWallet(context.Context,
 
 func (UnimplementedEthServiceHandler) RegisterOnEthereum(context.Context, *connect.Request[v1.RegisterOnEthereumRequest]) (*connect.Response[v1.RegisterOnEthereumResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("eth.v1.EthService.RegisterOnEthereum is not implemented"))
+}
+
+func (UnimplementedEthServiceHandler) Subscribe(context.Context, *connect.Request[v1.SubscriptionRequest], *connect.ServerStream[v1.SubscriptionResponse]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("eth.v1.EthService.Subscribe is not implemented"))
 }

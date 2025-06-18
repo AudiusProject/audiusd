@@ -20,7 +20,6 @@ message GetRegisteredEndpointsResponse {
 
 message GetRegisteredEndpointInfoRequest {
   string endpoint = 1;
-  string delegate_wallet = 2;
 }
 
 message GetRegisteredEndpointInfoResponse {
@@ -74,3 +73,15 @@ message RegisterOnEthereumRequest {
 }
 
 message RegisterOnEthereumResponse {}
+
+message SubscriptionRequest {}
+
+message SubscriptionResponse {
+  message DeregistrationEvent {
+    ServiceEndpoint service_endpoint = 1;
+  }
+
+  oneof event {
+    DeregistrationEvent deregistration = 1;
+  }
+}

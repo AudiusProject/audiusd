@@ -34,16 +34,11 @@ func (q *Queries) GetLatestFundingRound(ctx context.Context) (EthFundingRound, e
 
 const getRegisteredEndpoint = `-- name: GetRegisteredEndpoint :one
 select id, service_type, owner, delegate_wallet, endpoint, blocknumber from eth_registered_endpoints
-where delegate_wallet = $1 and endpoint = $2
+where endpoint = $1
 `
 
-type GetRegisteredEndpointParams struct {
-	DelegateWallet string `json:"delegate_wallet"`
-	Endpoint       string `json:"endpoint"`
-}
-
-func (q *Queries) GetRegisteredEndpoint(ctx context.Context, arg GetRegisteredEndpointParams) (EthRegisteredEndpoint, error) {
-	row := q.db.QueryRow(ctx, getRegisteredEndpoint, arg.DelegateWallet, arg.Endpoint)
+func (q *Queries) GetRegisteredEndpoint(ctx context.Context, endpoint string) (EthRegisteredEndpoint, error) {
+	row := q.db.QueryRow(ctx, getRegisteredEndpoint, endpoint)
 	var i EthRegisteredEndpoint
 	err := row.Scan(
 		&i.ID,

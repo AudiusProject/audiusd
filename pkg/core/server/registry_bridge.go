@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"math/rand"
 	"time"
 
 	"connectrpc.com/connect"
@@ -82,12 +83,32 @@ func (s *Server) startRegistryBridge() error {
 			time.Sleep(delay)
 			delay *= 2
 		} else {
+			s.listenForEthContractEvents(context.Background())
 			return nil
 		}
 	}
 
 	s.logger.Warn("exhausted registration retries after 120 minutes")
 	return nil
+}
+
+func (s *Server) listenForEthContractEvents(ctx context.Context) {
+	deregChan := s.eth.SubscribeToDeregistrationEvents()
+	for {
+		select {
+		case <-ctx.Done():
+			s.logger.Info("received cancellation signal, stopping subscription to eth events")
+			return
+		case dereg := <-deregChan:
+			s.logger.Info("received deregistration event")
+			// brief, randomized pause to allow deregistration event to propogate
+			// to all nodes and prevent thundering herd of deregistration attestations and txs
+			rand.Seed(time.Now().UnixNano())
+			randInterval := rand.Intn(10) + 10
+			time.Sleep(time.Duration(randInterval) * time.Second)
+			s.deregisterMissingNode(ctx, dereg.DelegateWallet)
+		}
+	}
 }
 
 // checks mainnet eth for itself, if registered and not
@@ -105,8 +126,7 @@ func (s *Server) RegisterSelf() error {
 	ep, err := s.eth.GetRegisteredEndpointInfo(
 		ctx,
 		connect.NewRequest(&ethv1.GetRegisteredEndpointInfoRequest{
-			Endpoint:       nodeEndpoint,
-			DelegateWallet: s.config.WalletAddress,
+			Endpoint: nodeEndpoint,
 		}),
 	)
 	if err != nil {
@@ -297,8 +317,7 @@ func (s *Server) IsNodeRegisteredOnEthereum(ctx context.Context, endpoint, deleg
 	ep, err := s.eth.GetRegisteredEndpointInfo(
 		ctx,
 		connect.NewRequest(&ethv1.GetRegisteredEndpointInfoRequest{
-			Endpoint:       endpoint,
-			DelegateWallet: delegateWallet,
+			Endpoint: endpoint,
 		}),
 	)
 	if err != nil {
@@ -311,7 +330,7 @@ func (s *Server) IsNodeRegisteredOnEthereum(ctx context.Context, endpoint, deleg
 		return false, fmt.Errorf("could check registration status for node at %s with address %s: %w", endpoint, delegateWallet, err)
 	}
 
-	if ep.Msg.Se.BlockNumber != ethBlock {
+	if ep.Msg.Se.BlockNumber != ethBlock || ep.Msg.Se.DelegateWallet != delegateWallet {
 		return false, nil
 	}
 	return true, nil
@@ -321,8 +340,7 @@ func (s *Server) registerSelfOnEth() error {
 	if _, err := s.eth.GetRegisteredEndpointInfo(
 		context.Background(),
 		connect.NewRequest(&ethv1.GetRegisteredEndpointInfoRequest{
-			Endpoint:       s.config.NodeEndpoint,
-			DelegateWallet: s.config.WalletAddress,
+			Endpoint: s.config.NodeEndpoint,
 		}),
 	); err != nil {
 		var connectErr *connect.Error

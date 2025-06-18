@@ -11,7 +11,6 @@ import (
 	"github.com/AudiusProject/audiusd/pkg/api/eth/v1/v1connect"
 	"github.com/AudiusProject/audiusd/pkg/common"
 	"github.com/AudiusProject/audiusd/pkg/eth/contracts"
-	"github.com/AudiusProject/audiusd/pkg/eth/db"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/jackc/pgx/v5"
@@ -48,13 +47,7 @@ func (e *EthService) GetRegisteredEndpoints(ctx context.Context, _ *connect.Requ
 }
 
 func (e *EthService) GetRegisteredEndpointInfo(ctx context.Context, req *connect.Request[v1.GetRegisteredEndpointInfoRequest]) (*connect.Response[v1.GetRegisteredEndpointInfoResponse], error) {
-	ep, err := e.db.GetRegisteredEndpoint(
-		ctx,
-		db.GetRegisteredEndpointParams{
-			Endpoint:       req.Msg.Endpoint,
-			DelegateWallet: req.Msg.DelegateWallet,
-		},
-	)
+	ep, err := e.db.GetRegisteredEndpoint(ctx, req.Msg.Endpoint)
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("could not get registered endpoint: %w", err))
 	} else if errors.Is(err, pgx.ErrNoRows) {
@@ -171,4 +164,37 @@ func (e *EthService) RegisterOnEthereum(ctx context.Context, req *connect.Reques
 	e.logger.Infof("node %s registered on eth", req.Msg.Endpoint)
 
 	return connect.NewResponse(&v1.RegisterOnEthereumResponse{}), nil
+}
+
+func (e *EthService) Subscribe(ctx context.Context, req *connect.Request[v1.SubscriptionRequest], stream *connect.ServerStream[v1.SubscriptionResponse]) error {
+	e.logger.Info("subscription started")
+
+	deregCh := e.deregPubsub.Subscribe(DeregistrationTopic, 10)
+
+	for {
+		select {
+		case <-ctx.Done():
+			// Cleanup subscriptions when context is cancelled
+			if deregCh != nil {
+				e.deregPubsub.Unsubscribe(DeregistrationTopic, deregCh)
+				e.logger.Info("unsubscribed from deregistration events")
+			}
+			return ctx.Err()
+
+		case dereg := <-deregCh:
+			if dereg != nil {
+				deregCopy := *dereg
+				err := stream.Send(&v1.SubscriptionResponse{
+					Event: &v1.SubscriptionResponse_Deregistration{
+						Deregistration: &v1.SubscriptionResponse_DeregistrationEvent{
+							ServiceEndpoint: &deregCopy,
+						},
+					},
+				})
+				if err != nil {
+					e.logger.Error("failed to send deregistration event", "error", err)
+				}
+			}
+		}
+	}
 }
