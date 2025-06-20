@@ -25,7 +25,7 @@ float compute_median(const std::vector<float>& bpms) {
 
 float analyze_bpm(const char* filename) {
     uint_t win_s = 2048;           // window size
-    uint_t hop_s = 512;            // hop size
+    uint_t hop_s = win_s / 4;      // hop size
     unsigned int samplerate = 0;   // samplerate will be set by source
 
     aubio_source_t* source = new_aubio_source(filename, samplerate, hop_s);
@@ -34,8 +34,10 @@ float analyze_bpm(const char* filename) {
         return 0;
     }
 
+    // Get the actual samplerate from source
     samplerate = aubio_source_get_samplerate(source);
 
+    // Create tempo detection object
     // aubio's energy-based modeling is most similar to essentia's `RhythmExtractor2013` 
     aubio_tempo_t* tempo = new_aubio_tempo("energy", win_s, hop_s, samplerate);
     if (!tempo) {
@@ -44,6 +46,7 @@ float analyze_bpm(const char* filename) {
         return 0;
     }
 
+    // Temporary buffers
     fvec_t* in = new_fvec(hop_s);
     fvec_t* out = new_fvec(2);
 
@@ -51,6 +54,7 @@ float analyze_bpm(const char* filename) {
     float current_time = 0.0f;
     std::vector<float> detected_bpms;
 
+    // Analysis loop
     do {
         aubio_source_do(source, in, &read);
         current_time += static_cast<float>(read) / samplerate;
@@ -67,6 +71,7 @@ float analyze_bpm(const char* filename) {
         }
     } while (read == hop_s);
 
+    // Calculate final results
     float final_bpm = 0.0f;
 
     if (!detected_bpms.empty()) {
@@ -91,11 +96,10 @@ int main(int argc, char** argv) {
     float bpm = analyze_bpm(argv[1]);
 
     if (bpm > 0) {
-        std::cout << std::fixed << std::setprecision(2);
-        std::cout << "Estimated BPM: " << bpm << std::endl;
+        std::cout << std::fixed << std::setprecision(3);
+        std::cout << "BPM: " << bpm << std::endl;
         return 0;
     }
 
-    std::cerr << "Could not estimate BPM." << std::endl;
     return 1;
 }
