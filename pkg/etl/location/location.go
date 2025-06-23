@@ -96,7 +96,7 @@ func openEmbeddedDB(filename string) (*sql.DB, error) {
 	fmt.Printf("Wrote database %s to temporary file: %s\n", filename, tmpFile)
 
 	// Open the database
-	db, err := sql.Open("sqlite3", tmpFile)
+	db, err := sql.Open("sqlite", tmpFile)
 	if err != nil {
 		os.Remove(tmpFile)
 		return nil, fmt.Errorf("failed to open database: %w", err)
