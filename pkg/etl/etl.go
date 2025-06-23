@@ -244,42 +244,22 @@ func (etl *ETLService) indexBlocks() error {
 					}
 
 					// TODO: persist lat long in db, only supported in streams
-					go func() {
-						// check if city, region, country are not empty
-						if play.City == "" || play.Region == "" || play.Country == "" {
-							etl.logger.Debugf("play event missing location data: city=%s, region=%s, country=%s", play.City, play.Region, play.Country)
-							return
-						}
-
+					// check if city, region, country are not empty and if there are subscribers
+					if play.City != "" && play.Region != "" && play.Country != "" && etl.playPubsub.HasSubscribers(PlayTopic) {
 						latLong, err := etl.locationDB.GetLatLong(context.Background(), play.City, play.Region, play.Country)
-						if err != nil {
-							etl.logger.Errorf("error getting location for play: city=%s, region=%s, country=%s, error=%v", play.City, play.Region, play.Country, err)
-							// Still publish the play event but without coordinates so it shows up in other places
+						if err == nil {
 							etl.playPubsub.Publish(context.Background(), PlayTopic, &etlv1.TrackPlay{
-								Address:  play.UserId,
-								TrackId:  play.TrackId,
-								City:     play.City,
-								Region:   play.Region,
-								Country:  play.Country,
-								PlayedAt: play.Timestamp,
-								// Latitude and Longitude will be 0
+								Address:   play.UserId,
+								TrackId:   play.TrackId,
+								City:      play.City,
+								Region:    play.Region,
+								Country:   play.Country,
+								PlayedAt:  play.Timestamp,
+								Latitude:  latLong.Latitude,
+								Longitude: latLong.Longitude,
 							})
-							return
 						}
-
-						etl.logger.Debugf("found location for play: city=%s, region=%s, country=%s, lat=%f, lng=%f", play.City, play.Region, play.Country, latLong.Latitude, latLong.Longitude)
-
-						etl.playPubsub.Publish(context.Background(), PlayTopic, &etlv1.TrackPlay{
-							Address:   play.UserId,
-							TrackId:   play.TrackId,
-							City:      play.City,
-							Region:    play.Region,
-							Country:   play.Country,
-							PlayedAt:  play.Timestamp,
-							Latitude:  latLong.Latitude,
-							Longitude: latLong.Longitude,
-						})
-					}()
+					}
 				}
 
 			case *corev1.SignedTransaction_ManageEntity:

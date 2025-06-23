@@ -62,6 +62,15 @@ func (ps *Pubsub[Message]) Unsubscribe(topic string, ch chan Message) {
 	}
 }
 
+// HasSubscribers checks if there are any active subscribers for a topic
+func (ps *Pubsub[Message]) HasSubscribers(topic string) bool {
+	ps.mu.RLock()
+	defer ps.mu.RUnlock()
+
+	subs, exists := ps.subscribers[topic]
+	return exists && len(subs) > 0
+}
+
 // Publish sends a message to all subscribers of the specified topic
 func (ps *Pubsub[Message]) Publish(ctx context.Context, topic string, msg Message) {
 	ps.mu.RLock()
