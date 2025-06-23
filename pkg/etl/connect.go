@@ -171,7 +171,7 @@ func (e *ETLService) GetStats(ctx context.Context, req *connect.Request[v1.GetSt
 
 	// Get latest SLA rollup for avg block time
 	var slaRollupAvgBlockTime float32 = 0
-	latestSlaRollup, err := e.db.GetLatestSlaRollupForDashboardOptimized(ctx)
+	latestSlaRollup, err := e.db.GetLatestSlaRollupForDashboard(ctx)
 	if err != nil {
 		// It's okay if no SLA rollup exists yet, just log it
 		if !errors.Is(err, pgx.ErrNoRows) {
@@ -1793,82 +1793,38 @@ func (e *ETLService) GetSlaRollups(ctx context.Context, req *connect.Request[v1.
 
 // GetValidatorsUptimeSummary returns a lightweight summary of validator uptime status
 func (e *ETLService) GetValidatorsUptimeSummary(ctx context.Context, req *connect.Request[v1.GetValidatorsUptimeSummaryRequest]) (*connect.Response[v1.GetValidatorsUptimeSummaryResponse], error) {
-	// Use the SAME data source as individual validator pages to ensure consistency
-	// This uses the original views with real challenge data, not the optimized query
-	uptimeData, err := e.db.GetAllValidatorsUptimeData(ctx, 1000) // Use original view-based query
+	// Use the optimized materialized view-based query for much better performance
+	// This query uses v_validator_uptime_summary which is backed by mv_sla_rollup and mv_sla_rollup_score materialized views
+	uptimeData, err := e.db.GetValidatorUptimeSummary(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get validator uptime data: %w", err)
+		return nil, fmt.Errorf("failed to get validator uptime summary: %w", err)
 	}
 
-	// Group all rollups by validator address first
-	allRollupsByValidator := make(map[string][]db.GetAllValidatorsUptimeDataRow)
-	for _, data := range uptimeData {
-		allRollupsByValidator[data.Node] = append(allRollupsByValidator[data.Node], data)
-	}
-
-	// Now process each validator and take only their 5 most recent rollups
+	// Group the pre-calculated data by validator address
 	validatorMap := make(map[string]*v1.ValidatorUptimeSummary)
-	for validatorAddress, rollups := range allRollupsByValidator {
-		validator := &v1.ValidatorUptimeSummary{
-			ValidatorAddress: validatorAddress,
-			RecentRollups:    []*v1.UptimeSummaryEntry{},
-		}
-		validatorMap[validatorAddress] = validator
-
-		// Sort rollups by timestamp desc to ensure most recent first within each validator
-		sort.Slice(rollups, func(i, j int) bool {
-			// Sort by date finalized desc (most recent first)
-			if rollups[i].DateFinalized.Valid && rollups[j].DateFinalized.Valid {
-				return rollups[i].DateFinalized.Time.After(rollups[j].DateFinalized.Time)
+	for _, data := range uptimeData {
+		validator, exists := validatorMap[data.Node]
+		if !exists {
+			validator = &v1.ValidatorUptimeSummary{
+				ValidatorAddress: data.Node,
+				RecentRollups:    []*v1.UptimeSummaryEntry{},
 			}
-			// Fallback to rollup ID desc if timestamps are not valid
-			return rollups[i].SlaID > rollups[j].SlaID
+			validatorMap[data.Node] = validator
+		}
+
+		// The view already pre-calculates the SLA status, so we can use it directly
+		// This provides consistent results and much better performance
+		validator.RecentRollups = append(validator.RecentRollups, &v1.UptimeSummaryEntry{
+			RollupId:           data.RollupID,
+			Status:             data.SlaStatus, // Pre-calculated in the materialized view
+			BlocksProposed:     data.BlocksProposed,
+			BlockQuota:         data.BlockQuota,
+			ChallengesReceived: data.ChallengesReceived,
+			ChallengesFailed:   data.ChallengesFailed,
 		})
-
-		// Take only the first 5 (most recent) for this validator
-		maxRollups := 5
-		if len(rollups) < maxRollups {
-			maxRollups = len(rollups)
-		}
-
-		for i := 0; i < maxRollups; i++ {
-			data := rollups[i]
-
-			// Use the SAME SLA calculation logic as individual validator pages
-			// Calculate PoW percentage (block proposal performance)
-			powPercentage := float64(0)
-			if data.BlockQuota > 0 {
-				powPercentage = float64(data.BlocksProposed) / float64(data.BlockQuota) * 100
-			}
-
-			// Calculate PoS percentage (challenge performance)
-			posPercentage := float64(100)
-			if data.ChallengesReceived > 0 {
-				posPercentage = float64(data.ChallengesReceived-int64(data.ChallengesFailed)) / float64(data.ChallengesReceived) * 100
-			}
-
-			// SLA requirements: ≥80% for both PoW and PoS (same as individual validator page)
-			var slaStatus string
-			if powPercentage >= 80 && posPercentage >= 80 {
-				slaStatus = "pass"
-			} else if data.BlocksProposed == 0 {
-				slaStatus = "offline"
-			} else {
-				slaStatus = "fail"
-			}
-
-			validator.RecentRollups = append(validator.RecentRollups, &v1.UptimeSummaryEntry{
-				RollupId:           data.SlaID,
-				Status:             slaStatus,
-				BlocksProposed:     data.BlocksProposed,
-				BlockQuota:         data.BlockQuota,
-				ChallengesReceived: data.ChallengesReceived,
-				ChallengesFailed:   data.ChallengesFailed, // Now using real challenge data
-			})
-		}
 	}
 
-	// Convert map to slice and sort by validator address
+	// Convert map to slice and sort by validator address for deterministic ordering
 	validators := make([]*v1.ValidatorUptimeSummary, 0, len(validatorMap))
 	for _, validator := range validatorMap {
 		validators = append(validators, validator)

@@ -701,178 +701,62 @@ SELECT
     $1 - lbi.latest_indexed_height as block_delta
 FROM v_latest_block_info lbi;
 
--- OPTIMIZED ROLLUP QUERIES - These bypass the expensive views for better performance
-
--- Get latest SLA rollup with avg block time for dashboard stats (OPTIMIZED)
--- name: GetLatestSlaRollupForDashboardOptimized :one
-SELECT 
-    sr.id,
-    -- Calculate avg block time more efficiently for just the latest rollup
-    CASE 
-        WHEN sr.block_end > sr.block_start THEN
-            COALESCE(
-                EXTRACT(EPOCH FROM (
-                    (SELECT MAX(b.block_time) FROM etl_blocks b 
-                     WHERE b.block_height BETWEEN sr.block_start AND sr.block_end
-                     LIMIT 1) -
-                    (SELECT MIN(b.block_time) FROM etl_blocks b 
-                     WHERE b.block_height BETWEEN sr.block_start AND sr.block_end
-                     LIMIT 1)
-                ))::float / (sr.block_end - sr.block_start), 0
-            )
-        ELSE 0 
-    END::REAL as avg_block_time,
-    sr.block_start,
-    sr.block_end,
-    b.block_time as date_finalized
-FROM etl_sla_rollups_v2 sr
-JOIN etl_transactions_v2 t ON sr.transaction_id = t.id
-JOIN etl_blocks b ON t.block_id = b.id
-ORDER BY sr.timestamp DESC
-LIMIT 1;
-
--- Get validator uptime data using direct table queries (single validator)
--- name: GetValidatorUptimeDataOptimized :many
-SELECT 
-    a.address as node,
-    sr.id as sla_id,
-    snr.num_blocks_proposed as blocks_proposed,
-    0::bigint as challenges_received,
-    0::bigint as challenges_failed,
-    -- Calculate block quota directly for better performance
-    CASE 
-        WHEN (SELECT COUNT(DISTINCT snr2.address_id) FROM etl_sla_node_reports_v2 snr2 WHERE snr2.sla_rollup_id = sr.id) > 0 
-        THEN (sr.block_end - sr.block_start + 1) / (SELECT COUNT(DISTINCT snr2.address_id) FROM etl_sla_node_reports_v2 snr2 WHERE snr2.sla_rollup_id = sr.id)
-        ELSE 0
-    END as block_quota,
-    sr.block_start,
-    sr.block_end,
-    t.tx_hash as tx,
-    b.block_time as date_finalized,
-    0::real as avg_block_time  -- Simplified for performance
-FROM etl_sla_node_reports_v2 snr
-JOIN etl_sla_rollups_v2 sr ON snr.sla_rollup_id = sr.id
-JOIN etl_addresses a ON snr.address_id = a.id
-JOIN etl_transactions_v2 t ON sr.transaction_id = t.id
-JOIN etl_blocks b ON t.block_id = b.id
-WHERE a.address = $1
-ORDER BY sr.timestamp DESC
-LIMIT $2;
-
--- Get all validators uptime data using direct table queries (OPTIMIZED)
--- name: GetAllValidatorsUptimeDataOptimized :many
-SELECT 
-    a.address as node,
-    sr.id as sla_id,
-    snr.num_blocks_proposed as blocks_proposed,
-    0::bigint as challenges_received,
-    0::bigint as challenges_failed,
-    -- Calculate block quota directly for better performance
-    CASE 
-        WHEN validator_counts.validator_count > 0 
-        THEN (sr.block_end - sr.block_start + 1) / validator_counts.validator_count
-        ELSE 0
-    END as block_quota,
-    sr.block_start,
-    sr.block_end,
-    t.tx_hash as tx,
-    b.block_time as date_finalized,
-    0::real as avg_block_time  -- Simplified for performance
-FROM etl_sla_node_reports_v2 snr
-JOIN etl_sla_rollups_v2 sr ON snr.sla_rollup_id = sr.id
-JOIN etl_addresses a ON snr.address_id = a.id
-JOIN etl_transactions_v2 t ON sr.transaction_id = t.id
-JOIN etl_blocks b ON t.block_id = b.id
--- Pre-calculate validator counts for each rollup
-JOIN (
-    SELECT 
-        sla_rollup_id,
-        COUNT(DISTINCT address_id) as validator_count
-    FROM etl_sla_node_reports_v2
-    GROUP BY sla_rollup_id
-) validator_counts ON validator_counts.sla_rollup_id = sr.id
-ORDER BY sr.timestamp DESC, a.address
-LIMIT $1;
-
--- Get all SLA rollups with pagination (OPTIMIZED)
--- name: GetAllSlaRollupsOptimized :many
-SELECT 
-    sr.id,
-    sr.block_start,
-    sr.block_end,
-    t.tx_hash as tx,
-    b.block_time as date_finalized,
-    validator_counts.validator_count
-FROM etl_sla_rollups_v2 sr
-JOIN etl_transactions_v2 t ON sr.transaction_id = t.id
-JOIN etl_blocks b ON t.block_id = b.id
--- Pre-calculate validator counts for better performance
-LEFT JOIN (
-    SELECT 
-        sla_rollup_id,
-        COUNT(DISTINCT address_id) as validator_count
-    FROM etl_sla_node_reports_v2
-    GROUP BY sla_rollup_id
-) validator_counts ON validator_counts.sla_rollup_id = sr.id
-ORDER BY sr.timestamp DESC
-LIMIT $1 OFFSET $2;
-
--- Get validator uptime data using SLA rollup views
+-- Get validator uptime data using SLA rollup materialized views
 -- name: GetValidatorUptimeData :many
 SELECT 
-    vr.id as sla_id,
-    vsr.blocks_proposed,
-    vsr.challenges_received,
-    vsr.challenges_failed,
-    vr.block_quota,
-    vr.start_block,
-    vr.end_block,
-    vr.tx,
-    vr.date_finalized,
-    vr.avg_block_time::REAL as avg_block_time
-FROM v_sla_rollup_score vsr
-JOIN v_sla_rollup vr ON vsr.sla_id = vr.id
-WHERE vsr.node = $1
-ORDER BY vr.date_finalized DESC
+    mvr.id as sla_id,
+    mvsr.blocks_proposed,
+    mvsr.challenges_received,
+    mvsr.challenges_failed,
+    mvr.block_quota,
+    mvr.start_block,
+    mvr.end_block,
+    mvr.tx,
+    mvr.date_finalized,
+    mvr.avg_block_time::REAL as avg_block_time
+FROM mv_sla_rollup_score mvsr
+JOIN mv_sla_rollup mvr ON mvsr.sla_id = mvr.id
+WHERE mvsr.node = $1
+ORDER BY mvr.date_finalized DESC
 LIMIT $2;
 
--- Get all validators uptime data using SLA rollup views
+-- Get all validators uptime data using SLA rollup materialized views
 -- name: GetAllValidatorsUptimeData :many
 SELECT 
-    vsr.node,
-    vr.id as sla_id,
-    vsr.blocks_proposed,
-    vsr.challenges_received,
-    vsr.challenges_failed,
-    vr.block_quota,
-    vr.start_block,
-    vr.end_block,
-    vr.tx,
-    vr.date_finalized,
-    vr.avg_block_time::REAL as avg_block_time
-FROM v_sla_rollup_score vsr
-JOIN v_sla_rollup vr ON vsr.sla_id = vr.id
-ORDER BY vr.date_finalized DESC, vsr.node
+    mvsr.node,
+    mvr.id as sla_id,
+    mvsr.blocks_proposed,
+    mvsr.challenges_received,
+    mvsr.challenges_failed,
+    mvr.block_quota,
+    mvr.start_block,
+    mvr.end_block,
+    mvr.tx,
+    mvr.date_finalized,
+    mvr.avg_block_time::REAL as avg_block_time
+FROM mv_sla_rollup_score mvsr
+JOIN mv_sla_rollup mvr ON mvsr.sla_id = mvr.id
+ORDER BY mvr.date_finalized DESC, mvsr.node
 LIMIT $1;
 
--- Get validator uptime data for a specific SLA rollup ID
+-- Get validator uptime data for a specific SLA rollup ID using materialized views
 -- name: GetValidatorsUptimeDataByRollup :many
 SELECT 
-    vsr.node,
-    vr.id as sla_id,
-    vsr.blocks_proposed,
-    vsr.challenges_received,
-    vsr.challenges_failed,
-    vr.block_quota,
-    vr.start_block,
-    vr.end_block,
-    vr.tx,
-    vr.date_finalized,
-    vr.avg_block_time::REAL as avg_block_time
-FROM v_sla_rollup_score vsr
-JOIN v_sla_rollup vr ON vsr.sla_id = vr.id
-WHERE vr.id = $1
-ORDER BY vsr.node;
+    mvsr.node,
+    mvr.id as sla_id,
+    mvsr.blocks_proposed,
+    mvsr.challenges_received,
+    mvsr.challenges_failed,
+    mvr.block_quota,
+    mvr.start_block,
+    mvr.end_block,
+    mvr.tx,
+    mvr.date_finalized,
+    mvr.avg_block_time::REAL as avg_block_time
+FROM mv_sla_rollup_score mvsr
+JOIN mv_sla_rollup mvr ON mvsr.sla_id = mvr.id
+WHERE mvr.id = $1
+ORDER BY mvsr.node;
 
 -- Get all registered validators with their endpoints (for showing complete validator list)
 -- name: GetAllRegisteredValidatorsWithEndpoints :many
@@ -897,24 +781,24 @@ WHERE a.address = $1 OR vr.comet_address = $1
 ORDER BY vr.id DESC
 LIMIT 1;
 
--- Get all SLA rollups with pagination
+-- Get all SLA rollups with pagination using materialized views
 -- name: GetAllSlaRollups :many
 SELECT 
-    vr.id,
-    vr.start_block,
-    vr.end_block,
-    vr.tx,
-    vr.date_finalized,
-    COUNT(DISTINCT vsr.node) as validator_count
-FROM v_sla_rollup vr
-LEFT JOIN v_sla_rollup_score vsr ON vr.id = vsr.sla_id
-GROUP BY vr.id, vr.start_block, vr.end_block, vr.tx, vr.date_finalized
-ORDER BY vr.id DESC
+    mvr.id,
+    mvr.start_block,
+    mvr.end_block,
+    mvr.tx,
+    mvr.date_finalized,
+    COUNT(DISTINCT mvsr.node) as validator_count
+FROM mv_sla_rollup mvr
+LEFT JOIN mv_sla_rollup_score mvsr ON mvr.id = mvsr.sla_id
+GROUP BY mvr.id, mvr.start_block, mvr.end_block, mvr.tx, mvr.date_finalized
+ORDER BY mvr.id DESC
 LIMIT $1 OFFSET $2;
 
--- Count total SLA rollups for pagination
+-- Count total SLA rollups for pagination using materialized views
 -- name: CountAllSlaRollups :one
-SELECT COUNT(DISTINCT id) FROM v_sla_rollup;
+SELECT COUNT(DISTINCT id) FROM mv_sla_rollup;
 
 -- Get efficient validator uptime summary (just pass/fail status for recent rollups)
 -- name: GetValidatorUptimeSummary :many
@@ -929,14 +813,14 @@ SELECT
 FROM v_validator_uptime_summary
 ORDER BY date_finalized DESC, node;
 
--- Get latest SLA rollup with avg block time for dashboard stats
+-- Get latest SLA rollup with avg block time for dashboard stats using materialized views
 -- name: GetLatestSlaRollupForDashboard :one
 SELECT 
-    vr.id,
-    vr.avg_block_time::REAL as avg_block_time,
-    vr.start_block,
-    vr.end_block,
-    vr.date_finalized
-FROM v_sla_rollup vr
-ORDER BY vr.date_finalized DESC
+    mvr.id,
+    mvr.avg_block_time::REAL as avg_block_time,
+    mvr.start_block,
+    mvr.end_block,
+    mvr.date_finalized
+FROM mv_sla_rollup mvr
+ORDER BY mvr.date_finalized DESC
 LIMIT 1;
