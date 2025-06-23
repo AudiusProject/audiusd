@@ -56,10 +56,18 @@ func (etl *ETLService) Run() error {
 	etl.pool = pool
 	etl.db = db.New(pool)
 
+	// Verify embedded databases before creating location service
+	if err := location.VerifyEmbeddedDatabases(); err != nil {
+		etl.logger.Errorf("embedded database verification failed: %v", err)
+		return fmt.Errorf("embedded database verification failed: %v", err)
+	}
+
 	locationDB, err := location.NewLocationService()
 	if err != nil {
+		etl.logger.Errorf("error creating location service: %v", err)
 		return fmt.Errorf("error creating location service: %v", err)
 	}
+	etl.logger.Infof("location service initialized successfully")
 	etl.locationDB = locationDB
 
 	// Initialize materialized view refresher
@@ -245,13 +253,27 @@ func (etl *ETLService) indexBlocks() error {
 					go func() {
 						// check if city, region, country are not empty
 						if play.City == "" || play.Region == "" || play.Country == "" {
+							etl.logger.Debugf("play event missing location data: city=%s, region=%s, country=%s", play.City, play.Region, play.Country)
 							return
 						}
 
 						latLong, err := etl.locationDB.GetLatLong(context.Background(), play.City, play.Region, play.Country)
 						if err != nil {
+							etl.logger.Errorf("error getting location for play: city=%s, region=%s, country=%s, error=%v", play.City, play.Region, play.Country, err)
+							// Still publish the play event but without coordinates so it shows up in other places
+							etl.playPubsub.Publish(context.Background(), PlayTopic, &etlv1.TrackPlay{
+								Address:  play.UserId,
+								TrackId:  play.TrackId,
+								City:     play.City,
+								Region:   play.Region,
+								Country:  play.Country,
+								PlayedAt: play.Timestamp,
+								// Latitude and Longitude will be 0
+							})
 							return
 						}
+
+						etl.logger.Debugf("found location for play: city=%s, region=%s, country=%s, lat=%f, lng=%f", play.City, play.Region, play.Country, latLong.Latitude, latLong.Longitude)
 
 						etl.playPubsub.Publish(context.Background(), PlayTopic, &etlv1.TrackPlay{
 							Address:   play.UserId,

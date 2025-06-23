@@ -939,28 +939,38 @@ func (con *Console) LiveEventsSSE(c echo.Context) error {
 			}
 
 		case playEvent := <-playChannel:
-			if playEvent != nil && playEvent.Latitude != 0 && playEvent.Longitude != 0 {
-				// Convert ETL TrackPlay to PlayEvent format
-				play := &pages.PlayEvent{
-					Timestamp: playEvent.PlayedAt.AsTime().Format(time.RFC3339),
-					Lat:       playEvent.Latitude,
-					Lng:       playEvent.Longitude,
-					Duration:  rand.Intn(3) + 2, // Keep random duration for animation (2-4 seconds)
-				}
+			if playEvent != nil {
+				// Log all play events for debugging
+				con.logger.Debugf("received play event: lat=%f, lng=%f, city=%s, region=%s, country=%s",
+					playEvent.Latitude, playEvent.Longitude, playEvent.City, playEvent.Region, playEvent.Country)
 
-				event := SSEEvent{
-					Event: "play",
-					Data:  play,
-				}
+				// Check if we have valid coordinates
+				if playEvent.Latitude != 0 && playEvent.Longitude != 0 {
+					// Convert ETL TrackPlay to PlayEvent format
+					play := &pages.PlayEvent{
+						Timestamp: playEvent.PlayedAt.AsTime().Format(time.RFC3339),
+						Lat:       playEvent.Latitude,
+						Lng:       playEvent.Longitude,
+						Duration:  rand.Intn(3) + 2, // Keep random duration for animation (2-4 seconds)
+					}
 
-				jsonData, err := json.Marshal(event)
-				if err != nil {
-					con.logger.Error("Failed to marshal play event", "error", err)
-					continue
-				}
+					event := SSEEvent{
+						Event: "play",
+						Data:  play,
+					}
 
-				fmt.Fprintf(c.Response(), "data: %s\n\n", jsonData)
-				flusher.Flush()
+					jsonData, err := json.Marshal(event)
+					if err != nil {
+						con.logger.Error("Failed to marshal play event", "error", err)
+						continue
+					}
+
+					fmt.Fprintf(c.Response(), "data: %s\n\n", jsonData)
+					flusher.Flush()
+				} else {
+					con.logger.Debugf("filtered play event due to missing coordinates: city=%s, region=%s, country=%s",
+						playEvent.City, playEvent.Region, playEvent.Country)
+				}
 			}
 		}
 	}
