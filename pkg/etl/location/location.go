@@ -80,9 +80,6 @@ func openEmbeddedDB(filename string) (*sql.DB, error) {
 		return nil, fmt.Errorf("failed to read embedded database %s: %w", filename, err)
 	}
 
-	// Log the size of the embedded data for debugging
-	fmt.Printf("Extracted embedded database %s: %d bytes\n", filename, len(data))
-
 	// Create a temporary file
 	tmpDir := os.TempDir()
 	tmpFile := filepath.Join(tmpDir, fmt.Sprintf("audiusd_%s", filename))
@@ -91,9 +88,6 @@ func openEmbeddedDB(filename string) (*sql.DB, error) {
 	if err := os.WriteFile(tmpFile, data, 0644); err != nil {
 		return nil, fmt.Errorf("failed to write temporary database file: %w", err)
 	}
-
-	// Log the temporary file path for debugging
-	fmt.Printf("Wrote database %s to temporary file: %s\n", filename, tmpFile)
 
 	// Open the database
 	db, err := sql.Open("sqlite", tmpFile)
@@ -109,25 +103,19 @@ func openEmbeddedDB(filename string) (*sql.DB, error) {
 		return nil, fmt.Errorf("failed to ping database %s: %w", filename, err)
 	}
 
-	fmt.Printf("Successfully opened database %s\n", filename)
 	return db, nil
 }
 
 // GetLatLong retrieves latitude and longitude for a given city, state, and country
 func (ls *LocationService) GetLatLong(ctx context.Context, city, state, country string) (*LatLong, error) {
-	fmt.Printf("Looking up location: city=%s, state=%s, country=%s\n", city, state, country)
-
 	// Step 1: Get country code from country name
 	countryCode, err := ls.countriesQuery.GetCountryCode(ctx, country)
 	if err != nil {
-		fmt.Printf("Failed to get country code for %s: %v\n", country, err)
 		return nil, fmt.Errorf("failed to get country code for %s: %w", country, err)
 	}
 	if !countryCode.Valid {
-		fmt.Printf("Country not found: %s\n", country)
 		return nil, fmt.Errorf("country not found: %s", country)
 	}
-	fmt.Printf("Found country code: %s for %s\n", countryCode.String, country)
 
 	// Step 2: Get state code from state name and country code
 	stateCode, err := ls.statesQuery.GetStateCode(ctx, GetStateCodeParams{
@@ -135,14 +123,11 @@ func (ls *LocationService) GetLatLong(ctx context.Context, city, state, country 
 		CountryCode: countryCode.String,
 	})
 	if err != nil {
-		fmt.Printf("Failed to get state code for %s in %s: %v\n", state, country, err)
 		return nil, fmt.Errorf("failed to get state code for %s in %s: %w", state, country, err)
 	}
 	if !stateCode.Valid {
-		fmt.Printf("State not found: %s in %s\n", state, country)
 		return nil, fmt.Errorf("state not found: %s in %s", state, country)
 	}
-	fmt.Printf("Found state code: %s for %s\n", stateCode.String, state)
 
 	// Step 3: Get latitude and longitude from city name, state code, and country code
 	cityResult, err := ls.citiesQuery.GetCityLatLong(ctx, GetCityLatLongParams{
@@ -152,14 +137,11 @@ func (ls *LocationService) GetLatLong(ctx context.Context, city, state, country 
 	})
 	if err != nil {
 		if err == sql.ErrNoRows {
-			fmt.Printf("City not found: %s, %s, %s\n", city, state, country)
 			return nil, fmt.Errorf("city not found")
 		}
-		fmt.Printf("Failed to get coordinates for %s, %s, %s: %v\n", city, state, country, err)
 		return nil, fmt.Errorf("failed to get coordinates for %s, %s, %s: %w", city, state, country, err)
 	}
 
-	fmt.Printf("Found coordinates for %s, %s, %s: lat=%f, lng=%f\n", city, state, country, cityResult.Latitude, cityResult.Longitude)
 	return &LatLong{
 		Latitude:  cityResult.Latitude,
 		Longitude: cityResult.Longitude,
