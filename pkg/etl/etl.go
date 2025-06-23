@@ -56,12 +56,6 @@ func (etl *ETLService) Run() error {
 	etl.pool = pool
 	etl.db = db.New(pool)
 
-	// Verify embedded databases before creating location service
-	if err := location.VerifyEmbeddedDatabases(); err != nil {
-		etl.logger.Errorf("embedded database verification failed: %v", err)
-		return fmt.Errorf("embedded database verification failed: %v", err)
-	}
-
 	locationDB, err := location.NewLocationService()
 	if err != nil {
 		etl.logger.Errorf("error creating location service: %v", err)
