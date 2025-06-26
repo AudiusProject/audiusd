@@ -67,6 +67,10 @@ func (e *ETLService) SetCheckReadiness(checkReadiness bool) {
 	e.checkReadiness = checkReadiness
 }
 
+func (e *ETLService) GetDB() *db.Queries {
+	return e.db
+}
+
 // InitializeChainID fetches and caches the chain ID from the core service
 func (e *ETLService) InitializeChainID(ctx context.Context) error {
 	nodeInfoResp, err := e.core.GetNodeInfo(ctx, connect.NewRequest(&corev1.GetNodeInfoRequest{}))

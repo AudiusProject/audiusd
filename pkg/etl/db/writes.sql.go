@@ -11,635 +11,339 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const deleteManageEntitiesByTransactionIds = `-- name: DeleteManageEntitiesByTransactionIds :exec
-DELETE FROM etl_manage_entities_v2
-WHERE transaction_id = ANY($1::int[])
+const deregister_validator = `-- name: deregister_validator :exec
+update etl_validators set deregistered_at = $1, updated_at = $2, status = $3 where comet_address = $4
 `
 
-// delete manage entities by transaction IDs (useful for reindexing)
-func (q *Queries) DeleteManageEntitiesByTransactionIds(ctx context.Context, dollar_1 []int32) error {
-	_, err := q.db.Exec(ctx, deleteManageEntitiesByTransactionIds, dollar_1)
+type deregister_validatorParams struct {
+	DeregisteredAt pgtype.Int8      `json:"deregistered_at"`
+	UpdatedAt      pgtype.Timestamp `json:"updated_at"`
+	Status         string           `json:"status"`
+	CometAddress   string           `json:"comet_address"`
+}
+
+func (q *Queries) deregister_validator(ctx context.Context, arg deregister_validatorParams) error {
+	_, err := q.db.Exec(ctx, deregister_validator,
+		arg.DeregisteredAt,
+		arg.UpdatedAt,
+		arg.Status,
+		arg.CometAddress,
+	)
 	return err
 }
 
-const deletePlaysByTransactionIds = `-- name: DeletePlaysByTransactionIds :exec
-DELETE FROM etl_plays_v2
-WHERE transaction_id = ANY($1::int[])
+const insert_address = `-- name: insert_address :exec
+insert into etl_addresses (address, pub_key, first_seen_block_height, created_at)
+values ($1, $2, $3, $4)
+on conflict do nothing
 `
 
-// delete plays by transaction IDs (useful for reindexing)
-func (q *Queries) DeletePlaysByTransactionIds(ctx context.Context, dollar_1 []int32) error {
-	_, err := q.db.Exec(ctx, deletePlaysByTransactionIds, dollar_1)
+type insert_addressParams struct {
+	Address              string           `json:"address"`
+	PubKey               []byte           `json:"pub_key"`
+	FirstSeenBlockHeight pgtype.Int8      `json:"first_seen_block_height"`
+	CreatedAt            pgtype.Timestamp `json:"created_at"`
+}
+
+func (q *Queries) insert_address(ctx context.Context, arg insert_addressParams) error {
+	_, err := q.db.Exec(ctx, insert_address,
+		arg.Address,
+		arg.PubKey,
+		arg.FirstSeenBlockHeight,
+		arg.CreatedAt,
+	)
 	return err
 }
 
-const deleteTransactionsByBlockRange = `-- name: DeleteTransactionsByBlockRange :exec
-DELETE FROM etl_transactions_v2
-WHERE block_id IN (
-    SELECT id FROM etl_blocks
-    WHERE block_height BETWEEN $1 AND $2
-)
+const insert_block = `-- name: insert_block :exec
+insert into etl_blocks (proposer_address, block_height, block_time)
+values ($1, $2, $3)
 `
 
-type DeleteTransactionsByBlockRangeParams struct {
-	BlockHeight   int64 `json:"block_height"`
-	BlockHeight_2 int64 `json:"block_height_2"`
-}
-
-// delete transactions by block height range (useful for reindexing)
-func (q *Queries) DeleteTransactionsByBlockRange(ctx context.Context, arg DeleteTransactionsByBlockRangeParams) error {
-	_, err := q.db.Exec(ctx, deleteTransactionsByBlockRange, arg.BlockHeight, arg.BlockHeight_2)
-	return err
-}
-
-const getOrCreateAddress = `-- name: GetOrCreateAddress :one
-
-INSERT INTO etl_addresses (address, first_seen_block_id)
-VALUES ($1, $2)
-ON CONFLICT (address) DO UPDATE SET address = EXCLUDED.address
-RETURNING id
-`
-
-type GetOrCreateAddressParams struct {
-	Address          string      `json:"address"`
-	FirstSeenBlockID pgtype.Int4 `json:"first_seen_block_id"`
-}
-
-// Normalized write queries for ETL database
-// Uses the new schema with proper foreign key relationships
-// Helper function to get or create address
-func (q *Queries) GetOrCreateAddress(ctx context.Context, arg GetOrCreateAddressParams) (int32, error) {
-	row := q.db.QueryRow(ctx, getOrCreateAddress, arg.Address, arg.FirstSeenBlockID)
-	var id int32
-	err := row.Scan(&id)
-	return id, err
-}
-
-const insertBlock = `-- name: InsertBlock :one
-INSERT INTO etl_blocks (
-    proposer_address,
-    block_height,
-    block_time
-) VALUES ($1, $2, $3)
-RETURNING id, proposer_address, block_height, block_time, created_at, updated_at
-`
-
-type InsertBlockParams struct {
+type insert_blockParams struct {
 	ProposerAddress string           `json:"proposer_address"`
 	BlockHeight     int64            `json:"block_height"`
 	BlockTime       pgtype.Timestamp `json:"block_time"`
 }
 
-// insert a new block record (unchanged)
-func (q *Queries) InsertBlock(ctx context.Context, arg InsertBlockParams) (EtlBlock, error) {
-	row := q.db.QueryRow(ctx, insertBlock, arg.ProposerAddress, arg.BlockHeight, arg.BlockTime)
-	var i EtlBlock
-	err := row.Scan(
-		&i.ID,
-		&i.ProposerAddress,
-		&i.BlockHeight,
-		&i.BlockTime,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
+func (q *Queries) insert_block(ctx context.Context, arg insert_blockParams) error {
+	_, err := q.db.Exec(ctx, insert_block, arg.ProposerAddress, arg.BlockHeight, arg.BlockTime)
+	return err
 }
 
-const insertManageEntities = `-- name: InsertManageEntities :many
-INSERT INTO etl_manage_entities_v2 (
-    transaction_id,
-    address_id,
-    entity_type,
-    entity_id,
-    action,
-    metadata,
-    signature,
-    signer_address_id,
-    nonce
-) VALUES (
-    unnest($1::int[]),
-    unnest($2::int[]),
-    unnest($3::text[]),
-    unnest($4::bigint[]),
-    unnest($5::text[]),
-    unnest($6::text[]),
-    unnest($7::text[]),
-    unnest($8::int[]),
-    unnest($9::text[])
-) ON CONFLICT DO NOTHING
-RETURNING id, transaction_id, address_id, entity_type, entity_id, action, metadata, signature, signer_address_id, nonce
+const insert_manage_entity = `-- name: insert_manage_entity :exec
+insert into etl_manage_entities (address, entity_type, entity_id, action, metadata, signature, signer, nonce, block_height, tx_hash, created_at)
+values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 `
 
-type InsertManageEntitiesParams struct {
-	Column1 []int32  `json:"column_1"`
-	Column2 []int32  `json:"column_2"`
-	Column3 []string `json:"column_3"`
-	Column4 []int64  `json:"column_4"`
-	Column5 []string `json:"column_5"`
-	Column6 []string `json:"column_6"`
-	Column7 []string `json:"column_7"`
-	Column8 []int32  `json:"column_8"`
-	Column9 []string `json:"column_9"`
+type insert_manage_entityParams struct {
+	Address     string           `json:"address"`
+	EntityType  string           `json:"entity_type"`
+	EntityID    int64            `json:"entity_id"`
+	Action      string           `json:"action"`
+	Metadata    pgtype.Text      `json:"metadata"`
+	Signature   string           `json:"signature"`
+	Signer      string           `json:"signer"`
+	Nonce       string           `json:"nonce"`
+	BlockHeight int64            `json:"block_height"`
+	TxHash      string           `json:"tx_hash"`
+	CreatedAt   pgtype.Timestamp `json:"created_at"`
 }
 
-// insert multiple manage entity records with normalized schema
-func (q *Queries) InsertManageEntities(ctx context.Context, arg InsertManageEntitiesParams) ([]EtlManageEntitiesV2, error) {
-	rows, err := q.db.Query(ctx, insertManageEntities,
-		arg.Column1,
-		arg.Column2,
-		arg.Column3,
-		arg.Column4,
-		arg.Column5,
-		arg.Column6,
-		arg.Column7,
-		arg.Column8,
-		arg.Column9,
-	)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []EtlManageEntitiesV2
-	for rows.Next() {
-		var i EtlManageEntitiesV2
-		if err := rows.Scan(
-			&i.ID,
-			&i.TransactionID,
-			&i.AddressID,
-			&i.EntityType,
-			&i.EntityID,
-			&i.Action,
-			&i.Metadata,
-			&i.Signature,
-			&i.SignerAddressID,
-			&i.Nonce,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const insertManageEntity = `-- name: InsertManageEntity :one
-INSERT INTO etl_manage_entities_v2 (
-    transaction_id,
-    address_id,
-    entity_type,
-    entity_id,
-    action,
-    metadata,
-    signature,
-    signer_address_id,
-    nonce
-) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-RETURNING id, transaction_id, address_id, entity_type, entity_id, action, metadata, signature, signer_address_id, nonce
-`
-
-type InsertManageEntityParams struct {
-	TransactionID   int32       `json:"transaction_id"`
-	AddressID       int32       `json:"address_id"`
-	EntityType      string      `json:"entity_type"`
-	EntityID        int64       `json:"entity_id"`
-	Action          string      `json:"action"`
-	Metadata        pgtype.Text `json:"metadata"`
-	Signature       string      `json:"signature"`
-	SignerAddressID int32       `json:"signer_address_id"`
-	Nonce           string      `json:"nonce"`
-}
-
-// insert a new manage entity record with normalized schema
-func (q *Queries) InsertManageEntity(ctx context.Context, arg InsertManageEntityParams) (EtlManageEntitiesV2, error) {
-	row := q.db.QueryRow(ctx, insertManageEntity,
-		arg.TransactionID,
-		arg.AddressID,
+func (q *Queries) insert_manage_entity(ctx context.Context, arg insert_manage_entityParams) error {
+	_, err := q.db.Exec(ctx, insert_manage_entity,
+		arg.Address,
 		arg.EntityType,
 		arg.EntityID,
 		arg.Action,
 		arg.Metadata,
 		arg.Signature,
-		arg.SignerAddressID,
+		arg.Signer,
 		arg.Nonce,
+		arg.BlockHeight,
+		arg.TxHash,
+		arg.CreatedAt,
 	)
-	var i EtlManageEntitiesV2
-	err := row.Scan(
-		&i.ID,
-		&i.TransactionID,
-		&i.AddressID,
-		&i.EntityType,
-		&i.EntityID,
-		&i.Action,
-		&i.Metadata,
-		&i.Signature,
-		&i.SignerAddressID,
-		&i.Nonce,
-	)
-	return i, err
+	return err
 }
 
-const insertPlay = `-- name: InsertPlay :one
-INSERT INTO etl_plays_v2 (
-    transaction_id,
-    address_id,
-    track_id,
-    city,
-    region,
-    country,
-    played_at
-) VALUES ($1, $2, $3, $4, $5, $6, $7)
-RETURNING id, transaction_id, address_id, track_id, city, region, country, played_at
+const insert_play = `-- name: insert_play :exec
+insert into etl_plays (user_id, track_id, city, region, country, played_at, block_height, tx_hash, listened_at, recorded_at)
+values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 `
 
-type InsertPlayParams struct {
-	TransactionID int32            `json:"transaction_id"`
-	AddressID     int32            `json:"address_id"`
-	TrackID       string           `json:"track_id"`
-	City          pgtype.Text      `json:"city"`
-	Region        pgtype.Text      `json:"region"`
-	Country       pgtype.Text      `json:"country"`
-	PlayedAt      pgtype.Timestamp `json:"played_at"`
+type insert_playParams struct {
+	UserID      string           `json:"user_id"`
+	TrackID     string           `json:"track_id"`
+	City        string           `json:"city"`
+	Region      string           `json:"region"`
+	Country     string           `json:"country"`
+	PlayedAt    pgtype.Timestamp `json:"played_at"`
+	BlockHeight int64            `json:"block_height"`
+	TxHash      string           `json:"tx_hash"`
+	ListenedAt  pgtype.Timestamp `json:"listened_at"`
+	RecordedAt  pgtype.Timestamp `json:"recorded_at"`
 }
 
-// insert a new play record with normalized schema
-func (q *Queries) InsertPlay(ctx context.Context, arg InsertPlayParams) (EtlPlaysV2, error) {
-	row := q.db.QueryRow(ctx, insertPlay,
-		arg.TransactionID,
-		arg.AddressID,
+func (q *Queries) insert_play(ctx context.Context, arg insert_playParams) error {
+	_, err := q.db.Exec(ctx, insert_play,
+		arg.UserID,
 		arg.TrackID,
 		arg.City,
 		arg.Region,
 		arg.Country,
 		arg.PlayedAt,
+		arg.BlockHeight,
+		arg.TxHash,
+		arg.ListenedAt,
+		arg.RecordedAt,
 	)
-	var i EtlPlaysV2
-	err := row.Scan(
-		&i.ID,
-		&i.TransactionID,
-		&i.AddressID,
-		&i.TrackID,
-		&i.City,
-		&i.Region,
-		&i.Country,
-		&i.PlayedAt,
-	)
-	return i, err
+	return err
 }
 
-const insertPlays = `-- name: InsertPlays :many
-INSERT INTO etl_plays_v2 (
-    transaction_id,
-    address_id,
-    track_id,
-    city,
-    region,
-    country,
-    played_at
-) VALUES (
-    unnest($1::int[]),
-    unnest($2::int[]),
-    unnest($3::text[]),
-    unnest($4::text[]),
-    unnest($5::text[]),
-    unnest($6::text[]),
-    unnest($7::timestamp[])
-) ON CONFLICT DO NOTHING
-RETURNING id, transaction_id, address_id, track_id, city, region, country, played_at
+const insert_sla_node_report = `-- name: insert_sla_node_report :exec
+insert into etl_sla_node_reports (sla_rollup_id, address, num_blocks_proposed, challenges_received, challenges_failed, block_height, tx_hash, created_at)
+values ($1, $2, $3, $4, $5, $6, $7, $8)
 `
 
-type InsertPlaysParams struct {
-	Column1 []int32            `json:"column_1"`
-	Column2 []int32            `json:"column_2"`
-	Column3 []string           `json:"column_3"`
-	Column4 []string           `json:"column_4"`
-	Column5 []string           `json:"column_5"`
-	Column6 []string           `json:"column_6"`
-	Column7 []pgtype.Timestamp `json:"column_7"`
+type insert_sla_node_reportParams struct {
+	SlaRollupID        int32            `json:"sla_rollup_id"`
+	Address            string           `json:"address"`
+	NumBlocksProposed  int32            `json:"num_blocks_proposed"`
+	ChallengesReceived int32            `json:"challenges_received"`
+	ChallengesFailed   int32            `json:"challenges_failed"`
+	BlockHeight        int64            `json:"block_height"`
+	TxHash             string           `json:"tx_hash"`
+	CreatedAt          pgtype.Timestamp `json:"created_at"`
 }
 
-// insert multiple play records with normalized schema
-func (q *Queries) InsertPlays(ctx context.Context, arg InsertPlaysParams) ([]EtlPlaysV2, error) {
-	rows, err := q.db.Query(ctx, insertPlays,
-		arg.Column1,
-		arg.Column2,
-		arg.Column3,
-		arg.Column4,
-		arg.Column5,
-		arg.Column6,
-		arg.Column7,
+func (q *Queries) insert_sla_node_report(ctx context.Context, arg insert_sla_node_reportParams) error {
+	_, err := q.db.Exec(ctx, insert_sla_node_report,
+		arg.SlaRollupID,
+		arg.Address,
+		arg.NumBlocksProposed,
+		arg.ChallengesReceived,
+		arg.ChallengesFailed,
+		arg.BlockHeight,
+		arg.TxHash,
+		arg.CreatedAt,
 	)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []EtlPlaysV2
-	for rows.Next() {
-		var i EtlPlaysV2
-		if err := rows.Scan(
-			&i.ID,
-			&i.TransactionID,
-			&i.AddressID,
-			&i.TrackID,
-			&i.City,
-			&i.Region,
-			&i.Country,
-			&i.PlayedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
+	return err
 }
 
-const insertRelease = `-- name: InsertRelease :one
-INSERT INTO etl_releases_v2 (
-    transaction_id,
-    release_data
-) VALUES ($1, $2)
-RETURNING id, transaction_id, release_data
+const insert_sla_rollup = `-- name: insert_sla_rollup :exec
+insert into etl_sla_rollups (block_start, block_end, block_height, validator_count, block_quota, tx_hash, created_at)
+values ($1, $2, $3, $4, $5, $6, $7)
 `
 
-type InsertReleaseParams struct {
-	TransactionID int32  `json:"transaction_id"`
-	ReleaseData   []byte `json:"release_data"`
+type insert_sla_rollupParams struct {
+	BlockStart     int64            `json:"block_start"`
+	BlockEnd       int64            `json:"block_end"`
+	BlockHeight    int64            `json:"block_height"`
+	ValidatorCount int32            `json:"validator_count"`
+	BlockQuota     int32            `json:"block_quota"`
+	TxHash         string           `json:"tx_hash"`
+	CreatedAt      pgtype.Timestamp `json:"created_at"`
 }
 
-// insert a new release record with normalized schema
-func (q *Queries) InsertRelease(ctx context.Context, arg InsertReleaseParams) (EtlReleasesV2, error) {
-	row := q.db.QueryRow(ctx, insertRelease, arg.TransactionID, arg.ReleaseData)
-	var i EtlReleasesV2
-	err := row.Scan(&i.ID, &i.TransactionID, &i.ReleaseData)
-	return i, err
-}
-
-const insertSlaNodeReport = `-- name: InsertSlaNodeReport :one
-INSERT INTO etl_sla_node_reports_v2 (
-    sla_rollup_id,
-    address_id,
-    num_blocks_proposed
-) VALUES ($1, $2, $3)
-RETURNING id, sla_rollup_id, address_id, num_blocks_proposed
-`
-
-type InsertSlaNodeReportParams struct {
-	SlaRollupID       int32 `json:"sla_rollup_id"`
-	AddressID         int32 `json:"address_id"`
-	NumBlocksProposed int32 `json:"num_blocks_proposed"`
-}
-
-// insert a new SLA node report record with normalized schema
-func (q *Queries) InsertSlaNodeReport(ctx context.Context, arg InsertSlaNodeReportParams) (EtlSlaNodeReportsV2, error) {
-	row := q.db.QueryRow(ctx, insertSlaNodeReport, arg.SlaRollupID, arg.AddressID, arg.NumBlocksProposed)
-	var i EtlSlaNodeReportsV2
-	err := row.Scan(
-		&i.ID,
-		&i.SlaRollupID,
-		&i.AddressID,
-		&i.NumBlocksProposed,
-	)
-	return i, err
-}
-
-const insertSlaRollup = `-- name: InsertSlaRollup :one
-INSERT INTO etl_sla_rollups_v2 (
-    transaction_id,
-    timestamp,
-    block_start,
-    block_end
-) VALUES ($1, $2, $3, $4)
-RETURNING id, transaction_id, timestamp, block_start, block_end
-`
-
-type InsertSlaRollupParams struct {
-	TransactionID int32            `json:"transaction_id"`
-	Timestamp     pgtype.Timestamp `json:"timestamp"`
-	BlockStart    int64            `json:"block_start"`
-	BlockEnd      int64            `json:"block_end"`
-}
-
-// insert a new SLA rollup record with normalized schema
-func (q *Queries) InsertSlaRollup(ctx context.Context, arg InsertSlaRollupParams) (EtlSlaRollupsV2, error) {
-	row := q.db.QueryRow(ctx, insertSlaRollup,
-		arg.TransactionID,
-		arg.Timestamp,
+func (q *Queries) insert_sla_rollup(ctx context.Context, arg insert_sla_rollupParams) error {
+	_, err := q.db.Exec(ctx, insert_sla_rollup,
 		arg.BlockStart,
 		arg.BlockEnd,
+		arg.BlockHeight,
+		arg.ValidatorCount,
+		arg.BlockQuota,
+		arg.TxHash,
+		arg.CreatedAt,
 	)
-	var i EtlSlaRollupsV2
-	err := row.Scan(
-		&i.ID,
-		&i.TransactionID,
-		&i.Timestamp,
-		&i.BlockStart,
-		&i.BlockEnd,
-	)
-	return i, err
+	return err
 }
 
-const insertStorageProof = `-- name: InsertStorageProof :one
-INSERT INTO etl_storage_proofs_v2 (
-    transaction_id,
-    height,
-    address_id,
-    prover_addresses,
-    cid,
-    proof_signature
-) VALUES ($1, $2, $3, $4, $5, $6)
-RETURNING id, transaction_id, height, address_id, prover_addresses, cid, proof_signature
+const insert_storage_proof = `-- name: insert_storage_proof :exec
+insert into etl_storage_proofs (height, address, prover_addresses, cid, proof_signature, block_height, tx_hash, created_at)
+values ($1, $2, $3, $4, $5, $6, $7, $8)
 `
 
-type InsertStorageProofParams struct {
-	TransactionID   int32    `json:"transaction_id"`
-	Height          int64    `json:"height"`
-	AddressID       int32    `json:"address_id"`
-	ProverAddresses []string `json:"prover_addresses"`
-	Cid             string   `json:"cid"`
-	ProofSignature  []byte   `json:"proof_signature"`
+type insert_storage_proofParams struct {
+	Height          int64            `json:"height"`
+	Address         string           `json:"address"`
+	ProverAddresses []string         `json:"prover_addresses"`
+	Cid             string           `json:"cid"`
+	ProofSignature  []byte           `json:"proof_signature"`
+	BlockHeight     int64            `json:"block_height"`
+	TxHash          string           `json:"tx_hash"`
+	CreatedAt       pgtype.Timestamp `json:"created_at"`
 }
 
-// insert a new storage proof record with normalized schema
-func (q *Queries) InsertStorageProof(ctx context.Context, arg InsertStorageProofParams) (EtlStorageProofsV2, error) {
-	row := q.db.QueryRow(ctx, insertStorageProof,
-		arg.TransactionID,
+func (q *Queries) insert_storage_proof(ctx context.Context, arg insert_storage_proofParams) error {
+	_, err := q.db.Exec(ctx, insert_storage_proof,
 		arg.Height,
-		arg.AddressID,
+		arg.Address,
 		arg.ProverAddresses,
 		arg.Cid,
 		arg.ProofSignature,
-	)
-	var i EtlStorageProofsV2
-	err := row.Scan(
-		&i.ID,
-		&i.TransactionID,
-		&i.Height,
-		&i.AddressID,
-		&i.ProverAddresses,
-		&i.Cid,
-		&i.ProofSignature,
-	)
-	return i, err
-}
-
-const insertStorageProofVerification = `-- name: InsertStorageProofVerification :one
-INSERT INTO etl_storage_proof_verifications_v2 (
-    transaction_id,
-    height,
-    proof
-) VALUES ($1, $2, $3)
-RETURNING id, transaction_id, height, proof
-`
-
-type InsertStorageProofVerificationParams struct {
-	TransactionID int32  `json:"transaction_id"`
-	Height        int64  `json:"height"`
-	Proof         []byte `json:"proof"`
-}
-
-// insert a new storage proof verification record with normalized schema
-func (q *Queries) InsertStorageProofVerification(ctx context.Context, arg InsertStorageProofVerificationParams) (EtlStorageProofVerificationsV2, error) {
-	row := q.db.QueryRow(ctx, insertStorageProofVerification, arg.TransactionID, arg.Height, arg.Proof)
-	var i EtlStorageProofVerificationsV2
-	err := row.Scan(
-		&i.ID,
-		&i.TransactionID,
-		&i.Height,
-		&i.Proof,
-	)
-	return i, err
-}
-
-const insertTransaction = `-- name: InsertTransaction :one
-INSERT INTO etl_transactions_v2 (
-    tx_hash,
-    block_id,
-    tx_index,
-    tx_type
-) VALUES ($1, $2, $3, $4)
-ON CONFLICT (tx_hash, block_id) DO NOTHING
-RETURNING id, tx_hash, block_id, tx_index, tx_type, created_at
-`
-
-type InsertTransactionParams struct {
-	TxHash  string `json:"tx_hash"`
-	BlockID int32  `json:"block_id"`
-	TxIndex int32  `json:"tx_index"`
-	TxType  string `json:"tx_type"`
-}
-
-// insert a new transaction record with normalized schema
-func (q *Queries) InsertTransaction(ctx context.Context, arg InsertTransactionParams) (EtlTransactionsV2, error) {
-	row := q.db.QueryRow(ctx, insertTransaction,
+		arg.BlockHeight,
 		arg.TxHash,
-		arg.BlockID,
+		arg.CreatedAt,
+	)
+	return err
+}
+
+const insert_storage_proof_verification = `-- name: insert_storage_proof_verification :exec
+insert into etl_storage_proof_verifications (height, proof, block_height, tx_hash, created_at)
+values ($1, $2, $3, $4, $5)
+`
+
+type insert_storage_proof_verificationParams struct {
+	Height      int64            `json:"height"`
+	Proof       []byte           `json:"proof"`
+	BlockHeight int64            `json:"block_height"`
+	TxHash      string           `json:"tx_hash"`
+	CreatedAt   pgtype.Timestamp `json:"created_at"`
+}
+
+func (q *Queries) insert_storage_proof_verification(ctx context.Context, arg insert_storage_proof_verificationParams) error {
+	_, err := q.db.Exec(ctx, insert_storage_proof_verification,
+		arg.Height,
+		arg.Proof,
+		arg.BlockHeight,
+		arg.TxHash,
+		arg.CreatedAt,
+	)
+	return err
+}
+
+const insert_transaction = `-- name: insert_transaction :exec
+insert into etl_transactions (tx_hash, block_height, tx_index, tx_type, created_at)
+values ($1, $2, $3, $4, $5)
+`
+
+type insert_transactionParams struct {
+	TxHash      string           `json:"tx_hash"`
+	BlockHeight int64            `json:"block_height"`
+	TxIndex     int32            `json:"tx_index"`
+	TxType      string           `json:"tx_type"`
+	CreatedAt   pgtype.Timestamp `json:"created_at"`
+}
+
+func (q *Queries) insert_transaction(ctx context.Context, arg insert_transactionParams) error {
+	_, err := q.db.Exec(ctx, insert_transaction,
+		arg.TxHash,
+		arg.BlockHeight,
 		arg.TxIndex,
 		arg.TxType,
+		arg.CreatedAt,
 	)
-	var i EtlTransactionsV2
-	err := row.Scan(
-		&i.ID,
-		&i.TxHash,
-		&i.BlockID,
-		&i.TxIndex,
-		&i.TxType,
-		&i.CreatedAt,
-	)
-	return i, err
+	return err
 }
 
-const insertValidatorDeregistration = `-- name: InsertValidatorDeregistration :one
-INSERT INTO etl_validator_deregistrations_v2 (
-    transaction_id,
-    comet_address,
-    comet_pubkey
-) VALUES ($1, $2, $3)
-RETURNING id, transaction_id, comet_address, comet_pubkey
+const insert_validator_deregistration = `-- name: insert_validator_deregistration :exec
+insert into etl_validator_deregistrations (comet_address, comet_pubkey, block_height, tx_hash)
+values ($1, $2, $3, $4)
 `
 
-type InsertValidatorDeregistrationParams struct {
-	TransactionID int32  `json:"transaction_id"`
-	CometAddress  string `json:"comet_address"`
-	CometPubkey   []byte `json:"comet_pubkey"`
+type insert_validator_deregistrationParams struct {
+	CometAddress string `json:"comet_address"`
+	CometPubkey  []byte `json:"comet_pubkey"`
+	BlockHeight  int64  `json:"block_height"`
+	TxHash       string `json:"tx_hash"`
 }
 
-// insert a new validator deregistration record with normalized schema
-func (q *Queries) InsertValidatorDeregistration(ctx context.Context, arg InsertValidatorDeregistrationParams) (EtlValidatorDeregistrationsV2, error) {
-	row := q.db.QueryRow(ctx, insertValidatorDeregistration, arg.TransactionID, arg.CometAddress, arg.CometPubkey)
-	var i EtlValidatorDeregistrationsV2
-	err := row.Scan(
-		&i.ID,
-		&i.TransactionID,
-		&i.CometAddress,
-		&i.CometPubkey,
+func (q *Queries) insert_validator_deregistration(ctx context.Context, arg insert_validator_deregistrationParams) error {
+	_, err := q.db.Exec(ctx, insert_validator_deregistration,
+		arg.CometAddress,
+		arg.CometPubkey,
+		arg.BlockHeight,
+		arg.TxHash,
 	)
-	return i, err
+	return err
 }
 
-const insertValidatorMisbehaviorDeregistration = `-- name: InsertValidatorMisbehaviorDeregistration :one
-INSERT INTO etl_validator_misbehavior_deregistrations_v2 (
-    transaction_id,
-    comet_address,
-    pub_key
-) VALUES ($1, $2, $3)
-RETURNING id, transaction_id, comet_address, pub_key
+const insert_validator_misbehavior_deregistration = `-- name: insert_validator_misbehavior_deregistration :exec
+insert into etl_validator_misbehavior_deregistrations (comet_address, pub_key, block_height, tx_hash, created_at)
+values ($1, $2, $3, $4, $5)
 `
 
-type InsertValidatorMisbehaviorDeregistrationParams struct {
-	TransactionID int32  `json:"transaction_id"`
-	CometAddress  string `json:"comet_address"`
-	PubKey        []byte `json:"pub_key"`
+type insert_validator_misbehavior_deregistrationParams struct {
+	CometAddress string           `json:"comet_address"`
+	PubKey       []byte           `json:"pub_key"`
+	BlockHeight  int64            `json:"block_height"`
+	TxHash       string           `json:"tx_hash"`
+	CreatedAt    pgtype.Timestamp `json:"created_at"`
 }
 
-// insert a new validator misbehavior deregistration record with normalized schema
-func (q *Queries) InsertValidatorMisbehaviorDeregistration(ctx context.Context, arg InsertValidatorMisbehaviorDeregistrationParams) (EtlValidatorMisbehaviorDeregistrationsV2, error) {
-	row := q.db.QueryRow(ctx, insertValidatorMisbehaviorDeregistration, arg.TransactionID, arg.CometAddress, arg.PubKey)
-	var i EtlValidatorMisbehaviorDeregistrationsV2
-	err := row.Scan(
-		&i.ID,
-		&i.TransactionID,
-		&i.CometAddress,
-		&i.PubKey,
+func (q *Queries) insert_validator_misbehavior_deregistration(ctx context.Context, arg insert_validator_misbehavior_deregistrationParams) error {
+	_, err := q.db.Exec(ctx, insert_validator_misbehavior_deregistration,
+		arg.CometAddress,
+		arg.PubKey,
+		arg.BlockHeight,
+		arg.TxHash,
+		arg.CreatedAt,
 	)
-	return i, err
+	return err
 }
 
-const insertValidatorRegistration = `-- name: InsertValidatorRegistration :one
-INSERT INTO etl_validator_registrations_v2 (
-    transaction_id,
-    address_id,
-    endpoint,
-    comet_address,
-    eth_block,
-    node_type,
-    spid,
-    comet_pubkey,
-    voting_power
-) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-RETURNING id, transaction_id, address_id, endpoint, comet_address, eth_block, node_type, spid, comet_pubkey, voting_power
+const insert_validator_registration = `-- name: insert_validator_registration :exec
+insert into etl_validator_registrations (address, endpoint, comet_address, eth_block, node_type, spid, comet_pubkey, voting_power, block_height, tx_hash)
+values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 `
 
-type InsertValidatorRegistrationParams struct {
-	TransactionID int32  `json:"transaction_id"`
-	AddressID     int32  `json:"address_id"`
-	Endpoint      string `json:"endpoint"`
-	CometAddress  string `json:"comet_address"`
-	EthBlock      string `json:"eth_block"`
-	NodeType      string `json:"node_type"`
-	Spid          string `json:"spid"`
-	CometPubkey   []byte `json:"comet_pubkey"`
-	VotingPower   int64  `json:"voting_power"`
+type insert_validator_registrationParams struct {
+	Address      string `json:"address"`
+	Endpoint     string `json:"endpoint"`
+	CometAddress string `json:"comet_address"`
+	EthBlock     string `json:"eth_block"`
+	NodeType     string `json:"node_type"`
+	Spid         string `json:"spid"`
+	CometPubkey  []byte `json:"comet_pubkey"`
+	VotingPower  int64  `json:"voting_power"`
+	BlockHeight  int64  `json:"block_height"`
+	TxHash       string `json:"tx_hash"`
 }
 
-// insert a new validator registration record with normalized schema
-func (q *Queries) InsertValidatorRegistration(ctx context.Context, arg InsertValidatorRegistrationParams) (EtlValidatorRegistrationsV2, error) {
-	row := q.db.QueryRow(ctx, insertValidatorRegistration,
-		arg.TransactionID,
-		arg.AddressID,
+func (q *Queries) insert_validator_registration(ctx context.Context, arg insert_validator_registrationParams) error {
+	_, err := q.db.Exec(ctx, insert_validator_registration,
+		arg.Address,
 		arg.Endpoint,
 		arg.CometAddress,
 		arg.EthBlock,
@@ -647,88 +351,44 @@ func (q *Queries) InsertValidatorRegistration(ctx context.Context, arg InsertVal
 		arg.Spid,
 		arg.CometPubkey,
 		arg.VotingPower,
+		arg.BlockHeight,
+		arg.TxHash,
 	)
-	var i EtlValidatorRegistrationsV2
-	err := row.Scan(
-		&i.ID,
-		&i.TransactionID,
-		&i.AddressID,
-		&i.Endpoint,
-		&i.CometAddress,
-		&i.EthBlock,
-		&i.NodeType,
-		&i.Spid,
-		&i.CometPubkey,
-		&i.VotingPower,
-	)
-	return i, err
+	return err
 }
 
-const insertValidatorRegistrationLegacy = `-- name: InsertValidatorRegistrationLegacy :one
-INSERT INTO etl_validator_registrations_legacy_v2 (
-    transaction_id,
-    endpoint,
-    comet_address,
-    eth_block,
-    node_type,
-    sp_id,
-    pub_key,
-    power
-) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-RETURNING id, transaction_id, endpoint, comet_address, eth_block, node_type, sp_id, pub_key, power
+const register_validator = `-- name: register_validator :exec
+insert into etl_validators (address, endpoint, comet_address, node_type, spid, voting_power, status, registered_at, deregistered_at, created_at, updated_at)
+values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 `
 
-type InsertValidatorRegistrationLegacyParams struct {
-	TransactionID int32  `json:"transaction_id"`
-	Endpoint      string `json:"endpoint"`
-	CometAddress  string `json:"comet_address"`
-	EthBlock      string `json:"eth_block"`
-	NodeType      string `json:"node_type"`
-	SpID          string `json:"sp_id"`
-	PubKey        []byte `json:"pub_key"`
-	Power         int64  `json:"power"`
+type register_validatorParams struct {
+	Address        string           `json:"address"`
+	Endpoint       string           `json:"endpoint"`
+	CometAddress   string           `json:"comet_address"`
+	NodeType       string           `json:"node_type"`
+	Spid           string           `json:"spid"`
+	VotingPower    int64            `json:"voting_power"`
+	Status         string           `json:"status"`
+	RegisteredAt   int64            `json:"registered_at"`
+	DeregisteredAt pgtype.Int8      `json:"deregistered_at"`
+	CreatedAt      pgtype.Timestamp `json:"created_at"`
+	UpdatedAt      pgtype.Timestamp `json:"updated_at"`
 }
 
-// insert a new legacy validator registration record with normalized schema
-func (q *Queries) InsertValidatorRegistrationLegacy(ctx context.Context, arg InsertValidatorRegistrationLegacyParams) (EtlValidatorRegistrationsLegacyV2, error) {
-	row := q.db.QueryRow(ctx, insertValidatorRegistrationLegacy,
-		arg.TransactionID,
+func (q *Queries) register_validator(ctx context.Context, arg register_validatorParams) error {
+	_, err := q.db.Exec(ctx, register_validator,
+		arg.Address,
 		arg.Endpoint,
 		arg.CometAddress,
-		arg.EthBlock,
 		arg.NodeType,
-		arg.SpID,
-		arg.PubKey,
-		arg.Power,
+		arg.Spid,
+		arg.VotingPower,
+		arg.Status,
+		arg.RegisteredAt,
+		arg.DeregisteredAt,
+		arg.CreatedAt,
+		arg.UpdatedAt,
 	)
-	var i EtlValidatorRegistrationsLegacyV2
-	err := row.Scan(
-		&i.ID,
-		&i.TransactionID,
-		&i.Endpoint,
-		&i.CometAddress,
-		&i.EthBlock,
-		&i.NodeType,
-		&i.SpID,
-		&i.PubKey,
-		&i.Power,
-	)
-	return i, err
-}
-
-const updateTransactionType = `-- name: UpdateTransactionType :exec
-UPDATE etl_transactions_v2
-SET tx_type = $2
-WHERE id = $1
-`
-
-type UpdateTransactionTypeParams struct {
-	ID     int32  `json:"id"`
-	TxType string `json:"tx_type"`
-}
-
-// Update transaction type
-func (q *Queries) UpdateTransactionType(ctx context.Context, arg UpdateTransactionTypeParams) error {
-	_, err := q.db.Exec(ctx, updateTransactionType, arg.ID, arg.TxType)
 	return err
 }
