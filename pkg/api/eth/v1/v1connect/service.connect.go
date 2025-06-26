@@ -33,8 +33,8 @@ const (
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// EthServiceIsReadyProcedure is the fully-qualified name of the EthService's IsReady RPC.
-	EthServiceIsReadyProcedure = "/eth.v1.EthService/IsReady"
+	// EthServiceGetStatusProcedure is the fully-qualified name of the EthService's GetStatus RPC.
+	EthServiceGetStatusProcedure = "/eth.v1.EthService/GetStatus"
 	// EthServiceGetRegisteredEndpointsProcedure is the fully-qualified name of the EthService's
 	// GetRegisteredEndpoints RPC.
 	EthServiceGetRegisteredEndpointsProcedure = "/eth.v1.EthService/GetRegisteredEndpoints"
@@ -50,22 +50,21 @@ const (
 	// EthServiceIsDuplicateDelegateWalletProcedure is the fully-qualified name of the EthService's
 	// IsDuplicateDelegateWallet RPC.
 	EthServiceIsDuplicateDelegateWalletProcedure = "/eth.v1.EthService/IsDuplicateDelegateWallet"
-	// EthServiceRegisterOnEthereumProcedure is the fully-qualified name of the EthService's
-	// RegisterOnEthereum RPC.
-	EthServiceRegisterOnEthereumProcedure = "/eth.v1.EthService/RegisterOnEthereum"
+	// EthServiceRegisterProcedure is the fully-qualified name of the EthService's Register RPC.
+	EthServiceRegisterProcedure = "/eth.v1.EthService/Register"
 	// EthServiceSubscribeProcedure is the fully-qualified name of the EthService's Subscribe RPC.
 	EthServiceSubscribeProcedure = "/eth.v1.EthService/Subscribe"
 )
 
 // EthServiceClient is a client for the eth.v1.EthService service.
 type EthServiceClient interface {
-	IsReady(context.Context, *connect.Request[v1.IsReadyRequest]) (*connect.Response[v1.IsReadyResponse], error)
+	GetStatus(context.Context, *connect.Request[v1.GetStatusRequest]) (*connect.Response[v1.GetStatusResponse], error)
 	GetRegisteredEndpoints(context.Context, *connect.Request[v1.GetRegisteredEndpointsRequest]) (*connect.Response[v1.GetRegisteredEndpointsResponse], error)
 	GetRegisteredEndpointInfo(context.Context, *connect.Request[v1.GetRegisteredEndpointInfoRequest]) (*connect.Response[v1.GetRegisteredEndpointInfoResponse], error)
 	GetServiceProviders(context.Context, *connect.Request[v1.GetServiceProvidersRequest]) (*connect.Response[v1.GetServiceProvidersResponse], error)
 	GetLatestFundingRound(context.Context, *connect.Request[v1.GetLatestFundingRoundRequest]) (*connect.Response[v1.GetLatestFundingRoundResponse], error)
 	IsDuplicateDelegateWallet(context.Context, *connect.Request[v1.IsDuplicateDelegateWalletRequest]) (*connect.Response[v1.IsDuplicateDelegateWalletResponse], error)
-	RegisterOnEthereum(context.Context, *connect.Request[v1.RegisterOnEthereumRequest]) (*connect.Response[v1.RegisterOnEthereumResponse], error)
+	Register(context.Context, *connect.Request[v1.RegisterRequest]) (*connect.Response[v1.RegisterResponse], error)
 	Subscribe(context.Context, *connect.Request[v1.SubscriptionRequest]) (*connect.ServerStreamForClient[v1.SubscriptionResponse], error)
 }
 
@@ -80,10 +79,10 @@ func NewEthServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 	baseURL = strings.TrimRight(baseURL, "/")
 	ethServiceMethods := v1.File_eth_v1_service_proto.Services().ByName("EthService").Methods()
 	return &ethServiceClient{
-		isReady: connect.NewClient[v1.IsReadyRequest, v1.IsReadyResponse](
+		getStatus: connect.NewClient[v1.GetStatusRequest, v1.GetStatusResponse](
 			httpClient,
-			baseURL+EthServiceIsReadyProcedure,
-			connect.WithSchema(ethServiceMethods.ByName("IsReady")),
+			baseURL+EthServiceGetStatusProcedure,
+			connect.WithSchema(ethServiceMethods.ByName("GetStatus")),
 			connect.WithClientOptions(opts...),
 		),
 		getRegisteredEndpoints: connect.NewClient[v1.GetRegisteredEndpointsRequest, v1.GetRegisteredEndpointsResponse](
@@ -116,10 +115,10 @@ func NewEthServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			connect.WithSchema(ethServiceMethods.ByName("IsDuplicateDelegateWallet")),
 			connect.WithClientOptions(opts...),
 		),
-		registerOnEthereum: connect.NewClient[v1.RegisterOnEthereumRequest, v1.RegisterOnEthereumResponse](
+		register: connect.NewClient[v1.RegisterRequest, v1.RegisterResponse](
 			httpClient,
-			baseURL+EthServiceRegisterOnEthereumProcedure,
-			connect.WithSchema(ethServiceMethods.ByName("RegisterOnEthereum")),
+			baseURL+EthServiceRegisterProcedure,
+			connect.WithSchema(ethServiceMethods.ByName("Register")),
 			connect.WithClientOptions(opts...),
 		),
 		subscribe: connect.NewClient[v1.SubscriptionRequest, v1.SubscriptionResponse](
@@ -133,19 +132,19 @@ func NewEthServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 
 // ethServiceClient implements EthServiceClient.
 type ethServiceClient struct {
-	isReady                   *connect.Client[v1.IsReadyRequest, v1.IsReadyResponse]
+	getStatus                 *connect.Client[v1.GetStatusRequest, v1.GetStatusResponse]
 	getRegisteredEndpoints    *connect.Client[v1.GetRegisteredEndpointsRequest, v1.GetRegisteredEndpointsResponse]
 	getRegisteredEndpointInfo *connect.Client[v1.GetRegisteredEndpointInfoRequest, v1.GetRegisteredEndpointInfoResponse]
 	getServiceProviders       *connect.Client[v1.GetServiceProvidersRequest, v1.GetServiceProvidersResponse]
 	getLatestFundingRound     *connect.Client[v1.GetLatestFundingRoundRequest, v1.GetLatestFundingRoundResponse]
 	isDuplicateDelegateWallet *connect.Client[v1.IsDuplicateDelegateWalletRequest, v1.IsDuplicateDelegateWalletResponse]
-	registerOnEthereum        *connect.Client[v1.RegisterOnEthereumRequest, v1.RegisterOnEthereumResponse]
+	register                  *connect.Client[v1.RegisterRequest, v1.RegisterResponse]
 	subscribe                 *connect.Client[v1.SubscriptionRequest, v1.SubscriptionResponse]
 }
 
-// IsReady calls eth.v1.EthService.IsReady.
-func (c *ethServiceClient) IsReady(ctx context.Context, req *connect.Request[v1.IsReadyRequest]) (*connect.Response[v1.IsReadyResponse], error) {
-	return c.isReady.CallUnary(ctx, req)
+// GetStatus calls eth.v1.EthService.GetStatus.
+func (c *ethServiceClient) GetStatus(ctx context.Context, req *connect.Request[v1.GetStatusRequest]) (*connect.Response[v1.GetStatusResponse], error) {
+	return c.getStatus.CallUnary(ctx, req)
 }
 
 // GetRegisteredEndpoints calls eth.v1.EthService.GetRegisteredEndpoints.
@@ -173,9 +172,9 @@ func (c *ethServiceClient) IsDuplicateDelegateWallet(ctx context.Context, req *c
 	return c.isDuplicateDelegateWallet.CallUnary(ctx, req)
 }
 
-// RegisterOnEthereum calls eth.v1.EthService.RegisterOnEthereum.
-func (c *ethServiceClient) RegisterOnEthereum(ctx context.Context, req *connect.Request[v1.RegisterOnEthereumRequest]) (*connect.Response[v1.RegisterOnEthereumResponse], error) {
-	return c.registerOnEthereum.CallUnary(ctx, req)
+// Register calls eth.v1.EthService.Register.
+func (c *ethServiceClient) Register(ctx context.Context, req *connect.Request[v1.RegisterRequest]) (*connect.Response[v1.RegisterResponse], error) {
+	return c.register.CallUnary(ctx, req)
 }
 
 // Subscribe calls eth.v1.EthService.Subscribe.
@@ -185,13 +184,13 @@ func (c *ethServiceClient) Subscribe(ctx context.Context, req *connect.Request[v
 
 // EthServiceHandler is an implementation of the eth.v1.EthService service.
 type EthServiceHandler interface {
-	IsReady(context.Context, *connect.Request[v1.IsReadyRequest]) (*connect.Response[v1.IsReadyResponse], error)
+	GetStatus(context.Context, *connect.Request[v1.GetStatusRequest]) (*connect.Response[v1.GetStatusResponse], error)
 	GetRegisteredEndpoints(context.Context, *connect.Request[v1.GetRegisteredEndpointsRequest]) (*connect.Response[v1.GetRegisteredEndpointsResponse], error)
 	GetRegisteredEndpointInfo(context.Context, *connect.Request[v1.GetRegisteredEndpointInfoRequest]) (*connect.Response[v1.GetRegisteredEndpointInfoResponse], error)
 	GetServiceProviders(context.Context, *connect.Request[v1.GetServiceProvidersRequest]) (*connect.Response[v1.GetServiceProvidersResponse], error)
 	GetLatestFundingRound(context.Context, *connect.Request[v1.GetLatestFundingRoundRequest]) (*connect.Response[v1.GetLatestFundingRoundResponse], error)
 	IsDuplicateDelegateWallet(context.Context, *connect.Request[v1.IsDuplicateDelegateWalletRequest]) (*connect.Response[v1.IsDuplicateDelegateWalletResponse], error)
-	RegisterOnEthereum(context.Context, *connect.Request[v1.RegisterOnEthereumRequest]) (*connect.Response[v1.RegisterOnEthereumResponse], error)
+	Register(context.Context, *connect.Request[v1.RegisterRequest]) (*connect.Response[v1.RegisterResponse], error)
 	Subscribe(context.Context, *connect.Request[v1.SubscriptionRequest], *connect.ServerStream[v1.SubscriptionResponse]) error
 }
 
@@ -202,10 +201,10 @@ type EthServiceHandler interface {
 // and JSON codecs. They also support gzip compression.
 func NewEthServiceHandler(svc EthServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
 	ethServiceMethods := v1.File_eth_v1_service_proto.Services().ByName("EthService").Methods()
-	ethServiceIsReadyHandler := connect.NewUnaryHandler(
-		EthServiceIsReadyProcedure,
-		svc.IsReady,
-		connect.WithSchema(ethServiceMethods.ByName("IsReady")),
+	ethServiceGetStatusHandler := connect.NewUnaryHandler(
+		EthServiceGetStatusProcedure,
+		svc.GetStatus,
+		connect.WithSchema(ethServiceMethods.ByName("GetStatus")),
 		connect.WithHandlerOptions(opts...),
 	)
 	ethServiceGetRegisteredEndpointsHandler := connect.NewUnaryHandler(
@@ -238,10 +237,10 @@ func NewEthServiceHandler(svc EthServiceHandler, opts ...connect.HandlerOption) 
 		connect.WithSchema(ethServiceMethods.ByName("IsDuplicateDelegateWallet")),
 		connect.WithHandlerOptions(opts...),
 	)
-	ethServiceRegisterOnEthereumHandler := connect.NewUnaryHandler(
-		EthServiceRegisterOnEthereumProcedure,
-		svc.RegisterOnEthereum,
-		connect.WithSchema(ethServiceMethods.ByName("RegisterOnEthereum")),
+	ethServiceRegisterHandler := connect.NewUnaryHandler(
+		EthServiceRegisterProcedure,
+		svc.Register,
+		connect.WithSchema(ethServiceMethods.ByName("Register")),
 		connect.WithHandlerOptions(opts...),
 	)
 	ethServiceSubscribeHandler := connect.NewServerStreamHandler(
@@ -252,8 +251,8 @@ func NewEthServiceHandler(svc EthServiceHandler, opts ...connect.HandlerOption) 
 	)
 	return "/eth.v1.EthService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case EthServiceIsReadyProcedure:
-			ethServiceIsReadyHandler.ServeHTTP(w, r)
+		case EthServiceGetStatusProcedure:
+			ethServiceGetStatusHandler.ServeHTTP(w, r)
 		case EthServiceGetRegisteredEndpointsProcedure:
 			ethServiceGetRegisteredEndpointsHandler.ServeHTTP(w, r)
 		case EthServiceGetRegisteredEndpointInfoProcedure:
@@ -264,8 +263,8 @@ func NewEthServiceHandler(svc EthServiceHandler, opts ...connect.HandlerOption) 
 			ethServiceGetLatestFundingRoundHandler.ServeHTTP(w, r)
 		case EthServiceIsDuplicateDelegateWalletProcedure:
 			ethServiceIsDuplicateDelegateWalletHandler.ServeHTTP(w, r)
-		case EthServiceRegisterOnEthereumProcedure:
-			ethServiceRegisterOnEthereumHandler.ServeHTTP(w, r)
+		case EthServiceRegisterProcedure:
+			ethServiceRegisterHandler.ServeHTTP(w, r)
 		case EthServiceSubscribeProcedure:
 			ethServiceSubscribeHandler.ServeHTTP(w, r)
 		default:
@@ -277,8 +276,8 @@ func NewEthServiceHandler(svc EthServiceHandler, opts ...connect.HandlerOption) 
 // UnimplementedEthServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedEthServiceHandler struct{}
 
-func (UnimplementedEthServiceHandler) IsReady(context.Context, *connect.Request[v1.IsReadyRequest]) (*connect.Response[v1.IsReadyResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("eth.v1.EthService.IsReady is not implemented"))
+func (UnimplementedEthServiceHandler) GetStatus(context.Context, *connect.Request[v1.GetStatusRequest]) (*connect.Response[v1.GetStatusResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("eth.v1.EthService.GetStatus is not implemented"))
 }
 
 func (UnimplementedEthServiceHandler) GetRegisteredEndpoints(context.Context, *connect.Request[v1.GetRegisteredEndpointsRequest]) (*connect.Response[v1.GetRegisteredEndpointsResponse], error) {
@@ -301,8 +300,8 @@ func (UnimplementedEthServiceHandler) IsDuplicateDelegateWallet(context.Context,
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("eth.v1.EthService.IsDuplicateDelegateWallet is not implemented"))
 }
 
-func (UnimplementedEthServiceHandler) RegisterOnEthereum(context.Context, *connect.Request[v1.RegisterOnEthereumRequest]) (*connect.Response[v1.RegisterOnEthereumResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("eth.v1.EthService.RegisterOnEthereum is not implemented"))
+func (UnimplementedEthServiceHandler) Register(context.Context, *connect.Request[v1.RegisterRequest]) (*connect.Response[v1.RegisterResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("eth.v1.EthService.Register is not implemented"))
 }
 
 func (UnimplementedEthServiceHandler) Subscribe(context.Context, *connect.Request[v1.SubscriptionRequest], *connect.ServerStream[v1.SubscriptionResponse]) error {

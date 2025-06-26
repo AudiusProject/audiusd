@@ -47,9 +47,9 @@ func (s *Server) startRegistryBridge() error {
 			s.logger.Error("timed out waiting for eth service")
 			return errors.New("timed out waiting for eth service")
 		}
-		if res, err := s.eth.IsReady(
+		if res, err := s.eth.GetStatus(
 			context.Background(),
-			connect.NewRequest(&ethv1.IsReadyRequest{}),
+			connect.NewRequest(&ethv1.GetStatusRequest{}),
 		); !res.Msg.Ready || err != nil {
 			s.logger.Info("waiting for eth service to be ready", "error", err)
 		} else if res.Msg.Ready {
@@ -356,9 +356,9 @@ func (s *Server) registerSelfOnEth() error {
 					st = "content-node"
 				}
 
-				if _, err := s.eth.RegisterOnEthereum(
+				if _, err := s.eth.Register(
 					context.Background(),
-					connect.NewRequest(&ethv1.RegisterOnEthereumRequest{
+					connect.NewRequest(&ethv1.RegisterRequest{
 						DelegateKey: keyHex,
 						Endpoint:    s.config.NodeEndpoint,
 						ServiceType: st,

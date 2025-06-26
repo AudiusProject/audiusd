@@ -6,9 +6,9 @@ import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/AudiusProject/audiusd/pkg/api/eth/v1";
 
-message IsReadyRequest {}
+message GetStatusRequest {}
 
-message IsReadyResponse {
+message GetStatusResponse {
   bool ready = 1;
 }
 
@@ -66,13 +66,13 @@ message IsDuplicateDelegateWalletResponse {
   bool is_duplicate = 1;
 }
 
-message RegisterOnEthereumRequest {
+message RegisterRequest {
   string delegate_key = 1;
   string endpoint = 2;
   string service_type = 3;
 }
 
-message RegisterOnEthereumResponse {}
+message RegisterResponse {}
 
 message SubscriptionRequest {}
 

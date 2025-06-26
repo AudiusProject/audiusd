@@ -19,8 +19,8 @@ import (
 
 var _ v1connect.EthServiceHandler = (*EthService)(nil)
 
-func (e *EthService) IsReady(context.Context, *connect.Request[v1.IsReadyRequest]) (*connect.Response[v1.IsReadyResponse], error) {
-	res := &v1.IsReadyResponse{}
+func (e *EthService) GetStatus(context.Context, *connect.Request[v1.GetStatusRequest]) (*connect.Response[v1.GetStatusResponse], error) {
+	res := &v1.GetStatusResponse{}
 	if e.isReady.Load() {
 		res.Ready = true
 	}
@@ -111,7 +111,7 @@ func (e *EthService) IsDuplicateDelegateWallet(ctx context.Context, req *connect
 }
 
 // For development purposes only
-func (e *EthService) RegisterOnEthereum(ctx context.Context, req *connect.Request[v1.RegisterOnEthereumRequest]) (*connect.Response[v1.RegisterOnEthereumResponse], error) {
+func (e *EthService) Register(ctx context.Context, req *connect.Request[v1.RegisterRequest]) (*connect.Response[v1.RegisterResponse], error) {
 	ethKey, err := common.EthToEthKey(req.Msg.DelegateKey)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create eth key %v", err))
@@ -163,7 +163,7 @@ func (e *EthService) RegisterOnEthereum(ctx context.Context, req *connect.Reques
 
 	e.logger.Infof("node %s registered on eth", req.Msg.Endpoint)
 
-	return connect.NewResponse(&v1.RegisterOnEthereumResponse{}), nil
+	return connect.NewResponse(&v1.RegisterResponse{}), nil
 }
 
 func (e *EthService) Subscribe(ctx context.Context, req *connect.Request[v1.SubscriptionRequest], stream *connect.ServerStream[v1.SubscriptionResponse]) error {
