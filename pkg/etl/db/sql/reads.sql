@@ -1,147 +1,139 @@
 -- get latest indexed block height
 -- name: GetLatestIndexedBlock :one
-select block_height 
-from etl_blocks 
-order by id desc 
-limit 1;
+SELECT block_height
+FROM etl_blocks
+ORDER BY id DESC
+LIMIT 1;
 
--- name: GetBlockRangeByTime :one
-select
-  min(block_height) as start_block,
-  max(block_height) as end_block
-from etl_blocks
-where block_time between $1 and $2;
+-- name: GetTotalTransactions :one
+select id from etl_transactions order by id desc limit 1;
 
-
--- name: GetPlaysByAddress :many
-select 
-    address,
-    track_id,
-    extract(epoch from played_at)::bigint as timestamp,
-    city,
-    country,
-    region,
-    block_height,
-    tx_hash
-from etl_plays
-where 
-    address = $1
-    and block_height between $2 and $3
-order by played_at desc
-limit $4 offset $5;
-
-
--- name: GetPlaysByTrack :many
-select 
-    address,
-    track_id,
-    extract(epoch from played_at)::bigint as timestamp,
-    city,
-    country,
-    region,
-    block_height,
-    tx_hash
-from etl_plays
-where 
-    track_id = $1
-    and block_height between $2 and $3
-order by played_at desc
-limit $4 offset $5;
-
--- name: GetPlays :many
-select 
-    address,
-    track_id,
-    extract(epoch from played_at)::bigint as timestamp,
-    city,
-    country,
-    region,
-    block_height,
-    tx_hash
-from etl_plays
-where 
-    block_height between $1 and $2
-order by played_at desc
-limit $3 offset $4;
-
-
--- get total count of plays with filtering
--- name: GetPlaysCount :one
-select count(*) as total
-from etl_plays
-where 
-    ($1::text is null or address = $1)
-    and ($2::text is null or track_id = $2)
-    and ($3::timestamp is null or $4::timestamp is null or played_at between $3 and $4);
-
--- get play count by track
--- name: GetPlayCountByTrack :one
-select count(*) as play_count 
-from etl_plays 
-where track_id = $1;
-
--- get play count by address
--- name: GetPlayCountByAddress :one
-select count(*) as play_count 
-from etl_plays 
-where address = $1;
-
--- get validator registrations
--- name: GetValidatorRegistrations :many
-select 
-    address,
-    comet_address,
-    comet_pubkey,
-    eth_block,
-    node_type,
-    spid,
-    voting_power,
-    block_height,
-    tx_hash
-from etl_validator_registrations;
-
--- get validator deregistrations
--- name: GetValidatorDeregistrations :many
-select 
-    comet_address,
-    comet_pubkey,
-    block_height,
-    tx_hash
-from etl_validator_deregistrations;
-
--- name: GetPlaysByLocation :many
-select tx_hash, address, track_id, played_at, city, region, country, created_at
-from etl_plays
-where 
-    (nullif($1, '')::text is null or lower(city) = lower($1)) and
-    (nullif($2, '')::text is null or lower(region) = lower($2)) and
-    (nullif($3, '')::text is null or lower(country) = lower($3))
-order by played_at desc
-limit $4;
-
--- name: GetAvailableCities :many
-select city, region, country, count(*) as play_count
-from etl_plays
-where city is not null
-  and (nullif($1, '')::text is null or lower(country) = lower($1))
-  and (nullif($2, '')::text is null or lower(region) = lower($2))
-group by city, region, country
-order by count(*) desc
+-- name: GetTransactionsByBlockHeightCursor :many
+select * from etl_transactions
+where block_height > $1 or (block_height = $1 and id > $2)
+order by block_height, id
 limit $3;
 
--- name: GetAvailableRegions :many
-select region, country, count(*) as play_count
-from etl_plays
-where region is not null
-  and (nullif($1, '')::text is null or lower(country) = lower($1))
-group by region, country
-order by count(*) desc
+-- name: GetPlaysByBlockHeightCursor :many
+select * from etl_plays
+where block_height > $1 or (block_height = $1 and id > $2)
+order by block_height, id
+limit $3;
+
+-- name: GetManageEntitiesByBlockHeightCursor :many
+select * from etl_manage_entities
+where block_height > $1 or (block_height = $1 and id > $2)
+order by block_height, id
+limit $3;
+
+-- name: GetValidatorRegistrationsByBlockHeightCursor :many
+select * from etl_validator_registrations
+where block_height > $1 or (block_height = $1 and id > $2)
+order by block_height, id
+limit $3;
+
+-- name: GetValidatorDeregistrationsByBlockHeightCursor :many
+select * from etl_validator_deregistrations
+where block_height > $1 or (block_height = $1 and id > $2)
+order by block_height, id
+limit $3;
+
+-- name: GetSlaRollupsByBlockHeightCursor :many
+select * from etl_sla_rollups
+where block_height > $1 or (block_height = $1 and id > $2)
+order by block_height, id
+limit $3;
+
+-- name: GetSlaNodeReportsByBlockHeightCursor :many
+select * from etl_sla_node_reports
+where block_height > $1 or (block_height = $1 and id > $2)
+order by block_height, id
+limit $3;
+
+-- name: GetValidatorMisbehaviorDeregistrationsByBlockHeightCursor :many
+select * from etl_validator_misbehavior_deregistrations
+where block_height > $1 or (block_height = $1 and id > $2)
+order by block_height, id
+limit $3;
+
+-- name: GetStorageProofsByBlockHeightCursor :many
+select * from etl_storage_proofs
+where block_height > $1 or (block_height = $1 and id > $2)
+order by block_height, id
+limit $3;
+
+-- name: GetStorageProofVerificationsByBlockHeightCursor :many
+select * from etl_storage_proof_verifications
+where block_height > $1 or (block_height = $1 and id > $2)
+order by block_height, id
+limit $3;
+
+-- name: GetBlockRangeFirst :one
+select id, proposer_address, block_height, block_time 
+from etl_blocks
+where block_time >= $1 and block_time <= $2
+order by block_time
+limit 1;
+
+-- name: GetBlockRangeLast :one
+select id, proposer_address, block_height, block_time 
+from etl_blocks
+where block_time >= $1 and block_time <= $2
+order by block_time desc
+limit 1;
+
+-- name: GetBlocksByPage :many
+select * from etl_blocks
+order by block_height desc
+limit $1 offset $2;
+
+-- name: GetBlockByHeight :one
+select * from etl_blocks
+where block_height = $1;
+
+-- name: GetTransactionByHash :one  
+select * from etl_transactions
+where tx_hash = $1;
+
+-- name: GetTransactionsByPage :many
+select * from etl_transactions
+order by block_height desc, tx_index desc
+limit $1 offset $2;
+
+-- name: GetActiveValidators :many
+select * from etl_validators
+where status = 'active'
+order by voting_power desc
+limit $1 offset $2;
+
+-- name: GetValidatorRegistrations :many
+select vr.*, v.endpoint, v.node_type, v.spid, v.voting_power, v.status
+from etl_validator_registrations vr
+left join etl_validators v on v.comet_address = vr.comet_address
+order by vr.block_height desc
+limit $1 offset $2;
+
+-- name: GetValidatorDeregistrations :many
+select vd.*, v.endpoint, v.node_type, v.spid, v.voting_power, v.status
+from etl_validator_deregistrations vd
+left join etl_validators v on v.comet_address = vd.comet_address
+order by vd.block_height desc
+limit $1 offset $2;
+
+-- name: GetValidatorByAddress :one
+select * from etl_validators
+where address = $1 or comet_address = $1;
+
+-- name: GetSlaNodeReportsByAddress :many
+select * from etl_sla_node_reports
+where address = $1
+order by block_height desc
 limit $2;
 
--- name: GetAvailableCountries :many
-select country, count(*) as play_count
-from etl_plays
-where country is not null
-group by country
-order by count(*) desc
-limit $1;
+-- name: GetBlockTransactionCount :one
+select count(*) from etl_transactions
+where block_height = $1;
+
+-- name: GetValidatorCount :one
+select count(*) from etl_validators
+where status = 'active';

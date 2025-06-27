@@ -11,44 +11,40 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const getAvailableCities = `-- name: GetAvailableCities :many
-select city, region, country, count(*) as play_count
-from etl_plays
-where city is not null
-  and (nullif($1, '')::text is null or lower(country) = lower($1))
-  and (nullif($2, '')::text is null or lower(region) = lower($2))
-group by city, region, country
-order by count(*) desc
-limit $3
+const getActiveValidators = `-- name: GetActiveValidators :many
+select id, address, endpoint, comet_address, node_type, spid, voting_power, status, registered_at, deregistered_at, created_at, updated_at from etl_validators
+where status = 'active'
+order by voting_power desc
+limit $1 offset $2
 `
 
-type GetAvailableCitiesParams struct {
-	Column1 interface{} `json:"column_1"`
-	Column2 interface{} `json:"column_2"`
-	Limit   int32       `json:"limit"`
+type GetActiveValidatorsParams struct {
+	Limit  int32 `json:"limit"`
+	Offset int32 `json:"offset"`
 }
 
-type GetAvailableCitiesRow struct {
-	City      string `json:"city"`
-	Region    string `json:"region"`
-	Country   string `json:"country"`
-	PlayCount int64  `json:"play_count"`
-}
-
-func (q *Queries) GetAvailableCities(ctx context.Context, arg GetAvailableCitiesParams) ([]GetAvailableCitiesRow, error) {
-	rows, err := q.db.Query(ctx, getAvailableCities, arg.Column1, arg.Column2, arg.Limit)
+func (q *Queries) GetActiveValidators(ctx context.Context, arg GetActiveValidatorsParams) ([]EtlValidator, error) {
+	rows, err := q.db.Query(ctx, getActiveValidators, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetAvailableCitiesRow
+	var items []EtlValidator
 	for rows.Next() {
-		var i GetAvailableCitiesRow
+		var i EtlValidator
 		if err := rows.Scan(
-			&i.City,
-			&i.Region,
-			&i.Country,
-			&i.PlayCount,
+			&i.ID,
+			&i.Address,
+			&i.Endpoint,
+			&i.CometAddress,
+			&i.NodeType,
+			&i.Spid,
+			&i.VotingPower,
+			&i.Status,
+			&i.RegisteredAt,
+			&i.DeregisteredAt,
+			&i.CreatedAt,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -60,111 +56,126 @@ func (q *Queries) GetAvailableCities(ctx context.Context, arg GetAvailableCities
 	return items, nil
 }
 
-const getAvailableCountries = `-- name: GetAvailableCountries :many
-select country, count(*) as play_count
-from etl_plays
-where country is not null
-group by country
-order by count(*) desc
-limit $1
+const getBlockByHeight = `-- name: GetBlockByHeight :one
+select id, proposer_address, block_height, block_time from etl_blocks
+where block_height = $1
 `
 
-type GetAvailableCountriesRow struct {
-	Country   string `json:"country"`
-	PlayCount int64  `json:"play_count"`
+func (q *Queries) GetBlockByHeight(ctx context.Context, blockHeight int64) (EtlBlock, error) {
+	row := q.db.QueryRow(ctx, getBlockByHeight, blockHeight)
+	var i EtlBlock
+	err := row.Scan(
+		&i.ID,
+		&i.ProposerAddress,
+		&i.BlockHeight,
+		&i.BlockTime,
+	)
+	return i, err
 }
 
-func (q *Queries) GetAvailableCountries(ctx context.Context, limit int32) ([]GetAvailableCountriesRow, error) {
-	rows, err := q.db.Query(ctx, getAvailableCountries, limit)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []GetAvailableCountriesRow
-	for rows.Next() {
-		var i GetAvailableCountriesRow
-		if err := rows.Scan(&i.Country, &i.PlayCount); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getAvailableRegions = `-- name: GetAvailableRegions :many
-select region, country, count(*) as play_count
-from etl_plays
-where region is not null
-  and (nullif($1, '')::text is null or lower(country) = lower($1))
-group by region, country
-order by count(*) desc
-limit $2
-`
-
-type GetAvailableRegionsParams struct {
-	Column1 interface{} `json:"column_1"`
-	Limit   int32       `json:"limit"`
-}
-
-type GetAvailableRegionsRow struct {
-	Region    string `json:"region"`
-	Country   string `json:"country"`
-	PlayCount int64  `json:"play_count"`
-}
-
-func (q *Queries) GetAvailableRegions(ctx context.Context, arg GetAvailableRegionsParams) ([]GetAvailableRegionsRow, error) {
-	rows, err := q.db.Query(ctx, getAvailableRegions, arg.Column1, arg.Limit)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []GetAvailableRegionsRow
-	for rows.Next() {
-		var i GetAvailableRegionsRow
-		if err := rows.Scan(&i.Region, &i.Country, &i.PlayCount); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getBlockRangeByTime = `-- name: GetBlockRangeByTime :one
-select
-  min(block_height) as start_block,
-  max(block_height) as end_block
+const getBlockRangeFirst = `-- name: GetBlockRangeFirst :one
+select id, proposer_address, block_height, block_time 
 from etl_blocks
-where block_time between $1 and $2
+where block_time >= $1 and block_time <= $2
+order by block_time
+limit 1
 `
 
-type GetBlockRangeByTimeParams struct {
+type GetBlockRangeFirstParams struct {
 	BlockTime   pgtype.Timestamp `json:"block_time"`
 	BlockTime_2 pgtype.Timestamp `json:"block_time_2"`
 }
 
-type GetBlockRangeByTimeRow struct {
-	StartBlock interface{} `json:"start_block"`
-	EndBlock   interface{} `json:"end_block"`
-}
-
-func (q *Queries) GetBlockRangeByTime(ctx context.Context, arg GetBlockRangeByTimeParams) (GetBlockRangeByTimeRow, error) {
-	row := q.db.QueryRow(ctx, getBlockRangeByTime, arg.BlockTime, arg.BlockTime_2)
-	var i GetBlockRangeByTimeRow
-	err := row.Scan(&i.StartBlock, &i.EndBlock)
+func (q *Queries) GetBlockRangeFirst(ctx context.Context, arg GetBlockRangeFirstParams) (EtlBlock, error) {
+	row := q.db.QueryRow(ctx, getBlockRangeFirst, arg.BlockTime, arg.BlockTime_2)
+	var i EtlBlock
+	err := row.Scan(
+		&i.ID,
+		&i.ProposerAddress,
+		&i.BlockHeight,
+		&i.BlockTime,
+	)
 	return i, err
 }
 
-const getLatestIndexedBlock = `-- name: GetLatestIndexedBlock :one
-select block_height 
-from etl_blocks 
-order by id desc 
+const getBlockRangeLast = `-- name: GetBlockRangeLast :one
+select id, proposer_address, block_height, block_time 
+from etl_blocks
+where block_time >= $1 and block_time <= $2
+order by block_time desc
 limit 1
+`
+
+type GetBlockRangeLastParams struct {
+	BlockTime   pgtype.Timestamp `json:"block_time"`
+	BlockTime_2 pgtype.Timestamp `json:"block_time_2"`
+}
+
+func (q *Queries) GetBlockRangeLast(ctx context.Context, arg GetBlockRangeLastParams) (EtlBlock, error) {
+	row := q.db.QueryRow(ctx, getBlockRangeLast, arg.BlockTime, arg.BlockTime_2)
+	var i EtlBlock
+	err := row.Scan(
+		&i.ID,
+		&i.ProposerAddress,
+		&i.BlockHeight,
+		&i.BlockTime,
+	)
+	return i, err
+}
+
+const getBlockTransactionCount = `-- name: GetBlockTransactionCount :one
+select count(*) from etl_transactions
+where block_height = $1
+`
+
+func (q *Queries) GetBlockTransactionCount(ctx context.Context, blockHeight int64) (int64, error) {
+	row := q.db.QueryRow(ctx, getBlockTransactionCount, blockHeight)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const getBlocksByPage = `-- name: GetBlocksByPage :many
+select id, proposer_address, block_height, block_time from etl_blocks
+order by block_height desc
+limit $1 offset $2
+`
+
+type GetBlocksByPageParams struct {
+	Limit  int32 `json:"limit"`
+	Offset int32 `json:"offset"`
+}
+
+func (q *Queries) GetBlocksByPage(ctx context.Context, arg GetBlocksByPageParams) ([]EtlBlock, error) {
+	rows, err := q.db.Query(ctx, getBlocksByPage, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []EtlBlock
+	for rows.Next() {
+		var i EtlBlock
+		if err := rows.Scan(
+			&i.ID,
+			&i.ProposerAddress,
+			&i.BlockHeight,
+			&i.BlockTime,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getLatestIndexedBlock = `-- name: GetLatestIndexedBlock :one
+SELECT block_height
+FROM etl_blocks
+ORDER BY id DESC
+LIMIT 1
 `
 
 // get latest indexed block height
@@ -175,226 +186,40 @@ func (q *Queries) GetLatestIndexedBlock(ctx context.Context) (int64, error) {
 	return block_height, err
 }
 
-const getPlayCountByAddress = `-- name: GetPlayCountByAddress :one
-select count(*) as play_count 
-from etl_plays 
-where address = $1
+const getManageEntitiesByBlockHeightCursor = `-- name: GetManageEntitiesByBlockHeightCursor :many
+select id, address, entity_type, entity_id, action, metadata, signature, signer, nonce, block_height, tx_hash, created_at from etl_manage_entities
+where block_height > $1 or (block_height = $1 and id > $2)
+order by block_height, id
+limit $3
 `
 
-// get play count by address
-func (q *Queries) GetPlayCountByAddress(ctx context.Context, address string) (int64, error) {
-	row := q.db.QueryRow(ctx, getPlayCountByAddress, address)
-	var play_count int64
-	err := row.Scan(&play_count)
-	return play_count, err
+type GetManageEntitiesByBlockHeightCursorParams struct {
+	BlockHeight int64 `json:"block_height"`
+	ID          int32 `json:"id"`
+	Limit       int32 `json:"limit"`
 }
 
-const getPlayCountByTrack = `-- name: GetPlayCountByTrack :one
-select count(*) as play_count 
-from etl_plays 
-where track_id = $1
-`
-
-// get play count by track
-func (q *Queries) GetPlayCountByTrack(ctx context.Context, trackID string) (int64, error) {
-	row := q.db.QueryRow(ctx, getPlayCountByTrack, trackID)
-	var play_count int64
-	err := row.Scan(&play_count)
-	return play_count, err
-}
-
-const getPlays = `-- name: GetPlays :many
-select 
-    address,
-    track_id,
-    extract(epoch from played_at)::bigint as timestamp,
-    city,
-    country,
-    region,
-    block_height,
-    tx_hash
-from etl_plays
-where 
-    block_height between $1 and $2
-order by played_at desc
-limit $3 offset $4
-`
-
-type GetPlaysParams struct {
-	BlockHeight   int64 `json:"block_height"`
-	BlockHeight_2 int64 `json:"block_height_2"`
-	Limit         int32 `json:"limit"`
-	Offset        int32 `json:"offset"`
-}
-
-type GetPlaysRow struct {
-	Address     string `json:"address"`
-	TrackID     string `json:"track_id"`
-	Timestamp   int64  `json:"timestamp"`
-	City        string `json:"city"`
-	Country     string `json:"country"`
-	Region      string `json:"region"`
-	BlockHeight int64  `json:"block_height"`
-	TxHash      string `json:"tx_hash"`
-}
-
-func (q *Queries) GetPlays(ctx context.Context, arg GetPlaysParams) ([]GetPlaysRow, error) {
-	rows, err := q.db.Query(ctx, getPlays,
-		arg.BlockHeight,
-		arg.BlockHeight_2,
-		arg.Limit,
-		arg.Offset,
-	)
+func (q *Queries) GetManageEntitiesByBlockHeightCursor(ctx context.Context, arg GetManageEntitiesByBlockHeightCursorParams) ([]EtlManageEntity, error) {
+	rows, err := q.db.Query(ctx, getManageEntitiesByBlockHeightCursor, arg.BlockHeight, arg.ID, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetPlaysRow
+	var items []EtlManageEntity
 	for rows.Next() {
-		var i GetPlaysRow
+		var i EtlManageEntity
 		if err := rows.Scan(
+			&i.ID,
 			&i.Address,
-			&i.TrackID,
-			&i.Timestamp,
-			&i.City,
-			&i.Country,
-			&i.Region,
+			&i.EntityType,
+			&i.EntityID,
+			&i.Action,
+			&i.Metadata,
+			&i.Signature,
+			&i.Signer,
+			&i.Nonce,
 			&i.BlockHeight,
 			&i.TxHash,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getPlaysByAddress = `-- name: GetPlaysByAddress :many
-select 
-    address,
-    track_id,
-    extract(epoch from played_at)::bigint as timestamp,
-    city,
-    country,
-    region,
-    block_height,
-    tx_hash
-from etl_plays
-where 
-    address = $1
-    and block_height between $2 and $3
-order by played_at desc
-limit $4 offset $5
-`
-
-type GetPlaysByAddressParams struct {
-	Address       string `json:"address"`
-	BlockHeight   int64  `json:"block_height"`
-	BlockHeight_2 int64  `json:"block_height_2"`
-	Limit         int32  `json:"limit"`
-	Offset        int32  `json:"offset"`
-}
-
-type GetPlaysByAddressRow struct {
-	Address     string `json:"address"`
-	TrackID     string `json:"track_id"`
-	Timestamp   int64  `json:"timestamp"`
-	City        string `json:"city"`
-	Country     string `json:"country"`
-	Region      string `json:"region"`
-	BlockHeight int64  `json:"block_height"`
-	TxHash      string `json:"tx_hash"`
-}
-
-func (q *Queries) GetPlaysByAddress(ctx context.Context, arg GetPlaysByAddressParams) ([]GetPlaysByAddressRow, error) {
-	rows, err := q.db.Query(ctx, getPlaysByAddress,
-		arg.Address,
-		arg.BlockHeight,
-		arg.BlockHeight_2,
-		arg.Limit,
-		arg.Offset,
-	)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []GetPlaysByAddressRow
-	for rows.Next() {
-		var i GetPlaysByAddressRow
-		if err := rows.Scan(
-			&i.Address,
-			&i.TrackID,
-			&i.Timestamp,
-			&i.City,
-			&i.Country,
-			&i.Region,
-			&i.BlockHeight,
-			&i.TxHash,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getPlaysByLocation = `-- name: GetPlaysByLocation :many
-select tx_hash, address, track_id, played_at, city, region, country, created_at
-from etl_plays
-where 
-    (nullif($1, '')::text is null or lower(city) = lower($1)) and
-    (nullif($2, '')::text is null or lower(region) = lower($2)) and
-    (nullif($3, '')::text is null or lower(country) = lower($3))
-order by played_at desc
-limit $4
-`
-
-type GetPlaysByLocationParams struct {
-	Column1 interface{} `json:"column_1"`
-	Column2 interface{} `json:"column_2"`
-	Column3 interface{} `json:"column_3"`
-	Limit   int32       `json:"limit"`
-}
-
-type GetPlaysByLocationRow struct {
-	TxHash    string           `json:"tx_hash"`
-	Address   string           `json:"address"`
-	TrackID   string           `json:"track_id"`
-	PlayedAt  pgtype.Timestamp `json:"played_at"`
-	City      string           `json:"city"`
-	Region    string           `json:"region"`
-	Country   string           `json:"country"`
-	CreatedAt pgtype.Timestamp `json:"created_at"`
-}
-
-func (q *Queries) GetPlaysByLocation(ctx context.Context, arg GetPlaysByLocationParams) ([]GetPlaysByLocationRow, error) {
-	rows, err := q.db.Query(ctx, getPlaysByLocation,
-		arg.Column1,
-		arg.Column2,
-		arg.Column3,
-		arg.Limit,
-	)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []GetPlaysByLocationRow
-	for rows.Next() {
-		var i GetPlaysByLocationRow
-		if err := rows.Scan(
-			&i.TxHash,
-			&i.Address,
-			&i.TrackID,
-			&i.PlayedAt,
-			&i.City,
-			&i.Region,
-			&i.Country,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -407,65 +232,489 @@ func (q *Queries) GetPlaysByLocation(ctx context.Context, arg GetPlaysByLocation
 	return items, nil
 }
 
-const getPlaysByTrack = `-- name: GetPlaysByTrack :many
-select 
-    address,
-    track_id,
-    extract(epoch from played_at)::bigint as timestamp,
-    city,
-    country,
-    region,
-    block_height,
-    tx_hash
-from etl_plays
-where 
-    track_id = $1
-    and block_height between $2 and $3
-order by played_at desc
-limit $4 offset $5
+const getPlaysByBlockHeightCursor = `-- name: GetPlaysByBlockHeightCursor :many
+select id, user_id, track_id, city, region, country, played_at, block_height, tx_hash, listened_at, recorded_at from etl_plays
+where block_height > $1 or (block_height = $1 and id > $2)
+order by block_height, id
+limit $3
 `
 
-type GetPlaysByTrackParams struct {
-	TrackID       string `json:"track_id"`
-	BlockHeight   int64  `json:"block_height"`
-	BlockHeight_2 int64  `json:"block_height_2"`
-	Limit         int32  `json:"limit"`
-	Offset        int32  `json:"offset"`
+type GetPlaysByBlockHeightCursorParams struct {
+	BlockHeight int64 `json:"block_height"`
+	ID          int32 `json:"id"`
+	Limit       int32 `json:"limit"`
 }
 
-type GetPlaysByTrackRow struct {
-	Address     string `json:"address"`
-	TrackID     string `json:"track_id"`
-	Timestamp   int64  `json:"timestamp"`
-	City        string `json:"city"`
-	Country     string `json:"country"`
-	Region      string `json:"region"`
-	BlockHeight int64  `json:"block_height"`
-	TxHash      string `json:"tx_hash"`
-}
-
-func (q *Queries) GetPlaysByTrack(ctx context.Context, arg GetPlaysByTrackParams) ([]GetPlaysByTrackRow, error) {
-	rows, err := q.db.Query(ctx, getPlaysByTrack,
-		arg.TrackID,
-		arg.BlockHeight,
-		arg.BlockHeight_2,
-		arg.Limit,
-		arg.Offset,
-	)
+func (q *Queries) GetPlaysByBlockHeightCursor(ctx context.Context, arg GetPlaysByBlockHeightCursorParams) ([]EtlPlay, error) {
+	rows, err := q.db.Query(ctx, getPlaysByBlockHeightCursor, arg.BlockHeight, arg.ID, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetPlaysByTrackRow
+	var items []EtlPlay
 	for rows.Next() {
-		var i GetPlaysByTrackRow
+		var i EtlPlay
 		if err := rows.Scan(
-			&i.Address,
+			&i.ID,
+			&i.UserID,
 			&i.TrackID,
-			&i.Timestamp,
 			&i.City,
-			&i.Country,
 			&i.Region,
+			&i.Country,
+			&i.PlayedAt,
+			&i.BlockHeight,
+			&i.TxHash,
+			&i.ListenedAt,
+			&i.RecordedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getSlaNodeReportsByAddress = `-- name: GetSlaNodeReportsByAddress :many
+select id, sla_rollup_id, address, num_blocks_proposed, challenges_received, challenges_failed, block_height, tx_hash, created_at from etl_sla_node_reports
+where address = $1
+order by block_height desc
+limit $2
+`
+
+type GetSlaNodeReportsByAddressParams struct {
+	Address string `json:"address"`
+	Limit   int32  `json:"limit"`
+}
+
+func (q *Queries) GetSlaNodeReportsByAddress(ctx context.Context, arg GetSlaNodeReportsByAddressParams) ([]EtlSlaNodeReport, error) {
+	rows, err := q.db.Query(ctx, getSlaNodeReportsByAddress, arg.Address, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []EtlSlaNodeReport
+	for rows.Next() {
+		var i EtlSlaNodeReport
+		if err := rows.Scan(
+			&i.ID,
+			&i.SlaRollupID,
+			&i.Address,
+			&i.NumBlocksProposed,
+			&i.ChallengesReceived,
+			&i.ChallengesFailed,
+			&i.BlockHeight,
+			&i.TxHash,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getSlaNodeReportsByBlockHeightCursor = `-- name: GetSlaNodeReportsByBlockHeightCursor :many
+select id, sla_rollup_id, address, num_blocks_proposed, challenges_received, challenges_failed, block_height, tx_hash, created_at from etl_sla_node_reports
+where block_height > $1 or (block_height = $1 and id > $2)
+order by block_height, id
+limit $3
+`
+
+type GetSlaNodeReportsByBlockHeightCursorParams struct {
+	BlockHeight int64 `json:"block_height"`
+	ID          int32 `json:"id"`
+	Limit       int32 `json:"limit"`
+}
+
+func (q *Queries) GetSlaNodeReportsByBlockHeightCursor(ctx context.Context, arg GetSlaNodeReportsByBlockHeightCursorParams) ([]EtlSlaNodeReport, error) {
+	rows, err := q.db.Query(ctx, getSlaNodeReportsByBlockHeightCursor, arg.BlockHeight, arg.ID, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []EtlSlaNodeReport
+	for rows.Next() {
+		var i EtlSlaNodeReport
+		if err := rows.Scan(
+			&i.ID,
+			&i.SlaRollupID,
+			&i.Address,
+			&i.NumBlocksProposed,
+			&i.ChallengesReceived,
+			&i.ChallengesFailed,
+			&i.BlockHeight,
+			&i.TxHash,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getSlaRollupsByBlockHeightCursor = `-- name: GetSlaRollupsByBlockHeightCursor :many
+select id, block_start, block_end, block_height, validator_count, block_quota, tx_hash, created_at from etl_sla_rollups
+where block_height > $1 or (block_height = $1 and id > $2)
+order by block_height, id
+limit $3
+`
+
+type GetSlaRollupsByBlockHeightCursorParams struct {
+	BlockHeight int64 `json:"block_height"`
+	ID          int32 `json:"id"`
+	Limit       int32 `json:"limit"`
+}
+
+func (q *Queries) GetSlaRollupsByBlockHeightCursor(ctx context.Context, arg GetSlaRollupsByBlockHeightCursorParams) ([]EtlSlaRollup, error) {
+	rows, err := q.db.Query(ctx, getSlaRollupsByBlockHeightCursor, arg.BlockHeight, arg.ID, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []EtlSlaRollup
+	for rows.Next() {
+		var i EtlSlaRollup
+		if err := rows.Scan(
+			&i.ID,
+			&i.BlockStart,
+			&i.BlockEnd,
+			&i.BlockHeight,
+			&i.ValidatorCount,
+			&i.BlockQuota,
+			&i.TxHash,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getStorageProofVerificationsByBlockHeightCursor = `-- name: GetStorageProofVerificationsByBlockHeightCursor :many
+select id, height, proof, block_height, tx_hash, created_at from etl_storage_proof_verifications
+where block_height > $1 or (block_height = $1 and id > $2)
+order by block_height, id
+limit $3
+`
+
+type GetStorageProofVerificationsByBlockHeightCursorParams struct {
+	BlockHeight int64 `json:"block_height"`
+	ID          int32 `json:"id"`
+	Limit       int32 `json:"limit"`
+}
+
+func (q *Queries) GetStorageProofVerificationsByBlockHeightCursor(ctx context.Context, arg GetStorageProofVerificationsByBlockHeightCursorParams) ([]EtlStorageProofVerification, error) {
+	rows, err := q.db.Query(ctx, getStorageProofVerificationsByBlockHeightCursor, arg.BlockHeight, arg.ID, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []EtlStorageProofVerification
+	for rows.Next() {
+		var i EtlStorageProofVerification
+		if err := rows.Scan(
+			&i.ID,
+			&i.Height,
+			&i.Proof,
+			&i.BlockHeight,
+			&i.TxHash,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getStorageProofsByBlockHeightCursor = `-- name: GetStorageProofsByBlockHeightCursor :many
+select id, height, address, prover_addresses, cid, proof_signature, block_height, tx_hash, created_at from etl_storage_proofs
+where block_height > $1 or (block_height = $1 and id > $2)
+order by block_height, id
+limit $3
+`
+
+type GetStorageProofsByBlockHeightCursorParams struct {
+	BlockHeight int64 `json:"block_height"`
+	ID          int32 `json:"id"`
+	Limit       int32 `json:"limit"`
+}
+
+func (q *Queries) GetStorageProofsByBlockHeightCursor(ctx context.Context, arg GetStorageProofsByBlockHeightCursorParams) ([]EtlStorageProof, error) {
+	rows, err := q.db.Query(ctx, getStorageProofsByBlockHeightCursor, arg.BlockHeight, arg.ID, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []EtlStorageProof
+	for rows.Next() {
+		var i EtlStorageProof
+		if err := rows.Scan(
+			&i.ID,
+			&i.Height,
+			&i.Address,
+			&i.ProverAddresses,
+			&i.Cid,
+			&i.ProofSignature,
+			&i.BlockHeight,
+			&i.TxHash,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getTotalTransactions = `-- name: GetTotalTransactions :one
+select id from etl_transactions order by id desc limit 1
+`
+
+func (q *Queries) GetTotalTransactions(ctx context.Context) (int32, error) {
+	row := q.db.QueryRow(ctx, getTotalTransactions)
+	var id int32
+	err := row.Scan(&id)
+	return id, err
+}
+
+const getTransactionByHash = `-- name: GetTransactionByHash :one
+select id, tx_hash, block_height, tx_index, tx_type, created_at from etl_transactions
+where tx_hash = $1
+`
+
+func (q *Queries) GetTransactionByHash(ctx context.Context, txHash string) (EtlTransaction, error) {
+	row := q.db.QueryRow(ctx, getTransactionByHash, txHash)
+	var i EtlTransaction
+	err := row.Scan(
+		&i.ID,
+		&i.TxHash,
+		&i.BlockHeight,
+		&i.TxIndex,
+		&i.TxType,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getTransactionsByBlockHeightCursor = `-- name: GetTransactionsByBlockHeightCursor :many
+select id, tx_hash, block_height, tx_index, tx_type, created_at from etl_transactions
+where block_height > $1 or (block_height = $1 and id > $2)
+order by block_height, id
+limit $3
+`
+
+type GetTransactionsByBlockHeightCursorParams struct {
+	BlockHeight int64 `json:"block_height"`
+	ID          int32 `json:"id"`
+	Limit       int32 `json:"limit"`
+}
+
+func (q *Queries) GetTransactionsByBlockHeightCursor(ctx context.Context, arg GetTransactionsByBlockHeightCursorParams) ([]EtlTransaction, error) {
+	rows, err := q.db.Query(ctx, getTransactionsByBlockHeightCursor, arg.BlockHeight, arg.ID, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []EtlTransaction
+	for rows.Next() {
+		var i EtlTransaction
+		if err := rows.Scan(
+			&i.ID,
+			&i.TxHash,
+			&i.BlockHeight,
+			&i.TxIndex,
+			&i.TxType,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getTransactionsByPage = `-- name: GetTransactionsByPage :many
+select id, tx_hash, block_height, tx_index, tx_type, created_at from etl_transactions
+order by block_height desc, tx_index desc
+limit $1 offset $2
+`
+
+type GetTransactionsByPageParams struct {
+	Limit  int32 `json:"limit"`
+	Offset int32 `json:"offset"`
+}
+
+func (q *Queries) GetTransactionsByPage(ctx context.Context, arg GetTransactionsByPageParams) ([]EtlTransaction, error) {
+	rows, err := q.db.Query(ctx, getTransactionsByPage, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []EtlTransaction
+	for rows.Next() {
+		var i EtlTransaction
+		if err := rows.Scan(
+			&i.ID,
+			&i.TxHash,
+			&i.BlockHeight,
+			&i.TxIndex,
+			&i.TxType,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getValidatorByAddress = `-- name: GetValidatorByAddress :one
+select id, address, endpoint, comet_address, node_type, spid, voting_power, status, registered_at, deregistered_at, created_at, updated_at from etl_validators
+where address = $1 or comet_address = $1
+`
+
+func (q *Queries) GetValidatorByAddress(ctx context.Context, address string) (EtlValidator, error) {
+	row := q.db.QueryRow(ctx, getValidatorByAddress, address)
+	var i EtlValidator
+	err := row.Scan(
+		&i.ID,
+		&i.Address,
+		&i.Endpoint,
+		&i.CometAddress,
+		&i.NodeType,
+		&i.Spid,
+		&i.VotingPower,
+		&i.Status,
+		&i.RegisteredAt,
+		&i.DeregisteredAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getValidatorCount = `-- name: GetValidatorCount :one
+select count(*) from etl_validators
+where status = 'active'
+`
+
+func (q *Queries) GetValidatorCount(ctx context.Context) (int64, error) {
+	row := q.db.QueryRow(ctx, getValidatorCount)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const getValidatorDeregistrations = `-- name: GetValidatorDeregistrations :many
+select vd.id, vd.comet_address, vd.comet_pubkey, vd.block_height, vd.tx_hash, v.endpoint, v.node_type, v.spid, v.voting_power, v.status
+from etl_validator_deregistrations vd
+left join etl_validators v on v.comet_address = vd.comet_address
+order by vd.block_height desc
+limit $1 offset $2
+`
+
+type GetValidatorDeregistrationsParams struct {
+	Limit  int32 `json:"limit"`
+	Offset int32 `json:"offset"`
+}
+
+type GetValidatorDeregistrationsRow struct {
+	ID           int32       `json:"id"`
+	CometAddress string      `json:"comet_address"`
+	CometPubkey  []byte      `json:"comet_pubkey"`
+	BlockHeight  int64       `json:"block_height"`
+	TxHash       string      `json:"tx_hash"`
+	Endpoint     pgtype.Text `json:"endpoint"`
+	NodeType     pgtype.Text `json:"node_type"`
+	Spid         pgtype.Text `json:"spid"`
+	VotingPower  pgtype.Int8 `json:"voting_power"`
+	Status       pgtype.Text `json:"status"`
+}
+
+func (q *Queries) GetValidatorDeregistrations(ctx context.Context, arg GetValidatorDeregistrationsParams) ([]GetValidatorDeregistrationsRow, error) {
+	rows, err := q.db.Query(ctx, getValidatorDeregistrations, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetValidatorDeregistrationsRow
+	for rows.Next() {
+		var i GetValidatorDeregistrationsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.CometAddress,
+			&i.CometPubkey,
+			&i.BlockHeight,
+			&i.TxHash,
+			&i.Endpoint,
+			&i.NodeType,
+			&i.Spid,
+			&i.VotingPower,
+			&i.Status,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getValidatorDeregistrationsByBlockHeightCursor = `-- name: GetValidatorDeregistrationsByBlockHeightCursor :many
+select id, comet_address, comet_pubkey, block_height, tx_hash from etl_validator_deregistrations
+where block_height > $1 or (block_height = $1 and id > $2)
+order by block_height, id
+limit $3
+`
+
+type GetValidatorDeregistrationsByBlockHeightCursorParams struct {
+	BlockHeight int64 `json:"block_height"`
+	ID          int32 `json:"id"`
+	Limit       int32 `json:"limit"`
+}
+
+func (q *Queries) GetValidatorDeregistrationsByBlockHeightCursor(ctx context.Context, arg GetValidatorDeregistrationsByBlockHeightCursorParams) ([]EtlValidatorDeregistration, error) {
+	rows, err := q.db.Query(ctx, getValidatorDeregistrationsByBlockHeightCursor, arg.BlockHeight, arg.ID, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []EtlValidatorDeregistration
+	for rows.Next() {
+		var i EtlValidatorDeregistration
+		if err := rows.Scan(
+			&i.ID,
+			&i.CometAddress,
+			&i.CometPubkey,
 			&i.BlockHeight,
 			&i.TxHash,
 		); err != nil {
@@ -479,66 +728,35 @@ func (q *Queries) GetPlaysByTrack(ctx context.Context, arg GetPlaysByTrackParams
 	return items, nil
 }
 
-const getPlaysCount = `-- name: GetPlaysCount :one
-select count(*) as total
-from etl_plays
-where 
-    ($1::text is null or address = $1)
-    and ($2::text is null or track_id = $2)
-    and ($3::timestamp is null or $4::timestamp is null or played_at between $3 and $4)
+const getValidatorMisbehaviorDeregistrationsByBlockHeightCursor = `-- name: GetValidatorMisbehaviorDeregistrationsByBlockHeightCursor :many
+select id, comet_address, pub_key, block_height, tx_hash, created_at from etl_validator_misbehavior_deregistrations
+where block_height > $1 or (block_height = $1 and id > $2)
+order by block_height, id
+limit $3
 `
 
-type GetPlaysCountParams struct {
-	Column1 string           `json:"column_1"`
-	Column2 string           `json:"column_2"`
-	Column3 pgtype.Timestamp `json:"column_3"`
-	Column4 pgtype.Timestamp `json:"column_4"`
+type GetValidatorMisbehaviorDeregistrationsByBlockHeightCursorParams struct {
+	BlockHeight int64 `json:"block_height"`
+	ID          int32 `json:"id"`
+	Limit       int32 `json:"limit"`
 }
 
-// get total count of plays with filtering
-func (q *Queries) GetPlaysCount(ctx context.Context, arg GetPlaysCountParams) (int64, error) {
-	row := q.db.QueryRow(ctx, getPlaysCount,
-		arg.Column1,
-		arg.Column2,
-		arg.Column3,
-		arg.Column4,
-	)
-	var total int64
-	err := row.Scan(&total)
-	return total, err
-}
-
-const getValidatorDeregistrations = `-- name: GetValidatorDeregistrations :many
-select 
-    comet_address,
-    comet_pubkey,
-    block_height,
-    tx_hash
-from etl_validator_deregistrations
-`
-
-type GetValidatorDeregistrationsRow struct {
-	CometAddress string `json:"comet_address"`
-	CometPubkey  []byte `json:"comet_pubkey"`
-	BlockHeight  int64  `json:"block_height"`
-	TxHash       string `json:"tx_hash"`
-}
-
-// get validator deregistrations
-func (q *Queries) GetValidatorDeregistrations(ctx context.Context) ([]GetValidatorDeregistrationsRow, error) {
-	rows, err := q.db.Query(ctx, getValidatorDeregistrations)
+func (q *Queries) GetValidatorMisbehaviorDeregistrationsByBlockHeightCursor(ctx context.Context, arg GetValidatorMisbehaviorDeregistrationsByBlockHeightCursorParams) ([]EtlValidatorMisbehaviorDeregistration, error) {
+	rows, err := q.db.Query(ctx, getValidatorMisbehaviorDeregistrationsByBlockHeightCursor, arg.BlockHeight, arg.ID, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetValidatorDeregistrationsRow
+	var items []EtlValidatorMisbehaviorDeregistration
 	for rows.Next() {
-		var i GetValidatorDeregistrationsRow
+		var i EtlValidatorMisbehaviorDeregistration
 		if err := rows.Scan(
+			&i.ID,
 			&i.CometAddress,
-			&i.CometPubkey,
+			&i.PubKey,
 			&i.BlockHeight,
 			&i.TxHash,
+			&i.CreatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -551,34 +769,39 @@ func (q *Queries) GetValidatorDeregistrations(ctx context.Context) ([]GetValidat
 }
 
 const getValidatorRegistrations = `-- name: GetValidatorRegistrations :many
-select 
-    address,
-    comet_address,
-    comet_pubkey,
-    eth_block,
-    node_type,
-    spid,
-    voting_power,
-    block_height,
-    tx_hash
-from etl_validator_registrations
+select vr.id, vr.address, vr.endpoint, vr.comet_address, vr.eth_block, vr.node_type, vr.spid, vr.comet_pubkey, vr.voting_power, vr.block_height, vr.tx_hash, v.endpoint, v.node_type, v.spid, v.voting_power, v.status
+from etl_validator_registrations vr
+left join etl_validators v on v.comet_address = vr.comet_address
+order by vr.block_height desc
+limit $1 offset $2
 `
 
-type GetValidatorRegistrationsRow struct {
-	Address      string `json:"address"`
-	CometAddress string `json:"comet_address"`
-	CometPubkey  []byte `json:"comet_pubkey"`
-	EthBlock     string `json:"eth_block"`
-	NodeType     string `json:"node_type"`
-	Spid         string `json:"spid"`
-	VotingPower  int64  `json:"voting_power"`
-	BlockHeight  int64  `json:"block_height"`
-	TxHash       string `json:"tx_hash"`
+type GetValidatorRegistrationsParams struct {
+	Limit  int32 `json:"limit"`
+	Offset int32 `json:"offset"`
 }
 
-// get validator registrations
-func (q *Queries) GetValidatorRegistrations(ctx context.Context) ([]GetValidatorRegistrationsRow, error) {
-	rows, err := q.db.Query(ctx, getValidatorRegistrations)
+type GetValidatorRegistrationsRow struct {
+	ID            int32       `json:"id"`
+	Address       string      `json:"address"`
+	Endpoint      string      `json:"endpoint"`
+	CometAddress  string      `json:"comet_address"`
+	EthBlock      string      `json:"eth_block"`
+	NodeType      string      `json:"node_type"`
+	Spid          string      `json:"spid"`
+	CometPubkey   []byte      `json:"comet_pubkey"`
+	VotingPower   int64       `json:"voting_power"`
+	BlockHeight   int64       `json:"block_height"`
+	TxHash        string      `json:"tx_hash"`
+	Endpoint_2    pgtype.Text `json:"endpoint_2"`
+	NodeType_2    pgtype.Text `json:"node_type_2"`
+	Spid_2        pgtype.Text `json:"spid_2"`
+	VotingPower_2 pgtype.Int8 `json:"voting_power_2"`
+	Status        pgtype.Text `json:"status"`
+}
+
+func (q *Queries) GetValidatorRegistrations(ctx context.Context, arg GetValidatorRegistrationsParams) ([]GetValidatorRegistrationsRow, error) {
+	rows, err := q.db.Query(ctx, getValidatorRegistrations, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -587,12 +810,64 @@ func (q *Queries) GetValidatorRegistrations(ctx context.Context) ([]GetValidator
 	for rows.Next() {
 		var i GetValidatorRegistrationsRow
 		if err := rows.Scan(
+			&i.ID,
 			&i.Address,
+			&i.Endpoint,
 			&i.CometAddress,
-			&i.CometPubkey,
 			&i.EthBlock,
 			&i.NodeType,
 			&i.Spid,
+			&i.CometPubkey,
+			&i.VotingPower,
+			&i.BlockHeight,
+			&i.TxHash,
+			&i.Endpoint_2,
+			&i.NodeType_2,
+			&i.Spid_2,
+			&i.VotingPower_2,
+			&i.Status,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getValidatorRegistrationsByBlockHeightCursor = `-- name: GetValidatorRegistrationsByBlockHeightCursor :many
+select id, address, endpoint, comet_address, eth_block, node_type, spid, comet_pubkey, voting_power, block_height, tx_hash from etl_validator_registrations
+where block_height > $1 or (block_height = $1 and id > $2)
+order by block_height, id
+limit $3
+`
+
+type GetValidatorRegistrationsByBlockHeightCursorParams struct {
+	BlockHeight int64 `json:"block_height"`
+	ID          int32 `json:"id"`
+	Limit       int32 `json:"limit"`
+}
+
+func (q *Queries) GetValidatorRegistrationsByBlockHeightCursor(ctx context.Context, arg GetValidatorRegistrationsByBlockHeightCursorParams) ([]EtlValidatorRegistration, error) {
+	rows, err := q.db.Query(ctx, getValidatorRegistrationsByBlockHeightCursor, arg.BlockHeight, arg.ID, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []EtlValidatorRegistration
+	for rows.Next() {
+		var i EtlValidatorRegistration
+		if err := rows.Scan(
+			&i.ID,
+			&i.Address,
+			&i.Endpoint,
+			&i.CometAddress,
+			&i.EthBlock,
+			&i.NodeType,
+			&i.Spid,
+			&i.CometPubkey,
 			&i.VotingPower,
 			&i.BlockHeight,
 			&i.TxHash,
