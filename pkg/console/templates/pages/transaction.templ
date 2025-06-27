@@ -3,9 +3,9 @@ package pages
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/AudiusProject/audiusd/pkg/api/etl/v1"
 	"github.com/AudiusProject/audiusd/pkg/console/templates"
 	"github.com/AudiusProject/audiusd/pkg/console/templates/layouts"
+	"github.com/AudiusProject/audiusd/pkg/etl/db"
 	"regexp"
 )
 
@@ -46,8 +46,14 @@ func highlightJSON(jsonStr string) string {
 	return formatted
 }
 
-templ Transaction(tx *v1.Transaction) {
-	@layouts.Base(fmt.Sprintf("Transaction %s", tx.Hash[:8])) {
+type TransactionProps struct {
+	Transaction *db.EtlTransaction
+	Proposer    string
+	Content     interface{}
+}
+
+templ Transaction(props TransactionProps) {
+	@layouts.Base(fmt.Sprintf("Transaction %s", props.Transaction.TxHash[:8])) {
 		<div class="space-y-6">
 			<!-- Transaction Info Card -->
 			<div class="shadow-xl rounded-lg p-6 bg-white dark:bg-gray-800">
@@ -55,12 +61,12 @@ templ Transaction(tx *v1.Transaction) {
 					<div>
 						<h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Transaction Details</h2>
 						<div class="text-gray-500 dark:text-gray-400 mt-1">
-							{ tx.Hash }
+							{ props.Transaction.TxHash }
 						</div>
 					</div>
 					<div>
 						<span class="px-3 py-1 text-sm rounded-full bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200">
-							{ tx.Type }
+							{ props.Transaction.TxType }
 						</span>
 					</div>
 				</div>
@@ -68,57 +74,55 @@ templ Transaction(tx *v1.Transaction) {
 					<div>
 						<label class="block text-base font-semibold text-gray-800 dark:text-gray-200 mb-1">Block Height</label>
 						<p class="text-gray-900 dark:text-gray-100">
-							<a href={ templ.SafeURL(fmt.Sprintf("/block/%d", tx.BlockHeight)) } class="text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 hover:underline">
-								{ fmt.Sprintf("%d", tx.BlockHeight) }
+							<a href={ templ.SafeURL(fmt.Sprintf("/block/%d", props.Transaction.BlockHeight)) } class="text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 hover:underline">
+								{ fmt.Sprintf("%d", props.Transaction.BlockHeight) }
 							</a>
 						</p>
 					</div>
 					<div>
 						<label class="block text-base font-semibold text-gray-800 dark:text-gray-200 mb-1">Transaction Index</label>
-						<p class="text-gray-900 dark:text-gray-100">{ fmt.Sprintf("%d", tx.Index) }</p>
+						<p class="text-gray-900 dark:text-gray-100">{ fmt.Sprintf("%d", props.Transaction.TxIndex) }</p>
 					</div>
-					if tx.BlockTime != nil {
+					if props.Transaction.CreatedAt.Valid {
 						<div>
 							<label class="block text-base font-semibold text-gray-800 dark:text-gray-200 mb-1">Block Time</label>
 							<p class="text-gray-900 dark:text-gray-100">
-								@templates.TimeWithTooltip(tx.BlockTime.AsTime())
+								@templates.TimeWithTooltip(props.Transaction.CreatedAt.Time)
 							</p>
 						</div>
 					}
-					if tx.ProposerAddress != "" {
+					if props.Proposer != "" {
 						<div>
 							<label class="block text-base font-semibold text-gray-800 dark:text-gray-200 mb-1">Block Proposer</label>
 							<p class="text-gray-900 dark:text-gray-100">
-								<a href={ templ.SafeURL(fmt.Sprintf("/validator/%s", tx.ProposerAddress)) } class="text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 hover:underline">
-									{ tx.ProposerAddress }
+								<a href={ templ.SafeURL(fmt.Sprintf("/validator/%s", props.Proposer)) } class="text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 hover:underline">
+									{ props.Proposer }
 								</a>
 							</p>
 						</div>
 					}
 					<div>
 						<label class="block text-base font-semibold text-gray-800 dark:text-gray-200 mb-1">Transaction Type</label>
-						<p class="text-gray-900 dark:text-gray-100">{ tx.Type }</p>
+						<p class="text-gray-900 dark:text-gray-100">{ props.Transaction.TxType }</p>
 					</div>
 				</div>
 			</div>
 			<!-- Transaction Content Based on Type -->
-			switch tx.Content.(type) {
-				case *v1.Transaction_Plays:
-					@TrackPlaysSection(tx.Content.(*v1.Transaction_Plays).Plays)
-				case *v1.Transaction_ManageEntity:
-					@ManageEntitySection(tx.Content.(*v1.Transaction_ManageEntity).ManageEntity)
-				case *v1.Transaction_ValidatorRegistration:
-					@ValidatorRegistrationSection(tx.Content.(*v1.Transaction_ValidatorRegistration).ValidatorRegistration)
-				case *v1.Transaction_ValidatorDeregistration:
-					@ValidatorDeregistrationSection(tx.Content.(*v1.Transaction_ValidatorDeregistration).ValidatorDeregistration)
-				case *v1.Transaction_SlaRollup:
-					@SlaRollupSection(tx.Content.(*v1.Transaction_SlaRollup).SlaRollup)
-				case *v1.Transaction_StorageProof:
-					@StorageProofSection(tx.Content.(*v1.Transaction_StorageProof).StorageProof)
-				case *v1.Transaction_StorageProofVerification:
-					@StorageProofVerificationSection(tx.Content.(*v1.Transaction_StorageProofVerification).StorageProofVerification)
-				case *v1.Transaction_Release:
-					@ReleaseSection(tx.Content.(*v1.Transaction_Release).Release)
+			switch props.Content.(type) {
+				case []*db.EtlPlay:
+					@TrackPlaysSection(props.Content.([]*db.EtlPlay))
+				case *db.EtlManageEntity:
+					@ManageEntitySection(props.Content.(*db.EtlManageEntity))
+				case *db.EtlValidatorRegistration:
+					@ValidatorRegistrationSection(props.Content.(*db.EtlValidatorRegistration))
+				case *db.EtlValidatorDeregistration:
+					@ValidatorDeregistrationSection(props.Content.(*db.EtlValidatorDeregistration))
+				case *db.EtlSlaRollup:
+					@SlaRollupSection(props.Content.(*db.EtlSlaRollup))
+				case *db.EtlStorageProof:
+					@StorageProofSection(props.Content.(*db.EtlStorageProof))
+				case *db.EtlStorageProofVerification:
+					@StorageProofVerificationSection(props.Content.(*db.EtlStorageProofVerification))
 				default:
 					<div class="shadow-xl rounded-lg p-6 bg-white dark:bg-gray-800">
 						<h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Transaction Content</h3>
@@ -129,9 +133,9 @@ templ Transaction(tx *v1.Transaction) {
 	}
 }
 
-templ TrackPlaysSection(plays *v1.TrackPlaysTransaction) {
+templ TrackPlaysSection(plays []*db.EtlPlay) {
 	<div class="shadow-xl rounded-lg p-6 bg-white dark:bg-gray-800">
-		<h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Track Plays ({ fmt.Sprintf("%d", len(plays.Plays)) })</h3>
+		<h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Track Plays ({ fmt.Sprintf("%d", len(plays)) })</h3>
 		<div class="overflow-x-auto">
 			<table class="min-w-full table-auto">
 				<thead>
@@ -143,13 +147,13 @@ templ TrackPlaysSection(plays *v1.TrackPlaysTransaction) {
 					</tr>
 				</thead>
 				<tbody>
-					for _, play := range plays.Plays {
+					for _, play := range plays {
 						<tr class="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
 							<td class="py-2 px-4">
-								@templates.StringWithTooltip(play.Address)
+								@templates.StringWithTooltip(play.UserID)
 							</td>
 							<td class="py-2 px-4">
-								@templates.StringWithTooltip(play.TrackId)
+								@templates.StringWithTooltip(play.TrackID)
 							</td>
 							<td class="py-2 px-4 text-sm">
 								{ play.City }
@@ -161,8 +165,8 @@ templ TrackPlaysSection(plays *v1.TrackPlaysTransaction) {
 								}
 							</td>
 							<td class="py-2 px-4 text-sm">
-								if play.PlayedAt != nil {
-									@templates.TimeWithTooltip(play.PlayedAt.AsTime())
+								if play.PlayedAt.Valid {
+									@templates.TimeWithTooltip(play.PlayedAt.Time)
 								}
 							</td>
 						</tr>
@@ -173,7 +177,7 @@ templ TrackPlaysSection(plays *v1.TrackPlaysTransaction) {
 	</div>
 }
 
-templ ManageEntitySection(entities *v1.ManageEntityTransaction) {
+templ ManageEntitySection(entity *db.EtlManageEntity) {
 	<div class="shadow-xl rounded-lg p-6 bg-white dark:bg-gray-800">
 		<h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Manage Entity</h3>
 		<div class="overflow-x-auto">
@@ -188,32 +192,32 @@ templ ManageEntitySection(entities *v1.ManageEntityTransaction) {
 					</tr>
 				</thead>
 				<tbody>
-					if len(entities.Entities) > 0 {
+					if entity != nil {
 						<tr class="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
 							<td class="py-2 px-4">
-								@templates.StringWithTooltip(entities.Entities[0].Address)
+								@templates.StringWithTooltip(entity.Address)
 							</td>
-							<td class="py-2 px-4">{ entities.Entities[0].EntityType }</td>
-							<td class="py-2 px-4">{ fmt.Sprintf("%d", entities.Entities[0].EntityId) }</td>
+							<td class="py-2 px-4">{ entity.EntityType }</td>
+							<td class="py-2 px-4">{ fmt.Sprintf("%d", entity.EntityID) }</td>
 							<td class="py-2 px-4">
 								<span class="px-2 py-1 text-xs rounded bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
-									{ entities.Entities[0].Action }
+									{ entity.Action }
 								</span>
 							</td>
 							<td class="py-2 px-4">
-								@templates.StringWithTooltip(entities.Entities[0].Signer)
+								@templates.StringWithTooltip(entity.Signer)
 							</td>
 						</tr>
 					}
 				</tbody>
 			</table>
 			<!-- JSON View of metadata -->
-			if entities.Entities[0].Metadata != "" {
+			if entity.Metadata.Valid {
 				<div class="mt-4">
 					<h4 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Metadata</h4>
 					<div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 overflow-x-auto border border-gray-200 dark:border-gray-700">
 						<pre class="text-sm font-mono leading-relaxed whitespace-pre-wrap">
-							@templ.Raw(highlightJSON(string(entities.Entities[0].Metadata)))
+							@templ.Raw(highlightJSON(string(entity.Metadata.String)))
 						</pre>
 					</div>
 				</div>
@@ -222,9 +226,9 @@ templ ManageEntitySection(entities *v1.ManageEntityTransaction) {
 	</div>
 }
 
-templ ValidatorRegistrationSection(registrations *v1.ValidatorRegistrationTransaction) {
+templ ValidatorRegistrationSection(registration *db.EtlValidatorRegistration) {
 	<div class="shadow-xl rounded-lg p-6 bg-white dark:bg-gray-800">
-		<h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Validator Registrations ({ fmt.Sprintf("%d", len(registrations.Registrations)) })</h3>
+		<h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Validator Registrations 1</h3>
 		<div class="overflow-x-auto">
 			<table class="min-w-full table-auto">
 				<thead>
@@ -237,19 +241,19 @@ templ ValidatorRegistrationSection(registrations *v1.ValidatorRegistrationTransa
 					</tr>
 				</thead>
 				<tbody>
-					for _, reg := range registrations.Registrations {
+					if registration != nil {
 						<tr class="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
 							<td class="py-2 px-4">
-								<a href={ templ.SafeURL(fmt.Sprintf("/validator/%s", reg.Address)) } class="text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 hover:underline">
-									@templates.StringWithTooltip(reg.Address)
+								<a href={ templ.SafeURL(fmt.Sprintf("/validator/%s", registration.Address)) } class="text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 hover:underline">
+									@templates.StringWithTooltip(registration.Address)
 								</a>
 							</td>
 							<td class="py-2 px-4">
-								@templates.StringWithTooltip(reg.CometAddress)
+								@templates.StringWithTooltip(registration.CometAddress)
 							</td>
-							<td class="py-2 px-4">{ reg.NodeType }</td>
-							<td class="py-2 px-4">{ fmt.Sprintf("%d", reg.VotingPower) }</td>
-							<td class="py-2 px-4">{ reg.Spid }</td>
+							<td class="py-2 px-4">{ registration.NodeType }</td>
+							<td class="py-2 px-4">{ fmt.Sprintf("%d", registration.VotingPower) }</td>
+							<td class="py-2 px-4">{ registration.Spid }</td>
 						</tr>
 					}
 				</tbody>
@@ -258,9 +262,9 @@ templ ValidatorRegistrationSection(registrations *v1.ValidatorRegistrationTransa
 	</div>
 }
 
-templ ValidatorDeregistrationSection(deregistrations *v1.ValidatorDeregistrationTransaction) {
+templ ValidatorDeregistrationSection(deregistration *db.EtlValidatorDeregistration) {
 	<div class="shadow-xl rounded-lg p-6 bg-white dark:bg-gray-800">
-		<h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Validator Deregistrations ({ fmt.Sprintf("%d", len(deregistrations.Deregistrations)) })</h3>
+		<h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Validator Deregistrations 1</h3>
 		<div class="overflow-x-auto">
 			<table class="min-w-full table-auto">
 				<thead>
@@ -270,15 +274,15 @@ templ ValidatorDeregistrationSection(deregistrations *v1.ValidatorDeregistration
 					</tr>
 				</thead>
 				<tbody>
-					for _, dereg := range deregistrations.Deregistrations {
+					if deregistration != nil {
 						<tr class="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
 							<td class="py-2 px-4">
-								<a href={ templ.SafeURL(fmt.Sprintf("/validator/%s", dereg.CometAddress)) } class="text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 hover:underline">
-									@templates.StringWithTooltip(dereg.CometAddress)
+								<a href={ templ.SafeURL(fmt.Sprintf("/validator/%s", deregistration.CometAddress)) } class="text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 hover:underline">
+									@templates.StringWithTooltip(deregistration.CometAddress)
 								</a>
 							</td>
 							<td class="py-2 px-4">
-								@templates.StringWithTooltip(fmt.Sprintf("%x", dereg.CometPubkey))
+								@templates.StringWithTooltip(fmt.Sprintf("%x", deregistration.CometPubkey))
 							</td>
 						</tr>
 					}
@@ -288,7 +292,7 @@ templ ValidatorDeregistrationSection(deregistrations *v1.ValidatorDeregistration
 	</div>
 }
 
-templ SlaRollupSection(slaRollup *v1.SlaRollupTransaction) {
+templ SlaRollupSection(slaRollup *db.EtlSlaRollup) {
 	<div class="shadow-xl rounded-lg p-6 bg-white dark:bg-gray-800">
 		<h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">SLA Rollup</h3>
 		<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
@@ -298,53 +302,29 @@ templ SlaRollupSection(slaRollup *v1.SlaRollupTransaction) {
 					{ fmt.Sprintf("%d - %d", slaRollup.BlockStart, slaRollup.BlockEnd) }
 				</p>
 			</div>
-			if slaRollup.Timestamp != nil {
+			if slaRollup.CreatedAt.Valid {
 				<div>
 					<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Rollup Timestamp</label>
 					<p class="text-gray-900 dark:text-gray-100">
-						@templates.TimeWithTooltip(slaRollup.Timestamp.AsTime())
+						@templates.TimeWithTooltip(slaRollup.CreatedAt.Time)
 					</p>
 				</div>
 			}
 			<div>
 				<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Node Reports</label>
-				<p class="text-gray-900 dark:text-gray-100">{ fmt.Sprintf("%d", len(slaRollup.Reports)) }</p>
+				<p class="text-gray-900 dark:text-gray-100">{ fmt.Sprintf("%d", slaRollup.ValidatorCount) }</p>
 			</div>
 		</div>
-		if len(slaRollup.Reports) > 0 {
-			<div class="overflow-x-auto">
-				<table class="min-w-full table-auto">
-					<thead>
-						<tr class="border-b border-gray-200 dark:border-gray-700">
-							<th class="text-left py-2 px-4 font-medium text-gray-900 dark:text-gray-100">Node Address</th>
-							<th class="text-left py-2 px-4 font-medium text-gray-900 dark:text-gray-100">Blocks Proposed</th>
-						</tr>
-					</thead>
-					<tbody>
-						for _, report := range slaRollup.Reports {
-							<tr class="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
-								<td class="py-2 px-4">
-									<a href={ templ.SafeURL(fmt.Sprintf("/validator/%s", report.Address)) } class="text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 hover:underline">
-										@templates.StringWithTooltip(report.Address)
-									</a>
-								</td>
-								<td class="py-2 px-4">{ fmt.Sprintf("%d", report.NumBlocksProposed) }</td>
-							</tr>
-						}
-					</tbody>
-				</table>
-			</div>
-		}
 	</div>
 }
 
-templ StorageProofSection(storageProof *v1.StorageProofTransaction) {
+templ StorageProofSection(storageProof *db.EtlStorageProof) {
 	<div class="shadow-xl rounded-lg p-6 bg-white dark:bg-gray-800">
 		<h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Storage Proof</h3>
 		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 			<div>
 				<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Height</label>
-				<p class="text-gray-900 dark:text-gray-100">{ fmt.Sprintf("%d", storageProof.Height) }</p>
+				<p class="text-gray-900 dark:text-gray-100">{ fmt.Sprintf("%d", storageProof.BlockHeight) }</p>
 			</div>
 			<div>
 				<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Address</label>
@@ -380,7 +360,7 @@ templ StorageProofSection(storageProof *v1.StorageProofTransaction) {
 	</div>
 }
 
-templ StorageProofVerificationSection(storageProofVerification *v1.StorageProofVerificationTransaction) {
+templ StorageProofVerificationSection(storageProofVerification *db.EtlStorageProofVerification) {
 	<div class="shadow-xl rounded-lg p-6 bg-white dark:bg-gray-800">
 		<h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Storage Proof Verification</h3>
 		<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -393,18 +373,6 @@ templ StorageProofVerificationSection(storageProofVerification *v1.StorageProofV
 				<p class="text-gray-900 dark:text-gray-100">
 					@templates.StringWithTooltip(fmt.Sprintf("%x", storageProofVerification.Proof))
 				</p>
-			</div>
-		</div>
-	</div>
-}
-
-templ ReleaseSection(release *v1.ReleaseTransaction) {
-	<div class="shadow-xl rounded-lg p-6 bg-white dark:bg-gray-800">
-		<h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Release (DDEX)</h3>
-		<div>
-			<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Release Data</label>
-			<div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 overflow-x-auto">
-				<pre class="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap">{ string(release.ReleaseData) }</pre>
 			</div>
 		</div>
 	</div>

@@ -1,3 +1,5 @@
+-- Tables for ETL service
+
 create table if not exists etl_addresses(
   id serial primary key,
   address text not null,
@@ -130,7 +132,7 @@ create table if not exists etl_storage_proof_verifications(
 create table if not exists etl_validators(
   id serial primary key,
   address text not null,
-  endpoint text not null,
+  endpoint text not null unique,
   comet_address text not null,
   node_type text not null,
   spid text not null,
@@ -141,3 +143,47 @@ create table if not exists etl_validators(
   created_at timestamp not null,
   updated_at timestamp not null
 );
+
+-- Indexes
+
+-- Pgnotify triggers
+
+-- Function to notify when a new block is inserted
+create or replace function notify_new_block()
+returns trigger as $$
+begin
+  perform pg_notify('new_block', json_build_object(
+    'block_height', new.block_height,
+    'proposer_address', new.proposer_address
+  )::text);
+  return new;
+end;
+$$ language plpgsql;
+
+-- Function to notify when new plays are inserted
+create or replace function notify_new_plays()
+returns trigger as $$
+begin
+  perform pg_notify('new_plays', json_build_object(
+    'user_id', new.user_id,
+    'track_id', new.track_id,
+    'city', new.city,
+    'region', new.region,
+    'country', new.country,
+    'block_height', new.block_height
+  )::text);
+  return new;
+end;
+$$ language plpgsql;
+
+-- Trigger for new blocks
+create trigger trigger_notify_new_block
+  after insert on etl_blocks
+  for each row
+  execute function notify_new_block();
+
+-- Trigger for new plays
+create trigger trigger_notify_new_plays
+  after insert on etl_plays
+  for each row
+  execute function notify_new_plays();

@@ -11,9 +11,9 @@ import templruntime "github.com/a-h/templ/runtime"
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/AudiusProject/audiusd/pkg/api/etl/v1"
 	"github.com/AudiusProject/audiusd/pkg/console/templates"
 	"github.com/AudiusProject/audiusd/pkg/console/templates/layouts"
+	"github.com/AudiusProject/audiusd/pkg/etl/db"
 	"regexp"
 )
 
@@ -54,7 +54,13 @@ func highlightJSON(jsonStr string) string {
 	return formatted
 }
 
-func Transaction(tx *v1.Transaction) templ.Component {
+type TransactionProps struct {
+	Transaction *db.EtlTransaction
+	Proposer    string
+	Content     interface{}
+}
+
+func Transaction(props TransactionProps) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -92,9 +98,9 @@ func Transaction(tx *v1.Transaction) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var3 string
-			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(tx.Hash)
+			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(props.Transaction.TxHash)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/transaction.templ`, Line: 58, Col: 16}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/transaction.templ`, Line: 64, Col: 33}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {
@@ -105,9 +111,9 @@ func Transaction(tx *v1.Transaction) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var4 string
-			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(tx.Type)
+			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(props.Transaction.TxType)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/transaction.templ`, Line: 63, Col: 16}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/transaction.templ`, Line: 69, Col: 33}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 			if templ_7745c5c3_Err != nil {
@@ -118,9 +124,9 @@ func Transaction(tx *v1.Transaction) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var5 templ.SafeURL
-			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(fmt.Sprintf("/block/%d", tx.BlockHeight)))
+			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(fmt.Sprintf("/block/%d", props.Transaction.BlockHeight)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/transaction.templ`, Line: 71, Col: 72}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/transaction.templ`, Line: 77, Col: 87}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 			if templ_7745c5c3_Err != nil {
@@ -131,9 +137,9 @@ func Transaction(tx *v1.Transaction) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var6 string
-			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", tx.BlockHeight))
+			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", props.Transaction.BlockHeight))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/transaction.templ`, Line: 72, Col: 43}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/transaction.templ`, Line: 78, Col: 58}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 			if templ_7745c5c3_Err != nil {
@@ -144,9 +150,9 @@ func Transaction(tx *v1.Transaction) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var7 string
-			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", tx.Index))
+			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", props.Transaction.TxIndex))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/transaction.templ`, Line: 78, Col: 79}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/transaction.templ`, Line: 84, Col: 96}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 			if templ_7745c5c3_Err != nil {
@@ -156,12 +162,12 @@ func Transaction(tx *v1.Transaction) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			if tx.BlockTime != nil {
+			if props.Transaction.CreatedAt.Valid {
 				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<div><label class=\"block text-base font-semibold text-gray-800 dark:text-gray-200 mb-1\">Block Time</label><p class=\"text-gray-900 dark:text-gray-100\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templates.TimeWithTooltip(tx.BlockTime.AsTime()).Render(ctx, templ_7745c5c3_Buffer)
+				templ_7745c5c3_Err = templates.TimeWithTooltip(props.Transaction.CreatedAt.Time).Render(ctx, templ_7745c5c3_Buffer)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -170,15 +176,15 @@ func Transaction(tx *v1.Transaction) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			}
-			if tx.ProposerAddress != "" {
+			if props.Proposer != "" {
 				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "<div><label class=\"block text-base font-semibold text-gray-800 dark:text-gray-200 mb-1\">Block Proposer</label><p class=\"text-gray-900 dark:text-gray-100\"><a href=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var8 templ.SafeURL
-				templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(fmt.Sprintf("/validator/%s", tx.ProposerAddress)))
+				templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(fmt.Sprintf("/validator/%s", props.Proposer)))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/transaction.templ`, Line: 92, Col: 81}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/transaction.templ`, Line: 98, Col: 77}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 				if templ_7745c5c3_Err != nil {
@@ -189,9 +195,9 @@ func Transaction(tx *v1.Transaction) templ.Component {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var9 string
-				templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(tx.ProposerAddress)
+				templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(props.Proposer)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/transaction.templ`, Line: 93, Col: 29}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/transaction.templ`, Line: 99, Col: 25}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 				if templ_7745c5c3_Err != nil {
@@ -207,9 +213,9 @@ func Transaction(tx *v1.Transaction) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var10 string
-			templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(tx.Type)
+			templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(props.Transaction.TxType)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/transaction.templ`, Line: 100, Col: 59}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/transaction.templ`, Line: 106, Col: 76}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 			if templ_7745c5c3_Err != nil {
@@ -219,44 +225,39 @@ func Transaction(tx *v1.Transaction) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			switch tx.Content.(type) {
-			case *v1.Transaction_Plays:
-				templ_7745c5c3_Err = TrackPlaysSection(tx.Content.(*v1.Transaction_Plays).Plays).Render(ctx, templ_7745c5c3_Buffer)
+			switch props.Content.(type) {
+			case []*db.EtlPlay:
+				templ_7745c5c3_Err = TrackPlaysSection(props.Content.([]*db.EtlPlay)).Render(ctx, templ_7745c5c3_Buffer)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-			case *v1.Transaction_ManageEntity:
-				templ_7745c5c3_Err = ManageEntitySection(tx.Content.(*v1.Transaction_ManageEntity).ManageEntity).Render(ctx, templ_7745c5c3_Buffer)
+			case *db.EtlManageEntity:
+				templ_7745c5c3_Err = ManageEntitySection(props.Content.(*db.EtlManageEntity)).Render(ctx, templ_7745c5c3_Buffer)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-			case *v1.Transaction_ValidatorRegistration:
-				templ_7745c5c3_Err = ValidatorRegistrationSection(tx.Content.(*v1.Transaction_ValidatorRegistration).ValidatorRegistration).Render(ctx, templ_7745c5c3_Buffer)
+			case *db.EtlValidatorRegistration:
+				templ_7745c5c3_Err = ValidatorRegistrationSection(props.Content.(*db.EtlValidatorRegistration)).Render(ctx, templ_7745c5c3_Buffer)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-			case *v1.Transaction_ValidatorDeregistration:
-				templ_7745c5c3_Err = ValidatorDeregistrationSection(tx.Content.(*v1.Transaction_ValidatorDeregistration).ValidatorDeregistration).Render(ctx, templ_7745c5c3_Buffer)
+			case *db.EtlValidatorDeregistration:
+				templ_7745c5c3_Err = ValidatorDeregistrationSection(props.Content.(*db.EtlValidatorDeregistration)).Render(ctx, templ_7745c5c3_Buffer)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-			case *v1.Transaction_SlaRollup:
-				templ_7745c5c3_Err = SlaRollupSection(tx.Content.(*v1.Transaction_SlaRollup).SlaRollup).Render(ctx, templ_7745c5c3_Buffer)
+			case *db.EtlSlaRollup:
+				templ_7745c5c3_Err = SlaRollupSection(props.Content.(*db.EtlSlaRollup)).Render(ctx, templ_7745c5c3_Buffer)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-			case *v1.Transaction_StorageProof:
-				templ_7745c5c3_Err = StorageProofSection(tx.Content.(*v1.Transaction_StorageProof).StorageProof).Render(ctx, templ_7745c5c3_Buffer)
+			case *db.EtlStorageProof:
+				templ_7745c5c3_Err = StorageProofSection(props.Content.(*db.EtlStorageProof)).Render(ctx, templ_7745c5c3_Buffer)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-			case *v1.Transaction_StorageProofVerification:
-				templ_7745c5c3_Err = StorageProofVerificationSection(tx.Content.(*v1.Transaction_StorageProofVerification).StorageProofVerification).Render(ctx, templ_7745c5c3_Buffer)
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-			case *v1.Transaction_Release:
-				templ_7745c5c3_Err = ReleaseSection(tx.Content.(*v1.Transaction_Release).Release).Render(ctx, templ_7745c5c3_Buffer)
+			case *db.EtlStorageProofVerification:
+				templ_7745c5c3_Err = StorageProofVerificationSection(props.Content.(*db.EtlStorageProofVerification)).Render(ctx, templ_7745c5c3_Buffer)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -272,7 +273,7 @@ func Transaction(tx *v1.Transaction) templ.Component {
 			}
 			return nil
 		})
-		templ_7745c5c3_Err = layouts.Base(fmt.Sprintf("Transaction %s", tx.Hash[:8])).Render(templ.WithChildren(ctx, templ_7745c5c3_Var2), templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = layouts.Base(fmt.Sprintf("Transaction %s", props.Transaction.TxHash[:8])).Render(templ.WithChildren(ctx, templ_7745c5c3_Var2), templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -280,7 +281,7 @@ func Transaction(tx *v1.Transaction) templ.Component {
 	})
 }
 
-func TrackPlaysSection(plays *v1.TrackPlaysTransaction) templ.Component {
+func TrackPlaysSection(plays []*db.EtlPlay) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -306,9 +307,9 @@ func TrackPlaysSection(plays *v1.TrackPlaysTransaction) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var12 string
-		templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", len(plays.Plays)))
+		templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", len(plays)))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/transaction.templ`, Line: 134, Col: 120}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/transaction.templ`, Line: 138, Col: 114}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 		if templ_7745c5c3_Err != nil {
@@ -318,12 +319,12 @@ func TrackPlaysSection(plays *v1.TrackPlaysTransaction) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		for _, play := range plays.Plays {
+		for _, play := range plays {
 			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "<tr class=\"border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700\"><td class=\"py-2 px-4\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templates.StringWithTooltip(play.Address).Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = templates.StringWithTooltip(play.UserID).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -331,7 +332,7 @@ func TrackPlaysSection(plays *v1.TrackPlaysTransaction) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templates.StringWithTooltip(play.TrackId).Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = templates.StringWithTooltip(play.TrackID).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -342,7 +343,7 @@ func TrackPlaysSection(plays *v1.TrackPlaysTransaction) templ.Component {
 			var templ_7745c5c3_Var13 string
 			templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(play.City)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/transaction.templ`, Line: 155, Col: 19}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/transaction.templ`, Line: 159, Col: 19}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 			if templ_7745c5c3_Err != nil {
@@ -360,7 +361,7 @@ func TrackPlaysSection(plays *v1.TrackPlaysTransaction) templ.Component {
 				var templ_7745c5c3_Var14 string
 				templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(play.Region)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/transaction.templ`, Line: 157, Col: 24}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/transaction.templ`, Line: 161, Col: 24}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 				if templ_7745c5c3_Err != nil {
@@ -379,7 +380,7 @@ func TrackPlaysSection(plays *v1.TrackPlaysTransaction) templ.Component {
 				var templ_7745c5c3_Var15 string
 				templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(play.Country)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/transaction.templ`, Line: 160, Col: 25}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/transaction.templ`, Line: 164, Col: 25}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 				if templ_7745c5c3_Err != nil {
@@ -390,8 +391,8 @@ func TrackPlaysSection(plays *v1.TrackPlaysTransaction) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			if play.PlayedAt != nil {
-				templ_7745c5c3_Err = templates.TimeWithTooltip(play.PlayedAt.AsTime()).Render(ctx, templ_7745c5c3_Buffer)
+			if play.PlayedAt.Valid {
+				templ_7745c5c3_Err = templates.TimeWithTooltip(play.PlayedAt.Time).Render(ctx, templ_7745c5c3_Buffer)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -409,7 +410,7 @@ func TrackPlaysSection(plays *v1.TrackPlaysTransaction) templ.Component {
 	})
 }
 
-func ManageEntitySection(entities *v1.ManageEntityTransaction) templ.Component {
+func ManageEntitySection(entity *db.EtlManageEntity) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -434,12 +435,12 @@ func ManageEntitySection(entities *v1.ManageEntityTransaction) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		if len(entities.Entities) > 0 {
+		if entity != nil {
 			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 29, "<tr class=\"border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700\"><td class=\"py-2 px-4\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templates.StringWithTooltip(entities.Entities[0].Address).Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = templates.StringWithTooltip(entity.Address).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -448,9 +449,9 @@ func ManageEntitySection(entities *v1.ManageEntityTransaction) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var17 string
-			templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinStringErrs(entities.Entities[0].EntityType)
+			templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinStringErrs(entity.EntityType)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/transaction.templ`, Line: 196, Col: 62}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/transaction.templ`, Line: 200, Col: 48}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
 			if templ_7745c5c3_Err != nil {
@@ -461,9 +462,9 @@ func ManageEntitySection(entities *v1.ManageEntityTransaction) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var18 string
-			templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", entities.Entities[0].EntityId))
+			templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", entity.EntityID))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/transaction.templ`, Line: 197, Col: 79}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/transaction.templ`, Line: 201, Col: 65}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 			if templ_7745c5c3_Err != nil {
@@ -474,9 +475,9 @@ func ManageEntitySection(entities *v1.ManageEntityTransaction) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var19 string
-			templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinStringErrs(entities.Entities[0].Action)
+			templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinStringErrs(entity.Action)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/transaction.templ`, Line: 200, Col: 38}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/transaction.templ`, Line: 204, Col: 24}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
 			if templ_7745c5c3_Err != nil {
@@ -486,7 +487,7 @@ func ManageEntitySection(entities *v1.ManageEntityTransaction) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templates.StringWithTooltip(entities.Entities[0].Signer).Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = templates.StringWithTooltip(entity.Signer).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -499,12 +500,12 @@ func ManageEntitySection(entities *v1.ManageEntityTransaction) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		if entities.Entities[0].Metadata != "" {
+		if entity.Metadata.Valid {
 			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 36, "<div class=\"mt-4\"><h4 class=\"text-lg font-medium text-gray-900 dark:text-gray-100 mb-2\">Metadata</h4><div class=\"bg-gray-50 dark:bg-gray-900 rounded-lg p-4 overflow-x-auto border border-gray-200 dark:border-gray-700\"><pre class=\"text-sm font-mono leading-relaxed whitespace-pre-wrap\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templ.Raw(highlightJSON(string(entities.Entities[0].Metadata))).Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = templ.Raw(highlightJSON(string(entity.Metadata.String))).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -521,7 +522,7 @@ func ManageEntitySection(entities *v1.ManageEntityTransaction) templ.Component {
 	})
 }
 
-func ValidatorRegistrationSection(registrations *v1.ValidatorRegistrationTransaction) templ.Component {
+func ValidatorRegistrationSection(registration *db.EtlValidatorRegistration) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -542,50 +543,50 @@ func ValidatorRegistrationSection(registrations *v1.ValidatorRegistrationTransac
 			templ_7745c5c3_Var20 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 39, "<div class=\"shadow-xl rounded-lg p-6 bg-white dark:bg-gray-800\"><h3 class=\"text-xl font-bold text-gray-900 dark:text-gray-100 mb-4\">Validator Registrations (")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 39, "<div class=\"shadow-xl rounded-lg p-6 bg-white dark:bg-gray-800\"><h3 class=\"text-xl font-bold text-gray-900 dark:text-gray-100 mb-4\">Validator Registrations 1</h3><div class=\"overflow-x-auto\"><table class=\"min-w-full table-auto\"><thead><tr class=\"border-b border-gray-200 dark:border-gray-700\"><th class=\"text-left py-2 px-4 font-medium text-gray-900 dark:text-gray-100\">Address</th><th class=\"text-left py-2 px-4 font-medium text-gray-900 dark:text-gray-100\">Comet Address</th><th class=\"text-left py-2 px-4 font-medium text-gray-900 dark:text-gray-100\">Node Type</th><th class=\"text-left py-2 px-4 font-medium text-gray-900 dark:text-gray-100\">Voting Power</th><th class=\"text-left py-2 px-4 font-medium text-gray-900 dark:text-gray-100\">SPID</th></tr></thead> <tbody>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var21 string
-		templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", len(registrations.Registrations)))
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/transaction.templ`, Line: 227, Col: 148}
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 40, ")</h3><div class=\"overflow-x-auto\"><table class=\"min-w-full table-auto\"><thead><tr class=\"border-b border-gray-200 dark:border-gray-700\"><th class=\"text-left py-2 px-4 font-medium text-gray-900 dark:text-gray-100\">Address</th><th class=\"text-left py-2 px-4 font-medium text-gray-900 dark:text-gray-100\">Comet Address</th><th class=\"text-left py-2 px-4 font-medium text-gray-900 dark:text-gray-100\">Node Type</th><th class=\"text-left py-2 px-4 font-medium text-gray-900 dark:text-gray-100\">Voting Power</th><th class=\"text-left py-2 px-4 font-medium text-gray-900 dark:text-gray-100\">SPID</th></tr></thead> <tbody>")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		for _, reg := range registrations.Registrations {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 41, "<tr class=\"border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700\"><td class=\"py-2 px-4\"><a href=\"")
+		if registration != nil {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 40, "<tr class=\"border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700\"><td class=\"py-2 px-4\"><a href=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			var templ_7745c5c3_Var22 templ.SafeURL
-			templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(fmt.Sprintf("/validator/%s", reg.Address)))
+			var templ_7745c5c3_Var21 templ.SafeURL
+			templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(fmt.Sprintf("/validator/%s", registration.Address)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/transaction.templ`, Line: 243, Col: 74}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/transaction.templ`, Line: 247, Col: 83}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 41, "\" class=\"text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 hover:underline\">")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templates.StringWithTooltip(registration.Address).Render(ctx, templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 42, "</a></td><td class=\"py-2 px-4\">")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templates.StringWithTooltip(registration.CometAddress).Render(ctx, templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 43, "</td><td class=\"py-2 px-4\">")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var22 string
+			templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.JoinStringErrs(registration.NodeType)
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/transaction.templ`, Line: 254, Col: 52}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var22))
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 42, "\" class=\"text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 hover:underline\">")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templates.StringWithTooltip(reg.Address).Render(ctx, templ_7745c5c3_Buffer)
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 43, "</a></td><td class=\"py-2 px-4\">")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templates.StringWithTooltip(reg.CometAddress).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -594,9 +595,9 @@ func ValidatorRegistrationSection(registrations *v1.ValidatorRegistrationTransac
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var23 string
-			templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinStringErrs(reg.NodeType)
+			templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", registration.VotingPower))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/transaction.templ`, Line: 250, Col: 43}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/transaction.templ`, Line: 255, Col: 74}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var23))
 			if templ_7745c5c3_Err != nil {
@@ -607,33 +608,20 @@ func ValidatorRegistrationSection(registrations *v1.ValidatorRegistrationTransac
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var24 string
-			templ_7745c5c3_Var24, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", reg.VotingPower))
+			templ_7745c5c3_Var24, templ_7745c5c3_Err = templ.JoinStringErrs(registration.Spid)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/transaction.templ`, Line: 251, Col: 65}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/transaction.templ`, Line: 256, Col: 48}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var24))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 46, "</td><td class=\"py-2 px-4\">")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			var templ_7745c5c3_Var25 string
-			templ_7745c5c3_Var25, templ_7745c5c3_Err = templ.JoinStringErrs(reg.Spid)
-			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/transaction.templ`, Line: 252, Col: 39}
-			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var25))
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 47, "</td></tr>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 46, "</td></tr>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 48, "</tbody></table></div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 47, "</tbody></table></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -641,7 +629,7 @@ func ValidatorRegistrationSection(registrations *v1.ValidatorRegistrationTransac
 	})
 }
 
-func ValidatorDeregistrationSection(deregistrations *v1.ValidatorDeregistrationTransaction) templ.Component {
+func ValidatorDeregistrationSection(deregistration *db.EtlValidatorDeregistration) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -657,64 +645,51 @@ func ValidatorDeregistrationSection(deregistrations *v1.ValidatorDeregistrationT
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var26 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var26 == nil {
-			templ_7745c5c3_Var26 = templ.NopComponent
+		templ_7745c5c3_Var25 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var25 == nil {
+			templ_7745c5c3_Var25 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 49, "<div class=\"shadow-xl rounded-lg p-6 bg-white dark:bg-gray-800\"><h3 class=\"text-xl font-bold text-gray-900 dark:text-gray-100 mb-4\">Validator Deregistrations (")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 48, "<div class=\"shadow-xl rounded-lg p-6 bg-white dark:bg-gray-800\"><h3 class=\"text-xl font-bold text-gray-900 dark:text-gray-100 mb-4\">Validator Deregistrations 1</h3><div class=\"overflow-x-auto\"><table class=\"min-w-full table-auto\"><thead><tr class=\"border-b border-gray-200 dark:border-gray-700\"><th class=\"text-left py-2 px-4 font-medium text-gray-900 dark:text-gray-100\">Comet Address</th><th class=\"text-left py-2 px-4 font-medium text-gray-900 dark:text-gray-100\">Public Key</th></tr></thead> <tbody>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var27 string
-		templ_7745c5c3_Var27, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", len(deregistrations.Deregistrations)))
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/transaction.templ`, Line: 263, Col: 154}
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var27))
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 50, ")</h3><div class=\"overflow-x-auto\"><table class=\"min-w-full table-auto\"><thead><tr class=\"border-b border-gray-200 dark:border-gray-700\"><th class=\"text-left py-2 px-4 font-medium text-gray-900 dark:text-gray-100\">Comet Address</th><th class=\"text-left py-2 px-4 font-medium text-gray-900 dark:text-gray-100\">Public Key</th></tr></thead> <tbody>")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		for _, dereg := range deregistrations.Deregistrations {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 51, "<tr class=\"border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700\"><td class=\"py-2 px-4\"><a href=\"")
+		if deregistration != nil {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 49, "<tr class=\"border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700\"><td class=\"py-2 px-4\"><a href=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			var templ_7745c5c3_Var28 templ.SafeURL
-			templ_7745c5c3_Var28, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(fmt.Sprintf("/validator/%s", dereg.CometAddress)))
+			var templ_7745c5c3_Var26 templ.SafeURL
+			templ_7745c5c3_Var26, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(fmt.Sprintf("/validator/%s", deregistration.CometAddress)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/transaction.templ`, Line: 276, Col: 81}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/transaction.templ`, Line: 280, Col: 90}
 			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var28))
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 52, "\" class=\"text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 hover:underline\">")
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var26))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templates.StringWithTooltip(dereg.CometAddress).Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 50, "\" class=\"text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 hover:underline\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 53, "</a></td><td class=\"py-2 px-4\">")
+			templ_7745c5c3_Err = templates.StringWithTooltip(deregistration.CometAddress).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templates.StringWithTooltip(fmt.Sprintf("%x", dereg.CometPubkey)).Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 51, "</a></td><td class=\"py-2 px-4\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 54, "</td></tr>")
+			templ_7745c5c3_Err = templates.StringWithTooltip(fmt.Sprintf("%x", deregistration.CometPubkey)).Render(ctx, templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 52, "</td></tr>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 55, "</tbody></table></div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 53, "</tbody></table></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -722,7 +697,7 @@ func ValidatorDeregistrationSection(deregistrations *v1.ValidatorDeregistrationT
 	})
 }
 
-func SlaRollupSection(slaRollup *v1.SlaRollupTransaction) templ.Component {
+func SlaRollupSection(slaRollup *db.EtlSlaRollup) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -738,152 +713,98 @@ func SlaRollupSection(slaRollup *v1.SlaRollupTransaction) templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var29 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var29 == nil {
-			templ_7745c5c3_Var29 = templ.NopComponent
+		templ_7745c5c3_Var27 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var27 == nil {
+			templ_7745c5c3_Var27 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 56, "<div class=\"shadow-xl rounded-lg p-6 bg-white dark:bg-gray-800\"><h3 class=\"text-xl font-bold text-gray-900 dark:text-gray-100 mb-4\">SLA Rollup</h3><div class=\"grid grid-cols-1 md:grid-cols-3 gap-4 mb-4\"><div><label class=\"block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1\">Block Range</label><p class=\"text-gray-900 dark:text-gray-100\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 54, "<div class=\"shadow-xl rounded-lg p-6 bg-white dark:bg-gray-800\"><h3 class=\"text-xl font-bold text-gray-900 dark:text-gray-100 mb-4\">SLA Rollup</h3><div class=\"grid grid-cols-1 md:grid-cols-3 gap-4 mb-4\"><div><label class=\"block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1\">Block Range</label><p class=\"text-gray-900 dark:text-gray-100\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var30 string
-		templ_7745c5c3_Var30, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d - %d", slaRollup.BlockStart, slaRollup.BlockEnd))
+		var templ_7745c5c3_Var28 string
+		templ_7745c5c3_Var28, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d - %d", slaRollup.BlockStart, slaRollup.BlockEnd))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/transaction.templ`, Line: 298, Col: 71}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/transaction.templ`, Line: 302, Col: 71}
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var30))
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 57, "</p></div>")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var28))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		if slaRollup.Timestamp != nil {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 58, "<div><label class=\"block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1\">Rollup Timestamp</label><p class=\"text-gray-900 dark:text-gray-100\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 55, "</p></div>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		if slaRollup.CreatedAt.Valid {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 56, "<div><label class=\"block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1\">Rollup Timestamp</label><p class=\"text-gray-900 dark:text-gray-100\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templates.TimeWithTooltip(slaRollup.Timestamp.AsTime()).Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = templates.TimeWithTooltip(slaRollup.CreatedAt.Time).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 59, "</p></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 57, "</p></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 60, "<div><label class=\"block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1\">Node Reports</label><p class=\"text-gray-900 dark:text-gray-100\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 58, "<div><label class=\"block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1\">Node Reports</label><p class=\"text-gray-900 dark:text-gray-100\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var29 string
+		templ_7745c5c3_Var29, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", slaRollup.ValidatorCount))
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/transaction.templ`, Line: 315, Col: 93}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var29))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 59, "</p></div></div></div>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		return nil
+	})
+}
+
+func StorageProofSection(storageProof *db.EtlStorageProof) templ.Component {
+	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
+			return templ_7745c5c3_CtxErr
+		}
+		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+		if !templ_7745c5c3_IsBuffer {
+			defer func() {
+				templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err == nil {
+					templ_7745c5c3_Err = templ_7745c5c3_BufErr
+				}
+			}()
+		}
+		ctx = templ.InitializeContext(ctx)
+		templ_7745c5c3_Var30 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var30 == nil {
+			templ_7745c5c3_Var30 = templ.NopComponent
+		}
+		ctx = templ.ClearChildren(ctx)
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 60, "<div class=\"shadow-xl rounded-lg p-6 bg-white dark:bg-gray-800\"><h3 class=\"text-xl font-bold text-gray-900 dark:text-gray-100 mb-4\">Storage Proof</h3><div class=\"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4\"><div><label class=\"block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1\">Height</label><p class=\"text-gray-900 dark:text-gray-100\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var31 string
-		templ_7745c5c3_Var31, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", len(slaRollup.Reports)))
+		templ_7745c5c3_Var31, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", storageProof.BlockHeight))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/transaction.templ`, Line: 311, Col: 91}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/transaction.templ`, Line: 327, Col: 93}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var31))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 61, "</p></div></div>")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		if len(slaRollup.Reports) > 0 {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 62, "<div class=\"overflow-x-auto\"><table class=\"min-w-full table-auto\"><thead><tr class=\"border-b border-gray-200 dark:border-gray-700\"><th class=\"text-left py-2 px-4 font-medium text-gray-900 dark:text-gray-100\">Node Address</th><th class=\"text-left py-2 px-4 font-medium text-gray-900 dark:text-gray-100\">Blocks Proposed</th></tr></thead> <tbody>")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			for _, report := range slaRollup.Reports {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 63, "<tr class=\"border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700\"><td class=\"py-2 px-4\"><a href=\"")
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				var templ_7745c5c3_Var32 templ.SafeURL
-				templ_7745c5c3_Var32, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(fmt.Sprintf("/validator/%s", report.Address)))
-				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/transaction.templ`, Line: 327, Col: 78}
-				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var32))
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 64, "\" class=\"text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 hover:underline\">")
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				templ_7745c5c3_Err = templates.StringWithTooltip(report.Address).Render(ctx, templ_7745c5c3_Buffer)
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 65, "</a></td><td class=\"py-2 px-4\">")
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				var templ_7745c5c3_Var33 string
-				templ_7745c5c3_Var33, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", report.NumBlocksProposed))
-				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/transaction.templ`, Line: 331, Col: 75}
-				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var33))
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 66, "</td></tr>")
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 67, "</tbody></table></div>")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 68, "</div>")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		return nil
-	})
-}
-
-func StorageProofSection(storageProof *v1.StorageProofTransaction) templ.Component {
-	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
-		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
-		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
-			return templ_7745c5c3_CtxErr
-		}
-		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
-		if !templ_7745c5c3_IsBuffer {
-			defer func() {
-				templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
-				if templ_7745c5c3_Err == nil {
-					templ_7745c5c3_Err = templ_7745c5c3_BufErr
-				}
-			}()
-		}
-		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var34 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var34 == nil {
-			templ_7745c5c3_Var34 = templ.NopComponent
-		}
-		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 69, "<div class=\"shadow-xl rounded-lg p-6 bg-white dark:bg-gray-800\"><h3 class=\"text-xl font-bold text-gray-900 dark:text-gray-100 mb-4\">Storage Proof</h3><div class=\"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4\"><div><label class=\"block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1\">Height</label><p class=\"text-gray-900 dark:text-gray-100\">")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		var templ_7745c5c3_Var35 string
-		templ_7745c5c3_Var35, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", storageProof.Height))
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/transaction.templ`, Line: 347, Col: 88}
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var35))
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 70, "</p></div><div><label class=\"block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1\">Address</label><p class=\"text-gray-900 dark:text-gray-100\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 61, "</p></div><div><label class=\"block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1\">Address</label><p class=\"text-gray-900 dark:text-gray-100\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -891,7 +812,7 @@ func StorageProofSection(storageProof *v1.StorageProofTransaction) templ.Compone
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 71, "</p></div><div><label class=\"block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1\">CID</label><p class=\"text-gray-900 dark:text-gray-100\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 62, "</p></div><div><label class=\"block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1\">CID</label><p class=\"text-gray-900 dark:text-gray-100\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -899,12 +820,12 @@ func StorageProofSection(storageProof *v1.StorageProofTransaction) templ.Compone
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 72, "</p></div><div class=\"md:col-span-2 lg:col-span-3\"><label class=\"block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1\">Prover Addresses</label><div class=\"flex flex-wrap gap-2\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 63, "</p></div><div class=\"md:col-span-2 lg:col-span-3\"><label class=\"block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1\">Prover Addresses</label><div class=\"flex flex-wrap gap-2\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		for _, addr := range storageProof.ProverAddresses {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 73, "<span class=\"px-2 py-1 text-xs rounded bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 64, "<span class=\"px-2 py-1 text-xs rounded bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -912,17 +833,17 @@ func StorageProofSection(storageProof *v1.StorageProofTransaction) templ.Compone
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 74, "</span>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 65, "</span>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 75, "</div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 66, "</div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		if storageProof.ProofSignature != nil {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 76, "<div class=\"md:col-span-2 lg:col-span-3\"><label class=\"block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1\">Proof Signature</label><p class=\"text-gray-900 dark:text-gray-100\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 67, "<div class=\"md:col-span-2 lg:col-span-3\"><label class=\"block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1\">Proof Signature</label><p class=\"text-gray-900 dark:text-gray-100\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -930,12 +851,12 @@ func StorageProofSection(storageProof *v1.StorageProofTransaction) templ.Compone
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 77, "</p></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 68, "</p></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 78, "</div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 69, "</div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -943,7 +864,7 @@ func StorageProofSection(storageProof *v1.StorageProofTransaction) templ.Compone
 	})
 }
 
-func StorageProofVerificationSection(storageProofVerification *v1.StorageProofVerificationTransaction) templ.Component {
+func StorageProofVerificationSection(storageProofVerification *db.EtlStorageProofVerification) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -959,25 +880,25 @@ func StorageProofVerificationSection(storageProofVerification *v1.StorageProofVe
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var36 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var36 == nil {
-			templ_7745c5c3_Var36 = templ.NopComponent
+		templ_7745c5c3_Var32 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var32 == nil {
+			templ_7745c5c3_Var32 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 79, "<div class=\"shadow-xl rounded-lg p-6 bg-white dark:bg-gray-800\"><h3 class=\"text-xl font-bold text-gray-900 dark:text-gray-100 mb-4\">Storage Proof Verification</h3><div class=\"grid grid-cols-1 md:grid-cols-2 gap-4\"><div><label class=\"block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1\">Height</label><p class=\"text-gray-900 dark:text-gray-100\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 70, "<div class=\"shadow-xl rounded-lg p-6 bg-white dark:bg-gray-800\"><h3 class=\"text-xl font-bold text-gray-900 dark:text-gray-100 mb-4\">Storage Proof Verification</h3><div class=\"grid grid-cols-1 md:grid-cols-2 gap-4\"><div><label class=\"block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1\">Height</label><p class=\"text-gray-900 dark:text-gray-100\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var37 string
-		templ_7745c5c3_Var37, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", storageProofVerification.Height))
+		var templ_7745c5c3_Var33 string
+		templ_7745c5c3_Var33, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", storageProofVerification.Height))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/transaction.templ`, Line: 389, Col: 100}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/transaction.templ`, Line: 369, Col: 100}
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var37))
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var33))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 80, "</p></div><div><label class=\"block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1\">Proof</label><p class=\"text-gray-900 dark:text-gray-100\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 71, "</p></div><div><label class=\"block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1\">Proof</label><p class=\"text-gray-900 dark:text-gray-100\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -985,49 +906,7 @@ func StorageProofVerificationSection(storageProofVerification *v1.StorageProofVe
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 81, "</p></div></div></div>")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		return nil
-	})
-}
-
-func ReleaseSection(release *v1.ReleaseTransaction) templ.Component {
-	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
-		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
-		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
-			return templ_7745c5c3_CtxErr
-		}
-		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
-		if !templ_7745c5c3_IsBuffer {
-			defer func() {
-				templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
-				if templ_7745c5c3_Err == nil {
-					templ_7745c5c3_Err = templ_7745c5c3_BufErr
-				}
-			}()
-		}
-		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var38 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var38 == nil {
-			templ_7745c5c3_Var38 = templ.NopComponent
-		}
-		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 82, "<div class=\"shadow-xl rounded-lg p-6 bg-white dark:bg-gray-800\"><h3 class=\"text-xl font-bold text-gray-900 dark:text-gray-100 mb-4\">Release (DDEX)</h3><div><label class=\"block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2\">Release Data</label><div class=\"bg-gray-50 dark:bg-gray-900 rounded-lg p-4 overflow-x-auto\"><pre class=\"text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap\">")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		var templ_7745c5c3_Var39 string
-		templ_7745c5c3_Var39, templ_7745c5c3_Err = templ.JoinStringErrs(string(release.ReleaseData))
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/transaction.templ`, Line: 407, Col: 107}
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var39))
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 83, "</pre></div></div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 72, "</p></div></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

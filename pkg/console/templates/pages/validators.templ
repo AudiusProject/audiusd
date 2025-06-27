@@ -2,9 +2,9 @@ package pages
 
 import (
 	"fmt"
-	"github.com/AudiusProject/audiusd/pkg/api/etl/v1"
 	"github.com/AudiusProject/audiusd/pkg/console/templates"
 	"github.com/AudiusProject/audiusd/pkg/console/templates/layouts"
+	"github.com/AudiusProject/audiusd/pkg/etl/db"
 	"strings"
 )
 
@@ -38,22 +38,21 @@ func buildValidatorsPaginationURL(page int32, pageSize int32, queryType string, 
 }
 
 // Helper functions for uptime display
-func validatorMeetsSlaThreshold(report *v1.SlaRollupScore) bool {
-	if report.BlockQuota == 0 {
+func validatorMeetsSlaThreshold(report *db.EtlSlaNodeReport) bool {
+	if report.SlaRollupID == 0 {
 		return true
 	}
 
-	powRatio := float64(report.BlocksProposed) / float64(report.BlockQuota)
-	posRatio := 1.0
-	if report.ChallengesReceived > 0 {
-		posRatio = 1.0 - (float64(report.ChallengesFailed) / float64(report.ChallengesReceived))
+	// We don't have block quota in the node report, so we'll use a simplified check
+	// Assume they meet SLA if they have proposed blocks and not too many challenge failures
+	if report.NumBlocksProposed > 0 && report.ChallengesFailed <= (report.ChallengesReceived/5) {
+		return true
 	}
-
-	return powRatio >= 0.8 && posRatio >= 0.8
+	return false
 }
 
-func validatorUptimeColor(report *v1.SlaRollupScore) string {
-	if report.BlocksProposed == 0 {
+func validatorUptimeColor(report *db.EtlSlaNodeReport) string {
+	if report.NumBlocksProposed == 0 {
 		return "bg-gray-800"
 	}
 	if validatorMeetsSlaThreshold(report) {
@@ -62,7 +61,18 @@ func validatorUptimeColor(report *v1.SlaRollupScore) string {
 	return "bg-red-500"
 }
 
-templ Validators(validators []*v1.ValidatorInfo, validatorUptimeMap map[string][]*v1.SlaRollupScore, currentPage int32, hasNext bool, hasPrev bool, pageSize int32, queryType string, endpointFilter string) {
+type ValidatorsProps struct {
+	Validators         []*db.EtlValidator
+	ValidatorUptimeMap map[string][]*db.EtlSlaNodeReport
+	CurrentPage        int32
+	HasNext            bool
+	HasPrev            bool
+	PageSize           int32
+	QueryType          string
+	EndpointFilter     string
+}
+
+templ Validators(props ValidatorsProps) {
 	@layouts.Base("Validators") {
 		<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6">
 			<div class="flex items-center gap-6 mb-6">
@@ -72,40 +82,40 @@ templ Validators(validators []*v1.ValidatorInfo, validatorUptimeMap map[string][
 						type="text"
 						id="endpointFilter"
 						placeholder="Filter by endpoint (e.g. audius.co)..."
-						value={ endpointFilter }
+						value={ props.EndpointFilter }
 						class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
 						onchange="updateFilters()"
 					/>
 				</div>
 				<div class="flex items-center gap-4 ml-auto">
 					<div class="text-sm text-gray-500 dark:text-gray-400">
-						Page { fmt.Sprint(currentPage) } • { fmt.Sprint(pageSize) } per page
+						Page { fmt.Sprint(props.CurrentPage) } • { fmt.Sprint(props.PageSize) } per page
 					</div>
 					<div class="flex border border-gray-200 dark:border-gray-700 rounded overflow-hidden">
 						<a
-							href={ templ.SafeURL(fmt.Sprintf("?type=active&endpoint_filter=%s", endpointFilter)) }
-							class={ "px-4 py-2 text-sm font-medium transition-colors", templ.KV("bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900", queryType == "active"), templ.KV("text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700", queryType != "active") }
+							href={ templ.SafeURL(fmt.Sprintf("?type=active&endpoint_filter=%s", props.EndpointFilter)) }
+							class={ "px-4 py-2 text-sm font-medium transition-colors", templ.KV("bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900", props.QueryType == "active"), templ.KV("text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700", props.QueryType != "active") }
 						>
 							Active
 						</a>
 						<a
-							href={ templ.SafeURL(fmt.Sprintf("?type=registrations&endpoint_filter=%s", endpointFilter)) }
-							class={ "px-4 py-2 text-sm font-medium border-l border-gray-200 dark:border-gray-700 transition-colors", templ.KV("bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900", queryType == "registrations"), templ.KV("text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700", queryType != "registrations") }
+							href={ templ.SafeURL(fmt.Sprintf("?type=registrations&endpoint_filter=%s", props.EndpointFilter)) }
+							class={ "px-4 py-2 text-sm font-medium border-l border-gray-200 dark:border-gray-700 transition-colors", templ.KV("bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900", props.QueryType == "registrations"), templ.KV("text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700", props.QueryType != "registrations") }
 						>
 							Registrations
 						</a>
 						<a
-							href={ templ.SafeURL(fmt.Sprintf("?type=deregistrations&endpoint_filter=%s", endpointFilter)) }
-							class={ "px-4 py-2 text-sm font-medium border-l border-gray-200 dark:border-gray-700 transition-colors", templ.KV("bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900", queryType == "deregistrations"), templ.KV("text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700", queryType != "deregistrations") }
+							href={ templ.SafeURL(fmt.Sprintf("?type=deregistrations&endpoint_filter=%s", props.EndpointFilter)) }
+							class={ "px-4 py-2 text-sm font-medium border-l border-gray-200 dark:border-gray-700 transition-colors", templ.KV("bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900", props.QueryType == "deregistrations"), templ.KV("text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700", props.QueryType != "deregistrations") }
 						>
 							Deregistrations
 						</a>
 					</div>
 				</div>
 			</div>
-			if len(validators) > 0 {
+			if len(props.Validators) > 0 {
 				<div class="space-y-2">
-					for _, validator := range validators {
+					for _, validator := range props.Validators {
 						<a href={ templ.SafeURL(fmt.Sprintf("/validator/%s", validator.Address)) } class="block">
 							<div class="flex items-center justify-between py-4 px-6 border border-gray-200 dark:border-gray-700 rounded hover:bg-purple-50 hover:border-purple-200 dark:hover:bg-gray-700 transition-colors cursor-pointer">
 								<div class="flex items-center gap-6 flex-1">
@@ -140,19 +150,19 @@ templ Validators(validators []*v1.ValidatorInfo, validatorUptimeMap map[string][
 										<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Status</div>
 										<div class="flex items-center gap-2 text-sm">
 											switch validator.Status {
-												case v1.ValidatorStatus_VALIDATOR_STATUS_ACTIVE:
+												case "active":
 													<span class="px-2 py-1 text-xs font-medium bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded">Active</span>
-												case v1.ValidatorStatus_VALIDATOR_STATUS_DEREGISTERED:
+												case "deregistered":
 													<span class="px-2 py-1 text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded">Deregistered</span>
-												case v1.ValidatorStatus_VALIDATOR_STATUS_MISBEHAVIOR_DEREGISTERED:
+												case "misbehavior_deregistered":
 													<span class="px-2 py-1 text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded">Misbehavior</span>
 												default:
 													<span class="px-2 py-1 text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded">Unknown</span>
 											}
 											<span class="text-gray-400 dark:text-gray-500">|</span>
 											<div class="text-xs text-gray-500 dark:text-gray-400">
-												if validator.RegisteredAt != nil {
-													@templates.TimeWithTooltip(validator.RegisteredAt.AsTime())
+												if validator.RegisteredAt > 0 {
+													@templates.TimeWithTooltip(validator.CreatedAt.Time)
 												} else {
 													<span class="text-gray-400 dark:text-gray-600">—</span>
 												}
@@ -162,12 +172,12 @@ templ Validators(validators []*v1.ValidatorInfo, validatorUptimeMap map[string][
 									<div class="flex-1">
 										<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Uptime</div>
 										<div class="flex items-center gap-1">
-											if rollups, exists := validatorUptimeMap[validator.CometAddress]; exists && len(rollups) > 0 {
+											if rollups, exists := props.ValidatorUptimeMap[validator.CometAddress]; exists && len(rollups) > 0 {
 												// Show actual uptime data (reverse order so most recent is on the right)
 												for i := len(rollups) - 1; i >= 0; i-- {
 													<div
 														class={ "w-3 h-4 rounded-sm", validatorUptimeColor(rollups[i]) }
-														title={ fmt.Sprintf("SLA #%d: %d/%d blocks, %d/%d challenges", rollups[i].SlaRollupId, rollups[i].BlocksProposed, rollups[i].BlockQuota, rollups[i].ChallengesFailed, rollups[i].ChallengesReceived) }
+														title={ fmt.Sprintf("SLA #%d: %d blocks, %d/%d challenges", rollups[i].SlaRollupID, rollups[i].NumBlocksProposed, rollups[i].ChallengesFailed, rollups[i].ChallengesReceived) }
 													></div>
 												}
 												// Fill remaining slots with empty bars if less than 5 rollups
@@ -189,9 +199,9 @@ templ Validators(validators []*v1.ValidatorInfo, validatorUptimeMap map[string][
 				</div>
 				<div class="flex justify-between items-center mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
 					<div class="flex gap-3">
-						if hasPrev {
+						if props.HasPrev {
 							<a
-								href={ templ.SafeURL(buildValidatorsPaginationURL(currentPage-1, pageSize, queryType, endpointFilter)) }
+								href={ templ.SafeURL(buildValidatorsPaginationURL(props.CurrentPage-1, props.PageSize, props.QueryType, props.EndpointFilter)) }
 								class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors"
 							>
 								← Previous
@@ -201,9 +211,9 @@ templ Validators(validators []*v1.ValidatorInfo, validatorUptimeMap map[string][
 								← Previous
 							</span>
 						}
-						if hasNext {
+						if props.HasNext {
 							<a
-								href={ templ.SafeURL(buildValidatorsPaginationURL(currentPage+1, pageSize, queryType, endpointFilter)) }
+								href={ templ.SafeURL(buildValidatorsPaginationURL(props.CurrentPage+1, props.PageSize, props.QueryType, props.EndpointFilter)) }
 								class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors"
 							>
 								Next →

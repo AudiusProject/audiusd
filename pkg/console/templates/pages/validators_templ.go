@@ -10,9 +10,9 @@ import templruntime "github.com/a-h/templ/runtime"
 
 import (
 	"fmt"
-	"github.com/AudiusProject/audiusd/pkg/api/etl/v1"
 	"github.com/AudiusProject/audiusd/pkg/console/templates"
 	"github.com/AudiusProject/audiusd/pkg/console/templates/layouts"
+	"github.com/AudiusProject/audiusd/pkg/etl/db"
 	"strings"
 )
 
@@ -46,22 +46,21 @@ func buildValidatorsPaginationURL(page int32, pageSize int32, queryType string, 
 }
 
 // Helper functions for uptime display
-func validatorMeetsSlaThreshold(report *v1.SlaRollupScore) bool {
-	if report.BlockQuota == 0 {
+func validatorMeetsSlaThreshold(report *db.EtlSlaNodeReport) bool {
+	if report.SlaRollupID == 0 {
 		return true
 	}
 
-	powRatio := float64(report.BlocksProposed) / float64(report.BlockQuota)
-	posRatio := 1.0
-	if report.ChallengesReceived > 0 {
-		posRatio = 1.0 - (float64(report.ChallengesFailed) / float64(report.ChallengesReceived))
+	// We don't have block quota in the node report, so we'll use a simplified check
+	// Assume they meet SLA if they have proposed blocks and not too many challenge failures
+	if report.NumBlocksProposed > 0 && report.ChallengesFailed <= (report.ChallengesReceived/5) {
+		return true
 	}
-
-	return powRatio >= 0.8 && posRatio >= 0.8
+	return false
 }
 
-func validatorUptimeColor(report *v1.SlaRollupScore) string {
-	if report.BlocksProposed == 0 {
+func validatorUptimeColor(report *db.EtlSlaNodeReport) string {
+	if report.NumBlocksProposed == 0 {
 		return "bg-gray-800"
 	}
 	if validatorMeetsSlaThreshold(report) {
@@ -70,7 +69,18 @@ func validatorUptimeColor(report *v1.SlaRollupScore) string {
 	return "bg-red-500"
 }
 
-func Validators(validators []*v1.ValidatorInfo, validatorUptimeMap map[string][]*v1.SlaRollupScore, currentPage int32, hasNext bool, hasPrev bool, pageSize int32, queryType string, endpointFilter string) templ.Component {
+type ValidatorsProps struct {
+	Validators         []*db.EtlValidator
+	ValidatorUptimeMap map[string][]*db.EtlSlaNodeReport
+	CurrentPage        int32
+	HasNext            bool
+	HasPrev            bool
+	PageSize           int32
+	QueryType          string
+	EndpointFilter     string
+}
+
+func Validators(props ValidatorsProps) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -108,9 +118,9 @@ func Validators(validators []*v1.ValidatorInfo, validatorUptimeMap map[string][]
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var3 string
-			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(endpointFilter)
+			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(props.EndpointFilter)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 75, Col: 28}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 85, Col: 34}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {
@@ -121,9 +131,9 @@ func Validators(validators []*v1.ValidatorInfo, validatorUptimeMap map[string][]
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var4 string
-			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprint(currentPage))
+			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprint(props.CurrentPage))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 82, Col: 36}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 92, Col: 42}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 			if templ_7745c5c3_Err != nil {
@@ -134,9 +144,9 @@ func Validators(validators []*v1.ValidatorInfo, validatorUptimeMap map[string][]
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var5 string
-			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprint(pageSize))
+			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprint(props.PageSize))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 82, Col: 65}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 92, Col: 77}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 			if templ_7745c5c3_Err != nil {
@@ -146,7 +156,7 @@ func Validators(validators []*v1.ValidatorInfo, validatorUptimeMap map[string][]
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			var templ_7745c5c3_Var6 = []any{"px-4 py-2 text-sm font-medium transition-colors", templ.KV("bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900", queryType == "active"), templ.KV("text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700", queryType != "active")}
+			var templ_7745c5c3_Var6 = []any{"px-4 py-2 text-sm font-medium transition-colors", templ.KV("bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900", props.QueryType == "active"), templ.KV("text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700", props.QueryType != "active")}
 			templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var6...)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
@@ -156,9 +166,9 @@ func Validators(validators []*v1.ValidatorInfo, validatorUptimeMap map[string][]
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var7 templ.SafeURL
-			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(fmt.Sprintf("?type=active&endpoint_filter=%s", endpointFilter)))
+			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(fmt.Sprintf("?type=active&endpoint_filter=%s", props.EndpointFilter)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 86, Col: 91}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 96, Col: 97}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 			if templ_7745c5c3_Err != nil {
@@ -181,7 +191,7 @@ func Validators(validators []*v1.ValidatorInfo, validatorUptimeMap map[string][]
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			var templ_7745c5c3_Var9 = []any{"px-4 py-2 text-sm font-medium border-l border-gray-200 dark:border-gray-700 transition-colors", templ.KV("bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900", queryType == "registrations"), templ.KV("text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700", queryType != "registrations")}
+			var templ_7745c5c3_Var9 = []any{"px-4 py-2 text-sm font-medium border-l border-gray-200 dark:border-gray-700 transition-colors", templ.KV("bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900", props.QueryType == "registrations"), templ.KV("text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700", props.QueryType != "registrations")}
 			templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var9...)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
@@ -191,9 +201,9 @@ func Validators(validators []*v1.ValidatorInfo, validatorUptimeMap map[string][]
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var10 templ.SafeURL
-			templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(fmt.Sprintf("?type=registrations&endpoint_filter=%s", endpointFilter)))
+			templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(fmt.Sprintf("?type=registrations&endpoint_filter=%s", props.EndpointFilter)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 92, Col: 98}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 102, Col: 104}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 			if templ_7745c5c3_Err != nil {
@@ -216,7 +226,7 @@ func Validators(validators []*v1.ValidatorInfo, validatorUptimeMap map[string][]
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			var templ_7745c5c3_Var12 = []any{"px-4 py-2 text-sm font-medium border-l border-gray-200 dark:border-gray-700 transition-colors", templ.KV("bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900", queryType == "deregistrations"), templ.KV("text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700", queryType != "deregistrations")}
+			var templ_7745c5c3_Var12 = []any{"px-4 py-2 text-sm font-medium border-l border-gray-200 dark:border-gray-700 transition-colors", templ.KV("bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900", props.QueryType == "deregistrations"), templ.KV("text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700", props.QueryType != "deregistrations")}
 			templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var12...)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
@@ -226,9 +236,9 @@ func Validators(validators []*v1.ValidatorInfo, validatorUptimeMap map[string][]
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var13 templ.SafeURL
-			templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(fmt.Sprintf("?type=deregistrations&endpoint_filter=%s", endpointFilter)))
+			templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(fmt.Sprintf("?type=deregistrations&endpoint_filter=%s", props.EndpointFilter)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 98, Col: 100}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 108, Col: 106}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 			if templ_7745c5c3_Err != nil {
@@ -251,12 +261,12 @@ func Validators(validators []*v1.ValidatorInfo, validatorUptimeMap map[string][]
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			if len(validators) > 0 {
+			if len(props.Validators) > 0 {
 				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "<div class=\"space-y-2\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				for _, validator := range validators {
+				for _, validator := range props.Validators {
 					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "<a href=\"")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
@@ -264,7 +274,7 @@ func Validators(validators []*v1.ValidatorInfo, validatorUptimeMap map[string][]
 					var templ_7745c5c3_Var15 templ.SafeURL
 					templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(fmt.Sprintf("/validator/%s", validator.Address)))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 109, Col: 78}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 119, Col: 78}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 					if templ_7745c5c3_Err != nil {
@@ -277,7 +287,7 @@ func Validators(validators []*v1.ValidatorInfo, validatorUptimeMap map[string][]
 					var templ_7745c5c3_Var16 string
 					templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(extractHost(validator.Endpoint))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 116, Col: 45}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 126, Col: 45}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
 					if templ_7745c5c3_Err != nil {
@@ -298,7 +308,7 @@ func Validators(validators []*v1.ValidatorInfo, validatorUptimeMap map[string][]
 					var templ_7745c5c3_Var17 string
 					templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinStringErrs(validator.NodeType)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 130, Col: 31}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 140, Col: 31}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
 					if templ_7745c5c3_Err != nil {
@@ -311,7 +321,7 @@ func Validators(validators []*v1.ValidatorInfo, validatorUptimeMap map[string][]
 					var templ_7745c5c3_Var18 string
 					templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", validator.VotingPower))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 136, Col: 53}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 146, Col: 53}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 					if templ_7745c5c3_Err != nil {
@@ -322,17 +332,17 @@ func Validators(validators []*v1.ValidatorInfo, validatorUptimeMap map[string][]
 						return templ_7745c5c3_Err
 					}
 					switch validator.Status {
-					case v1.ValidatorStatus_VALIDATOR_STATUS_ACTIVE:
+					case "active":
 						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "<span class=\"px-2 py-1 text-xs font-medium bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded\">Active</span> ")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
-					case v1.ValidatorStatus_VALIDATOR_STATUS_DEREGISTERED:
+					case "deregistered":
 						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "<span class=\"px-2 py-1 text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded\">Deregistered</span> ")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
-					case v1.ValidatorStatus_VALIDATOR_STATUS_MISBEHAVIOR_DEREGISTERED:
+					case "misbehavior_deregistered":
 						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "<span class=\"px-2 py-1 text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded\">Misbehavior</span> ")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
@@ -347,8 +357,8 @@ func Validators(validators []*v1.ValidatorInfo, validatorUptimeMap map[string][]
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					if validator.RegisteredAt != nil {
-						templ_7745c5c3_Err = templates.TimeWithTooltip(validator.RegisteredAt.AsTime()).Render(ctx, templ_7745c5c3_Buffer)
+					if validator.RegisteredAt > 0 {
+						templ_7745c5c3_Err = templates.TimeWithTooltip(validator.CreatedAt.Time).Render(ctx, templ_7745c5c3_Buffer)
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
@@ -362,7 +372,7 @@ func Validators(validators []*v1.ValidatorInfo, validatorUptimeMap map[string][]
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					if rollups, exists := validatorUptimeMap[validator.CometAddress]; exists && len(rollups) > 0 {
+					if rollups, exists := props.ValidatorUptimeMap[validator.CometAddress]; exists && len(rollups) > 0 {
 						for i := len(rollups) - 1; i >= 0; i-- {
 							var templ_7745c5c3_Var19 = []any{"w-3 h-4 rounded-sm", validatorUptimeColor(rollups[i])}
 							templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var19...)
@@ -387,9 +397,9 @@ func Validators(validators []*v1.ValidatorInfo, validatorUptimeMap map[string][]
 								return templ_7745c5c3_Err
 							}
 							var templ_7745c5c3_Var21 string
-							templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("SLA #%d: %d/%d blocks, %d/%d challenges", rollups[i].SlaRollupId, rollups[i].BlocksProposed, rollups[i].BlockQuota, rollups[i].ChallengesFailed, rollups[i].ChallengesReceived))
+							templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("SLA #%d: %d blocks, %d/%d challenges", rollups[i].SlaRollupID, rollups[i].NumBlocksProposed, rollups[i].ChallengesFailed, rollups[i].ChallengesReceived))
 							if templ_7745c5c3_Err != nil {
-								return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 170, Col: 210}
+								return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 180, Col: 187}
 							}
 							_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
 							if templ_7745c5c3_Err != nil {
@@ -427,15 +437,15 @@ func Validators(validators []*v1.ValidatorInfo, validatorUptimeMap map[string][]
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				if hasPrev {
+				if props.HasPrev {
 					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 36, "<a href=\"")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var22 templ.SafeURL
-					templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(buildValidatorsPaginationURL(currentPage-1, pageSize, queryType, endpointFilter)))
+					templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(buildValidatorsPaginationURL(props.CurrentPage-1, props.PageSize, props.QueryType, props.EndpointFilter)))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 194, Col: 110}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 204, Col: 134}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var22))
 					if templ_7745c5c3_Err != nil {
@@ -451,15 +461,15 @@ func Validators(validators []*v1.ValidatorInfo, validatorUptimeMap map[string][]
 						return templ_7745c5c3_Err
 					}
 				}
-				if hasNext {
+				if props.HasNext {
 					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 39, "<a href=\"")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var23 templ.SafeURL
-					templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(buildValidatorsPaginationURL(currentPage+1, pageSize, queryType, endpointFilter)))
+					templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(buildValidatorsPaginationURL(props.CurrentPage+1, props.PageSize, props.QueryType, props.EndpointFilter)))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 206, Col: 110}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 216, Col: 134}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var23))
 					if templ_7745c5c3_Err != nil {

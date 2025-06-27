@@ -1,12 +1,12 @@
--- Normalized read queries for ETL database
--- Uses the new schema with proper JOIN operations for efficiency
-
 -- get latest indexed block height
 -- name: GetLatestIndexedBlock :one
 SELECT block_height
 FROM etl_blocks
 ORDER BY id DESC
 LIMIT 1;
+
+-- name: GetTotalTransactions :one
+select id from etl_transactions order by id desc limit 1;
 
 -- name: GetTransactionsByBlockHeightCursor :many
 select * from etl_transactions

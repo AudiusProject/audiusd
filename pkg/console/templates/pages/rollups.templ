@@ -2,29 +2,39 @@ package pages
 
 import (
 	"fmt"
-	"github.com/AudiusProject/audiusd/pkg/api/etl/v1"
 	"github.com/AudiusProject/audiusd/pkg/console/templates"
 	"github.com/AudiusProject/audiusd/pkg/console/templates/layouts"
+	"github.com/AudiusProject/audiusd/pkg/etl/db"
 )
 
-templ Rollups(rollups []*v1.SlaRollupInfo, currentPage int32, hasNext bool, hasPrev bool, pageSize int32, totalCount int64) {
+type RollupsProps struct {
+	Rollups          []*db.EtlSlaRollup
+	RollupValidators []*db.EtlSlaNodeReport
+	CurrentPage      int32
+	HasNext          bool
+	HasPrev          bool
+	PageSize         int32
+	TotalCount       int64
+}
+
+templ Rollups(props RollupsProps) {
 	@layouts.Base("SLA Rollups") {
 		<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6">
 			<div class="flex justify-between items-center mb-6">
 				<h2 class="text-2xl font-light text-gray-900 dark:text-gray-100">SLA Rollups</h2>
 				<div class="text-sm text-gray-500 dark:text-gray-400">
-					Page { fmt.Sprint(currentPage) } • { fmt.Sprint(pageSize) } rollups per page • { fmt.Sprint(totalCount) } total
+					Page { fmt.Sprint(props.CurrentPage) } • { fmt.Sprint(props.PageSize) } rollups per page • { fmt.Sprint(props.TotalCount) } total
 				</div>
 			</div>
-			if len(rollups) > 0 {
+			if len(props.Rollups) > 0 {
 				<div class="space-y-2">
-					for _, rollup := range rollups {
+					for _, rollup := range props.Rollups {
 						<div class="flex items-center justify-between py-4 px-6 border border-gray-200 dark:border-gray-700 rounded hover:bg-purple-50 hover:border-purple-200 dark:hover:bg-gray-700 transition-colors">
 							<div class="flex items-center gap-6 flex-1">
 								<div class="flex-1">
 									<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Rollup ID</div>
-									<a href={ templ.SafeURL(fmt.Sprintf("/validators/uptime/%d", rollup.RollupId)) } class="font-semibold text-purple-600 dark:text-purple-400 hover:underline">
-										{ fmt.Sprintf("#%d", rollup.RollupId) }
+									<a href={ templ.SafeURL(fmt.Sprintf("/validators/uptime/%d", rollup.ID)) } class="font-semibold text-purple-600 dark:text-purple-400 hover:underline">
+										{ fmt.Sprintf("#%d", rollup.ID) }
 									</a>
 								</div>
 								<div class="flex-1">
@@ -49,8 +59,8 @@ templ Rollups(rollups []*v1.SlaRollupInfo, currentPage int32, hasNext bool, hasP
 							<div class="text-right flex-shrink-0">
 								<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Time</div>
 								<div class="text-sm text-gray-700 dark:text-gray-300">
-									if rollup.Timestamp != nil {
-										@templates.TimeWithTooltip(rollup.Timestamp.AsTime())
+									if rollup.CreatedAt.Valid {
+										@templates.TimeWithTooltip(rollup.CreatedAt.Time)
 									} else {
 										<span class="text-gray-400 dark:text-gray-600">—</span>
 									}
@@ -61,8 +71,8 @@ templ Rollups(rollups []*v1.SlaRollupInfo, currentPage int32, hasNext bool, hasP
 				</div>
 				<div class="flex justify-between items-center mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
 					<div class="flex gap-3">
-						if hasPrev {
-							<a href={ templ.SafeURL(fmt.Sprintf("/rollups?page=%d&count=%d", currentPage-1, pageSize)) } class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors">
+						if props.HasPrev {
+							<a href={ templ.SafeURL(fmt.Sprintf("/rollups?page=%d&count=%d", props.CurrentPage-1, props.PageSize)) } class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors">
 								← Previous
 							</a>
 						} else {
@@ -70,8 +80,8 @@ templ Rollups(rollups []*v1.SlaRollupInfo, currentPage int32, hasNext bool, hasP
 								← Previous
 							</span>
 						}
-						if hasNext {
-							<a href={ templ.SafeURL(fmt.Sprintf("/rollups?page=%d&count=%d", currentPage+1, pageSize)) } class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors">
+						if props.HasNext {
+							<a href={ templ.SafeURL(fmt.Sprintf("/rollups?page=%d&count=%d", props.CurrentPage+1, props.PageSize)) } class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors">
 								Next →
 							</a>
 						} else {

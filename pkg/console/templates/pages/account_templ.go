@@ -10,9 +10,9 @@ import templruntime "github.com/a-h/templ/runtime"
 
 import (
 	"fmt"
-	"github.com/AudiusProject/audiusd/pkg/api/etl/v1"
 	"github.com/AudiusProject/audiusd/pkg/console/templates"
 	"github.com/AudiusProject/audiusd/pkg/console/templates/layouts"
+	"github.com/AudiusProject/audiusd/pkg/etl/db"
 )
 
 func buildPaginationURL(address string, page int32, pageSize int32, currentFilter string, startDate string, endDate string) string {
@@ -29,7 +29,21 @@ func buildPaginationURL(address string, page int32, pageSize int32, currentFilte
 	return baseURL
 }
 
-func Account(address string, transactions []*v1.AddressTransaction, currentPage int32, hasNext bool, hasPrev bool, pageSize int32, relationTypes []string, currentFilter string, startDate string, endDate string) templ.Component {
+type AccountProps struct {
+	Address       string
+	Transactions  []*db.EtlTransaction
+	TxRelations   []string
+	CurrentPage   int32
+	HasNext       bool
+	HasPrev       bool
+	PageSize      int32
+	RelationTypes []string
+	CurrentFilter string
+	StartDate     string
+	EndDate       string
+}
+
+func Account(props AccountProps) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -67,9 +81,9 @@ func Account(address string, transactions []*v1.AddressTransaction, currentPage 
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var3 string
-			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(address)
+			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(props.Address)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/account.templ`, Line: 31, Col: 15}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/account.templ`, Line: 45, Col: 21}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {
@@ -80,9 +94,9 @@ func Account(address string, transactions []*v1.AddressTransaction, currentPage 
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var4 string
-			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprint(currentPage))
+			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprint(props.CurrentPage))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/account.templ`, Line: 35, Col: 35}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/account.templ`, Line: 49, Col: 41}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 			if templ_7745c5c3_Err != nil {
@@ -93,9 +107,9 @@ func Account(address string, transactions []*v1.AddressTransaction, currentPage 
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var5 string
-			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprint(pageSize))
+			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprint(props.PageSize))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/account.templ`, Line: 35, Col: 64}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/account.templ`, Line: 49, Col: 76}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 			if templ_7745c5c3_Err != nil {
@@ -106,9 +120,9 @@ func Account(address string, transactions []*v1.AddressTransaction, currentPage 
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var6 string
-			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(address)
+			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(props.Address)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/account.templ`, Line: 42, Col: 89}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/account.templ`, Line: 56, Col: 95}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 			if templ_7745c5c3_Err != nil {
@@ -119,9 +133,9 @@ func Account(address string, transactions []*v1.AddressTransaction, currentPage 
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var7 string
-			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprint(len(transactions)))
+			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprint(len(props.Transactions)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/account.templ`, Line: 46, Col: 105}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/account.templ`, Line: 60, Col: 111}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 			if templ_7745c5c3_Err != nil {
@@ -131,12 +145,12 @@ func Account(address string, transactions []*v1.AddressTransaction, currentPage 
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			if len(relationTypes) > 0 {
+			if len(props.RelationTypes) > 0 {
 				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<div><div class=\"text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1\">Filter by Relation</div><select id=\"relationFilter\" class=\"w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 focus:border-transparent\" onchange=\"updateFilters()\"><option value=\"all\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				if currentFilter == "" || currentFilter == "all" {
+				if props.CurrentFilter == "" || props.CurrentFilter == "all" {
 					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, " selected")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
@@ -146,7 +160,7 @@ func Account(address string, transactions []*v1.AddressTransaction, currentPage 
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				for _, relationType := range relationTypes {
+				for _, relationType := range props.RelationTypes {
 					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<option value=\"")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
@@ -154,7 +168,7 @@ func Account(address string, transactions []*v1.AddressTransaction, currentPage 
 					var templ_7745c5c3_Var8 string
 					templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(relationType)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/account.templ`, Line: 58, Col: 37}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/account.templ`, Line: 72, Col: 37}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 					if templ_7745c5c3_Err != nil {
@@ -164,7 +178,7 @@ func Account(address string, transactions []*v1.AddressTransaction, currentPage 
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					if currentFilter == relationType {
+					if props.CurrentFilter == relationType {
 						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, " selected")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
@@ -177,7 +191,7 @@ func Account(address string, transactions []*v1.AddressTransaction, currentPage 
 					var templ_7745c5c3_Var9 string
 					templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(relationType)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/account.templ`, Line: 58, Col: 98}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/account.templ`, Line: 72, Col: 104}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 					if templ_7745c5c3_Err != nil {
@@ -198,9 +212,9 @@ func Account(address string, transactions []*v1.AddressTransaction, currentPage 
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var10 string
-			templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(startDate)
+			templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(props.StartDate)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/account.templ`, Line: 68, Col: 24}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/account.templ`, Line: 82, Col: 30}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 			if templ_7745c5c3_Err != nil {
@@ -211,9 +225,9 @@ func Account(address string, transactions []*v1.AddressTransaction, currentPage 
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var11 string
-			templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(endDate)
+			templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(props.EndDate)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/account.templ`, Line: 78, Col: 22}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/account.templ`, Line: 92, Col: 28}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 			if templ_7745c5c3_Err != nil {
@@ -223,12 +237,12 @@ func Account(address string, transactions []*v1.AddressTransaction, currentPage 
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			if len(transactions) > 0 {
+			if len(props.Transactions) > 0 {
 				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "<div class=\"space-y-2\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				for _, tx := range transactions {
+				for i, tx := range props.Transactions {
 					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "<a href=\"")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
@@ -236,7 +250,7 @@ func Account(address string, transactions []*v1.AddressTransaction, currentPage 
 					var templ_7745c5c3_Var12 templ.SafeURL
 					templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(fmt.Sprintf("/transaction/%s", tx.TxHash)))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/account.templ`, Line: 88, Col: 72}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/account.templ`, Line: 102, Col: 72}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 					if templ_7745c5c3_Err != nil {
@@ -257,7 +271,7 @@ func Account(address string, transactions []*v1.AddressTransaction, currentPage 
 					var templ_7745c5c3_Var13 string
 					templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(tx.TxType)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/account.templ`, Line: 100, Col: 22}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/account.templ`, Line: 114, Col: 22}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 					if templ_7745c5c3_Err != nil {
@@ -268,9 +282,9 @@ func Account(address string, transactions []*v1.AddressTransaction, currentPage 
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var14 string
-					templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(tx.RelationType)
+					templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(props.TxRelations[i])
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/account.templ`, Line: 106, Col: 28}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/account.templ`, Line: 120, Col: 33}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 					if templ_7745c5c3_Err != nil {
@@ -283,7 +297,7 @@ func Account(address string, transactions []*v1.AddressTransaction, currentPage 
 					var templ_7745c5c3_Var15 string
 					templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", tx.BlockHeight))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/account.templ`, Line: 112, Col: 46}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/account.templ`, Line: 126, Col: 46}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 					if templ_7745c5c3_Err != nil {
@@ -293,7 +307,7 @@ func Account(address string, transactions []*v1.AddressTransaction, currentPage 
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templates.TimeWithTooltip(tx.BlockTime.AsTime()).Render(ctx, templ_7745c5c3_Buffer)
+					templ_7745c5c3_Err = templates.TimeWithTooltip(tx.CreatedAt.Time).Render(ctx, templ_7745c5c3_Buffer)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -306,15 +320,15 @@ func Account(address string, transactions []*v1.AddressTransaction, currentPage 
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				if hasPrev {
+				if props.HasPrev {
 					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "<a href=\"")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var16 templ.SafeURL
-					templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(buildPaginationURL(address, currentPage-1, pageSize, currentFilter, startDate, endDate)))
+					templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(buildPaginationURL(props.Address, props.CurrentPage-1, props.PageSize, props.CurrentFilter, props.StartDate, props.EndDate)))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/account.templ`, Line: 129, Col: 119}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/account.templ`, Line: 143, Col: 155}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
 					if templ_7745c5c3_Err != nil {
@@ -330,15 +344,15 @@ func Account(address string, transactions []*v1.AddressTransaction, currentPage 
 						return templ_7745c5c3_Err
 					}
 				}
-				if hasNext {
+				if props.HasNext {
 					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 31, "<a href=\"")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var17 templ.SafeURL
-					templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(buildPaginationURL(address, currentPage+1, pageSize, currentFilter, startDate, endDate)))
+					templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(buildPaginationURL(props.Address, props.CurrentPage+1, props.PageSize, props.CurrentFilter, props.StartDate, props.EndDate)))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/account.templ`, Line: 138, Col: 119}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/account.templ`, Line: 152, Col: 155}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
 					if templ_7745c5c3_Err != nil {
@@ -370,7 +384,7 @@ func Account(address string, transactions []*v1.AddressTransaction, currentPage 
 			}
 			return nil
 		})
-		templ_7745c5c3_Err = layouts.Base(fmt.Sprintf("Account %s", address[:6])).Render(templ.WithChildren(ctx, templ_7745c5c3_Var2), templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = layouts.Base(fmt.Sprintf("Account %s", props.Address[:6])).Render(templ.WithChildren(ctx, templ_7745c5c3_Var2), templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

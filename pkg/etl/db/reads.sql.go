@@ -62,15 +62,12 @@ func (q *Queries) GetBlockRangeLast(ctx context.Context, arg GetBlockRangeLastPa
 }
 
 const getLatestIndexedBlock = `-- name: GetLatestIndexedBlock :one
-
 SELECT block_height
 FROM etl_blocks
 ORDER BY id DESC
 LIMIT 1
 `
 
-// Normalized read queries for ETL database
-// Uses the new schema with proper JOIN operations for efficiency
 // get latest indexed block height
 func (q *Queries) GetLatestIndexedBlock(ctx context.Context) (int64, error) {
 	row := q.db.QueryRow(ctx, getLatestIndexedBlock)
@@ -336,6 +333,17 @@ func (q *Queries) GetStorageProofsByBlockHeightCursor(ctx context.Context, arg G
 		return nil, err
 	}
 	return items, nil
+}
+
+const getTotalTransactions = `-- name: GetTotalTransactions :one
+select id from etl_transactions order by id desc limit 1
+`
+
+func (q *Queries) GetTotalTransactions(ctx context.Context) (int32, error) {
+	row := q.db.QueryRow(ctx, getTotalTransactions)
+	var id int32
+	err := row.Scan(&id)
+	return id, err
 }
 
 const getTransactionsByBlockHeightCursor = `-- name: GetTransactionsByBlockHeightCursor :many

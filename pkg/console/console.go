@@ -2,25 +2,20 @@ package console
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"math/rand"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
-	"connectrpc.com/connect"
-	v1 "github.com/AudiusProject/audiusd/pkg/api/etl/v1"
 	"github.com/AudiusProject/audiusd/pkg/common"
 	"github.com/AudiusProject/audiusd/pkg/console/templates/pages"
 	"github.com/AudiusProject/audiusd/pkg/etl"
+	"github.com/AudiusProject/audiusd/pkg/etl/db"
 	"github.com/labstack/echo/v4"
 	"golang.org/x/sync/errgroup"
 
 	"embed"
-
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 //go:embed assets/css
@@ -37,6 +32,56 @@ type Console struct {
 	e      *echo.Echo
 	etl    *etl.ETLService
 	logger *common.Logger
+}
+
+// TODO: Add these structs to a proper location once we have the full ETL API defined
+type DashboardStats struct {
+	CurrentBlockHeight           int64
+	ChainID                      string
+	BPS                          float64
+	TPS                          float64
+	TotalTransactions            int64
+	ValidatorCount               int32
+	LatestBlock                  *LatestBlockInfo
+	RecentProposers              []*ProposerInfo
+	IsSyncing                    bool
+	LatestIndexedHeight          int64
+	LatestChainHeight            int64
+	BlockDelta                   int64
+	TotalTransactions24h         int64
+	TotalTransactionsPrevious24h int64
+	TotalTransactions7d          int64
+	TotalTransactions30d         int64
+	AvgBlockTime                 float64
+}
+
+type LatestBlockInfo struct {
+	// TODO: Define fields for latest block info
+	Height   int64
+	Proposer string
+	Time     time.Time
+	TxCount  int32
+}
+
+type ProposerInfo struct {
+	// TODO: Define fields for proposer info
+	Address     string
+	BlockHeight int64
+	Time        time.Time
+}
+
+type TransactionTypeBreakdown struct {
+	Type  string
+	Count int64
+	Color string
+}
+
+// TODO: Add more placeholder types for features we haven't implemented yet
+type PlayEvent struct {
+	Timestamp string  `json:"timestamp"`
+	Lat       float64 `json:"lat"`
+	Lng       float64 `json:"lng"`
+	Duration  int     `json:"duration"`
 }
 
 func NewConsole(etl *etl.ETLService, e *echo.Echo, env string) *Console {
@@ -133,7 +178,7 @@ func (con *Console) Run() error {
 	})
 
 	g.Go(func() error {
-		if err := con.e.Start(":8080"); err != nil {
+		if err := con.e.Start(":3000"); err != nil {
 			return err
 		}
 		return nil
@@ -147,9 +192,27 @@ func (con *Console) Stop() {
 }
 
 // getTransactionsWithBlockHeights is a helper method to get transactions with their block heights
-func (con *Console) getTransactionsWithBlockHeights(ctx context.Context, limit, offset int32) ([]*v1.Block_Transaction, map[string]int64, error) {
-	// Use the optimized method from ETL service that already gets block heights efficiently
-	return con.etl.GetTransactionsWithBlockInfo(ctx, limit, offset)
+func (con *Console) getTransactionsWithBlockHeights(ctx context.Context, limit, offset int32) ([]*db.EtlTransaction, map[string]int64, error) {
+	// TODO: Implement efficient transaction fetching with block heights using database joins
+	// For now, just get transactions from the database
+	transactions, err := con.etl.GetDB().GetTransactionsByBlockHeightCursor(ctx, db.GetTransactionsByBlockHeightCursorParams{
+		BlockHeight: 0, // Start from beginning
+		ID:          0,
+		Limit:       limit,
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Convert to pointers and create block heights map
+	txPointers := make([]*db.EtlTransaction, len(transactions))
+	blockHeights := make(map[string]int64)
+	for i := range transactions {
+		txPointers[i] = &transactions[i]
+		blockHeights[transactions[i].TxHash] = transactions[i].BlockHeight
+	}
+
+	return txPointers, blockHeights, nil
 }
 
 func (con *Console) Hello(c echo.Context) error {
@@ -165,70 +228,73 @@ func (con *Console) Hello(c echo.Context) error {
 }
 
 func (con *Console) Dashboard(c echo.Context) error {
-	// Get recent blocks for the dashboard
-	blocks, err := con.etl.GetBlocks(c.Request().Context(), &connect.Request[v1.GetBlocksRequest]{
-		Msg: &v1.GetBlocksRequest{
-			Limit:  10,
-			Offset: 0,
-		},
-	})
+	// TODO: Implement proper dashboard stats calculation using database queries
+
+	// Get total transactions count
+	totalTransactions, err := con.etl.GetDB().GetTotalTransactions(c.Request().Context())
 	if err != nil {
-		return c.String(http.StatusInternalServerError, "Failed to get blocks")
+		con.logger.Warn("Failed to get total transactions", "error", err)
+		totalTransactions = 0
+	}
+
+	// Get latest indexed block
+	latestBlockHeight, err := con.etl.GetDB().GetLatestIndexedBlock(c.Request().Context())
+	if err != nil {
+		con.logger.Warn("Failed to get latest block height", "error", err)
+		latestBlockHeight = 0
 	}
 
 	// Get some recent transactions for the dashboard
 	transactions, blockHeights, err := con.getTransactionsWithBlockHeights(c.Request().Context(), 10, 0)
 	if err != nil {
-		return c.String(http.StatusInternalServerError, "Failed to get transactions")
+		con.logger.Warn("Failed to get transactions", "error", err)
+		transactions = []*db.EtlTransaction{}
+		blockHeights = make(map[string]int64)
 	}
 
-	// Get dashboard stats from ETL service
-	statsResp, err := con.etl.GetStats(c.Request().Context(), &connect.Request[v1.GetStatsRequest]{
-		Msg: &v1.GetStatsRequest{},
-	})
-	if err != nil {
-		return c.String(http.StatusInternalServerError, "Failed to get dashboard stats")
-	}
-
+	// TODO: Implement these properly with database queries
 	stats := &pages.DashboardStats{
-		CurrentBlockHeight:           statsResp.Msg.CurrentBlockHeight,
-		ChainID:                      statsResp.Msg.ChainId,
-		BPS:                          statsResp.Msg.Bps,
-		TPS:                          statsResp.Msg.Tps,
-		TotalTransactions:            statsResp.Msg.TotalTransactions,
-		ValidatorCount:               statsResp.Msg.ValidatorCount,
-		LatestBlock:                  statsResp.Msg.LatestBlock,
-		RecentProposers:              statsResp.Msg.RecentProposers,
-		IsSyncing:                    statsResp.Msg.SyncStatus != nil && statsResp.Msg.SyncStatus.IsSyncing,
-		LatestIndexedHeight:          statsResp.Msg.SyncStatus.GetLatestIndexedHeight(),
-		LatestChainHeight:            statsResp.Msg.SyncStatus.GetLatestChainHeight(),
-		BlockDelta:                   statsResp.Msg.SyncStatus.GetBlockDelta(),
-		TotalTransactions24h:         statsResp.Msg.TotalTransactions_24H,
-		TotalTransactionsPrevious24h: statsResp.Msg.TotalTransactionsPrevious_24H,
-		TotalTransactions7d:          statsResp.Msg.TotalTransactions_7D,
-		TotalTransactions30d:         statsResp.Msg.TotalTransactions_30D,
-		AvgBlockTime:                 statsResp.Msg.AvgBlockTime,
+		CurrentBlockHeight:           latestBlockHeight,
+		ChainID:                      "audius-1", // TODO: Get from database or config
+		BPS:                          0.5,        // TODO: Calculate from block times
+		TPS:                          0.1,        // TODO: Calculate from transaction times
+		TotalTransactions:            int64(totalTransactions),
+		ValidatorCount:               0,     // TODO: Count active validators
+		LatestBlock:                  nil,   // TODO: Implement
+		RecentProposers:              nil,   // TODO: Implement
+		IsSyncing:                    false, // TODO: Implement sync status check
+		LatestIndexedHeight:          latestBlockHeight,
+		LatestChainHeight:            latestBlockHeight,
+		BlockDelta:                   0,
+		TotalTransactions24h:         0,   // TODO: Implement time-based queries
+		TotalTransactionsPrevious24h: 0,   // TODO: Implement time-based queries
+		TotalTransactions7d:          0,   // TODO: Implement time-based queries
+		TotalTransactions30d:         0,   // TODO: Implement time-based queries
+		AvgBlockTime:                 2.0, // TODO: Calculate from actual block times
 	}
 
-	// Convert transaction breakdown from RPC response
-	transactionBreakdown := make([]*pages.TransactionTypeBreakdown, len(statsResp.Msg.TransactionBreakdown))
-	colors := []string{"bg-blue-500", "bg-green-500", "bg-yellow-500", "bg-purple-500", "bg-red-500", "bg-indigo-500", "bg-pink-500", "bg-gray-500"}
-	for i, breakdown := range statsResp.Msg.TransactionBreakdown {
-		color := colors[i%len(colors)] // Cycle through colors
-		transactionBreakdown[i] = &pages.TransactionTypeBreakdown{
-			Type:  breakdown.Type,
-			Count: breakdown.Count,
-			Color: color,
-		}
+	// TODO: Implement transaction breakdown calculation
+	transactionBreakdown := []*pages.TransactionTypeBreakdown{
+		{Type: "ManageEntity", Count: int64(totalTransactions), Color: "bg-blue-500"},
 	}
+
+	// Convert recent blocks to the format expected by template
+	blockPointers := make([]*db.EtlBlock, 0)
+	// TODO: Implement proper block fetching
 
 	// Calculate sync progress percentage
-	syncProgressPercentage := float64(0)
-	if stats.LatestChainHeight > 0 {
-		syncProgressPercentage = float64(stats.LatestIndexedHeight) / float64(stats.LatestChainHeight) * 100
+	syncProgressPercentage := float64(100) // Assume synced for now
+
+	props := pages.DashboardProps{
+		Stats:                  stats,
+		TransactionBreakdown:   transactionBreakdown,
+		RecentBlocks:           blockPointers,
+		RecentTransactions:     transactions,
+		BlockHeights:           blockHeights,
+		SyncProgressPercentage: syncProgressPercentage,
 	}
 
-	p := pages.Dashboard(stats, transactionBreakdown, blocks.Msg.Blocks, transactions, blockHeights, syncProgressPercentage)
+	p := pages.Dashboard(props)
 
 	// Use context with environment
 	ctx := c.Request().Context()
@@ -256,116 +322,34 @@ func (con *Console) Validators(c echo.Context) error {
 		}
 	}
 
-	// Calculate offset from page number
-	offset := (page - 1) * count
-
 	// Default to active validators
 	if queryType == "" {
 		queryType = "active"
 	}
 
-	// Build request based on query type
-	var validatorsReq *v1.GetValidatorsRequest
-	switch queryType {
-	case "active":
-		validatorsReq = &v1.GetValidatorsRequest{
-			Query:  &v1.GetValidatorsRequest_GetRegisteredValidators{GetRegisteredValidators: &v1.GetRegisteredValidators{}},
-			Limit:  count,
-			Offset: offset,
-		}
-	case "registrations":
-		validatorsReq = &v1.GetValidatorsRequest{
-			Query:  &v1.GetValidatorsRequest_GetValidatorRegistrations{GetValidatorRegistrations: &v1.GetValidatorRegistrations{}},
-			Limit:  count,
-			Offset: offset,
-		}
-	case "deregistrations":
-		validatorsReq = &v1.GetValidatorsRequest{
-			Query:  &v1.GetValidatorsRequest_GetValidatorDeregistrations{GetValidatorDeregistrations: &v1.GetValidatorDeregistrations{}},
-			Limit:  count,
-			Offset: offset,
-		}
-	default:
-		queryType = "active"
-		validatorsReq = &v1.GetValidatorsRequest{
-			Query:  &v1.GetValidatorsRequest_GetRegisteredValidators{GetRegisteredValidators: &v1.GetRegisteredValidators{}},
-			Limit:  count,
-			Offset: offset,
-		}
-	}
+	// TODO: Implement validator queries using database
+	// For now, return empty data
+	validators := []*db.EtlValidator{}
+	validatorUptimeMap := make(map[string][]*db.EtlSlaNodeReport)
 
-	// Add endpoint filter if specified
-	if endpointFilter != "" {
-		validatorsReq.EndpointFilter = &endpointFilter
-	}
-
-	validators, err := con.etl.GetValidators(c.Request().Context(), &connect.Request[v1.GetValidatorsRequest]{
-		Msg: validatorsReq,
-	})
-	if err != nil {
-		return c.String(http.StatusInternalServerError, "Failed to get validators")
-	}
-
-	// Get lightweight uptime summary for all validators (just pass/fail status for recent rollups)
-	// This is much faster than the full GetValidatorsUptime which fetches all detailed SLA data
-	var validatorUptimeMap map[string][]*v1.SlaRollupScore
-	uptimeResp, err := con.etl.GetValidatorsUptimeSummary(c.Request().Context(), &connect.Request[v1.GetValidatorsUptimeSummaryRequest]{
-		Msg: &v1.GetValidatorsUptimeSummaryRequest{},
-	})
-	if err != nil {
-		con.logger.Warn("Failed to get validators uptime summary", "error", err)
-		// Continue without uptime data rather than fail the whole page
-		validatorUptimeMap = make(map[string][]*v1.SlaRollupScore)
-	} else {
-		// Convert the ValidatorUptimeSummary array to a map for quick lookup
-		// We need to convert the lightweight UptimeSummaryEntry to SlaRollupScore for template compatibility
-		validatorUptimeMap = make(map[string][]*v1.SlaRollupScore)
-
-		// Create a mapping from uptime validator address to rollups first
-		uptimeDataMap := make(map[string][]*v1.SlaRollupScore)
-		for _, validator := range uptimeResp.Msg.Validators {
-			rollups := make([]*v1.SlaRollupScore, len(validator.RecentRollups))
-			for i, entry := range validator.RecentRollups {
-				// Convert from lightweight summary entry to full SlaRollupScore format
-				// The database view pre-calculates the pass/fail status, so this is very efficient
-				rollups[i] = &v1.SlaRollupScore{
-					SlaRollupId:        entry.RollupId,
-					BlocksProposed:     entry.BlocksProposed,
-					BlockQuota:         entry.BlockQuota,
-					ChallengesReceived: entry.ChallengesReceived,
-					ChallengesFailed:   entry.ChallengesFailed,
-					// Note: We have pre-calculated pass/fail in entry.Status ("pass", "fail", "offline", "unknown")
-					// but the template calculates it from the metrics above, which is fine for compatibility
-				}
-			}
-			uptimeDataMap[validator.ValidatorAddress] = rollups
-			con.logger.Debug("Collected uptime data for validator", "validator_address", validator.ValidatorAddress, "rollup_count", len(rollups))
-		}
-
-		// Now map from the actual validators list using their CometAddress
-		// This ensures we use the correct key format that the template expects
-		for _, val := range validators.Msg.Validators {
-			// Try to find uptime data for this validator
-			// The uptime data should use comet addresses, so try both the comet address and regular address
-			if rollups, exists := uptimeDataMap[val.CometAddress]; exists {
-				validatorUptimeMap[val.CometAddress] = rollups
-				con.logger.Debug("Mapped uptime data using CometAddress", "comet_address", val.CometAddress, "rollup_count", len(rollups))
-			} else if rollups, exists := uptimeDataMap[val.Address]; exists {
-				validatorUptimeMap[val.CometAddress] = rollups
-				con.logger.Debug("Mapped uptime data using Address", "address", val.Address, "comet_address", val.CometAddress, "rollup_count", len(rollups))
-			} else {
-				con.logger.Debug("No uptime data found for validator", "address", val.Address, "comet_address", val.CometAddress)
-			}
-		}
-
-		con.logger.Info("Retrieved validators uptime summary", "uptime_entries", len(uptimeResp.Msg.Validators), "mapped_entries", len(validatorUptimeMap))
-	}
+	// TODO: Add endpoint filtering when implemented
 
 	// Calculate pagination state
-	hasNext := validators.Msg.HasMore
+	hasNext := false // TODO: Implement proper pagination
 	hasPrev := page > 1
 
-	p := pages.Validators(validators.Msg.Validators, validatorUptimeMap, page, hasNext, hasPrev, count, queryType, endpointFilter)
+	props := pages.ValidatorsProps{
+		Validators:         validators,
+		ValidatorUptimeMap: validatorUptimeMap,
+		CurrentPage:        page,
+		HasNext:            hasNext,
+		HasPrev:            hasPrev,
+		PageSize:           count,
+		QueryType:          queryType,
+		EndpointFilter:     endpointFilter,
+	}
+
+	p := pages.Validators(props)
 	ctx := c.Request().Context()
 	return p.Render(ctx, c.Response().Writer)
 }
@@ -376,165 +360,24 @@ func (con *Console) Validator(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "Validator address required")
 	}
 
-	validator, err := con.etl.GetValidator(c.Request().Context(), &connect.Request[v1.GetValidatorRequest]{
-		Msg: &v1.GetValidatorRequest{
-			Identifier: &v1.GetValidatorRequest_Address{Address: address},
-		},
-	})
-	if err != nil {
-		// try comet validator
-		validator, err = con.etl.GetValidator(c.Request().Context(), &connect.Request[v1.GetValidatorRequest]{
-			Msg: &v1.GetValidatorRequest{
-				Identifier: &v1.GetValidatorRequest_CometAddress{CometAddress: strings.ToUpper(address)},
-			},
-		})
-		if err != nil {
-			return c.String(http.StatusNotFound, "Validator not found")
-		}
-	}
-
-	// Get uptime data for this validator (last 12 rollups)
-	var rollups []*v1.SlaRollupScore
-	uptimeResp, err := con.etl.GetValidatorUptime(c.Request().Context(), &connect.Request[v1.GetValidatorUptimeRequest]{
-		Msg: &v1.GetValidatorUptimeRequest{
-			ValidatorAddress: validator.Msg.Validator.CometAddress, // Use comet address for uptime lookup
-			Limit:            12,                                   // Last 12 rollups
-		},
-	})
-	if err != nil {
-		con.logger.Warn("Failed to get validator uptime data", "error", err, "validator", validator.Msg.Validator.CometAddress)
-		// Continue without uptime data rather than fail the whole page
-		rollups = []*v1.SlaRollupScore{}
-	} else {
-		rollups = uptimeResp.Msg.Rollups
-		con.logger.Info("Retrieved validator uptime data", "validator", validator.Msg.Validator.CometAddress, "rollup_count", len(rollups))
-		// Reverse the rollups slice so most recent appears on the right
-		for i, j := 0, len(rollups)-1; i < j; i, j = i+1, j-1 {
-			rollups[i], rollups[j] = rollups[j], rollups[i]
-		}
-	}
-
-	p := pages.Validator(validator.Msg.Validator, validator.Msg.Events, rollups)
-	ctx := c.Request().Context()
-	return p.Render(ctx, c.Response().Writer)
+	// TODO: Implement validator lookup using database
+	// For now, return not found
+	return c.String(http.StatusNotFound, "Validator not found - TODO: Implement validator lookup")
 }
 
 func (con *Console) ValidatorsUptime(c echo.Context) error {
-	// Parse query parameters
-	pageStr := c.QueryParam("page")
-	countStr := c.QueryParam("count")
-
-	var page int32 = 1
-	var pageSize int32 = 20
-
-	if pageStr != "" {
-		if p, err := strconv.ParseInt(pageStr, 10, 32); err == nil && p > 0 {
-			page = int32(p)
-		}
-	}
-
-	if countStr != "" {
-		if ps, err := strconv.ParseInt(countStr, 10, 32); err == nil && ps > 0 && ps <= 100 {
-			pageSize = int32(ps)
-		}
-	}
-
-	// Get rollups data
-	rollupsResp, err := con.etl.GetSlaRollups(c.Request().Context(), &connect.Request[v1.GetSlaRollupsRequest]{
-		Msg: &v1.GetSlaRollupsRequest{
-			Page:     page,
-			PageSize: pageSize,
-		},
-	})
-	if err != nil {
-		con.logger.Error("Failed to get rollups data", "error", err)
-		return c.String(http.StatusInternalServerError, fmt.Sprintf("Failed to get rollups data: %v", err))
-	}
-
-	// Use the same Rollups template but with a different title context
-	p := pages.UptimeRollups(
-		rollupsResp.Msg.Rollups,
-		rollupsResp.Msg.CurrentPage,
-		rollupsResp.Msg.HasNext,
-		rollupsResp.Msg.HasPrev,
-		pageSize,
-		rollupsResp.Msg.TotalCount,
-	)
-	ctx := c.Request().Context()
-	return p.Render(ctx, c.Response().Writer)
+	// TODO: Implement validators uptime using database queries
+	return c.String(http.StatusNotImplemented, "TODO: Implement validators uptime")
 }
 
 func (con *Console) ValidatorsUptimeByRollup(c echo.Context) error {
-	rollupIdStr := c.Param("rollupid")
-	if rollupIdStr == "" {
-		return c.String(http.StatusBadRequest, "Rollup ID required")
-	}
-
-	rollupId, err := strconv.ParseInt(rollupIdStr, 10, 32)
-	if err != nil {
-		return c.String(http.StatusBadRequest, "Invalid rollup ID")
-	}
-
-	// Get uptime data for specific rollup
-	uptimeResp, err := con.etl.GetValidatorsUptimeByRollup(c.Request().Context(), &connect.Request[v1.GetValidatorsUptimeByRollupRequest]{
-		Msg: &v1.GetValidatorsUptimeByRollupRequest{
-			RollupId: int32(rollupId),
-		},
-	})
-	if err != nil {
-		con.logger.Error("Failed to get validator uptime data for rollup", "error", err, "rollup_id", rollupId)
-		return c.String(http.StatusInternalServerError, fmt.Sprintf("Failed to get validator uptime data for rollup %d: %v", rollupId, err))
-	}
-
-	p := pages.ValidatorsUptimeByRollup(uptimeResp.Msg.Validators, int32(rollupId))
-	ctx := c.Request().Context()
-	return p.Render(ctx, c.Response().Writer)
+	// TODO: Implement validators uptime by rollup using database queries
+	return c.String(http.StatusNotImplemented, "TODO: Implement validators uptime by rollup")
 }
 
 func (con *Console) Rollups(c echo.Context) error {
-	// Parse query parameters
-	pageStr := c.QueryParam("page")
-	countStr := c.QueryParam("count")
-
-	var page int32 = 1
-	var pageSize int32 = 20
-
-	if pageStr != "" {
-		if p, err := strconv.ParseInt(pageStr, 10, 32); err == nil && p > 0 {
-			page = int32(p)
-		}
-	}
-
-	if countStr != "" {
-		if ps, err := strconv.ParseInt(countStr, 10, 32); err == nil && ps > 0 && ps <= 100 {
-			pageSize = int32(ps)
-		}
-	}
-
-	// Get rollups data
-	rollupsResp, err := con.etl.GetSlaRollups(c.Request().Context(), &connect.Request[v1.GetSlaRollupsRequest]{
-		Msg: &v1.GetSlaRollupsRequest{
-			Page:     page,
-			PageSize: pageSize,
-		},
-	})
-	if err != nil {
-		con.logger.Error("Failed to get rollups data", "error", err)
-		return c.String(http.StatusInternalServerError, fmt.Sprintf("Failed to get rollups data: %v", err))
-	}
-
-	con.logger.Info("Successfully retrieved rollups data", "rollup_count", len(rollupsResp.Msg.Rollups), "page", page)
-
-	p := pages.Rollups(
-		rollupsResp.Msg.Rollups,
-		rollupsResp.Msg.CurrentPage,
-		rollupsResp.Msg.HasNext,
-		rollupsResp.Msg.HasPrev,
-		pageSize,
-		rollupsResp.Msg.TotalCount,
-	)
-	ctx := c.Request().Context()
-	return p.Render(ctx, c.Response().Writer)
+	// TODO: Implement rollups using database queries
+	return c.String(http.StatusNotImplemented, "TODO: Implement rollups")
 }
 
 func (con *Console) Blocks(c echo.Context) error {
@@ -556,24 +399,25 @@ func (con *Console) Blocks(c echo.Context) error {
 		}
 	}
 
-	// Calculate offset from page number
-	offset := (page - 1) * count
-
-	blocks, err := con.etl.GetBlocks(c.Request().Context(), &connect.Request[v1.GetBlocksRequest]{
-		Msg: &v1.GetBlocksRequest{
-			Limit:  count,
-			Offset: offset,
-		},
-	})
-	if err != nil {
-		return c.String(http.StatusInternalServerError, "Failed to get blocks")
-	}
+	// TODO: Implement blocks fetching using database queries with proper pagination
+	// For now return empty data
+	blocks := []*db.EtlBlock{}
+	blockTransactions := []int32{}
 
 	// Calculate pagination state
-	hasNext := blocks.Msg.HasMore
+	hasNext := false // TODO: Implement proper pagination detection
 	hasPrev := page > 1
 
-	p := pages.Blocks(blocks.Msg.Blocks, page, hasNext, hasPrev, count)
+	props := pages.BlocksProps{
+		Blocks:            blocks,
+		BlockTransactions: blockTransactions,
+		CurrentPage:       page,
+		HasNext:           hasNext,
+		HasPrev:           hasPrev,
+		PageSize:          count,
+	}
+
+	p := pages.Blocks(props)
 	ctx := c.Request().Context()
 	return p.Render(ctx, c.Response().Writer)
 }
@@ -609,7 +453,16 @@ func (con *Console) Transactions(c echo.Context) error {
 	hasNext := len(transactions) == int(count) // Simple check - if we got the full limit, there might be more
 	hasPrev := page > 1
 
-	p := pages.Transactions(transactions, blockHeights, page, hasNext, hasPrev, count)
+	props := pages.TransactionsProps{
+		Transactions: transactions,
+		BlockHeights: blockHeights,
+		CurrentPage:  page,
+		HasNext:      hasNext,
+		HasPrev:      hasPrev,
+		PageSize:     count,
+	}
+
+	p := pages.Transactions(props)
 	ctx := c.Request().Context()
 	return p.Render(ctx, c.Response().Writer)
 }
@@ -625,17 +478,9 @@ func (con *Console) Block(c echo.Context) error {
 	if err != nil {
 		return c.String(http.StatusBadRequest, "Invalid block height")
 	}
-	block, err := con.etl.GetBlock(c.Request().Context(), &connect.Request[v1.GetBlockRequest]{
-		Msg: &v1.GetBlockRequest{
-			Height: int64(height),
-		},
-	})
-	if err != nil {
-		return c.String(http.StatusInternalServerError, "Failed to get block")
-	}
-	p := pages.Block(block.Msg.Block)
-	ctx := c.Request().Context()
-	return p.Render(ctx, c.Response().Writer)
+
+	// TODO: Implement block lookup using database queries
+	return c.String(http.StatusNotImplemented, fmt.Sprintf("TODO: Implement block lookup for height %d", height))
 }
 
 func (con *Console) Transaction(c echo.Context) error {
@@ -644,19 +489,8 @@ func (con *Console) Transaction(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "Transaction hash required")
 	}
 
-	// Get transaction details using the standard gRPC call
-	response, err := con.etl.GetTransaction(c.Request().Context(), &connect.Request[v1.GetTransactionRequest]{
-		Msg: &v1.GetTransactionRequest{
-			TxHash: txHash,
-		},
-	})
-	if err != nil {
-		return c.String(http.StatusInternalServerError, "Failed to get transaction")
-	}
-
-	p := pages.Transaction(response.Msg.Transaction)
-	ctx := c.Request().Context()
-	return p.Render(ctx, c.Response().Writer)
+	// TODO: Implement transaction lookup using database queries
+	return c.String(http.StatusNotImplemented, fmt.Sprintf("TODO: Implement transaction lookup for hash %s", txHash))
 }
 
 func (con *Console) Account(c echo.Context) error {
@@ -665,83 +499,8 @@ func (con *Console) Account(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "Address parameter is required")
 	}
 
-	// Parse query parameters for pagination
-	pageStr := c.QueryParam("page")
-	countStr := c.QueryParam("count")
-	relationFilter := c.QueryParam("relation") // Get relation filter from query param
-	startDateStr := c.QueryParam("start_date") // Get start date from query param
-	endDateStr := c.QueryParam("end_date")     // Get end date from query param
-
-	page := int32(1)
-	if pageStr != "" {
-		if parsedPage, err := strconv.ParseInt(pageStr, 10, 32); err == nil && parsedPage > 0 {
-			page = int32(parsedPage)
-		}
-	}
-
-	count := int32(50)
-	if countStr != "" {
-		if parsedCount, err := strconv.ParseInt(countStr, 10, 32); err == nil && parsedCount > 0 {
-			count = int32(parsedCount)
-		}
-	}
-
-	// Parse date parameters
-	var startDate, endDate *timestamppb.Timestamp
-	if startDateStr != "" {
-		if parsedTime, err := time.Parse("2006-01-02", startDateStr); err == nil {
-			startDate = timestamppb.New(parsedTime)
-		}
-	}
-	if endDateStr != "" {
-		if parsedTime, err := time.Parse("2006-01-02", endDateStr); err == nil {
-			// Set to end of day (23:59:59.999)
-			endOfDay := parsedTime.Add(24*time.Hour - time.Nanosecond)
-			endDate = timestamppb.New(endOfDay)
-		}
-	}
-
-	// Calculate offset from page number
-	offset := (page - 1) * count
-
-	// Get transactions for this address from ETL service
-	response, err := con.etl.GetTransactionsByAddress(c.Request().Context(), &connect.Request[v1.GetTransactionsByAddressRequest]{
-		Msg: &v1.GetTransactionsByAddressRequest{
-			Address: address,
-			Limit:   count,
-			Offset:  offset,
-			RelationFilter: func() *string {
-				if relationFilter != "" && relationFilter != "all" {
-					return &relationFilter
-				}
-				return nil
-			}(),
-			StartDate: startDate,
-			EndDate:   endDate,
-		},
-	})
-	if err != nil {
-		return c.String(http.StatusInternalServerError, "Failed to get transactions for address")
-	}
-
-	// Get available relation types for this address to populate the dropdown
-	relationTypesResponse, err := con.etl.GetRelationTypesByAddress(c.Request().Context(), &connect.Request[v1.GetRelationTypesByAddressRequest]{
-		Msg: &v1.GetRelationTypesByAddressRequest{
-			Address: address,
-		},
-	})
-	var relationTypes []string
-	if err == nil {
-		relationTypes = relationTypesResponse.Msg.RelationTypes
-	}
-
-	// Calculate pagination state
-	hasNext := response.Msg.HasMore
-	hasPrev := page > 1
-
-	p := pages.Account(address, response.Msg.Transactions, page, hasNext, hasPrev, count, relationTypes, relationFilter, startDateStr, endDateStr)
-	ctx := c.Request().Context()
-	return p.Render(ctx, c.Response().Writer)
+	// TODO: Implement account lookup and transaction history using database queries
+	return c.String(http.StatusNotImplemented, fmt.Sprintf("TODO: Implement account lookup for address %s", address))
 }
 
 func (con *Console) stubRoute(c echo.Context) error {
@@ -749,123 +508,29 @@ func (con *Console) stubRoute(c echo.Context) error {
 }
 
 func (con *Console) APIBlocks(c echo.Context) error {
-	// Parse query parameters
-	limitParam := c.QueryParam("limit")
-	offsetParam := c.QueryParam("offset")
-
-	limit := int32(50) // default
-	if limitParam != "" {
-		if parsedLimit, err := strconv.ParseInt(limitParam, 10, 32); err == nil {
-			limit = int32(parsedLimit)
-		}
-	}
-
-	offset := int32(0) // default
-	if offsetParam != "" {
-		if parsedOffset, err := strconv.ParseInt(offsetParam, 10, 32); err == nil {
-			offset = int32(parsedOffset)
-		}
-	}
-
-	blocks, err := con.etl.GetBlocks(c.Request().Context(), &connect.Request[v1.GetBlocksRequest]{
-		Msg: &v1.GetBlocksRequest{
-			Limit:  limit,
-			Offset: offset,
-		},
-	})
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to get blocks"})
-	}
-
-	return c.JSON(http.StatusOK, blocks.Msg)
+	// TODO: Implement API blocks endpoint using database queries
+	return c.JSON(http.StatusNotImplemented, map[string]string{"error": "TODO: Implement API blocks endpoint"})
 }
 
 // HTMX Fragment Handlers
 func (con *Console) StatsHeaderFragment(c echo.Context) error {
-	statsResp, err := con.etl.GetStats(c.Request().Context(), &connect.Request[v1.GetStatsRequest]{
-		Msg: &v1.GetStatsRequest{},
-	})
-	if err != nil {
-		return c.String(http.StatusInternalServerError, "Failed to get dashboard stats")
-	}
-
-	// Calculate exact sync progress percentage
-	var syncProgressPercentage float64
-	if statsResp.Msg.SyncStatus != nil && statsResp.Msg.SyncStatus.GetLatestChainHeight() > 0 {
-		syncProgressPercentage = float64(statsResp.Msg.SyncStatus.GetLatestIndexedHeight()) / float64(statsResp.Msg.SyncStatus.GetLatestChainHeight()) * 100
-	}
-
-	stats := &pages.DashboardStats{
-		CurrentBlockHeight:  statsResp.Msg.CurrentBlockHeight,
-		ChainID:             statsResp.Msg.ChainId,
-		BPS:                 statsResp.Msg.Bps,
-		IsSyncing:           statsResp.Msg.SyncStatus != nil && statsResp.Msg.SyncStatus.IsSyncing,
-		LatestIndexedHeight: statsResp.Msg.SyncStatus.GetLatestIndexedHeight(),
-		LatestChainHeight:   statsResp.Msg.SyncStatus.GetLatestChainHeight(),
-		BlockDelta:          statsResp.Msg.SyncStatus.GetBlockDelta(),
-		AvgBlockTime:        statsResp.Msg.AvgBlockTime,
-	}
-
-	fragment := pages.StatsHeaderFragment(stats, syncProgressPercentage)
-	ctx := c.Request().Context()
-	return fragment.Render(ctx, c.Response().Writer)
+	// TODO: Implement stats header fragment using database queries
+	return c.String(http.StatusNotImplemented, "TODO: Implement stats header fragment")
 }
 
 func (con *Console) NetworkSidebarFragment(c echo.Context) error {
-	statsResp, err := con.etl.GetStats(c.Request().Context(), &connect.Request[v1.GetStatsRequest]{
-		Msg: &v1.GetStatsRequest{},
-	})
-	if err != nil {
-		return c.String(http.StatusInternalServerError, "Failed to get dashboard stats")
-	}
-
-	stats := &pages.DashboardStats{
-		ValidatorCount:  statsResp.Msg.ValidatorCount,
-		LatestBlock:     statsResp.Msg.LatestBlock,
-		RecentProposers: statsResp.Msg.RecentProposers,
-		IsSyncing:       statsResp.Msg.SyncStatus != nil && statsResp.Msg.SyncStatus.IsSyncing,
-	}
-
-	fragment := pages.NetworkSidebarFragment(stats)
-	ctx := c.Request().Context()
-	return fragment.Render(ctx, c.Response().Writer)
+	// TODO: Implement network sidebar fragment using database queries
+	return c.String(http.StatusNotImplemented, "TODO: Implement network sidebar fragment")
 }
 
 func (con *Console) TPSFragment(c echo.Context) error {
-	statsResp, err := con.etl.GetStats(c.Request().Context(), &connect.Request[v1.GetStatsRequest]{
-		Msg: &v1.GetStatsRequest{},
-	})
-	if err != nil {
-		return c.String(http.StatusInternalServerError, "Failed to get dashboard stats")
-	}
-
-	stats := &pages.DashboardStats{
-		TPS:                  statsResp.Msg.Tps,
-		TotalTransactions30d: statsResp.Msg.TotalTransactions_30D,
-	}
-
-	fragment := pages.TPSFragment(stats)
-	ctx := c.Request().Context()
-	return fragment.Render(ctx, c.Response().Writer)
+	// TODO: Implement TPS fragment using database queries
+	return c.String(http.StatusNotImplemented, "TODO: Implement TPS fragment")
 }
 
 func (con *Console) TotalTransactionsFragment(c echo.Context) error {
-	statsResp, err := con.etl.GetStats(c.Request().Context(), &connect.Request[v1.GetStatsRequest]{
-		Msg: &v1.GetStatsRequest{},
-	})
-	if err != nil {
-		return c.String(http.StatusInternalServerError, "Failed to get dashboard stats")
-	}
-
-	stats := &pages.DashboardStats{
-		TotalTransactions:            statsResp.Msg.TotalTransactions,
-		TotalTransactions24h:         statsResp.Msg.TotalTransactions_24H,
-		TotalTransactionsPrevious24h: statsResp.Msg.TotalTransactionsPrevious_24H,
-	}
-
-	fragment := pages.TotalTransactionsFragment(stats)
-	ctx := c.Request().Context()
-	return fragment.Render(ctx, c.Response().Writer)
+	// TODO: Implement total transactions fragment using database queries
+	return c.String(http.StatusNotImplemented, "TODO: Implement total transactions fragment")
 }
 
 type SSEEvent struct {
@@ -888,90 +553,20 @@ func (con *Console) LiveEventsSSE(c echo.Context) error {
 
 	flusher.Flush()
 
-	// Subscribe to play events from ETL pubsub
-	playChannel := con.etl.GetPlayPubsub().Subscribe(etl.PlayTopic, 100)
-	defer con.etl.GetPlayPubsub().Unsubscribe(etl.PlayTopic, playChannel)
-
-	blockChannel := con.etl.GetBlockPubsub().Subscribe(etl.BlockTopic, 100)
-	defer con.etl.GetBlockPubsub().Unsubscribe(etl.BlockTopic, blockChannel)
-
-	// Throttle state for block events
-	var (
-		latestBlock    *v1.Block
-		lastSentHeight int64
-		blockTicker    = time.NewTicker(1 * time.Second)
-	)
-	defer blockTicker.Stop()
-
-	flusher.Flush()
-
+	// TODO: Implement pubsub subscription for live events
+	// For now, just keep the connection open
 	timeout := time.After(sseConnectionTTL)
 
 	for {
 		select {
 		case <-c.Request().Context().Done():
 			return nil
-		case blockEvent := <-blockChannel:
-			if blockEvent != nil {
-				latestBlock = blockEvent
-			}
 		case <-timeout:
 			return nil
-		case <-blockTicker.C:
-			if latestBlock != nil && latestBlock.Height > lastSentHeight {
-				resp := &v1.StreamResponse_StreamBlocksResponse{
-					Height:   latestBlock.Height,
-					Proposer: latestBlock.Proposer,
-				}
-
-				event := SSEEvent{
-					Event: "block",
-					Data:  resp,
-				}
-
-				jsonData, err := json.Marshal(event)
-				if err != nil {
-					continue
-				}
-				fmt.Fprintf(c.Response(), "data: %s\n\n", jsonData)
-				lastSentHeight = latestBlock.Height
-				flusher.Flush()
-			}
-
-		case playEvent := <-playChannel:
-			if playEvent != nil {
-				// Log all play events for debugging
-				con.logger.Debugf("received play event: lat=%f, lng=%f, city=%s, region=%s, country=%s",
-					playEvent.Latitude, playEvent.Longitude, playEvent.City, playEvent.Region, playEvent.Country)
-
-				// Check if we have valid coordinates
-				if playEvent.Latitude != 0 && playEvent.Longitude != 0 {
-					// Convert ETL TrackPlay to PlayEvent format
-					play := &pages.PlayEvent{
-						Timestamp: playEvent.PlayedAt.AsTime().Format(time.RFC3339),
-						Lat:       playEvent.Latitude,
-						Lng:       playEvent.Longitude,
-						Duration:  rand.Intn(3) + 2, // Keep random duration for animation (2-4 seconds)
-					}
-
-					event := SSEEvent{
-						Event: "play",
-						Data:  play,
-					}
-
-					jsonData, err := json.Marshal(event)
-					if err != nil {
-						con.logger.Error("Failed to marshal play event", "error", err)
-						continue
-					}
-
-					fmt.Fprintf(c.Response(), "data: %s\n\n", jsonData)
-					flusher.Flush()
-				} else {
-					con.logger.Debugf("filtered play event due to missing coordinates: city=%s, region=%s, country=%s",
-						playEvent.City, playEvent.Region, playEvent.Country)
-				}
-			}
+		case <-time.After(5 * time.Second):
+			// Send a heartbeat every 5 seconds
+			fmt.Fprintf(c.Response(), "data: {\"event\":\"heartbeat\"}\n\n")
+			flusher.Flush()
 		}
 	}
 }
@@ -984,32 +579,8 @@ func (con *Console) Search(c echo.Context) error {
 		})
 	}
 
-	// Call the ETL service search
-	response, err := con.etl.Search(c.Request().Context(), &connect.Request[v1.SearchRequest]{
-		Msg: &v1.SearchRequest{
-			Query: query,
-			Limit: 20,
-		},
-	})
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{
-			"error": "Search failed",
-		})
-	}
-
-	// Convert protobuf results to JSON structure expected by frontend
-	results := make([]map[string]interface{}, len(response.Msg.Results))
-	for i, result := range response.Msg.Results {
-		results[i] = map[string]interface{}{
-			"id":       result.Id,
-			"title":    result.Title,
-			"subtitle": result.Subtitle,
-			"type":     result.Type,
-			"url":      result.Url,
-		}
-	}
-
+	// TODO: Implement search using database queries
 	return c.JSON(http.StatusOK, map[string]interface{}{
-		"results": results,
+		"results": []interface{}{},
 	})
 }

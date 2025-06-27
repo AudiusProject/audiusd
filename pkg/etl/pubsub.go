@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	v1 "github.com/AudiusProject/audiusd/pkg/api/etl/v1"
+	"github.com/AudiusProject/audiusd/pkg/etl/db"
 )
 
 const (
@@ -12,8 +12,8 @@ const (
 	PlayTopic  = "play-subscriber"
 )
 
-type BlockPubsub = Pubsub[*v1.Block]
-type PlayPubsub = Pubsub[*v1.TrackPlay]
+type BlockPubsub = Pubsub[*db.EtlBlock]
+type PlayPubsub = Pubsub[*db.EtlPlay]
 
 type Pubsub[Message any] struct {
 	subscribers map[string]map[chan Message]struct{} // Map of topic to channels

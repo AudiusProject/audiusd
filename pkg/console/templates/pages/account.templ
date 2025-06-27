@@ -2,9 +2,9 @@ package pages
 
 import (
 	"fmt"
-	"github.com/AudiusProject/audiusd/pkg/api/etl/v1"
 	"github.com/AudiusProject/audiusd/pkg/console/templates"
 	"github.com/AudiusProject/audiusd/pkg/console/templates/layouts"
+	"github.com/AudiusProject/audiusd/pkg/etl/db"
 )
 
 func buildPaginationURL(address string, page int32, pageSize int32, currentFilter string, startDate string, endDate string) string {
@@ -21,31 +21,45 @@ func buildPaginationURL(address string, page int32, pageSize int32, currentFilte
 	return baseURL
 }
 
-templ Account(address string, transactions []*v1.AddressTransaction, currentPage int32, hasNext bool, hasPrev bool, pageSize int32, relationTypes []string, currentFilter string, startDate string, endDate string) {
-	@layouts.Base(fmt.Sprintf("Account %s", address[:6])) {
+type AccountProps struct {
+	Address       string
+	Transactions  []*db.EtlTransaction
+	TxRelations   []string
+	CurrentPage   int32
+	HasNext       bool
+	HasPrev       bool
+	PageSize      int32
+	RelationTypes []string
+	CurrentFilter string
+	StartDate     string
+	EndDate       string
+}
+
+templ Account(props AccountProps) {
+	@layouts.Base(fmt.Sprintf("Account %s", props.Address[:6])) {
 		<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6">
 			<div class="flex justify-between items-center mb-6">
 				<h2 class="text-2xl font-light text-gray-900 dark:text-gray-100">
 					Account 
 					<span class="font-mono text-purple-600 dark:text-purple-400">
-						{ address }
+						{ props.Address }
 					</span>
 				</h2>
 				<div class="text-sm text-gray-500 dark:text-gray-400">
-					Page { fmt.Sprint(currentPage) } • { fmt.Sprint(pageSize) } transactions per page
+					Page { fmt.Sprint(props.CurrentPage) } • { fmt.Sprint(props.PageSize) } transactions per page
 				</div>
 			</div>
 			<div class="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
 				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
 					<div>
 						<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Address</div>
-						<div class="font-mono text-sm text-gray-900 dark:text-gray-100 break-all">{ address }</div>
+						<div class="font-mono text-sm text-gray-900 dark:text-gray-100 break-all">{ props.Address }</div>
 					</div>
 					<div>
 						<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Total Transactions</div>
-						<div class="text-lg font-semibold text-gray-900 dark:text-gray-100">{ fmt.Sprint(len(transactions)) }</div>
+						<div class="text-lg font-semibold text-gray-900 dark:text-gray-100">{ fmt.Sprint(len(props.Transactions)) }</div>
 					</div>
-					if len(relationTypes) > 0 {
+					if len(props.RelationTypes) > 0 {
 						<div>
 							<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Filter by Relation</div>
 							<select
@@ -53,9 +67,9 @@ templ Account(address string, transactions []*v1.AddressTransaction, currentPage
 								class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
 								onchange="updateFilters()"
 							>
-								<option value="all" selected?={ currentFilter == "" || currentFilter == "all" }>All Relations</option>
-								for _, relationType := range relationTypes {
-									<option value={ relationType } selected?={ currentFilter == relationType }>{ relationType }</option>
+								<option value="all" selected?={ props.CurrentFilter == "" || props.CurrentFilter == "all" }>All Relations</option>
+								for _, relationType := range props.RelationTypes {
+									<option value={ relationType } selected?={ props.CurrentFilter == relationType }>{ relationType }</option>
 								}
 							</select>
 						</div>
@@ -65,7 +79,7 @@ templ Account(address string, transactions []*v1.AddressTransaction, currentPage
 						<input
 							type="date"
 							id="startDate"
-							value={ startDate }
+							value={ props.StartDate }
 							class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
 							onchange="updateFilters()"
 						/>
@@ -75,16 +89,16 @@ templ Account(address string, transactions []*v1.AddressTransaction, currentPage
 						<input
 							type="date"
 							id="endDate"
-							value={ endDate }
+							value={ props.EndDate }
 							class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
 							onchange="updateFilters()"
 						/>
 					</div>
 				</div>
 			</div>
-			if len(transactions) > 0 {
+			if len(props.Transactions) > 0 {
 				<div class="space-y-2">
-					for _, tx := range transactions {
+					for i, tx := range props.Transactions {
 						<a href={ templ.SafeURL(fmt.Sprintf("/transaction/%s", tx.TxHash)) } class="block">
 							<div class="flex items-center justify-between py-4 px-6 border border-gray-200 dark:border-gray-700 rounded hover:bg-purple-50 hover:border-purple-200 dark:hover:bg-gray-700 transition-colors cursor-pointer">
 								<div class="flex items-center gap-6 flex-1">
@@ -103,7 +117,7 @@ templ Account(address string, transactions []*v1.AddressTransaction, currentPage
 									<div class="flex-1">
 										<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Relation</div>
 										<span class="px-3 py-1 text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded">
-											{ tx.RelationType }
+											{ props.TxRelations[i] }
 										</span>
 									</div>
 									<div class="flex-1">
@@ -116,7 +130,7 @@ templ Account(address string, transactions []*v1.AddressTransaction, currentPage
 								<div class="text-right flex-shrink-0">
 									<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Time</div>
 									<div class="text-sm text-gray-700 dark:text-gray-300">
-										@templates.TimeWithTooltip(tx.BlockTime.AsTime())
+										@templates.TimeWithTooltip(tx.CreatedAt.Time)
 									</div>
 								</div>
 							</div>
@@ -125,8 +139,8 @@ templ Account(address string, transactions []*v1.AddressTransaction, currentPage
 				</div>
 				<div class="flex justify-between items-center mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
 					<div class="flex gap-3">
-						if hasPrev {
-							<a href={ templ.SafeURL(buildPaginationURL(address, currentPage-1, pageSize, currentFilter, startDate, endDate)) } class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors">
+						if props.HasPrev {
+							<a href={ templ.SafeURL(buildPaginationURL(props.Address, props.CurrentPage-1, props.PageSize, props.CurrentFilter, props.StartDate, props.EndDate)) } class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors">
 								← Previous
 							</a>
 						} else {
@@ -134,8 +148,8 @@ templ Account(address string, transactions []*v1.AddressTransaction, currentPage
 								← Previous
 							</span>
 						}
-						if hasNext {
-							<a href={ templ.SafeURL(buildPaginationURL(address, currentPage+1, pageSize, currentFilter, startDate, endDate)) } class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors">
+						if props.HasNext {
+							<a href={ templ.SafeURL(buildPaginationURL(props.Address, props.CurrentPage+1, props.PageSize, props.CurrentFilter, props.StartDate, props.EndDate)) } class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors">
 								Next →
 							</a>
 						} else {
