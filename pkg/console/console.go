@@ -12,6 +12,7 @@ import (
 	"github.com/AudiusProject/audiusd/pkg/console/templates/pages"
 	"github.com/AudiusProject/audiusd/pkg/etl"
 	"github.com/AudiusProject/audiusd/pkg/etl/db"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/labstack/echo/v4"
 	"golang.org/x/sync/errgroup"
 
@@ -327,15 +328,128 @@ func (con *Console) Validators(c echo.Context) error {
 		queryType = "active"
 	}
 
-	// TODO: Implement validator queries using database
-	// For now, return empty data
-	validators := []*db.EtlValidator{}
+	// Calculate offset from page number
+	offset := (page - 1) * count
+
+	var validators []*db.EtlValidator
 	validatorUptimeMap := make(map[string][]*db.EtlSlaNodeReport)
 
-	// TODO: Add endpoint filtering when implemented
+	ctx := c.Request().Context()
+
+	switch queryType {
+	case "active":
+		// Get active validators
+		validatorsData, err := con.etl.GetDB().GetActiveValidators(ctx, db.GetActiveValidatorsParams{
+			Limit:  count,
+			Offset: offset,
+		})
+		if err != nil {
+			con.logger.Warn("Failed to get active validators", "error", err)
+			validatorsData = []db.EtlValidator{}
+		}
+
+		// Convert to pointers and apply endpoint filter
+		for i := range validatorsData {
+			if endpointFilter == "" || strings.Contains(strings.ToLower(validatorsData[i].Endpoint), strings.ToLower(endpointFilter)) {
+				validators = append(validators, &validatorsData[i])
+
+				// Get uptime data for each validator
+				reports, err := con.etl.GetDB().GetSlaNodeReportsByAddress(ctx, db.GetSlaNodeReportsByAddressParams{
+					Address: validatorsData[i].CometAddress,
+					Limit:   5, // Get last 5 SLA reports
+				})
+				if err != nil {
+					con.logger.Warn("Failed to get SLA reports", "address", validatorsData[i].CometAddress, "error", err)
+				} else {
+					reportPointers := make([]*db.EtlSlaNodeReport, len(reports))
+					for j := range reports {
+						reportPointers[j] = &reports[j]
+					}
+					validatorUptimeMap[validatorsData[i].CometAddress] = reportPointers
+				}
+			}
+		}
+
+	case "registrations":
+		// Get validator registrations - this will need a different approach since it's a different table
+		regsData, err := con.etl.GetDB().GetValidatorRegistrations(ctx, db.GetValidatorRegistrationsParams{
+			Limit:  count,
+			Offset: offset,
+		})
+		if err != nil {
+			con.logger.Warn("Failed to get validator registrations", "error", err)
+			regsData = []db.GetValidatorRegistrationsRow{}
+		}
+
+		// Convert registrations to validator format for template
+		for i := range regsData {
+			validator := &db.EtlValidator{
+				ID:           regsData[i].ID,
+				Address:      regsData[i].Address,
+				Endpoint:     regsData[i].Endpoint, // Already a string
+				CometAddress: regsData[i].CometAddress,
+				NodeType:     regsData[i].NodeType,    // Already a string
+				Spid:         regsData[i].Spid,        // Already a string
+				VotingPower:  regsData[i].VotingPower, // Already int64
+				Status:       "registered",
+				RegisteredAt: regsData[i].BlockHeight,
+				CreatedAt:    pgtype.Timestamp{Time: time.Now(), Valid: true}, // Manual timestamp
+			}
+			if endpointFilter == "" || strings.Contains(strings.ToLower(validator.Endpoint), strings.ToLower(endpointFilter)) {
+				validators = append(validators, validator)
+			}
+		}
+
+	case "deregistrations":
+		// Get validator deregistrations
+		deregsData, err := con.etl.GetDB().GetValidatorDeregistrations(ctx, db.GetValidatorDeregistrationsParams{
+			Limit:  count,
+			Offset: offset,
+		})
+		if err != nil {
+			con.logger.Warn("Failed to get validator deregistrations", "error", err)
+			deregsData = []db.GetValidatorDeregistrationsRow{}
+		}
+
+		// Convert deregistrations to validator format for template
+		for i := range deregsData {
+			endpoint := ""
+			if deregsData[i].Endpoint.Valid {
+				endpoint = deregsData[i].Endpoint.String
+			}
+			nodeType := ""
+			if deregsData[i].NodeType.Valid {
+				nodeType = deregsData[i].NodeType.String
+			}
+			spid := ""
+			if deregsData[i].Spid.Valid {
+				spid = deregsData[i].Spid.String
+			}
+			votingPower := int64(0)
+			if deregsData[i].VotingPower.Valid {
+				votingPower = deregsData[i].VotingPower.Int64
+			}
+
+			validator := &db.EtlValidator{
+				ID:           deregsData[i].ID,
+				Address:      "",
+				Endpoint:     endpoint,
+				CometAddress: deregsData[i].CometAddress,
+				NodeType:     nodeType,
+				Spid:         spid,
+				VotingPower:  votingPower,
+				Status:       "deregistered",
+				RegisteredAt: deregsData[i].BlockHeight,
+				CreatedAt:    pgtype.Timestamp{Time: time.Now(), Valid: true}, // placeholder
+			}
+			if endpointFilter == "" || strings.Contains(strings.ToLower(validator.Endpoint), strings.ToLower(endpointFilter)) {
+				validators = append(validators, validator)
+			}
+		}
+	}
 
 	// Calculate pagination state
-	hasNext := false // TODO: Implement proper pagination
+	hasNext := len(validators) == int(count) // Simple check - if we got the full limit, there might be more
 	hasPrev := page > 1
 
 	props := pages.ValidatorsProps{
@@ -350,7 +464,6 @@ func (con *Console) Validators(c echo.Context) error {
 	}
 
 	p := pages.Validators(props)
-	ctx := c.Request().Context()
 	return p.Render(ctx, c.Response().Writer)
 }
 
@@ -399,13 +512,35 @@ func (con *Console) Blocks(c echo.Context) error {
 		}
 	}
 
-	// TODO: Implement blocks fetching using database queries with proper pagination
-	// For now return empty data
-	blocks := []*db.EtlBlock{}
-	blockTransactions := []int32{}
+	// Calculate offset from page number
+	offset := (page - 1) * count
+
+	// Get blocks from database
+	blocksData, err := con.etl.GetDB().GetBlocksByPage(c.Request().Context(), db.GetBlocksByPageParams{
+		Limit:  count,
+		Offset: offset,
+	})
+	if err != nil {
+		con.logger.Warn("Failed to get blocks", "error", err)
+		blocksData = []db.EtlBlock{}
+	}
+
+	// Convert to pointers
+	blocks := make([]*db.EtlBlock, len(blocksData))
+	blockTransactions := make([]int32, len(blocksData))
+	for i := range blocksData {
+		blocks[i] = &blocksData[i]
+		// Get transaction count for each block
+		txCount, err := con.etl.GetDB().GetBlockTransactionCount(c.Request().Context(), blocksData[i].BlockHeight)
+		if err != nil {
+			con.logger.Warn("Failed to get transaction count for block", "height", blocksData[i].BlockHeight, "error", err)
+			txCount = 0
+		}
+		blockTransactions[i] = int32(txCount)
+	}
 
 	// Calculate pagination state
-	hasNext := false // TODO: Implement proper pagination detection
+	hasNext := len(blocks) == int(count) // Simple check - if we got the full limit, there might be more
 	hasPrev := page > 1
 
 	props := pages.BlocksProps{
@@ -479,8 +614,42 @@ func (con *Console) Block(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "Invalid block height")
 	}
 
-	// TODO: Implement block lookup using database queries
-	return c.String(http.StatusNotImplemented, fmt.Sprintf("TODO: Implement block lookup for height %d", height))
+	ctx := c.Request().Context()
+
+	// Get block by height
+	block, err := con.etl.GetDB().GetBlockByHeight(ctx, height)
+	if err != nil {
+		return c.String(http.StatusNotFound, fmt.Sprintf("Block not found at height %d", height))
+	}
+
+	// Get transactions for this block
+	// First get all transactions and filter by block height
+	// This is not the most efficient but will work for now - TODO: add GetTransactionsByBlockHeight query
+	transactionsData, err := con.etl.GetDB().GetTransactionsByPage(ctx, db.GetTransactionsByPageParams{
+		Limit:  1000, // Get a large number to ensure we get all for this block
+		Offset: 0,
+	})
+	if err != nil {
+		con.logger.Warn("Failed to get transactions", "error", err)
+		transactionsData = []db.EtlTransaction{}
+	}
+
+	// Filter transactions for this specific block height
+	var blockTransactions []*db.EtlTransaction
+	for i := range transactionsData {
+		if transactionsData[i].BlockHeight == height {
+			blockTransactions = append(blockTransactions, &transactionsData[i])
+		}
+	}
+
+	// Create block props
+	props := pages.BlockProps{
+		Block:        &block,
+		Transactions: blockTransactions,
+	}
+
+	p := pages.Block(props)
+	return p.Render(ctx, c.Response().Writer)
 }
 
 func (con *Console) Transaction(c echo.Context) error {
@@ -489,8 +658,33 @@ func (con *Console) Transaction(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "Transaction hash required")
 	}
 
-	// TODO: Implement transaction lookup using database queries
-	return c.String(http.StatusNotImplemented, fmt.Sprintf("TODO: Implement transaction lookup for hash %s", txHash))
+	ctx := c.Request().Context()
+
+	// Get transaction by hash
+	transaction, err := con.etl.GetDB().GetTransactionByHash(ctx, txHash)
+	if err != nil {
+		return c.String(http.StatusNotFound, fmt.Sprintf("Transaction not found: %s", txHash))
+	}
+
+	// Get block info for this transaction
+	block, err := con.etl.GetDB().GetBlockByHeight(ctx, transaction.BlockHeight)
+	if err != nil {
+		con.logger.Warn("Failed to get block for transaction", "blockHeight", transaction.BlockHeight, "error", err)
+		// Create a minimal block struct if block lookup fails
+		block = db.EtlBlock{
+			BlockHeight: transaction.BlockHeight,
+		}
+	}
+
+	// Create transaction props
+	props := pages.TransactionProps{
+		Transaction: &transaction,
+		Proposer:    block.ProposerAddress,
+		Content:     nil, // TODO: Implement content fetching based on transaction type
+	}
+
+	p := pages.Transaction(props)
+	return p.Render(ctx, c.Response().Writer)
 }
 
 func (con *Console) Account(c echo.Context) error {

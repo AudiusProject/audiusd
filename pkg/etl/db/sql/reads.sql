@@ -81,3 +81,59 @@ from etl_blocks
 where block_time >= $1 and block_time <= $2
 order by block_time desc
 limit 1;
+
+-- name: GetBlocksByPage :many
+select * from etl_blocks
+order by block_height desc
+limit $1 offset $2;
+
+-- name: GetBlockByHeight :one
+select * from etl_blocks
+where block_height = $1;
+
+-- name: GetTransactionByHash :one  
+select * from etl_transactions
+where tx_hash = $1;
+
+-- name: GetTransactionsByPage :many
+select * from etl_transactions
+order by block_height desc, tx_index desc
+limit $1 offset $2;
+
+-- name: GetActiveValidators :many
+select * from etl_validators
+where status = 'active'
+order by voting_power desc
+limit $1 offset $2;
+
+-- name: GetValidatorRegistrations :many
+select vr.*, v.endpoint, v.node_type, v.spid, v.voting_power, v.status
+from etl_validator_registrations vr
+left join etl_validators v on v.comet_address = vr.comet_address
+order by vr.block_height desc
+limit $1 offset $2;
+
+-- name: GetValidatorDeregistrations :many
+select vd.*, v.endpoint, v.node_type, v.spid, v.voting_power, v.status
+from etl_validator_deregistrations vd
+left join etl_validators v on v.comet_address = vd.comet_address
+order by vd.block_height desc
+limit $1 offset $2;
+
+-- name: GetValidatorByAddress :one
+select * from etl_validators
+where address = $1 or comet_address = $1;
+
+-- name: GetSlaNodeReportsByAddress :many
+select * from etl_sla_node_reports
+where address = $1
+order by block_height desc
+limit $2;
+
+-- name: GetBlockTransactionCount :one
+select count(*) from etl_transactions
+where block_height = $1;
+
+-- name: GetValidatorCount :one
+select count(*) from etl_validators
+where status = 'active';
