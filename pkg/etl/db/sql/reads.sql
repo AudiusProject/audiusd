@@ -68,6 +68,35 @@ where block_height > $1 or (block_height = $1 and id > $2)
 order by block_height, id
 limit $3;
 
+-- Transaction content queries by hash
+-- name: GetPlaysByTxHash :many
+select * from etl_plays
+where tx_hash = $1;
+
+-- name: GetManageEntityByTxHash :one
+select * from etl_manage_entities
+where tx_hash = $1;
+
+-- name: GetValidatorRegistrationByTxHash :one
+select * from etl_validator_registrations
+where tx_hash = $1;
+
+-- name: GetValidatorDeregistrationByTxHash :one
+select * from etl_validator_deregistrations
+where tx_hash = $1;
+
+-- name: GetSlaRollupByTxHash :one
+select * from etl_sla_rollups
+where tx_hash = $1;
+
+-- name: GetStorageProofByTxHash :one
+select * from etl_storage_proofs
+where tx_hash = $1;
+
+-- name: GetStorageProofVerificationByTxHash :one
+select * from etl_storage_proof_verifications
+where tx_hash = $1;
+
 -- name: GetBlockRangeFirst :one
 select id, proposer_address, block_height, block_time 
 from etl_blocks

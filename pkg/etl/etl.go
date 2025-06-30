@@ -70,6 +70,21 @@ func (e *ETLService) GetDB() *db.Queries {
 	return e.db
 }
 
+// GetBlockPubsub returns the block pubsub instance
+func (e *ETLService) GetBlockPubsub() *BlockPubsub {
+	return e.blockPubsub
+}
+
+// GetPlayPubsub returns the play pubsub instance
+func (e *ETLService) GetPlayPubsub() *PlayPubsub {
+	return e.playPubsub
+}
+
+// GetLocationDB returns the location service instance
+func (e *ETLService) GetLocationDB() *location.LocationService {
+	return e.locationDB
+}
+
 // InitializeChainID fetches and caches the chain ID from the core service
 func (e *ETLService) InitializeChainID(ctx context.Context) error {
 	nodeInfoResp, err := e.core.GetNodeInfo(ctx, connect.NewRequest(&corev1.GetNodeInfoRequest{}))

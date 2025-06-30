@@ -503,8 +503,12 @@ templ SSEEventScript() {
 
 			// Dispatch custom events for each SSE event
 			globalEventSource.onmessage = (event) => {
-				const data = JSON.parse(event.data);
-				document.dispatchEvent(new CustomEvent(data.event, { detail: data.data }));
+				try {
+					const data = JSON.parse(event.data);
+					document.dispatchEvent(new CustomEvent(data.event, { detail: data.data }));
+				} catch (e) {
+					console.error('Error parsing SSE event data:', e, event.data);
+				}
 			};
 
 			globalEventSource.onerror = (error) => {
@@ -611,6 +615,11 @@ templ LivePlayMapScript() {
 				addPlayToMap(play) {
 					if (!this.map) return;
 					
+					// Set default duration if not provided
+					if (!play.duration) {
+						play.duration = 5; // Default 5 seconds
+					}
+					
 					const color = this.getRandomColor();
 					
 					// Create radar-style animation with expanding circles
@@ -632,7 +641,7 @@ templ LivePlayMapScript() {
 							let radius = 0;
 							let opacity = 0.8;
 							const maxRadius = 100000; // 100km in meters
-							const animationDuration = play.duration * 1000 / 3; // Stagger the circles
+							const animationDuration = 1000; // Fixed 1 second animation duration
 							const startTime = Date.now();
 							
 							const animate = () => {
@@ -673,7 +682,8 @@ templ LivePlayMapScript() {
 					}).addTo(radarGroup);
 					
 					// Add popup with play info
-					centerDot.bindPopup(`Play at ${new Date(play.timestamp).toLocaleTimeString()}`);
+					const timestamp = play.timestamp ? new Date(play.timestamp).toLocaleTimeString() : new Date().toLocaleTimeString();
+					centerDot.bindPopup(`Play at ${timestamp}`);
 					
 					// Store group for cleanup
 					this.playMarkers.push(radarGroup);

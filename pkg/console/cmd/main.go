@@ -36,7 +36,6 @@ func main() {
 	etl := etl.NewETLService(auds.Core, logger)
 	etl.SetDBURL(dbURL)
 	etl.SetCheckReadiness(false)
-	etl.SetRunDownMigrations(true)
 
 	console := console.NewConsole(etl, nil, "prod")
 	console.SetupRoutes()

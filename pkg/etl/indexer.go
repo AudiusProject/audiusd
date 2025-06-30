@@ -55,6 +55,10 @@ func (etl *ETLService) Run() error {
 	etl.pool = pool
 	etl.db = db.New(pool)
 
+	// Initialize pubsub instances
+	etl.blockPubsub = NewPubsub[*db.EtlBlock]()
+	etl.playPubsub = NewPubsub[*db.EtlPlay]()
+
 	locationDB, err := location.NewLocationService()
 	if err != nil {
 		etl.logger.Errorf("error creating location service: %v", err)

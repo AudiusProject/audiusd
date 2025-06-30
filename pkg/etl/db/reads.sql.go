@@ -232,6 +232,31 @@ func (q *Queries) GetManageEntitiesByBlockHeightCursor(ctx context.Context, arg 
 	return items, nil
 }
 
+const getManageEntityByTxHash = `-- name: GetManageEntityByTxHash :one
+select id, address, entity_type, entity_id, action, metadata, signature, signer, nonce, block_height, tx_hash, created_at from etl_manage_entities
+where tx_hash = $1
+`
+
+func (q *Queries) GetManageEntityByTxHash(ctx context.Context, txHash string) (EtlManageEntity, error) {
+	row := q.db.QueryRow(ctx, getManageEntityByTxHash, txHash)
+	var i EtlManageEntity
+	err := row.Scan(
+		&i.ID,
+		&i.Address,
+		&i.EntityType,
+		&i.EntityID,
+		&i.Action,
+		&i.Metadata,
+		&i.Signature,
+		&i.Signer,
+		&i.Nonce,
+		&i.BlockHeight,
+		&i.TxHash,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const getPlaysByBlockHeightCursor = `-- name: GetPlaysByBlockHeightCursor :many
 select id, user_id, track_id, city, region, country, played_at, block_height, tx_hash, listened_at, recorded_at from etl_plays
 where block_height > $1 or (block_height = $1 and id > $2)
@@ -247,6 +272,44 @@ type GetPlaysByBlockHeightCursorParams struct {
 
 func (q *Queries) GetPlaysByBlockHeightCursor(ctx context.Context, arg GetPlaysByBlockHeightCursorParams) ([]EtlPlay, error) {
 	rows, err := q.db.Query(ctx, getPlaysByBlockHeightCursor, arg.BlockHeight, arg.ID, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []EtlPlay
+	for rows.Next() {
+		var i EtlPlay
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.TrackID,
+			&i.City,
+			&i.Region,
+			&i.Country,
+			&i.PlayedAt,
+			&i.BlockHeight,
+			&i.TxHash,
+			&i.ListenedAt,
+			&i.RecordedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getPlaysByTxHash = `-- name: GetPlaysByTxHash :many
+select id, user_id, track_id, city, region, country, played_at, block_height, tx_hash, listened_at, recorded_at from etl_plays
+where tx_hash = $1
+`
+
+// Transaction content queries by hash
+func (q *Queries) GetPlaysByTxHash(ctx context.Context, txHash string) ([]EtlPlay, error) {
+	rows, err := q.db.Query(ctx, getPlaysByTxHash, txHash)
 	if err != nil {
 		return nil, err
 	}
@@ -362,6 +425,27 @@ func (q *Queries) GetSlaNodeReportsByBlockHeightCursor(ctx context.Context, arg 
 	return items, nil
 }
 
+const getSlaRollupByTxHash = `-- name: GetSlaRollupByTxHash :one
+select id, block_start, block_end, block_height, validator_count, block_quota, tx_hash, created_at from etl_sla_rollups
+where tx_hash = $1
+`
+
+func (q *Queries) GetSlaRollupByTxHash(ctx context.Context, txHash string) (EtlSlaRollup, error) {
+	row := q.db.QueryRow(ctx, getSlaRollupByTxHash, txHash)
+	var i EtlSlaRollup
+	err := row.Scan(
+		&i.ID,
+		&i.BlockStart,
+		&i.BlockEnd,
+		&i.BlockHeight,
+		&i.ValidatorCount,
+		&i.BlockQuota,
+		&i.TxHash,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const getSlaRollupsByBlockHeightCursor = `-- name: GetSlaRollupsByBlockHeightCursor :many
 select id, block_start, block_end, block_height, validator_count, block_quota, tx_hash, created_at from etl_sla_rollups
 where block_height > $1 or (block_height = $1 and id > $2)
@@ -402,6 +486,47 @@ func (q *Queries) GetSlaRollupsByBlockHeightCursor(ctx context.Context, arg GetS
 		return nil, err
 	}
 	return items, nil
+}
+
+const getStorageProofByTxHash = `-- name: GetStorageProofByTxHash :one
+select id, height, address, prover_addresses, cid, proof_signature, block_height, tx_hash, created_at from etl_storage_proofs
+where tx_hash = $1
+`
+
+func (q *Queries) GetStorageProofByTxHash(ctx context.Context, txHash string) (EtlStorageProof, error) {
+	row := q.db.QueryRow(ctx, getStorageProofByTxHash, txHash)
+	var i EtlStorageProof
+	err := row.Scan(
+		&i.ID,
+		&i.Height,
+		&i.Address,
+		&i.ProverAddresses,
+		&i.Cid,
+		&i.ProofSignature,
+		&i.BlockHeight,
+		&i.TxHash,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getStorageProofVerificationByTxHash = `-- name: GetStorageProofVerificationByTxHash :one
+select id, height, proof, block_height, tx_hash, created_at from etl_storage_proof_verifications
+where tx_hash = $1
+`
+
+func (q *Queries) GetStorageProofVerificationByTxHash(ctx context.Context, txHash string) (EtlStorageProofVerification, error) {
+	row := q.db.QueryRow(ctx, getStorageProofVerificationByTxHash, txHash)
+	var i EtlStorageProofVerification
+	err := row.Scan(
+		&i.ID,
+		&i.Height,
+		&i.Proof,
+		&i.BlockHeight,
+		&i.TxHash,
+		&i.CreatedAt,
+	)
+	return i, err
 }
 
 const getStorageProofVerificationsByBlockHeightCursor = `-- name: GetStorageProofVerificationsByBlockHeightCursor :many
@@ -632,6 +757,24 @@ func (q *Queries) GetValidatorCount(ctx context.Context) (int64, error) {
 	return count, err
 }
 
+const getValidatorDeregistrationByTxHash = `-- name: GetValidatorDeregistrationByTxHash :one
+select id, comet_address, comet_pubkey, block_height, tx_hash from etl_validator_deregistrations
+where tx_hash = $1
+`
+
+func (q *Queries) GetValidatorDeregistrationByTxHash(ctx context.Context, txHash string) (EtlValidatorDeregistration, error) {
+	row := q.db.QueryRow(ctx, getValidatorDeregistrationByTxHash, txHash)
+	var i EtlValidatorDeregistration
+	err := row.Scan(
+		&i.ID,
+		&i.CometAddress,
+		&i.CometPubkey,
+		&i.BlockHeight,
+		&i.TxHash,
+	)
+	return i, err
+}
+
 const getValidatorDeregistrations = `-- name: GetValidatorDeregistrations :many
 select vd.id, vd.comet_address, vd.comet_pubkey, vd.block_height, vd.tx_hash, v.endpoint, v.node_type, v.spid, v.voting_power, v.status
 from etl_validator_deregistrations vd
@@ -766,6 +909,30 @@ func (q *Queries) GetValidatorMisbehaviorDeregistrationsByBlockHeightCursor(ctx 
 		return nil, err
 	}
 	return items, nil
+}
+
+const getValidatorRegistrationByTxHash = `-- name: GetValidatorRegistrationByTxHash :one
+select id, address, endpoint, comet_address, eth_block, node_type, spid, comet_pubkey, voting_power, block_height, tx_hash from etl_validator_registrations
+where tx_hash = $1
+`
+
+func (q *Queries) GetValidatorRegistrationByTxHash(ctx context.Context, txHash string) (EtlValidatorRegistration, error) {
+	row := q.db.QueryRow(ctx, getValidatorRegistrationByTxHash, txHash)
+	var i EtlValidatorRegistration
+	err := row.Scan(
+		&i.ID,
+		&i.Address,
+		&i.Endpoint,
+		&i.CometAddress,
+		&i.EthBlock,
+		&i.NodeType,
+		&i.Spid,
+		&i.CometPubkey,
+		&i.VotingPower,
+		&i.BlockHeight,
+		&i.TxHash,
+	)
+	return i, err
 }
 
 const getValidatorRegistrations = `-- name: GetValidatorRegistrations :many

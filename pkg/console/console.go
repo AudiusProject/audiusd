@@ -2,6 +2,7 @@ package console
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -194,12 +195,10 @@ func (con *Console) Stop() {
 
 // getTransactionsWithBlockHeights is a helper method to get transactions with their block heights
 func (con *Console) getTransactionsWithBlockHeights(ctx context.Context, limit, offset int32) ([]*db.EtlTransaction, map[string]int64, error) {
-	// TODO: Implement efficient transaction fetching with block heights using database joins
-	// For now, just get transactions from the database
-	transactions, err := con.etl.GetDB().GetTransactionsByBlockHeightCursor(ctx, db.GetTransactionsByBlockHeightCursorParams{
-		BlockHeight: 0, // Start from beginning
-		ID:          0,
-		Limit:       limit,
+	// Use GetTransactionsByPage for proper offset-based pagination
+	transactions, err := con.etl.GetDB().GetTransactionsByPage(ctx, db.GetTransactionsByPageParams{
+		Limit:  limit,
+		Offset: offset,
 	})
 	if err != nil {
 		return nil, nil, err
@@ -676,11 +675,76 @@ func (con *Console) Transaction(c echo.Context) error {
 		}
 	}
 
+	// Fetch transaction content based on type
+	var content interface{}
+	switch transaction.TxType {
+	case "play":
+		plays, err := con.etl.GetDB().GetPlaysByTxHash(ctx, txHash)
+		if err != nil {
+			con.logger.Warn("Failed to get plays for transaction", "txHash", txHash, "error", err)
+		} else if len(plays) > 0 {
+			// Convert to pointers for template
+			playPointers := make([]*db.EtlPlay, len(plays))
+			for i := range plays {
+				playPointers[i] = &plays[i]
+			}
+			content = playPointers
+		}
+
+	case "manage_entity":
+		entity, err := con.etl.GetDB().GetManageEntityByTxHash(ctx, txHash)
+		if err != nil {
+			con.logger.Warn("Failed to get manage entity for transaction", "txHash", txHash, "error", err)
+		} else {
+			content = &entity
+		}
+
+	case "validator_registration":
+		registration, err := con.etl.GetDB().GetValidatorRegistrationByTxHash(ctx, txHash)
+		if err != nil {
+			con.logger.Warn("Failed to get validator registration for transaction", "txHash", txHash, "error", err)
+		} else {
+			content = &registration
+		}
+
+	case "validator_deregistration":
+		deregistration, err := con.etl.GetDB().GetValidatorDeregistrationByTxHash(ctx, txHash)
+		if err != nil {
+			con.logger.Warn("Failed to get validator deregistration for transaction", "txHash", txHash, "error", err)
+		} else {
+			content = &deregistration
+		}
+
+	case "sla_rollup":
+		slaRollup, err := con.etl.GetDB().GetSlaRollupByTxHash(ctx, txHash)
+		if err != nil {
+			con.logger.Warn("Failed to get SLA rollup for transaction", "txHash", txHash, "error", err)
+		} else {
+			content = &slaRollup
+		}
+
+	case "storage_proof":
+		storageProof, err := con.etl.GetDB().GetStorageProofByTxHash(ctx, txHash)
+		if err != nil {
+			con.logger.Warn("Failed to get storage proof for transaction", "txHash", txHash, "error", err)
+		} else {
+			content = &storageProof
+		}
+
+	case "storage_proof_verification":
+		storageProofVerification, err := con.etl.GetDB().GetStorageProofVerificationByTxHash(ctx, txHash)
+		if err != nil {
+			con.logger.Warn("Failed to get storage proof verification for transaction", "txHash", txHash, "error", err)
+		} else {
+			content = &storageProofVerification
+		}
+	}
+
 	// Create transaction props
 	props := pages.TransactionProps{
 		Transaction: &transaction,
 		Proposer:    block.ProposerAddress,
-		Content:     nil, // TODO: Implement content fetching based on transaction type
+		Content:     content,
 	}
 
 	p := pages.Transaction(props)
@@ -747,20 +811,82 @@ func (con *Console) LiveEventsSSE(c echo.Context) error {
 
 	flusher.Flush()
 
-	// TODO: Implement pubsub subscription for live events
-	// For now, just keep the connection open
+	// Subscribe to both block and play events from ETL pubsub
+	blockCh := con.etl.GetBlockPubsub().Subscribe(etl.BlockTopic, 10)
+	playCh := con.etl.GetPlayPubsub().Subscribe(etl.PlayTopic, 10)
+
+	// Ensure cleanup on connection close
+	defer func() {
+		con.etl.GetBlockPubsub().Unsubscribe(etl.BlockTopic, blockCh)
+		con.etl.GetPlayPubsub().Unsubscribe(etl.PlayTopic, playCh)
+	}()
+
+	// Throttle state for block events
+	var (
+		latestBlock    *db.EtlBlock
+		lastSentHeight int64
+		blockTicker    = time.NewTicker(1 * time.Second)
+	)
+	defer blockTicker.Stop()
+
+	flusher.Flush()
+
 	timeout := time.After(sseConnectionTTL)
 
 	for {
 		select {
 		case <-c.Request().Context().Done():
 			return nil
+
 		case <-timeout:
 			return nil
-		case <-time.After(5 * time.Second):
-			// Send a heartbeat every 5 seconds
-			fmt.Fprintf(c.Response(), "data: {\"event\":\"heartbeat\"}\n\n")
-			flusher.Flush()
+
+		case blockEvent := <-blockCh:
+			if blockEvent != nil {
+				latestBlock = blockEvent
+			}
+
+		case <-blockTicker.C:
+			if latestBlock != nil && latestBlock.BlockHeight > lastSentHeight {
+				// Send block event
+				blockEvent := SSEEvent{
+					Event: "block",
+					Data: map[string]interface{}{
+						"height":   latestBlock.BlockHeight,
+						"proposer": latestBlock.ProposerAddress,
+						"time":     latestBlock.BlockTime.Time.Format(time.RFC3339),
+					},
+				}
+				eventData, _ := json.Marshal(blockEvent)
+				fmt.Fprintf(c.Response(), "data: %s\n\n", string(eventData))
+				lastSentHeight = latestBlock.BlockHeight
+				flusher.Flush()
+			}
+
+		case play := <-playCh:
+			if play != nil {
+				// Get coordinates for the play location
+				if play.City != "" && play.Region != "" && play.Country != "" {
+					if latLong, err := con.etl.GetLocationDB().GetLatLong(c.Request().Context(), play.City, play.Region, play.Country); err == nil {
+						lat := latLong.Latitude
+						lng := latLong.Longitude
+						// Send play event with coordinates
+						playEvent := SSEEvent{
+							Event: "play",
+							Data: map[string]interface{}{
+								"lat":       lat,
+								"lng":       lng,
+								"timestamp": time.Now().Format(time.RFC3339),
+								"duration":  5, // Default 5 seconds for animation
+							},
+						}
+						eventData, _ := json.Marshal(playEvent)
+						fmt.Fprintf(c.Response(), "data: %s\n\n", string(eventData))
+						flusher.Flush()
+					}
+				}
+			}
+
 		}
 	}
 }
