@@ -159,10 +159,29 @@ where address = $1
 order by block_height desc
 limit $2;
 
+-- name: GetValidatorsForSlaRollup :many
+select v.*, snr.num_blocks_proposed, snr.challenges_received, snr.challenges_failed
+from etl_validators v
+left join etl_sla_node_reports snr on v.comet_address = snr.address and snr.sla_rollup_id = $1
+where v.status = 'active'
+order by v.voting_power desc;
+
+-- name: GetAllActiveValidatorsWithRecentRollups :many
+select v.*, snr.sla_rollup_id, snr.num_blocks_proposed, snr.challenges_received, snr.challenges_failed, snr.block_height as report_block_height, snr.created_at as report_created_at
+from etl_validators v
+left join etl_sla_node_reports snr on v.comet_address = snr.address
+where v.status = 'active'
+order by v.voting_power desc, snr.sla_rollup_id desc;
+
+-- name: GetSlaRollupsWithPagination :many
+select * from etl_sla_rollups
+order by id desc
+limit $1 offset $2;
+
 -- name: GetBlockTransactionCount :one
 select count(*) from etl_transactions
 where block_height = $1;
 
--- name: GetValidatorCount :one
+-- name: GetActiveValidatorCount :one
 select count(*) from etl_validators
 where status = 'active';

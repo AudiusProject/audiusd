@@ -11,6 +11,18 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const getActiveValidatorCount = `-- name: GetActiveValidatorCount :one
+select count(*) from etl_validators
+where status = 'active'
+`
+
+func (q *Queries) GetActiveValidatorCount(ctx context.Context) (int64, error) {
+	row := q.db.QueryRow(ctx, getActiveValidatorCount)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const getActiveValidators = `-- name: GetActiveValidators :many
 select id, address, endpoint, comet_address, node_type, spid, voting_power, status, registered_at, deregistered_at, created_at, updated_at from etl_validators
 where status = 'active'
@@ -45,6 +57,74 @@ func (q *Queries) GetActiveValidators(ctx context.Context, arg GetActiveValidato
 			&i.DeregisteredAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getAllActiveValidatorsWithRecentRollups = `-- name: GetAllActiveValidatorsWithRecentRollups :many
+select v.id, v.address, v.endpoint, v.comet_address, v.node_type, v.spid, v.voting_power, v.status, v.registered_at, v.deregistered_at, v.created_at, v.updated_at, snr.sla_rollup_id, snr.num_blocks_proposed, snr.challenges_received, snr.challenges_failed, snr.block_height as report_block_height, snr.created_at as report_created_at
+from etl_validators v
+left join etl_sla_node_reports snr on v.comet_address = snr.address
+where v.status = 'active'
+order by v.voting_power desc, snr.sla_rollup_id desc
+`
+
+type GetAllActiveValidatorsWithRecentRollupsRow struct {
+	ID                 int32            `json:"id"`
+	Address            string           `json:"address"`
+	Endpoint           string           `json:"endpoint"`
+	CometAddress       string           `json:"comet_address"`
+	NodeType           string           `json:"node_type"`
+	Spid               string           `json:"spid"`
+	VotingPower        int64            `json:"voting_power"`
+	Status             string           `json:"status"`
+	RegisteredAt       int64            `json:"registered_at"`
+	DeregisteredAt     pgtype.Int8      `json:"deregistered_at"`
+	CreatedAt          pgtype.Timestamp `json:"created_at"`
+	UpdatedAt          pgtype.Timestamp `json:"updated_at"`
+	SlaRollupID        pgtype.Int4      `json:"sla_rollup_id"`
+	NumBlocksProposed  pgtype.Int4      `json:"num_blocks_proposed"`
+	ChallengesReceived pgtype.Int4      `json:"challenges_received"`
+	ChallengesFailed   pgtype.Int4      `json:"challenges_failed"`
+	ReportBlockHeight  pgtype.Int8      `json:"report_block_height"`
+	ReportCreatedAt    pgtype.Timestamp `json:"report_created_at"`
+}
+
+func (q *Queries) GetAllActiveValidatorsWithRecentRollups(ctx context.Context) ([]GetAllActiveValidatorsWithRecentRollupsRow, error) {
+	rows, err := q.db.Query(ctx, getAllActiveValidatorsWithRecentRollups)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAllActiveValidatorsWithRecentRollupsRow
+	for rows.Next() {
+		var i GetAllActiveValidatorsWithRecentRollupsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Address,
+			&i.Endpoint,
+			&i.CometAddress,
+			&i.NodeType,
+			&i.Spid,
+			&i.VotingPower,
+			&i.Status,
+			&i.RegisteredAt,
+			&i.DeregisteredAt,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.SlaRollupID,
+			&i.NumBlocksProposed,
+			&i.ChallengesReceived,
+			&i.ChallengesFailed,
+			&i.ReportBlockHeight,
+			&i.ReportCreatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -488,6 +568,46 @@ func (q *Queries) GetSlaRollupsByBlockHeightCursor(ctx context.Context, arg GetS
 	return items, nil
 }
 
+const getSlaRollupsWithPagination = `-- name: GetSlaRollupsWithPagination :many
+select id, block_start, block_end, block_height, validator_count, block_quota, tx_hash, created_at from etl_sla_rollups
+order by id desc
+limit $1 offset $2
+`
+
+type GetSlaRollupsWithPaginationParams struct {
+	Limit  int32 `json:"limit"`
+	Offset int32 `json:"offset"`
+}
+
+func (q *Queries) GetSlaRollupsWithPagination(ctx context.Context, arg GetSlaRollupsWithPaginationParams) ([]EtlSlaRollup, error) {
+	rows, err := q.db.Query(ctx, getSlaRollupsWithPagination, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []EtlSlaRollup
+	for rows.Next() {
+		var i EtlSlaRollup
+		if err := rows.Scan(
+			&i.ID,
+			&i.BlockStart,
+			&i.BlockEnd,
+			&i.BlockHeight,
+			&i.ValidatorCount,
+			&i.BlockQuota,
+			&i.TxHash,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getStorageProofByTxHash = `-- name: GetStorageProofByTxHash :one
 select id, height, address, prover_addresses, cid, proof_signature, block_height, tx_hash, created_at from etl_storage_proofs
 where tx_hash = $1
@@ -743,18 +863,6 @@ func (q *Queries) GetValidatorByAddress(ctx context.Context, address string) (Et
 		&i.UpdatedAt,
 	)
 	return i, err
-}
-
-const getValidatorCount = `-- name: GetValidatorCount :one
-select count(*) from etl_validators
-where status = 'active'
-`
-
-func (q *Queries) GetValidatorCount(ctx context.Context) (int64, error) {
-	row := q.db.QueryRow(ctx, getValidatorCount)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
 }
 
 const getValidatorDeregistrationByTxHash = `-- name: GetValidatorDeregistrationByTxHash :one
@@ -1038,6 +1146,68 @@ func (q *Queries) GetValidatorRegistrationsByBlockHeightCursor(ctx context.Conte
 			&i.VotingPower,
 			&i.BlockHeight,
 			&i.TxHash,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getValidatorsForSlaRollup = `-- name: GetValidatorsForSlaRollup :many
+select v.id, v.address, v.endpoint, v.comet_address, v.node_type, v.spid, v.voting_power, v.status, v.registered_at, v.deregistered_at, v.created_at, v.updated_at, snr.num_blocks_proposed, snr.challenges_received, snr.challenges_failed
+from etl_validators v
+left join etl_sla_node_reports snr on v.comet_address = snr.address and snr.sla_rollup_id = $1
+where v.status = 'active'
+order by v.voting_power desc
+`
+
+type GetValidatorsForSlaRollupRow struct {
+	ID                 int32            `json:"id"`
+	Address            string           `json:"address"`
+	Endpoint           string           `json:"endpoint"`
+	CometAddress       string           `json:"comet_address"`
+	NodeType           string           `json:"node_type"`
+	Spid               string           `json:"spid"`
+	VotingPower        int64            `json:"voting_power"`
+	Status             string           `json:"status"`
+	RegisteredAt       int64            `json:"registered_at"`
+	DeregisteredAt     pgtype.Int8      `json:"deregistered_at"`
+	CreatedAt          pgtype.Timestamp `json:"created_at"`
+	UpdatedAt          pgtype.Timestamp `json:"updated_at"`
+	NumBlocksProposed  pgtype.Int4      `json:"num_blocks_proposed"`
+	ChallengesReceived pgtype.Int4      `json:"challenges_received"`
+	ChallengesFailed   pgtype.Int4      `json:"challenges_failed"`
+}
+
+func (q *Queries) GetValidatorsForSlaRollup(ctx context.Context, slaRollupID int32) ([]GetValidatorsForSlaRollupRow, error) {
+	rows, err := q.db.Query(ctx, getValidatorsForSlaRollup, slaRollupID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetValidatorsForSlaRollupRow
+	for rows.Next() {
+		var i GetValidatorsForSlaRollupRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Address,
+			&i.Endpoint,
+			&i.CometAddress,
+			&i.NodeType,
+			&i.Spid,
+			&i.VotingPower,
+			&i.Status,
+			&i.RegisteredAt,
+			&i.DeregisteredAt,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.NumBlocksProposed,
+			&i.ChallengesReceived,
+			&i.ChallengesFailed,
 		); err != nil {
 			return nil, err
 		}

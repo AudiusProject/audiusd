@@ -35,6 +35,11 @@ values ($1, $2, $3, $4);
 insert into etl_sla_rollups (block_start, block_end, block_height, validator_count, block_quota, tx_hash, created_at)
 values ($1, $2, $3, $4, $5, $6, $7);
 
+-- name: InsertSlaRollupReturningId :one
+insert into etl_sla_rollups (block_start, block_end, block_height, validator_count, block_quota, tx_hash, created_at)
+values ($1, $2, $3, $4, $5, $6, $7)
+returning id;
+
 -- name: InsertSlaNodeReport :exec
 insert into etl_sla_node_reports (sla_rollup_id, address, num_blocks_proposed, challenges_received, challenges_failed, block_height, tx_hash, created_at)
 values ($1, $2, $3, $4, $5, $6, $7, $8);

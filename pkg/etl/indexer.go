@@ -243,25 +243,6 @@ func (etl *ETLService) indexBlocks() error {
 						if err != nil {
 							etl.logger.Errorf("error batch inserting plays: %v", err)
 						}
-
-						/**
-							if play.City != "" && play.Region != "" && play.Country != "" && etl.playPubsub.HasSubscribers(PlayTopic) {
-								latLong, err := etl.locationDB.GetLatLong(context.Background(), play.City, play.Region, play.Country)
-								if err == nil {
-									etl.playPubsub.Publish(context.Background(), PlayTopic, &etlv1.TrackPlay{
-										Address:   play.UserId,
-										TrackId:   play.TrackId,
-										City:      play.City,
-										Region:    play.Region,
-										Country:   play.Country,
-										PlayedAt:  play.Timestamp,
-										Latitude:  latLong.Latitude,
-										Longitude: latLong.Longitude,
-									})
-								}
-							}
-						}
-						*/
 					}
 
 				case *corev1.SignedTransaction_ManageEntity:
@@ -315,33 +296,44 @@ func (etl *ETLService) indexBlocks() error {
 				case *corev1.SignedTransaction_SlaRollup:
 					insertTxParams.TxType = TxTypeSlaRollup
 					sr := signedTx.SlaRollup
-					err = etl.db.InsertSlaRollup(context.Background(), db.InsertSlaRollupParams{
+
+					// Calculate block quota (total blocks divided by number of validators)
+					var blockQuota int32 = 0
+					if sr.BlockEnd > sr.BlockStart {
+						validatorCount, err := etl.db.GetActiveValidatorCount(context.Background())
+						if err == nil && validatorCount > 0 {
+							blockQuota = int32(sr.BlockEnd-sr.BlockStart) / int32(validatorCount)
+						}
+					}
+
+					// Insert SLA rollup and get the ID
+					rollupId, err := etl.db.InsertSlaRollupReturningId(context.Background(), db.InsertSlaRollupReturningIdParams{
 						BlockStart:     sr.BlockStart,
 						BlockEnd:       sr.BlockEnd,
 						BlockHeight:    block.Height,
 						ValidatorCount: int32(len(sr.Reports)),
-						BlockQuota:     0, // Set default or calculate
+						BlockQuota:     blockQuota,
 						TxHash:         tx.Hash,
-						CreatedAt:      pgtype.Timestamp{Time: block.Timestamp.AsTime(), Valid: true},
+						CreatedAt:      pgtype.Timestamp{Time: sr.Timestamp.AsTime(), Valid: true}, // Use rollup timestamp, not block timestamp
 					})
 					if err != nil {
 						etl.logger.Errorf("error inserting SLA rollup: %v", err)
-					}
-
-					// Insert SLA node reports
-					for _, report := range sr.Reports {
-						err = etl.db.InsertSlaNodeReport(context.Background(), db.InsertSlaNodeReportParams{
-							SlaRollupID:        1, // This would need to be the actual rollup ID
-							Address:            report.Address,
-							NumBlocksProposed:  report.NumBlocksProposed,
-							ChallengesReceived: 0, // Set default
-							ChallengesFailed:   0, // Set default
-							BlockHeight:        block.Height,
-							TxHash:             tx.Hash,
-							CreatedAt:          pgtype.Timestamp{Time: block.Timestamp.AsTime(), Valid: true},
-						})
-						if err != nil {
-							etl.logger.Errorf("error inserting SLA node report: %v", err)
+					} else {
+						// Insert SLA node reports with the actual rollup ID
+						for _, report := range sr.Reports {
+							err = etl.db.InsertSlaNodeReport(context.Background(), db.InsertSlaNodeReportParams{
+								SlaRollupID:        rollupId, // Use the actual rollup ID
+								Address:            report.Address,
+								NumBlocksProposed:  report.NumBlocksProposed,
+								ChallengesReceived: 0, // SLA rollups don't track challenges - that's for storage proofs
+								ChallengesFailed:   0, // SLA rollups don't track challenges - that's for storage proofs
+								BlockHeight:        block.Height,
+								TxHash:             tx.Hash,
+								CreatedAt:          pgtype.Timestamp{Time: sr.Timestamp.AsTime(), Valid: true}, // Use rollup timestamp
+							})
+							if err != nil {
+								etl.logger.Errorf("error inserting SLA node report: %v", err)
+							}
 						}
 					}
 				case *corev1.SignedTransaction_StorageProof:

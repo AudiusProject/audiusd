@@ -482,19 +482,153 @@ func (con *Console) Validator(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "Validator address required")
 	}
 
-	// TODO: Implement validator lookup using database
-	// For now, return not found
-	return c.String(http.StatusNotFound, "Validator not found - TODO: Implement validator lookup")
+	ctx := c.Request().Context()
+
+	// Get validator by address
+	validator, err := con.etl.GetDB().GetValidatorByAddress(ctx, address)
+	if err != nil {
+		return c.String(http.StatusNotFound, fmt.Sprintf("Validator not found: %s", address))
+	}
+
+	// Get SLA rollup reports for this validator
+	reports, err := con.etl.GetDB().GetSlaNodeReportsByAddress(ctx, db.GetSlaNodeReportsByAddressParams{
+		Address: validator.CometAddress,
+		Limit:   10, // Get last 10 reports
+	})
+	if err != nil {
+		con.logger.Warn("Failed to get SLA reports for validator", "address", address, "error", err)
+		reports = []db.EtlSlaNodeReport{}
+	}
+
+	// Convert reports to pointers
+	rollups := make([]*db.EtlSlaNodeReport, len(reports))
+	for i := range reports {
+		rollups[i] = &reports[i]
+	}
+
+	// TODO: Get validator events from registration/deregistration tables
+	// For now, create empty events slice
+	events := []*pages.ValidatorEvent{}
+
+	props := pages.ValidatorProps{
+		Validator: &validator,
+		Events:    events,
+		Rollups:   rollups,
+	}
+
+	p := pages.Validator(props)
+	return p.Render(ctx, c.Response().Writer)
 }
 
 func (con *Console) ValidatorsUptime(c echo.Context) error {
-	// TODO: Implement validators uptime using database queries
-	return c.String(http.StatusNotImplemented, "TODO: Implement validators uptime")
+	ctx := c.Request().Context()
+
+	// Get all active validators
+	validatorsData, err := con.etl.GetDB().GetActiveValidators(ctx, db.GetActiveValidatorsParams{
+		Limit:  100, // Reasonable limit for all validators
+		Offset: 0,
+	})
+	if err != nil {
+		con.logger.Warn("Failed to get active validators", "error", err)
+		validatorsData = []db.EtlValidator{}
+	}
+
+	// Build validator uptime info for each validator
+	validators := make([]*pages.ValidatorUptimeInfo, 0, len(validatorsData))
+	for i := range validatorsData {
+		// Get recent SLA reports for this validator
+		reports, err := con.etl.GetDB().GetSlaNodeReportsByAddress(ctx, db.GetSlaNodeReportsByAddressParams{
+			Address: validatorsData[i].CometAddress,
+			Limit:   5, // Get last 5 SLA reports for uptime bars
+		})
+		if err != nil {
+			con.logger.Warn("Failed to get SLA reports", "address", validatorsData[i].CometAddress, "error", err)
+			reports = []db.EtlSlaNodeReport{}
+		}
+
+		// Convert reports to pointers
+		reportPointers := make([]*db.EtlSlaNodeReport, len(reports))
+		for j := range reports {
+			reportPointers[j] = &reports[j]
+		}
+
+		validators = append(validators, &pages.ValidatorUptimeInfo{
+			Validator:     &validatorsData[i],
+			RecentRollups: reportPointers,
+		})
+	}
+
+	props := pages.ValidatorsUptimeProps{
+		Validators: validators,
+	}
+
+	p := pages.ValidatorsUptime(props)
+	return p.Render(ctx, c.Response().Writer)
 }
 
 func (con *Console) ValidatorsUptimeByRollup(c echo.Context) error {
-	// TODO: Implement validators uptime by rollup using database queries
-	return c.String(http.StatusNotImplemented, "TODO: Implement validators uptime by rollup")
+	rollupIDParam := c.Param("rollupid")
+	if rollupIDParam == "" {
+		return c.String(http.StatusBadRequest, "Rollup ID required")
+	}
+
+	rollupID, err := strconv.ParseInt(rollupIDParam, 10, 32)
+	if err != nil {
+		return c.String(http.StatusBadRequest, "Invalid rollup ID")
+	}
+
+	ctx := c.Request().Context()
+
+	// Get validators for this specific SLA rollup
+	validatorsData, err := con.etl.GetDB().GetValidatorsForSlaRollup(ctx, int32(rollupID))
+	if err != nil {
+		con.logger.Warn("Failed to get validators for SLA rollup", "rollupID", rollupID, "error", err)
+		validatorsData = []db.GetValidatorsForSlaRollupRow{}
+	}
+
+	// Build validator uptime info for each validator
+	validators := make([]*pages.ValidatorUptimeInfo, 0, len(validatorsData))
+	for i := range validatorsData {
+		validator := &db.EtlValidator{
+			ID:           validatorsData[i].ID,
+			Address:      validatorsData[i].Address,
+			Endpoint:     validatorsData[i].Endpoint,
+			CometAddress: validatorsData[i].CometAddress,
+			NodeType:     validatorsData[i].NodeType,
+			Spid:         validatorsData[i].Spid,
+			VotingPower:  validatorsData[i].VotingPower,
+			Status:       validatorsData[i].Status,
+			RegisteredAt: validatorsData[i].RegisteredAt,
+			CreatedAt:    validatorsData[i].CreatedAt,
+			UpdatedAt:    validatorsData[i].UpdatedAt,
+		}
+
+		// Create a single SLA report for this rollup if the validator has data
+		var reportPointers []*db.EtlSlaNodeReport
+		if validatorsData[i].NumBlocksProposed.Valid {
+			slaReport := &db.EtlSlaNodeReport{
+				SlaRollupID:        int32(rollupID),
+				Address:            validatorsData[i].CometAddress,
+				NumBlocksProposed:  validatorsData[i].NumBlocksProposed.Int32,
+				ChallengesReceived: validatorsData[i].ChallengesReceived.Int32,
+				ChallengesFailed:   validatorsData[i].ChallengesFailed.Int32,
+			}
+			reportPointers = []*db.EtlSlaNodeReport{slaReport}
+		}
+
+		validators = append(validators, &pages.ValidatorUptimeInfo{
+			Validator:     validator,
+			RecentRollups: reportPointers,
+		})
+	}
+
+	props := pages.ValidatorsUptimeByRollupProps{
+		Validators: validators,
+		RollupID:   int32(rollupID),
+	}
+
+	p := pages.ValidatorsUptimeByRollup(props)
+	return p.Render(ctx, c.Response().Writer)
 }
 
 func (con *Console) Rollups(c echo.Context) error {

@@ -233,6 +233,37 @@ func (q *Queries) InsertSlaRollup(ctx context.Context, arg InsertSlaRollupParams
 	return err
 }
 
+const insertSlaRollupReturningId = `-- name: InsertSlaRollupReturningId :one
+insert into etl_sla_rollups (block_start, block_end, block_height, validator_count, block_quota, tx_hash, created_at)
+values ($1, $2, $3, $4, $5, $6, $7)
+returning id
+`
+
+type InsertSlaRollupReturningIdParams struct {
+	BlockStart     int64            `json:"block_start"`
+	BlockEnd       int64            `json:"block_end"`
+	BlockHeight    int64            `json:"block_height"`
+	ValidatorCount int32            `json:"validator_count"`
+	BlockQuota     int32            `json:"block_quota"`
+	TxHash         string           `json:"tx_hash"`
+	CreatedAt      pgtype.Timestamp `json:"created_at"`
+}
+
+func (q *Queries) InsertSlaRollupReturningId(ctx context.Context, arg InsertSlaRollupReturningIdParams) (int32, error) {
+	row := q.db.QueryRow(ctx, insertSlaRollupReturningId,
+		arg.BlockStart,
+		arg.BlockEnd,
+		arg.BlockHeight,
+		arg.ValidatorCount,
+		arg.BlockQuota,
+		arg.TxHash,
+		arg.CreatedAt,
+	)
+	var id int32
+	err := row.Scan(&id)
+	return id, err
+}
+
 const insertStorageProof = `-- name: InsertStorageProof :exec
 insert into etl_storage_proofs (height, address, prover_addresses, cid, proof_signature, block_height, tx_hash, created_at)
 values ($1, $2, $3, $4, $5, $6, $7, $8)
