@@ -47,6 +47,7 @@ import (
 	etlv1connect "github.com/AudiusProject/audiusd/pkg/api/etl/v1/v1connect"
 	storagev1connect "github.com/AudiusProject/audiusd/pkg/api/storage/v1/v1connect"
 	systemv1connect "github.com/AudiusProject/audiusd/pkg/api/system/v1/v1connect"
+	consolev2 "github.com/AudiusProject/audiusd/pkg/console"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -358,6 +359,10 @@ func connectGET[Req any, Res any](
 }
 
 func startEchoProxy(hostUrl *url.URL, logger *common.Logger, coreService *coreServer.CoreService, storageService *server.StorageService, etlService *etl.ETLService, systemService *system.SystemService) error {
+	// console requires etl to be enabled
+	consoleEnabled := os.Getenv("AUDIUSD_CONSOLE_ENABLED") == "true" && os.Getenv("AUDIUSD_ETL_ENABLED") == "true"
+	network := os.Getenv("NETWORK")
+
 	e := echo.New()
 	e.HideBanner = true
 	e.Use(middleware.Logger(), middleware.Recover(), common.InjectRealIP())
@@ -384,6 +389,13 @@ func startEchoProxy(hostUrl *url.URL, logger *common.Logger, coreService *coreSe
 	rpcGroup.GET(corev1connect.CoreServiceGetRewardAttestationProcedure, connectGET(coreService.GetRewardAttestation))
 	rpcGroup.GET(corev1connect.CoreServiceGetRewardsProcedure, connectGET(coreService.GetRewards))
 
+	if consoleEnabled {
+		// start indexing immediately
+		etlService.SetCheckReadiness(false)
+		c := consolev2.NewConsole(etlService, e, network)
+		c.SetupRoutes()
+	}
+
 	go func() {
 		grpcServer := echo.New()
 		grpcServerGroup := grpcServer.Group("")
@@ -404,9 +416,12 @@ func startEchoProxy(hostUrl *url.URL, logger *common.Logger, coreService *coreSe
 		}
 	}()
 
-	e.GET("/", func(c echo.Context) error {
-		return c.JSON(http.StatusOK, map[string]int{"a": 440})
-	})
+	// base route collides with console dashboard
+	if !consoleEnabled {
+		e.GET("/", func(c echo.Context) error {
+			return c.JSON(http.StatusOK, map[string]int{"a": 440})
+		})
+	}
 
 	e.GET("/health-check", func(c echo.Context) error {
 		return c.JSON(http.StatusOK, getHealthCheckResponse(hostUrl))
