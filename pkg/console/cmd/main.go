@@ -73,7 +73,6 @@ func startPostgres(ctx context.Context) (string, error) {
 			"POSTGRES_PASSWORD": pgpass,
 			"POSTGRES_DB":       pgdb,
 		},
-		Mounts:     testcontainers.Mounts(testcontainers.BindMount(postgresDataPath, "/var/lib/postgresql/data")),
 		WaitingFor: wait.ForListeningPort("5432/tcp"),
 	}
 

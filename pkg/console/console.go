@@ -521,48 +521,63 @@ func (con *Console) Validator(c echo.Context) error {
 }
 
 func (con *Console) ValidatorsUptime(c echo.Context) error {
+	// Parse query parameters for pagination
+	pageParam := c.QueryParam("page")
+	countParam := c.QueryParam("count")
+
+	page := int32(1) // default to page 1
+	if pageParam != "" {
+		if parsedPage, err := strconv.ParseInt(pageParam, 10, 32); err == nil && parsedPage > 0 {
+			page = int32(parsedPage)
+		}
+	}
+
+	count := int32(20) // default to 20 per page for rollups
+	if countParam != "" {
+		if parsedCount, err := strconv.ParseInt(countParam, 10, 32); err == nil && parsedCount > 0 && parsedCount <= 100 {
+			count = int32(parsedCount)
+		}
+	}
+
+	// Calculate offset from page number
+	offset := (page - 1) * count
+
 	ctx := c.Request().Context()
 
-	// Get all active validators
-	validatorsData, err := con.etl.GetDB().GetActiveValidators(ctx, db.GetActiveValidatorsParams{
-		Limit:  100, // Reasonable limit for all validators
-		Offset: 0,
+	// Get paginated SLA rollups
+	rollupsData, err := con.etl.GetDB().GetSlaRollupsWithPagination(ctx, db.GetSlaRollupsWithPaginationParams{
+		Limit:  count,
+		Offset: offset,
 	})
 	if err != nil {
-		con.logger.Warn("Failed to get active validators", "error", err)
-		validatorsData = []db.EtlValidator{}
+		con.logger.Warn("Failed to get SLA rollups", "error", err)
+		rollupsData = []db.EtlSlaRollup{}
 	}
 
-	// Build validator uptime info for each validator
-	validators := make([]*pages.ValidatorUptimeInfo, 0, len(validatorsData))
-	for i := range validatorsData {
-		// Get recent SLA reports for this validator
-		reports, err := con.etl.GetDB().GetSlaNodeReportsByAddress(ctx, db.GetSlaNodeReportsByAddressParams{
-			Address: validatorsData[i].CometAddress,
-			Limit:   5, // Get last 5 SLA reports for uptime bars
-		})
-		if err != nil {
-			con.logger.Warn("Failed to get SLA reports", "address", validatorsData[i].CometAddress, "error", err)
-			reports = []db.EtlSlaNodeReport{}
-		}
-
-		// Convert reports to pointers
-		reportPointers := make([]*db.EtlSlaNodeReport, len(reports))
-		for j := range reports {
-			reportPointers[j] = &reports[j]
-		}
-
-		validators = append(validators, &pages.ValidatorUptimeInfo{
-			Validator:     &validatorsData[i],
-			RecentRollups: reportPointers,
-		})
+	// Convert to pointers
+	rollups := make([]*db.EtlSlaRollup, len(rollupsData))
+	for i := range rollupsData {
+		rollups[i] = &rollupsData[i]
 	}
 
-	props := pages.ValidatorsUptimeProps{
-		Validators: validators,
+	// Calculate pagination state
+	hasNext := len(rollupsData) == int(count)
+	hasPrev := page > 1
+
+	// TODO: Get actual total count from database
+	totalCount := int64(len(rollupsData)) // Placeholder
+
+	props := pages.RollupsProps{
+		Rollups:          rollups,
+		RollupValidators: []*db.EtlSlaNodeReport{}, // Not needed for rollups list view
+		CurrentPage:      page,
+		HasNext:          hasNext,
+		HasPrev:          hasPrev,
+		PageSize:         count,
+		TotalCount:       totalCount,
 	}
 
-	p := pages.ValidatorsUptime(props)
+	p := pages.Rollups(props)
 	return p.Render(ctx, c.Response().Writer)
 }
 
@@ -632,8 +647,64 @@ func (con *Console) ValidatorsUptimeByRollup(c echo.Context) error {
 }
 
 func (con *Console) Rollups(c echo.Context) error {
-	// TODO: Implement rollups using database queries
-	return c.String(http.StatusNotImplemented, "TODO: Implement rollups")
+	// Parse query parameters for pagination
+	pageParam := c.QueryParam("page")
+	countParam := c.QueryParam("count")
+
+	page := int32(1) // default to page 1
+	if pageParam != "" {
+		if parsedPage, err := strconv.ParseInt(pageParam, 10, 32); err == nil && parsedPage > 0 {
+			page = int32(parsedPage)
+		}
+	}
+
+	count := int32(20) // default to 20 per page
+	if countParam != "" {
+		if parsedCount, err := strconv.ParseInt(countParam, 10, 32); err == nil && parsedCount > 0 && parsedCount <= 100 {
+			count = int32(parsedCount)
+		}
+	}
+
+	// Calculate offset from page number
+	offset := (page - 1) * count
+
+	ctx := c.Request().Context()
+
+	// Get paginated SLA rollups
+	rollupsData, err := con.etl.GetDB().GetSlaRollupsWithPagination(ctx, db.GetSlaRollupsWithPaginationParams{
+		Limit:  count,
+		Offset: offset,
+	})
+	if err != nil {
+		con.logger.Warn("Failed to get SLA rollups", "error", err)
+		rollupsData = []db.EtlSlaRollup{}
+	}
+
+	// Convert to pointers
+	rollups := make([]*db.EtlSlaRollup, len(rollupsData))
+	for i := range rollupsData {
+		rollups[i] = &rollupsData[i]
+	}
+
+	// Calculate pagination state
+	hasNext := len(rollupsData) == int(count)
+	hasPrev := page > 1
+
+	// TODO: Get actual total count from database
+	totalCount := int64(len(rollupsData)) // Placeholder
+
+	props := pages.RollupsProps{
+		Rollups:          rollups,
+		RollupValidators: []*db.EtlSlaNodeReport{}, // Not needed for rollups list view
+		CurrentPage:      page,
+		HasNext:          hasNext,
+		HasPrev:          hasPrev,
+		PageSize:         count,
+		TotalCount:       totalCount,
+	}
+
+	p := pages.Rollups(props)
+	return p.Render(ctx, c.Response().Writer)
 }
 
 func (con *Console) Blocks(c echo.Context) error {
