@@ -252,6 +252,20 @@ func (con *Console) Dashboard(c echo.Context) error {
 		blockHeights = make(map[string]int64)
 	}
 
+	blocks, err := con.etl.GetDB().GetBlocksByPage(c.Request().Context(), db.GetBlocksByPageParams{
+		Limit:  10,
+		Offset: 0,
+	})
+	if err != nil {
+		con.logger.Warn("Failed to get blocks", "error", err)
+		return c.String(http.StatusInternalServerError, "Failed to get blocks")
+	}
+
+	blockPointers := make([]*db.EtlBlock, len(blocks))
+	for i := range blocks {
+		blockPointers[i] = &blocks[i]
+	}
+
 	// TODO: Implement these properly with database queries
 	stats := &pages.DashboardStats{
 		CurrentBlockHeight:           latestBlockHeight,
@@ -277,10 +291,6 @@ func (con *Console) Dashboard(c echo.Context) error {
 	transactionBreakdown := []*pages.TransactionTypeBreakdown{
 		{Type: "ManageEntity", Count: int64(totalTransactions), Color: "bg-blue-500"},
 	}
-
-	// Convert recent blocks to the format expected by template
-	blockPointers := make([]*db.EtlBlock, 0)
-	// TODO: Implement proper block fetching
 
 	// Calculate sync progress percentage
 	syncProgressPercentage := float64(100) // Assume synced for now
@@ -669,10 +679,7 @@ func (con *Console) Transaction(c echo.Context) error {
 	block, err := con.etl.GetDB().GetBlockByHeight(ctx, transaction.BlockHeight)
 	if err != nil {
 		con.logger.Warn("Failed to get block for transaction", "blockHeight", transaction.BlockHeight, "error", err)
-		// Create a minimal block struct if block lookup fails
-		block = db.EtlBlock{
-			BlockHeight: transaction.BlockHeight,
-		}
+		return c.String(http.StatusNotFound, fmt.Sprintf("Block not found at height %d", transaction.BlockHeight))
 	}
 
 	// Fetch transaction content based on type
@@ -763,11 +770,6 @@ func (con *Console) Account(c echo.Context) error {
 
 func (con *Console) stubRoute(c echo.Context) error {
 	return c.String(http.StatusOK, "Hello, World!")
-}
-
-func (con *Console) APIBlocks(c echo.Context) error {
-	// TODO: Implement API blocks endpoint using database queries
-	return c.JSON(http.StatusNotImplemented, map[string]string{"error": "TODO: Implement API blocks endpoint"})
 }
 
 // HTMX Fragment Handlers
