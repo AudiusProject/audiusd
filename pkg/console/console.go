@@ -327,18 +327,19 @@ func (con *Console) Dashboard(c echo.Context) error {
 	}
 
 	// Convert materialized view transaction types to template format
-	transactionBreakdown := make([]*pages.TransactionTypeBreakdown, len(txTypes))
+	maxTypes := 5 // only show up to 5 transaction types
+	if len(txTypes) < maxTypes {
+		maxTypes = len(txTypes)
+	}
+	transactionBreakdown := make([]*pages.TransactionTypeBreakdown, maxTypes)
 	colors := []string{"bg-blue-500", "bg-green-500", "bg-purple-500", "bg-yellow-500", "bg-red-500", "bg-indigo-500", "bg-pink-500"}
-	for i, txType := range txTypes {
+	for i := 0; i < maxTypes; i++ {
+		txType := txTypes[i]
 		color := colors[i%len(colors)]
 		transactionBreakdown[i] = &pages.TransactionTypeBreakdown{
 			Type:  txType.TxType,
 			Count: txType.TransactionCount,
 			Color: color,
-		}
-		// only show up to 5 transaction types
-		if i == 5 {
-			break
 		}
 	}
 
@@ -352,17 +353,66 @@ func (con *Console) Dashboard(c echo.Context) error {
 		slaRollupsData = []db.EtlSlaRollup{}
 	}
 
-	// Build SLA performance data points for chart
-	var slaPerformanceData []*pages.SLAPerformanceDataPoint
+	con.logger.Info("SLA rollups data retrieved", "count", len(slaRollupsData))
 
-	// If we have real data, use it
+	// Build SLA performance data points for chart - Initialize as empty slice, not nil
+	slaPerformanceData := make([]*pages.SLAPerformanceDataPoint, 0)
+
+	// Build chart data if we have any rollups
 	if len(slaRollupsData) > 0 {
-		slaPerformanceData = make([]*pages.SLAPerformanceDataPoint, len(slaRollupsData))
-		for i, rollup := range slaRollupsData {
-			// Mock some data for now - we'll implement proper validator count tracking later
-			validatorCount := int32(4 + (i % 3)) // Mock: 4-6 validators over time
+		con.logger.Info("Building SLA performance chart data", "rollupCount", len(slaRollupsData))
 
-			slaPerformanceData[i] = &pages.SLAPerformanceDataPoint{
+		// Filter out invalid rollups and build valid data points
+		validDataPoints := make([]*pages.SLAPerformanceDataPoint, 0, len(slaRollupsData))
+		for i, rollup := range slaRollupsData {
+			// Log the first rollup to see what data we're getting
+			if i == 0 {
+				con.logger.Info("First rollup data sample",
+					"id", rollup.ID,
+					"blockHeight", rollup.BlockHeight,
+					"validatorCount", rollup.ValidatorCount,
+					"bps", rollup.Bps,
+					"tps", rollup.Tps,
+					"createdAtValid", rollup.CreatedAt.Valid,
+					"blockStart", rollup.BlockStart,
+					"blockEnd", rollup.BlockEnd)
+			}
+
+			// Comprehensive validation of rollup data
+			if rollup.ID <= 0 {
+				con.logger.Debug("Skipping rollup with invalid ID", "index", i, "rollupId", rollup.ID)
+				continue
+			}
+
+			if !rollup.CreatedAt.Valid {
+				con.logger.Debug("Skipping rollup with invalid timestamp", "rollupId", rollup.ID)
+				continue
+			}
+
+			if rollup.BlockHeight <= 0 {
+				con.logger.Debug("Skipping rollup with invalid block height", "rollupId", rollup.ID, "blockHeight", rollup.BlockHeight)
+				continue
+			}
+
+			if rollup.Bps < 0 || rollup.Tps < 0 {
+				con.logger.Debug("Skipping rollup with invalid performance data", "rollupId", rollup.ID, "bps", rollup.Bps, "tps", rollup.Tps)
+				continue
+			}
+
+			if rollup.BlockStart < 0 || rollup.BlockEnd <= 0 || rollup.BlockStart > rollup.BlockEnd {
+				con.logger.Debug("Skipping rollup with invalid block range", "rollupId", rollup.ID, "start", rollup.BlockStart, "end", rollup.BlockEnd)
+				continue
+			}
+
+			// Use the validator count from the rollup data itself
+			validatorCount := rollup.ValidatorCount
+			if validatorCount <= 0 {
+				con.logger.Debug("Invalid validator count in rollup, using fallback", "rollupId", rollup.ID, "count", validatorCount)
+				validatorCount = 1 // Minimum of 1 validator
+			}
+
+			// Create a fully validated data point
+			dataPoint := &pages.SLAPerformanceDataPoint{
 				RollupID:       rollup.ID,
 				BlockHeight:    rollup.BlockHeight,
 				Timestamp:      rollup.CreatedAt.Time.Format(time.RFC3339),
@@ -372,66 +422,43 @@ func (con *Console) Dashboard(c echo.Context) error {
 				BlockStart:     rollup.BlockStart,
 				BlockEnd:       rollup.BlockEnd,
 			}
+
+			// Extra safety check - ensure we're not adding nil
+			if dataPoint != nil {
+				validDataPoints = append(validDataPoints, dataPoint)
+			}
+		}
+
+		// Use the data if we have any valid points after filtering
+		if len(validDataPoints) > 0 {
+			slaPerformanceData = validDataPoints
+			con.logger.Info("Successfully built SLA performance data", "validPoints", len(validDataPoints))
+		} else {
+			con.logger.Warn("No valid rollup data points after filtering", "valid", len(validDataPoints), "total", len(slaRollupsData))
+			// Keep the empty slice - don't set to nil
 		}
 	} else {
-		// Create mock data for demonstration
-		baseTime := time.Now().Add(-3 * time.Hour)                      // Start 3 hours ago
-		slaPerformanceData = make([]*pages.SLAPerformanceDataPoint, 36) // 36 data points
-
-		for i := 0; i < 36; i++ {
-			timestamp := baseTime.Add(time.Duration(i) * 5 * time.Minute) // Every 5 minutes
-
-			// Create realistic validator count trends (100-120 range)
-			baseValidators := 105 + int32(8*float64(i)/36.0)          // Gradual increase from 105 to 113
-			validatorVariation := int32(3 * (0.5 - float64(i%7)/6.0)) // Some oscillation ±3
-			validatorCount := baseValidators + validatorVariation
-
-			// Ensure we stay in realistic bounds
-			if validatorCount < 100 {
-				validatorCount = 100
-			}
-			if validatorCount > 120 {
-				validatorCount = 120
-			}
-
-			// BPS with some realistic variation (0.4 - 0.8)
-			bpsBase := 0.5 + 0.2*float64(i)/36.0            // Gradual improvement
-			bpsVariation := 0.08 * (0.5 - float64(i%5)/4.0) // Some oscillation
-			bps := bpsBase + bpsVariation
-
-			// TPS correlated with BPS but with different scaling (0.08 - 0.28)
-			tpsBase := bps * 0.35                                // TPS is roughly 35% of BPS
-			tpsVariation := 0.015 * (0.5 - float64((i+2)%6)/5.0) // Different oscillation pattern
-			tps := tpsBase + tpsVariation
-
-			// Add some realistic dips in performance
-			if i == 12 || i == 28 { // Simulate network issues
-				bps *= 0.65
-				tps *= 0.6
-				validatorCount -= 8 // Some validators might temporarily drop
-			}
-
-			slaPerformanceData[i] = &pages.SLAPerformanceDataPoint{
-				RollupID:       int32(2000 + i),
-				BlockHeight:    int64(75000 + i*450), // Incrementing block heights
-				Timestamp:      timestamp.Format(time.RFC3339),
-				ValidatorCount: validatorCount,
-				BPS:            bps,
-				TPS:            tps,
-				BlockStart:     int64(75000 + i*450 - 225),
-				BlockEnd:       int64(75000 + i*450 + 225),
-			}
-		}
+		con.logger.Info("No rollups available for chart", "rollupCount", len(slaRollupsData))
 	}
+
+	// Final debug of what we're passing to template
+	con.logger.Info("Final SLA performance data for template", "dataPoints", len(slaPerformanceData))
 
 	// Calculate sync progress percentage
 	syncProgressPercentage := float64(100) // Assume synced for now
+
+	// Convert rollups to pointers for template
+	recentSLARollups := make([]*db.EtlSlaRollup, len(slaRollupsData))
+	for i := range slaRollupsData {
+		recentSLARollups[i] = &slaRollupsData[i]
+	}
 
 	props := pages.DashboardProps{
 		Stats:                  stats,
 		TransactionBreakdown:   transactionBreakdown,
 		RecentBlocks:           blockPointers,
 		RecentTransactions:     transactions,
+		RecentSLARollups:       recentSLARollups,
 		SLAPerformanceData:     slaPerformanceData,
 		BlockHeights:           blockHeights,
 		SyncProgressPercentage: syncProgressPercentage,
