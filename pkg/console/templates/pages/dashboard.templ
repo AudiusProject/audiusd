@@ -42,11 +42,24 @@ type PlayEvent struct {
 	Duration  int     `json:"duration"`
 }
 
+type SLAPerformanceDataPoint struct {
+	RollupID       int32   `json:"rollupId"`
+	BlockHeight    int64   `json:"blockHeight"`
+	Timestamp      string  `json:"timestamp"`
+	ValidatorCount int32   `json:"validatorCount"`
+	BPS            float64 `json:"bps"`
+	TPS            float64 `json:"tps"`
+	BlockStart     int64   `json:"blockStart"`
+	BlockEnd       int64   `json:"blockEnd"`
+}
+
 type DashboardProps struct {
 	Stats                  *DashboardStats
 	TransactionBreakdown   []*TransactionTypeBreakdown
 	RecentBlocks           []*db.EtlBlock
 	RecentTransactions     []*db.EtlTransaction
+	RecentSLARollups       []*db.EtlSlaRollup
+	SLAPerformanceData     []*SLAPerformanceDataPoint
 	BlockHeights           map[string]int64
 	SyncProgressPercentage float64
 }
@@ -299,7 +312,60 @@ templ Dashboard(props DashboardProps) {
 					</div>
 				</div>
 			</div>
-			<!-- Section 4: Recent Blocks & Transactions -->
+			<!-- Section 4: SLA Performance Chart -->
+			<div class="bg-white dark:bg-gray-900 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+				<div class="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+					<div class="flex items-center justify-between">
+						<div class="flex items-center space-x-3">
+							<div class="w-3 h-3 bg-purple-500 rounded-full animate-pulse"></div>
+							<h3 class="text-lg font-bold text-gray-900 dark:text-gray-100 tracking-wide">Network Waveform</h3>
+						</div>
+						<a href="/rollups" class="text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 hover:underline text-sm">View rollups →</a>
+					</div>
+					<div class="mt-3 flex items-center justify-between">
+						<div class="flex items-center space-x-6 text-sm text-gray-600 dark:text-gray-400">
+							<div class="flex items-center space-x-2">
+								<div class="w-3 h-3 bg-purple-500 rounded"></div>
+								<span class="font-medium">Validators</span>
+							</div>
+							<div class="flex items-center space-x-2">
+								<div class="w-3 h-3 bg-green-500 rounded"></div>
+								<span class="font-medium">BPS</span>
+							</div>
+							<div class="flex items-center space-x-2">
+								<div class="w-3 h-3 bg-pink-500 rounded"></div>
+								<span class="font-medium">TPS</span>
+							</div>
+						</div>
+						<div
+							class="flex items-center space-x-4 text-xs text-gray-500 dark:text-gray-400"
+							x-data="chartMeta()"
+							x-init="init()"
+							data-chart-data={ templ.JSONString(props.SLAPerformanceData) }
+						>
+							<div class="text-right">
+								<div class="font-medium" x-text="blockRange"></div>
+								<div class="text-gray-400" x-text="timeRange"></div>
+							</div>
+							<div class="w-px h-8 bg-gray-300 dark:bg-gray-600"></div>
+							<div class="flex items-center space-x-1">
+								<div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+								<span class="font-medium">LIVE</span>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div class="relative h-96 bg-gray-50 dark:bg-gray-900 p-4">
+					<canvas
+						id="slaPerformanceChart"
+						class="w-full h-full"
+						x-data="slaChart()"
+						x-init="initChart()"
+						data-chart-data={ templ.JSONString(props.SLAPerformanceData) }
+					></canvas>
+				</div>
+			</div>
+			<!-- Section 5: Recent Blocks & Transactions -->
 			<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 				<!-- Latest Blocks -->
 				<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6">
@@ -383,6 +449,7 @@ templ Dashboard(props DashboardProps) {
 		@SSEEventScript()
 		@LivePlayMapScript()
 		@BlockEventsScript()
+		@SLAChartScript()
 	}
 }
 
@@ -952,6 +1019,479 @@ templ BlockEventsScript() {
 				window.Alpine.store('cleanup').destroy();
 			}
 		});
+	</script>
+}
+
+// SLA Chart Alpine.js Component with Chart.js
+templ SLAChartScript() {
+	<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+	<script>
+		function chartMeta() {
+			return {
+				blockRange: '',
+				timeRange: '',
+				
+				init() {
+					const dataStr = this.$el.getAttribute('data-chart-data');
+					
+					try {
+						const chartData = JSON.parse(dataStr);
+						if (chartData && chartData.length > 0) {
+							// Sort by block height
+							chartData.sort((a, b) => a.blockHeight - b.blockHeight);
+							
+							const firstBlock = chartData[0].blockHeight;
+							const lastBlock = chartData[chartData.length - 1].blockHeight;
+							this.blockRange = `Blocks ${firstBlock.toLocaleString()} - ${lastBlock.toLocaleString()}`;
+							
+							// Calculate time range
+							const firstTime = new Date(chartData[0].timestamp);
+							const lastTime = new Date(chartData[chartData.length - 1].timestamp);
+							const now = new Date();
+							
+							// Time since last data point
+							const timeSinceMs = now - lastTime;
+							const timeSince = this.formatTimeSince(timeSinceMs);
+							
+							// Duration of the data range
+							const durationMs = lastTime - firstTime;
+							const duration = this.formatDuration(durationMs);
+							
+							this.timeRange = `${duration} span • ${timeSince} ago`;
+						} else {
+							this.blockRange = 'No data available';
+							this.timeRange = '';
+						}
+					} catch (e) {
+						console.error('Failed to parse chart meta data:', e);
+						this.blockRange = 'Error loading data';
+						this.timeRange = '';
+					}
+				},
+				
+				formatTimeSince(ms) {
+					const seconds = Math.floor(ms / 1000);
+					const minutes = Math.floor(seconds / 60);
+					const hours = Math.floor(minutes / 60);
+					const days = Math.floor(hours / 24);
+					
+					if (days > 0) return `${days} day${days > 1 ? 's' : ''}`;
+					if (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''}`;
+					if (minutes > 0) return `${minutes} min`;
+					return `${seconds} sec`;
+				},
+				
+				formatDuration(ms) {
+					const seconds = Math.floor(ms / 1000);
+					const minutes = Math.floor(seconds / 60);
+					const hours = Math.floor(minutes / 60);
+					const days = Math.floor(hours / 24);
+					
+					if (days > 0) return `${days} day${days > 1 ? 's' : ''}`;
+					if (hours > 0) return `${hours}h`;
+					if (minutes > 0) return `${minutes}m`;
+					return `${seconds}s`;
+				}
+			}
+		}
+
+		function slaChart() {
+			return {
+				chart: null,
+				chartData: [],
+				
+				initChart() {
+					// Get data from the data attribute
+					const canvas = document.getElementById('slaPerformanceChart');
+					const dataStr = canvas.getAttribute('data-chart-data');
+					
+					try {
+						this.chartData = JSON.parse(dataStr);
+					} catch (e) {
+						console.error('Failed to parse chart data:', e);
+						this.chartData = [];
+						return;
+					}
+
+					// If no data, don't create chart
+					if (!this.chartData || this.chartData.length === 0) {
+						canvas.style.display = 'none';
+						return;
+					}
+
+					// Sort data by block height (ascending)
+					this.chartData.sort((a, b) => a.blockHeight - b.blockHeight);
+
+					const ctx = canvas.getContext('2d');
+					const isDarkMode = document.documentElement.classList.contains('dark') || 
+					                  window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+					const colors = {
+						validators: isDarkMode ? '#a855f7' : '#7c3aed',  // Brighter purple for visibility
+						bps: isDarkMode ? '#10b981' : '#059669',        // Brighter green for visibility  
+						tps: isDarkMode ? '#f472b6' : '#db2777'         // Brighter pink for visibility
+					};
+
+					const labels = this.chartData.map(point => {
+						const date = new Date(point.timestamp);
+						return date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+					});
+
+					// Generate waveform data with many intermediate points
+					const waveformData = this.generateWaveformLines(this.chartData, labels);
+
+					this.chart = new Chart(ctx, {
+						type: 'line',
+						data: {
+							labels: waveformData.labels,
+							datasets: [
+								{
+									label: 'Validators',
+									data: waveformData.validators,
+									borderColor: colors.validators,
+									backgroundColor: colors.validators + '15',
+									borderWidth: 2,
+									fill: false,
+									tension: 0,
+									pointRadius: 0,
+									pointHoverRadius: 0,
+									yAxisID: 'y'
+								},
+								{
+									label: 'BPS',
+									data: waveformData.bps,
+									borderColor: colors.bps,
+									backgroundColor: colors.bps + '15',
+									borderWidth: 2,
+									fill: false,
+									tension: 0,
+									pointRadius: 0,
+									pointHoverRadius: 0,
+									yAxisID: 'y1'
+								},
+								{
+									label: 'TPS',
+									data: waveformData.tps,
+									borderColor: colors.tps,
+									backgroundColor: colors.tps + '15',
+									borderWidth: 2,
+									fill: false,
+									tension: 0,
+									pointRadius: 0,
+									pointHoverRadius: 0,
+									yAxisID: 'y1'
+								}
+							]
+						},
+						options: {
+							responsive: true,
+							maintainAspectRatio: false,
+							interaction: {
+								mode: 'index',
+								intersect: false,
+							},
+							elements: {
+								line: {
+									borderJoinStyle: 'round',
+									borderCapStyle: 'round',
+								}
+							},
+							animation: {
+								duration: 0, // Disable animation for more real-time audio feel
+							},
+							plugins: {
+								title: {
+									display: false
+								},
+								legend: {
+									display: true,
+									position: 'top',
+									labels: {
+										color: isDarkMode ? '#d1d5db' : '#374151',
+										usePointStyle: true,
+										font: {
+											size: 12
+										}
+									}
+								},
+								tooltip: {
+									backgroundColor: isDarkMode ? 'rgba(17, 24, 39, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+									titleColor: isDarkMode ? '#a855f7' : '#7c3aed',
+									bodyColor: isDarkMode ? '#e5e7eb' : '#374151',
+									borderColor: isDarkMode ? '#a855f7' : '#7c3aed',
+									borderWidth: 1,
+									cornerRadius: 8,
+									displayColors: true,
+									titleFont: {
+										size: 14,
+										weight: '600'
+									},
+									bodyFont: {
+										size: 12
+									},
+									padding: 12,
+									callbacks: {
+										title: (context) => {
+											// Find the nearest data point since we have many waveform points
+											const dataIndex = this.findNearestDataPoint(context[0].dataIndex);
+											const point = this.chartData[dataIndex];
+											if (!point) return '';
+											const date = new Date(point.timestamp);
+											return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+										},
+										label: (context) => {
+											const dataIndex = this.findNearestDataPoint(context.dataIndex);
+											const datasetLabel = context.dataset.label;
+											const point = this.chartData[dataIndex];
+											if (!point) return `${datasetLabel}: --`;
+											
+											if (datasetLabel === 'Validators') {
+												return `${datasetLabel}: ${point.validatorCount}`;
+											} else if (datasetLabel === 'BPS') {
+												return `${datasetLabel}: ${point.bps.toFixed(3)}`;
+											} else if (datasetLabel === 'TPS') {
+												return `${datasetLabel}: ${point.tps.toFixed(3)}`;
+											}
+											return `${datasetLabel}: ${context.parsed.y}`;
+										},
+										afterBody: (context) => {
+											const dataIndex = this.findNearestDataPoint(context[0].dataIndex);
+											const point = this.chartData[dataIndex];
+											if (!point) return [''];
+											return [
+												'',
+												`🔗 Rollup #${point.rollupId}`,
+												`📦 Block ${point.blockHeight}`,
+												`📊 Range: ${point.blockStart.toLocaleString()} - ${point.blockEnd.toLocaleString()}`,
+												'',
+												'💡 Click to view rollup details'
+											];
+										}
+									}
+								}
+							},
+							scales: {
+								x: {
+									display: true,
+									title: {
+										display: true,
+										text: 'Time',
+										color: isDarkMode ? '#9ca3af' : '#6b7280',
+										font: {
+											weight: '500',
+											size: 12
+										}
+									},
+									ticks: {
+										color: isDarkMode ? '#9ca3af' : '#6b7280',
+										maxTicksLimit: 8,
+										font: {
+											size: 11
+										},
+										// Only show major time points, not all waveform points
+										callback: function(value, index) {
+											const label = this.getLabelForValue(value);
+											// Only show every Nth label to avoid crowding
+											return index % Math.ceil(this.chart.data.labels.length / 8) === 0 ? label : '';
+										}
+									},
+									grid: {
+										color: isDarkMode ? '#374151' : '#e5e7eb',
+										lineWidth: 1,
+										borderDash: [3, 3]
+									},
+									border: {
+										color: isDarkMode ? '#4b5563' : '#d1d5db'
+									}
+								},
+								y: {
+									type: 'linear',
+									display: true,
+									position: 'left',
+									title: {
+										display: true,
+										text: 'Validators',
+										color: colors.validators,
+										font: {
+											weight: '600',
+											size: 12
+										}
+									},
+									ticks: {
+										color: colors.validators,
+										stepSize: 10,
+										font: {
+											weight: '500',
+											size: 11
+										}
+									},
+									grid: {
+										color: isDarkMode ? '#374151' : '#e5e7eb',
+										lineWidth: 1,
+										borderDash: [2, 2]
+									},
+									border: {
+										color: colors.validators
+									}
+								},
+								y1: {
+									type: 'linear',
+									display: true,
+									position: 'right',
+									title: {
+										display: true,
+										text: 'Performance (BPS/TPS)',
+										color: isDarkMode ? '#9ca3af' : '#6b7280',
+										font: {
+											weight: '600',
+											size: 12
+										}
+									},
+									ticks: {
+										color: isDarkMode ? '#9ca3af' : '#6b7280',
+										font: {
+											weight: '500',
+											size: 11
+										}
+									},
+									grid: {
+										drawOnChartArea: false,
+									},
+									border: {
+										color: isDarkMode ? '#4b5563' : '#d1d5db'
+									}
+								}
+							},
+							onClick: (event, elements) => {
+								if (elements.length > 0) {
+									const waveformIndex = elements[0].index;
+									const dataIndex = this.findNearestDataPoint(waveformIndex);
+									const point = this.chartData[dataIndex];
+									if (point && point.rollupId) {
+										// Navigate to rollup details page
+										window.location.href = `/validators/uptime/${point.rollupId}`;
+									}
+								}
+							},
+							onHover: (event, elements) => {
+								const canvas = event.native.target;
+								canvas.style.cursor = elements.length > 0 ? 'pointer' : 'default';
+							}
+						}
+					});
+				},
+
+				generateWaveformLines(data, originalLabels) {
+					if (!data || data.length === 0) return { labels: [], validators: [], bps: [], tps: [] };
+
+					const waveformLabels = [];
+					const validators = [];
+					const bps = [];
+					const tps = [];
+					
+					// Number of intermediate points between each data point for waveform effect
+					const pointsPerSegment = 20;
+					
+					for (let i = 0; i < data.length; i++) {
+						const point = data[i];
+						const nextPoint = data[i + 1];
+						const prevPoint = data[i - 1];
+						
+						// Calculate rate of change (delta) for "musical" variation
+						const validatorDelta = prevPoint ? Math.abs(point.validatorCount - prevPoint.validatorCount) : 0;
+						const bpsDelta = prevPoint ? Math.abs(point.bps - prevPoint.bps) : 0;
+						const tpsDelta = prevPoint ? Math.abs(point.tps - prevPoint.tps) : 0;
+						
+						// Base amplitude from values + chaos from rate of change
+						const validatorAmplitude = (point.validatorCount / 120) * 8 + validatorDelta * 0.8;
+						const bpsAmplitude = (point.bps / 3) * 0.5 + bpsDelta * 2;
+						const tpsAmplitude = (point.tps / 15) * 3 + tpsDelta * 1.5;
+						
+						// Add some "energy" based on overall network activity
+						const networkEnergy = (point.validatorCount + point.bps * 10 + point.tps * 5) / 150;
+						
+						for (let j = 0; j < pointsPerSegment; j++) {
+							const progress = j / pointsPerSegment;
+							const globalIndex = i * pointsPerSegment + j;
+							
+							// Interpolate between current and next point for base values
+							let baseValidator = point.validatorCount;
+							let baseBPS = point.bps;
+							let baseTPS = point.tps;
+							
+							if (nextPoint && i < data.length - 1) {
+								baseValidator = point.validatorCount + (nextPoint.validatorCount - point.validatorCount) * progress;
+								baseBPS = point.bps + (nextPoint.bps - point.bps) * progress;
+								baseTPS = point.tps + (nextPoint.tps - point.tps) * progress;
+							}
+							
+							// Create complex waveforms that respond to data changes
+							// Validators: Low frequency with harmonics when there's change
+							let validatorWave = Math.sin(globalIndex * 0.3) * validatorAmplitude;
+							if (validatorDelta > 2) {
+								// Add harmonic complexity when validators change significantly
+								validatorWave += Math.sin(globalIndex * 0.9) * (validatorDelta * 0.3);
+								validatorWave += Math.sin(globalIndex * 1.7) * (validatorDelta * 0.15);
+							}
+							
+							// BPS: Mid frequency that gets more chaotic with network activity
+							let bpsWave = Math.sin(globalIndex * 0.5 + networkEnergy) * bpsAmplitude;
+							if (bpsDelta > 0.1) {
+								// Add noise and complexity for performance changes
+								bpsWave += Math.sin(globalIndex * 1.3 + point.bps) * (bpsDelta * 0.8);
+								bpsWave += (Math.random() - 0.5) * bpsDelta * 0.4; // Some randomness
+							}
+							
+							// TPS: High frequency that spikes with activity
+							let tpsWave = Math.sin(globalIndex * 0.8 + Math.PI/2) * tpsAmplitude;
+							if (tpsDelta > 0.5) {
+								// Sharp, trebley spikes for TPS changes
+								tpsWave += Math.sin(globalIndex * 2.1) * (tpsDelta * 0.6);
+								tpsWave += Math.sin(globalIndex * 3.7) * (tpsDelta * 0.2);
+								// Add some "beats" for rhythm
+								tpsWave += Math.sin(globalIndex * 0.1) * networkEnergy * 0.5;
+							}
+							
+							// Modulate amplitude based on position in segment (like envelope)
+							const envelope = 0.7 + 0.3 * Math.sin(progress * Math.PI);
+							
+							// Add waveform oscillation to base values
+							validators.push(baseValidator + validatorWave * envelope);
+							bps.push(baseBPS + bpsWave * envelope);
+							tps.push(baseTPS + tpsWave * envelope);
+							
+							// Create interpolated time labels (only show major ones)
+							if (j === 0) {
+								waveformLabels.push(originalLabels[i] || '');
+							} else {
+								waveformLabels.push(''); // Empty for intermediate points
+							}
+						}
+					}
+					
+					return {
+						labels: waveformLabels,
+						validators,
+						bps,
+						tps
+					};
+				},
+
+				findNearestDataPoint(waveformIndex) {
+					// Since we have 20 points per original data point
+					const pointsPerSegment = 20;
+					return Math.floor(waveformIndex / pointsPerSegment);
+				},
+
+				// Alpine.js lifecycle hook
+				destroy() {
+					if (this.chart) {
+						this.chart.destroy();
+						this.chart = null;
+					}
+				}
+			}
+		}
 	</script>
 }
 
