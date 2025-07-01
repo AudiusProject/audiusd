@@ -807,20 +807,52 @@ templ BlockEventsScript() {
 				digits: [],
 				blockEventListener: null,
 				animationTimeouts: new Set(),
+				isInitialized: false,
 				
 				init(initialValue) {
-					this.displayValue = initialValue || 0;
-					this.updateDigits(this.displayValue);
+					// Only initialize if we have a valid positive block height
+					// This prevents flashing to 0 during SSE reconnection
+					if (initialValue && initialValue > 0) {
+						this.displayValue = initialValue;
+						this.updateDigits(this.displayValue);
+						this.isInitialized = true;
+					} else {
+						// Try to get initial value from DOM as fallback
+						this.tryInitFromDOM();
+					}
 					
 					// Create bound event listener for proper cleanup
 					this.blockEventListener = (event) => {
-						if (event.detail && event.detail.height && event.detail.height !== this.displayValue) {
-							this.animateToNewValue(event.detail.height);
+						if (event.detail && event.detail.height && event.detail.height > 0) {
+							// If not initialized yet, use this as initial value
+							if (!this.isInitialized) {
+								this.displayValue = event.detail.height;
+								this.updateDigits(this.displayValue);
+								this.isInitialized = true;
+							} else if (event.detail.height !== this.displayValue) {
+								this.animateToNewValue(event.detail.height);
+							}
 						}
 					};
 					
 					// Listen directly to block events instead of watching parent data
 					document.addEventListener('block', this.blockEventListener);
+				},
+				
+				tryInitFromDOM() {
+					// Try to get block height from the stats header as fallback
+					const statsHeader = document.querySelector('#stats-header');
+					if (statsHeader) {
+						const blockHeightEl = statsHeader.querySelector('.text-3xl');
+						if (blockHeightEl && blockHeightEl.textContent) {
+							const height = parseInt(blockHeightEl.textContent.replace(/,/g, ''));
+							if (height > 0) {
+								this.displayValue = height;
+								this.updateDigits(this.displayValue);
+								this.isInitialized = true;
+							}
+						}
+					}
 				},
 				
 				updateDigits(value) {
@@ -856,7 +888,7 @@ templ BlockEventsScript() {
 				},
 				
 				animateToNewValue(newValue) {
-					if (newValue === this.displayValue) return;
+					if (newValue === this.displayValue || newValue <= 0) return;
 					
 					this.updateDigits(newValue);
 					

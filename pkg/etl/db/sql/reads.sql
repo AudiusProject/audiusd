@@ -151,11 +151,11 @@ limit $1 offset $2;
 
 -- name: GetValidatorByAddress :one
 select * from etl_validators
-where address = $1 or comet_address = $1;
+where lower(address) = lower($1) or lower(comet_address) = lower($1);
 
 -- name: GetSlaNodeReportsByAddress :many
 select * from etl_sla_node_reports
-where address = $1
+where lower(address) = lower($1)
 order by block_height desc
 limit $2;
 
@@ -230,7 +230,7 @@ select t.*,
        end as relation
 from etl_transactions t
 left join etl_manage_entities me on t.tx_hash = me.tx_hash and t.tx_type = 'manage_entity'
-where t.address = $1
+where lower(t.address) = lower($1)
   and ($2 = '' or 
        case 
          when t.tx_type = 'manage_entity' then coalesce(me.action || me.entity_type, t.tx_type) = $2
@@ -245,7 +245,7 @@ limit $5 offset $6;
 select count(*)
 from etl_transactions t
 left join etl_manage_entities me on t.tx_hash = me.tx_hash and t.tx_type = 'manage_entity'
-where t.address = $1
+where lower(t.address) = lower($1)
   and ($2 = '' or 
        case 
          when t.tx_type = 'manage_entity' then coalesce(me.action || me.entity_type, t.tx_type) = $2
@@ -262,7 +262,7 @@ select distinct
        end as relation_type
 from etl_transactions t
 left join etl_manage_entities me on t.tx_hash = me.tx_hash and t.tx_type = 'manage_entity'
-where t.address = $1
+where lower(t.address) = lower($1)
 order by relation_type;
 
 -- Dashboard materialized view queries

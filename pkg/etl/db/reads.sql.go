@@ -535,12 +535,12 @@ select distinct
        end as relation_type
 from etl_transactions t
 left join etl_manage_entities me on t.tx_hash = me.tx_hash and t.tx_type = 'manage_entity'
-where t.address = $1
+where lower(t.address) = lower($1)
 order by relation_type
 `
 
-func (q *Queries) GetRelationTypesByAddress(ctx context.Context, address pgtype.Text) ([]interface{}, error) {
-	rows, err := q.db.Query(ctx, getRelationTypesByAddress, address)
+func (q *Queries) GetRelationTypesByAddress(ctx context.Context, lower string) ([]interface{}, error) {
+	rows, err := q.db.Query(ctx, getRelationTypesByAddress, lower)
 	if err != nil {
 		return nil, err
 	}
@@ -561,18 +561,18 @@ func (q *Queries) GetRelationTypesByAddress(ctx context.Context, address pgtype.
 
 const getSlaNodeReportsByAddress = `-- name: GetSlaNodeReportsByAddress :many
 select id, sla_rollup_id, address, num_blocks_proposed, challenges_received, challenges_failed, block_height, tx_hash, created_at from etl_sla_node_reports
-where address = $1
+where lower(address) = lower($1)
 order by block_height desc
 limit $2
 `
 
 type GetSlaNodeReportsByAddressParams struct {
-	Address string `json:"address"`
-	Limit   int32  `json:"limit"`
+	Lower string `json:"lower"`
+	Limit int32  `json:"limit"`
 }
 
 func (q *Queries) GetSlaNodeReportsByAddress(ctx context.Context, arg GetSlaNodeReportsByAddressParams) ([]EtlSlaNodeReport, error) {
-	rows, err := q.db.Query(ctx, getSlaNodeReportsByAddress, arg.Address, arg.Limit)
+	rows, err := q.db.Query(ctx, getSlaNodeReportsByAddress, arg.Lower, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
@@ -977,7 +977,7 @@ const getTransactionCountByAddress = `-- name: GetTransactionCountByAddress :one
 select count(*)
 from etl_transactions t
 left join etl_manage_entities me on t.tx_hash = me.tx_hash and t.tx_type = 'manage_entity'
-where t.address = $1
+where lower(t.address) = lower($1)
   and ($2 = '' or 
        case 
          when t.tx_type = 'manage_entity' then coalesce(me.action || me.entity_type, t.tx_type) = $2
@@ -988,7 +988,7 @@ where t.address = $1
 `
 
 type GetTransactionCountByAddressParams struct {
-	Address pgtype.Text      `json:"address"`
+	Lower   string           `json:"lower"`
 	Column2 interface{}      `json:"column_2"`
 	Column3 pgtype.Timestamp `json:"column_3"`
 	Column4 pgtype.Timestamp `json:"column_4"`
@@ -996,7 +996,7 @@ type GetTransactionCountByAddressParams struct {
 
 func (q *Queries) GetTransactionCountByAddress(ctx context.Context, arg GetTransactionCountByAddressParams) (int64, error) {
 	row := q.db.QueryRow(ctx, getTransactionCountByAddress,
-		arg.Address,
+		arg.Lower,
 		arg.Column2,
 		arg.Column3,
 		arg.Column4,
@@ -1014,7 +1014,7 @@ select t.id, t.tx_hash, t.block_height, t.tx_index, t.tx_type, t.address, t.crea
        end as relation
 from etl_transactions t
 left join etl_manage_entities me on t.tx_hash = me.tx_hash and t.tx_type = 'manage_entity'
-where t.address = $1
+where lower(t.address) = lower($1)
   and ($2 = '' or 
        case 
          when t.tx_type = 'manage_entity' then coalesce(me.action || me.entity_type, t.tx_type) = $2
@@ -1027,7 +1027,7 @@ limit $5 offset $6
 `
 
 type GetTransactionsByAddressParams struct {
-	Address pgtype.Text      `json:"address"`
+	Lower   string           `json:"lower"`
 	Column2 interface{}      `json:"column_2"`
 	Column3 pgtype.Timestamp `json:"column_3"`
 	Column4 pgtype.Timestamp `json:"column_4"`
@@ -1049,7 +1049,7 @@ type GetTransactionsByAddressRow struct {
 // Account transaction queries
 func (q *Queries) GetTransactionsByAddress(ctx context.Context, arg GetTransactionsByAddressParams) ([]GetTransactionsByAddressRow, error) {
 	rows, err := q.db.Query(ctx, getTransactionsByAddress,
-		arg.Address,
+		arg.Lower,
 		arg.Column2,
 		arg.Column3,
 		arg.Column4,
@@ -1165,11 +1165,11 @@ func (q *Queries) GetTransactionsByPage(ctx context.Context, arg GetTransactions
 
 const getValidatorByAddress = `-- name: GetValidatorByAddress :one
 select id, address, endpoint, comet_address, node_type, spid, voting_power, status, registered_at, deregistered_at, created_at, updated_at from etl_validators
-where address = $1 or comet_address = $1
+where lower(address) = lower($1) or lower(comet_address) = lower($1)
 `
 
-func (q *Queries) GetValidatorByAddress(ctx context.Context, address string) (EtlValidator, error) {
-	row := q.db.QueryRow(ctx, getValidatorByAddress, address)
+func (q *Queries) GetValidatorByAddress(ctx context.Context, lower string) (EtlValidator, error) {
+	row := q.db.QueryRow(ctx, getValidatorByAddress, lower)
 	var i EtlValidator
 	err := row.Scan(
 		&i.ID,

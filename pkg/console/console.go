@@ -523,8 +523,8 @@ func (con *Console) Validators(c echo.Context) error {
 
 				// Get uptime data for each validator
 				reports, err := con.etl.GetDB().GetSlaNodeReportsByAddress(ctx, db.GetSlaNodeReportsByAddressParams{
-					Address: validatorsData[i].CometAddress,
-					Limit:   5, // Get last 5 SLA reports
+					Lower: validatorsData[i].CometAddress,
+					Limit: 5, // Get last 5 SLA reports
 				})
 				if err != nil {
 					con.logger.Warn("Failed to get SLA reports", "address", validatorsData[i].CometAddress, "error", err)
@@ -651,8 +651,8 @@ func (con *Console) Validator(c echo.Context) error {
 
 	// Get SLA rollup reports for this validator
 	reports, err := con.etl.GetDB().GetSlaNodeReportsByAddress(ctx, db.GetSlaNodeReportsByAddressParams{
-		Address: validator.CometAddress,
-		Limit:   10, // Get last 10 reports
+		Lower: validator.CometAddress,
+		Limit: 10, // Get last 10 reports
 	})
 	if err != nil {
 		con.logger.Warn("Failed to get SLA reports for validator", "address", address, "error", err)
@@ -1240,7 +1240,7 @@ func (con *Console) Account(c echo.Context) error {
 
 	// Get transactions for this address
 	transactionRows, err := etlDB.GetTransactionsByAddress(ctx, db.GetTransactionsByAddressParams{
-		Address: pgtype.Text{String: address, Valid: true},
+		Lower:   address,
 		Column2: relationFilter, // empty string means all relations
 		Column3: startTimestamp,
 		Column4: endTimestamp,
@@ -1254,7 +1254,7 @@ func (con *Console) Account(c echo.Context) error {
 
 	// Get total count for pagination
 	totalCount, err := etlDB.GetTransactionCountByAddress(ctx, db.GetTransactionCountByAddressParams{
-		Address: pgtype.Text{String: address, Valid: true},
+		Lower:   address,
 		Column2: relationFilter,
 		Column3: startTimestamp,
 		Column4: endTimestamp,
@@ -1265,7 +1265,7 @@ func (con *Console) Account(c echo.Context) error {
 	}
 
 	// Get available relation types for filter dropdown
-	relationTypesRaw, err := etlDB.GetRelationTypesByAddress(ctx, pgtype.Text{String: address, Valid: true})
+	relationTypesRaw, err := etlDB.GetRelationTypesByAddress(ctx, address)
 	if err != nil {
 		con.logger.Error("Failed to get relation types for address", "address", address, "error", err)
 		// Don't fail the request, just log the error
