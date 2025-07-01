@@ -1,4 +1,8 @@
--- Drop triggers first
+-- Drop materialized views first
+drop materialized view if exists mv_dashboard_transaction_types;
+drop materialized view if exists mv_dashboard_transaction_stats;
+
+-- Drop triggers
 drop trigger if exists trigger_notify_new_plays on etl_plays;
 drop trigger if exists trigger_notify_new_block on etl_blocks;
 

@@ -292,6 +292,48 @@ func (q *Queries) GetChallengeStatisticsForBlockRange(ctx context.Context, arg G
 	return items, nil
 }
 
+const getDashboardTransactionStats = `-- name: GetDashboardTransactionStats :one
+select transactions_24h, transactions_previous_24h, transactions_7d, transactions_30d, total_transactions from mv_dashboard_transaction_stats limit 1
+`
+
+// Dashboard materialized view queries
+func (q *Queries) GetDashboardTransactionStats(ctx context.Context) (MvDashboardTransactionStat, error) {
+	row := q.db.QueryRow(ctx, getDashboardTransactionStats)
+	var i MvDashboardTransactionStat
+	err := row.Scan(
+		&i.Transactions24h,
+		&i.TransactionsPrevious24h,
+		&i.Transactions7d,
+		&i.Transactions30d,
+		&i.TotalTransactions,
+	)
+	return i, err
+}
+
+const getDashboardTransactionTypes = `-- name: GetDashboardTransactionTypes :many
+select tx_type, transaction_count from mv_dashboard_transaction_types
+`
+
+func (q *Queries) GetDashboardTransactionTypes(ctx context.Context) ([]MvDashboardTransactionType, error) {
+	rows, err := q.db.Query(ctx, getDashboardTransactionTypes)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []MvDashboardTransactionType
+	for rows.Next() {
+		var i MvDashboardTransactionType
+		if err := rows.Scan(&i.TxType, &i.TransactionCount); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getLatestIndexedBlock = `-- name: GetLatestIndexedBlock :one
 SELECT block_height
 FROM etl_blocks

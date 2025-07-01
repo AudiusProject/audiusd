@@ -264,3 +264,10 @@ from etl_transactions t
 left join etl_manage_entities me on t.tx_hash = me.tx_hash and t.tx_type = 'manage_entity'
 where t.address = $1
 order by relation_type;
+
+-- Dashboard materialized view queries
+-- name: GetDashboardTransactionStats :one
+select * from mv_dashboard_transaction_stats limit 1;
+
+-- name: GetDashboardTransactionTypes :many
+select * from mv_dashboard_transaction_types;

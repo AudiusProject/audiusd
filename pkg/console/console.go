@@ -231,17 +231,25 @@ func (con *Console) Hello(c echo.Context) error {
 }
 
 func (con *Console) Dashboard(c echo.Context) error {
-	// TODO: Implement proper dashboard stats calculation using database queries
+	ctx := c.Request().Context()
 
-	// Get total transactions count
-	totalTransactions, err := con.etl.GetDB().GetTotalTransactions(c.Request().Context())
+	// Get dashboard transaction stats from materialized view
+	txStats, err := con.etl.GetDB().GetDashboardTransactionStats(ctx)
 	if err != nil {
-		con.logger.Warn("Failed to get total transactions", "error", err)
-		totalTransactions = 0
+		con.logger.Warn("Failed to get dashboard transaction stats", "error", err)
+		// Use fallback empty stats
+		txStats = db.MvDashboardTransactionStat{}
+	}
+
+	// Get transaction type breakdown from materialized view
+	txTypes, err2 := con.etl.GetDB().GetDashboardTransactionTypes(ctx)
+	if err2 != nil {
+		con.logger.Warn("Failed to get dashboard transaction types", "error", err2)
+		txTypes = []db.MvDashboardTransactionType{}
 	}
 
 	// Get latest indexed block
-	latestBlockHeight, err := con.etl.GetDB().GetLatestIndexedBlock(c.Request().Context())
+	latestBlockHeight, err := con.etl.GetDB().GetLatestIndexedBlock(ctx)
 	if err != nil {
 		con.logger.Warn("Failed to get latest block height", "error", err)
 		latestBlockHeight = 0
@@ -250,7 +258,7 @@ func (con *Console) Dashboard(c echo.Context) error {
 	// Get latest SLA rollup for BPS/TPS data
 	var bps, tps float64 = 0, 0
 	var avgBlockTime float32 = 0
-	latestSlaRollup, err := con.etl.GetDB().GetLatestSlaRollup(c.Request().Context())
+	latestSlaRollup, err := con.etl.GetDB().GetLatestSlaRollup(ctx)
 	if err != nil {
 		con.logger.Debug("Failed to get latest SLA rollup", "error", err)
 		// Fall back to default values
@@ -269,14 +277,14 @@ func (con *Console) Dashboard(c echo.Context) error {
 	}
 
 	// Get some recent transactions for the dashboard
-	transactions, blockHeights, err := con.getTransactionsWithBlockHeights(c.Request().Context(), 10, 0)
+	transactions, blockHeights, err := con.getTransactionsWithBlockHeights(ctx, 10, 0)
 	if err != nil {
 		con.logger.Warn("Failed to get transactions", "error", err)
 		transactions = []*db.EtlTransaction{}
 		blockHeights = make(map[string]int64)
 	}
 
-	blocks, err := con.etl.GetDB().GetBlocksByPage(c.Request().Context(), db.GetBlocksByPageParams{
+	blocks, err := con.etl.GetDB().GetBlocksByPage(ctx, db.GetBlocksByPageParams{
 		Limit:  10,
 		Offset: 0,
 	})
@@ -291,19 +299,19 @@ func (con *Console) Dashboard(c echo.Context) error {
 	}
 
 	// Get active validator count
-	validatorCount, err := con.etl.GetDB().GetActiveValidatorCount(c.Request().Context())
+	validatorCount, err := con.etl.GetDB().GetActiveValidatorCount(ctx)
 	if err != nil {
 		con.logger.Warn("Failed to get validator count", "error", err)
 		validatorCount = 0
 	}
 
-	// TODO: Implement these properly with database queries
+	// Build stats using materialized view data
 	stats := &pages.DashboardStats{
 		CurrentBlockHeight:           latestBlockHeight,
 		ChainID:                      con.etl.ChainID,
-		BPS:                          bps, // Use calculated BPS from latest SLA rollup
-		TPS:                          tps, // Use calculated TPS from latest SLA rollup
-		TotalTransactions:            int64(totalTransactions),
+		BPS:                          bps,
+		TPS:                          tps,
+		TotalTransactions:            txStats.TotalTransactions,
 		ValidatorCount:               validatorCount,
 		LatestBlock:                  nil,   // TODO: Implement
 		RecentProposers:              nil,   // TODO: Implement
@@ -311,16 +319,27 @@ func (con *Console) Dashboard(c echo.Context) error {
 		LatestIndexedHeight:          latestBlockHeight,
 		LatestChainHeight:            latestBlockHeight,
 		BlockDelta:                   0,
-		TotalTransactions24h:         0,            // TODO: Implement time-based queries
-		TotalTransactionsPrevious24h: 0,            // TODO: Implement time-based queries
-		TotalTransactions7d:          0,            // TODO: Implement time-based queries
-		TotalTransactions30d:         0,            // TODO: Implement time-based queries
-		AvgBlockTime:                 avgBlockTime, // Use calculated block time from BPS
+		TotalTransactions24h:         txStats.Transactions24h,
+		TotalTransactionsPrevious24h: txStats.TransactionsPrevious24h,
+		TotalTransactions7d:          txStats.Transactions7d,
+		TotalTransactions30d:         txStats.Transactions30d,
+		AvgBlockTime:                 avgBlockTime,
 	}
 
-	// TODO: Implement transaction breakdown calculation
-	transactionBreakdown := []*pages.TransactionTypeBreakdown{
-		{Type: "ManageEntity", Count: int64(totalTransactions), Color: "bg-blue-500"},
+	// Convert materialized view transaction types to template format
+	transactionBreakdown := make([]*pages.TransactionTypeBreakdown, len(txTypes))
+	colors := []string{"bg-blue-500", "bg-green-500", "bg-purple-500", "bg-yellow-500", "bg-red-500", "bg-indigo-500", "bg-pink-500"}
+	for i, txType := range txTypes {
+		color := colors[i%len(colors)]
+		transactionBreakdown[i] = &pages.TransactionTypeBreakdown{
+			Type:  txType.TxType,
+			Count: txType.TransactionCount,
+			Color: color,
+		}
+		// only show up to 5 transaction types
+		if i == 5 {
+			break
+		}
 	}
 
 	// Calculate sync progress percentage
@@ -338,7 +357,6 @@ func (con *Console) Dashboard(c echo.Context) error {
 	p := pages.Dashboard(props)
 
 	// Use context with environment
-	ctx := c.Request().Context()
 	return p.Render(ctx, c.Response().Writer)
 }
 
@@ -1277,16 +1295,16 @@ func (con *Console) TPSFragment(c echo.Context) error {
 		tps = latestSlaRollup.Tps
 	}
 
-	// Get total transactions for 30d calculation
-	totalTransactions, err := con.etl.GetDB().GetTotalTransactions(ctx)
+	// Get dashboard transaction stats from materialized view
+	txStats, err := con.etl.GetDB().GetDashboardTransactionStats(ctx)
 	if err != nil {
-		con.logger.Warn("Failed to get total transactions", "error", err)
-		totalTransactions = 0
+		con.logger.Warn("Failed to get dashboard transaction stats", "error", err)
+		txStats = db.MvDashboardTransactionStat{}
 	}
 
 	stats := &pages.DashboardStats{
 		TPS:                  tps,
-		TotalTransactions30d: int64(totalTransactions), // Using total as approximation for 30d
+		TotalTransactions30d: txStats.Transactions30d,
 	}
 
 	// Render the TPS fragment template
@@ -1297,19 +1315,17 @@ func (con *Console) TPSFragment(c echo.Context) error {
 func (con *Console) TotalTransactionsFragment(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	// Get total transactions count
-	totalTransactions, err := con.etl.GetDB().GetTotalTransactions(ctx)
+	// Get dashboard transaction stats from materialized view
+	txStats, err := con.etl.GetDB().GetDashboardTransactionStats(ctx)
 	if err != nil {
-		con.logger.Warn("Failed to get total transactions", "error", err)
-		totalTransactions = 0
+		con.logger.Warn("Failed to get dashboard transaction stats", "error", err)
+		txStats = db.MvDashboardTransactionStat{}
 	}
 
-	// TODO: Implement proper 24h transaction queries for percentage change calculation
-	// For now, we'll use placeholder values
 	stats := &pages.DashboardStats{
-		TotalTransactions:            int64(totalTransactions),
-		TotalTransactions24h:         0, // TODO: Implement time-based queries
-		TotalTransactionsPrevious24h: 0, // TODO: Implement time-based queries
+		TotalTransactions:            txStats.TotalTransactions,
+		TotalTransactions24h:         txStats.Transactions24h,
+		TotalTransactionsPrevious24h: txStats.TransactionsPrevious24h,
 	}
 
 	// Render the total transactions fragment template

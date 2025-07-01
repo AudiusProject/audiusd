@@ -198,3 +198,53 @@ create trigger trigger_notify_new_plays
   after insert on etl_plays
   for each row
   execute function notify_new_plays();
+
+-- Materialized views for dashboard stats
+-- These use the latest indexed block timestamp as "now" so syncing nodes have updating data
+
+-- Transaction time-based statistics
+create materialized view mv_dashboard_transaction_stats as
+with latest_block_time as (
+  select block_time from etl_blocks order by block_height desc limit 1
+),
+time_periods as (
+  select 
+    lbt.block_time as now_time,
+    lbt.block_time - interval '24 hours' as h24_ago,
+    lbt.block_time - interval '48 hours' as h48_ago,
+    lbt.block_time - interval '7 days' as d7_ago,
+    lbt.block_time - interval '30 days' as d30_ago
+  from latest_block_time lbt
+)
+select
+  -- Current 24h count
+  count(*) filter (where t.created_at >= tp.h24_ago) as transactions_24h,
+  -- Previous 24h count (for percentage change calculation)
+  count(*) filter (where t.created_at >= tp.h48_ago and t.created_at < tp.h24_ago) as transactions_previous_24h,
+  -- 7 day count
+  count(*) filter (where t.created_at >= tp.d7_ago) as transactions_7d,
+  -- 30 day count  
+  count(*) filter (where t.created_at >= tp.d30_ago) as transactions_30d,
+  -- Total transactions
+  count(*) as total_transactions
+from time_periods tp
+cross join etl_transactions t
+where t.created_at <= tp.now_time;
+
+-- Transaction type breakdown
+create materialized view mv_dashboard_transaction_types as
+with latest_block_time as (
+  select block_time from etl_blocks order by block_height desc limit 1
+)
+select 
+  t.tx_type,
+  count(*) as transaction_count
+from etl_transactions t
+cross join latest_block_time lbt
+where t.created_at <= lbt.block_time
+group by t.tx_type
+order by transaction_count desc;
+
+-- Indexes for better performance
+create index on mv_dashboard_transaction_stats using btree (transactions_24h);
+create index on mv_dashboard_transaction_types using btree (tx_type, transaction_count);

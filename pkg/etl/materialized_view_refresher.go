@@ -2,6 +2,7 @@ package etl
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/AudiusProject/audiusd/pkg/common"
@@ -62,4 +63,60 @@ func (r *MaterializedViewRefresher) Stop() {
 // refreshViews calls the database function to refresh all dashboard materialized views
 // It attempts to refresh independent views in parallel for better performance
 func (r *MaterializedViewRefresher) refreshViews(ctx context.Context) {
+	start := time.Now()
+
+	// List of materialized views to refresh
+	views := []string{
+		"mv_dashboard_transaction_stats",
+		"mv_dashboard_transaction_types",
+	}
+
+	// Refresh views in parallel for better performance
+	type result struct {
+		view     string
+		err      error
+		duration time.Duration
+	}
+
+	results := make(chan result, len(views))
+
+	for _, view := range views {
+		go func(viewName string) {
+			viewStart := time.Now()
+			_, err := r.db.Exec(ctx, "REFRESH MATERIALIZED VIEW "+viewName)
+			results <- result{
+				view:     viewName,
+				err:      err,
+				duration: time.Since(viewStart),
+			}
+		}(view)
+	}
+
+	// Collect results
+	var errors []string
+	for i := 0; i < len(views); i++ {
+		res := <-results
+		if res.err != nil {
+			r.logger.Error("Failed to refresh materialized view",
+				"view", res.view,
+				"error", res.err,
+				"duration", res.duration)
+			errors = append(errors, fmt.Sprintf("%s: %v", res.view, res.err))
+		} else {
+			r.logger.Debug("Refreshed materialized view",
+				"view", res.view,
+				"duration", res.duration)
+		}
+	}
+
+	totalDuration := time.Since(start)
+	if len(errors) > 0 {
+		r.logger.Warn("Some materialized views failed to refresh",
+			"errors", len(errors),
+			"total_duration", totalDuration)
+	} else {
+		r.logger.Info("Successfully refreshed all materialized views",
+			"views", len(views),
+			"total_duration", totalDuration)
+	}
 }

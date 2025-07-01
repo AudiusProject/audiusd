@@ -201,3 +201,16 @@ type EtlValidatorRegistration struct {
 	BlockHeight  int64  `json:"block_height"`
 	TxHash       string `json:"tx_hash"`
 }
+
+type MvDashboardTransactionStat struct {
+	Transactions24h         int64 `json:"transactions_24h"`
+	TransactionsPrevious24h int64 `json:"transactions_previous_24h"`
+	Transactions7d          int64 `json:"transactions_7d"`
+	Transactions30d         int64 `json:"transactions_30d"`
+	TotalTransactions       int64 `json:"total_transactions"`
+}
+
+type MvDashboardTransactionType struct {
+	TxType           string `json:"tx_type"`
+	TransactionCount int64  `json:"transaction_count"`
+}

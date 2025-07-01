@@ -823,11 +823,20 @@
   .bg-green-500 {
     background-color: var(--color-green-500);
   }
+  .bg-indigo-500 {
+    background-color: var(--color-indigo-500);
+  }
   .bg-orange-100 {
     background-color: var(--color-orange-100);
   }
+  .bg-pink-500 {
+    background-color: var(--color-pink-500);
+  }
   .bg-purple-100 {
     background-color: var(--color-purple-100);
+  }
+  .bg-purple-500 {
+    background-color: var(--color-purple-500);
   }
   .bg-purple-600 {
     background-color: var(--color-purple-600);
