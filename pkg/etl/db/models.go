@@ -117,6 +117,8 @@ type EtlSlaRollup struct {
 	BlockHeight    int64            `json:"block_height"`
 	ValidatorCount int32            `json:"validator_count"`
 	BlockQuota     int32            `json:"block_quota"`
+	Bps            float64          `json:"bps"`
+	Tps            float64          `json:"tps"`
 	TxHash         string           `json:"tx_hash"`
 	CreatedAt      pgtype.Timestamp `json:"created_at"`
 }

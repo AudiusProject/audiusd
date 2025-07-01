@@ -307,6 +307,30 @@ func (q *Queries) GetLatestIndexedBlock(ctx context.Context) (int64, error) {
 	return block_height, err
 }
 
+const getLatestSlaRollup = `-- name: GetLatestSlaRollup :one
+select id, block_start, block_end, block_height, validator_count, block_quota, bps, tps, tx_hash, created_at from etl_sla_rollups
+order by block_height desc, id desc
+limit 1
+`
+
+func (q *Queries) GetLatestSlaRollup(ctx context.Context) (EtlSlaRollup, error) {
+	row := q.db.QueryRow(ctx, getLatestSlaRollup)
+	var i EtlSlaRollup
+	err := row.Scan(
+		&i.ID,
+		&i.BlockStart,
+		&i.BlockEnd,
+		&i.BlockHeight,
+		&i.ValidatorCount,
+		&i.BlockQuota,
+		&i.Bps,
+		&i.Tps,
+		&i.TxHash,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const getManageEntitiesByBlockHeightCursor = `-- name: GetManageEntitiesByBlockHeightCursor :many
 select id, address, entity_type, entity_id, action, metadata, signature, signer, nonce, block_height, tx_hash, created_at from etl_manage_entities
 where block_height > $1 or (block_height = $1 and id > $2)
@@ -579,7 +603,7 @@ func (q *Queries) GetSlaNodeReportsByBlockHeightCursor(ctx context.Context, arg 
 }
 
 const getSlaRollupById = `-- name: GetSlaRollupById :one
-select id, block_start, block_end, block_height, validator_count, block_quota, tx_hash, created_at from etl_sla_rollups
+select id, block_start, block_end, block_height, validator_count, block_quota, bps, tps, tx_hash, created_at from etl_sla_rollups
 where id = $1
 `
 
@@ -593,6 +617,8 @@ func (q *Queries) GetSlaRollupById(ctx context.Context, id int32) (EtlSlaRollup,
 		&i.BlockHeight,
 		&i.ValidatorCount,
 		&i.BlockQuota,
+		&i.Bps,
+		&i.Tps,
 		&i.TxHash,
 		&i.CreatedAt,
 	)
@@ -600,7 +626,7 @@ func (q *Queries) GetSlaRollupById(ctx context.Context, id int32) (EtlSlaRollup,
 }
 
 const getSlaRollupByTxHash = `-- name: GetSlaRollupByTxHash :one
-select id, block_start, block_end, block_height, validator_count, block_quota, tx_hash, created_at from etl_sla_rollups
+select id, block_start, block_end, block_height, validator_count, block_quota, bps, tps, tx_hash, created_at from etl_sla_rollups
 where tx_hash = $1
 `
 
@@ -614,6 +640,8 @@ func (q *Queries) GetSlaRollupByTxHash(ctx context.Context, txHash string) (EtlS
 		&i.BlockHeight,
 		&i.ValidatorCount,
 		&i.BlockQuota,
+		&i.Bps,
+		&i.Tps,
 		&i.TxHash,
 		&i.CreatedAt,
 	)
@@ -621,7 +649,7 @@ func (q *Queries) GetSlaRollupByTxHash(ctx context.Context, txHash string) (EtlS
 }
 
 const getSlaRollupsByBlockHeightCursor = `-- name: GetSlaRollupsByBlockHeightCursor :many
-select id, block_start, block_end, block_height, validator_count, block_quota, tx_hash, created_at from etl_sla_rollups
+select id, block_start, block_end, block_height, validator_count, block_quota, bps, tps, tx_hash, created_at from etl_sla_rollups
 where block_height > $1 or (block_height = $1 and id > $2)
 order by block_height, id
 limit $3
@@ -649,6 +677,8 @@ func (q *Queries) GetSlaRollupsByBlockHeightCursor(ctx context.Context, arg GetS
 			&i.BlockHeight,
 			&i.ValidatorCount,
 			&i.BlockQuota,
+			&i.Bps,
+			&i.Tps,
 			&i.TxHash,
 			&i.CreatedAt,
 		); err != nil {
@@ -663,7 +693,7 @@ func (q *Queries) GetSlaRollupsByBlockHeightCursor(ctx context.Context, arg GetS
 }
 
 const getSlaRollupsWithPagination = `-- name: GetSlaRollupsWithPagination :many
-select id, block_start, block_end, block_height, validator_count, block_quota, tx_hash, created_at from etl_sla_rollups
+select id, block_start, block_end, block_height, validator_count, block_quota, bps, tps, tx_hash, created_at from etl_sla_rollups
 order by id desc
 limit $1 offset $2
 `
@@ -689,6 +719,8 @@ func (q *Queries) GetSlaRollupsWithPagination(ctx context.Context, arg GetSlaRol
 			&i.BlockHeight,
 			&i.ValidatorCount,
 			&i.BlockQuota,
+			&i.Bps,
+			&i.Tps,
 			&i.TxHash,
 			&i.CreatedAt,
 		); err != nil {

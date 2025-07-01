@@ -182,6 +182,11 @@ limit $1 offset $2;
 select * from etl_sla_rollups
 where id = $1;
 
+-- name: GetLatestSlaRollup :one
+select * from etl_sla_rollups
+order by block_height desc, id desc
+limit 1;
+
 -- name: GetBlockTransactionCount :one
 select count(*) from etl_transactions
 where block_height = $1;

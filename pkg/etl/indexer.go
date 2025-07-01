@@ -339,6 +339,46 @@ func (etl *ETLService) indexBlocks() error {
 						blockQuota = int32(sr.BlockEnd-sr.BlockStart) / validatorCount
 					}
 
+					// Calculate BPS and TPS for this rollup period
+					blockRange := sr.BlockEnd - sr.BlockStart
+					var bps, tps float64 = 0.0, 0.0
+
+					if blockRange > 0 {
+						// Get transaction count for this block range
+						txCount := int64(0)
+						for blockHeight := sr.BlockStart; blockHeight <= sr.BlockEnd; blockHeight++ {
+							blockTxCount, err := etl.db.GetBlockTransactionCount(context.Background(), blockHeight)
+							if err != nil {
+								etl.logger.Debugf("failed to get transaction count for block %d: %v", blockHeight, err)
+								continue
+							}
+							txCount += blockTxCount
+						}
+
+						// Calculate time duration from the rollup timestamp and previous rollup
+						rollupTime := sr.Timestamp.AsTime()
+						var duration float64 = 0
+
+						// Try to get the previous rollup to calculate time difference
+						if latestRollup, err := etl.db.GetLatestSlaRollup(context.Background()); err == nil {
+							if latestRollup.CreatedAt.Valid {
+								duration = rollupTime.Sub(latestRollup.CreatedAt.Time).Seconds()
+							}
+						}
+
+						// If we couldn't get duration from previous rollup, estimate from block count
+						// Assuming average block time of 2 seconds
+						if duration <= 0 {
+							duration = float64(blockRange) * 2.0
+						}
+
+						// Calculate BPS and TPS
+						if duration > 0 {
+							bps = float64(blockRange) / duration
+							tps = float64(txCount) / duration
+						}
+					}
+
 					// Insert SLA rollup and get the ID
 					rollupId, err := etl.db.InsertSlaRollupReturningId(context.Background(), db.InsertSlaRollupReturningIdParams{
 						BlockStart:     sr.BlockStart,
@@ -346,6 +386,8 @@ func (etl *ETLService) indexBlocks() error {
 						BlockHeight:    block.Height,
 						ValidatorCount: validatorCount,
 						BlockQuota:     blockQuota,
+						Bps:            bps,
+						Tps:            tps,
 						TxHash:         tx.Hash,
 						CreatedAt:      pgtype.Timestamp{Time: sr.Timestamp.AsTime(), Valid: true}, // Use rollup timestamp, not block timestamp
 					})

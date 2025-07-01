@@ -87,6 +87,8 @@ create table if not exists etl_sla_rollups(
   block_height bigint not null,
   validator_count integer not null,
   block_quota integer not null,
+  bps float not null,
+  tps float not null,
   tx_hash text not null,
   created_at timestamp not null
 );

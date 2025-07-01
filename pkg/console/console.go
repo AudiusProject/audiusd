@@ -56,7 +56,7 @@ type DashboardStats struct {
 	TotalTransactionsPrevious24h int64
 	TotalTransactions7d          int64
 	TotalTransactions30d         int64
-	AvgBlockTime                 float64
+	AvgBlockTime                 float32 // Average block time from latest SLA rollup in seconds
 }
 
 type LatestBlockInfo struct {
@@ -167,6 +167,7 @@ func (con *Console) SetupRoutes() {
 	e.GET("/sse/events", con.LiveEventsSSE)
 
 	// HTMX Fragment routes
+	e.GET("/fragments/stats-header", con.StatsHeaderFragment)
 	e.GET("/fragments/tps", con.TPSFragment)
 	e.GET("/fragments/total-transactions", con.TotalTransactionsFragment)
 }
@@ -246,6 +247,27 @@ func (con *Console) Dashboard(c echo.Context) error {
 		latestBlockHeight = 0
 	}
 
+	// Get latest SLA rollup for BPS/TPS data
+	var bps, tps float64 = 0, 0
+	var avgBlockTime float32 = 0
+	latestSlaRollup, err := con.etl.GetDB().GetLatestSlaRollup(c.Request().Context())
+	if err != nil {
+		con.logger.Debug("Failed to get latest SLA rollup", "error", err)
+		// Fall back to default values
+		bps = 0.5
+		tps = 0.1
+		avgBlockTime = 2.0
+	} else {
+		bps = latestSlaRollup.Bps
+		tps = latestSlaRollup.Tps
+		// Calculate average block time from BPS (if BPS > 0)
+		if bps > 0 {
+			avgBlockTime = float32(1.0 / bps)
+		} else {
+			avgBlockTime = 2.0 // Default 2 seconds
+		}
+	}
+
 	// Get some recent transactions for the dashboard
 	transactions, blockHeights, err := con.getTransactionsWithBlockHeights(c.Request().Context(), 10, 0)
 	if err != nil {
@@ -268,25 +290,32 @@ func (con *Console) Dashboard(c echo.Context) error {
 		blockPointers[i] = &blocks[i]
 	}
 
+	// Get active validator count
+	validatorCount, err := con.etl.GetDB().GetActiveValidatorCount(c.Request().Context())
+	if err != nil {
+		con.logger.Warn("Failed to get validator count", "error", err)
+		validatorCount = 0
+	}
+
 	// TODO: Implement these properly with database queries
 	stats := &pages.DashboardStats{
 		CurrentBlockHeight:           latestBlockHeight,
-		ChainID:                      "audius-1", // TODO: Get from database or config
-		BPS:                          0.5,        // TODO: Calculate from block times
-		TPS:                          0.1,        // TODO: Calculate from transaction times
+		ChainID:                      con.etl.ChainID,
+		BPS:                          bps, // Use calculated BPS from latest SLA rollup
+		TPS:                          tps, // Use calculated TPS from latest SLA rollup
 		TotalTransactions:            int64(totalTransactions),
-		ValidatorCount:               0,     // TODO: Count active validators
+		ValidatorCount:               validatorCount,
 		LatestBlock:                  nil,   // TODO: Implement
 		RecentProposers:              nil,   // TODO: Implement
 		IsSyncing:                    false, // TODO: Implement sync status check
 		LatestIndexedHeight:          latestBlockHeight,
 		LatestChainHeight:            latestBlockHeight,
 		BlockDelta:                   0,
-		TotalTransactions24h:         0,   // TODO: Implement time-based queries
-		TotalTransactionsPrevious24h: 0,   // TODO: Implement time-based queries
-		TotalTransactions7d:          0,   // TODO: Implement time-based queries
-		TotalTransactions30d:         0,   // TODO: Implement time-based queries
-		AvgBlockTime:                 2.0, // TODO: Calculate from actual block times
+		TotalTransactions24h:         0,            // TODO: Implement time-based queries
+		TotalTransactionsPrevious24h: 0,            // TODO: Implement time-based queries
+		TotalTransactions7d:          0,            // TODO: Implement time-based queries
+		TotalTransactions30d:         0,            // TODO: Implement time-based queries
+		AvgBlockTime:                 avgBlockTime, // Use calculated block time from BPS
 	}
 
 	// TODO: Implement transaction breakdown calculation
@@ -1174,8 +1203,59 @@ func (con *Console) stubRoute(c echo.Context) error {
 
 // HTMX Fragment Handlers
 func (con *Console) StatsHeaderFragment(c echo.Context) error {
-	// TODO: Implement stats header fragment using database queries
-	return c.String(http.StatusNotImplemented, "TODO: Implement stats header fragment")
+	ctx := c.Request().Context()
+
+	// Get latest indexed block
+	latestBlockHeight, err := con.etl.GetDB().GetLatestIndexedBlock(ctx)
+	if err != nil {
+		con.logger.Warn("Failed to get latest block height", "error", err)
+		latestBlockHeight = 0
+	}
+
+	// Get latest SLA rollup for BPS/TPS data
+	var bps float64 = 0
+	var avgBlockTime float32 = 0
+	latestSlaRollup, err := con.etl.GetDB().GetLatestSlaRollup(ctx)
+	if err != nil {
+		con.logger.Debug("Failed to get latest SLA rollup", "error", err)
+		// Fall back to default values
+		bps = 0.5
+		avgBlockTime = 2.0
+	} else {
+		bps = latestSlaRollup.Bps
+		// Calculate average block time from BPS (if BPS > 0)
+		if bps > 0 {
+			avgBlockTime = float32(1.0 / bps)
+		} else {
+			avgBlockTime = 2.0 // Default 2 seconds
+		}
+	}
+
+	// Get active validator count
+	validatorCount, err := con.etl.GetDB().GetActiveValidatorCount(ctx)
+	if err != nil {
+		con.logger.Warn("Failed to get validator count", "error", err)
+		validatorCount = 0
+	}
+
+	stats := &pages.DashboardStats{
+		CurrentBlockHeight:  latestBlockHeight,
+		ChainID:             con.etl.ChainID,
+		BPS:                 bps,
+		ValidatorCount:      validatorCount,
+		AvgBlockTime:        avgBlockTime,
+		IsSyncing:           false, // TODO: Implement sync status check
+		LatestIndexedHeight: latestBlockHeight,
+		LatestChainHeight:   latestBlockHeight,
+		BlockDelta:          0,
+	}
+
+	// Calculate sync progress percentage
+	syncProgressPercentage := float64(100) // Assume synced for now
+
+	// Render the stats header fragment template
+	fragment := pages.StatsHeaderFragment(stats, syncProgressPercentage)
+	return fragment.Render(ctx, c.Response().Writer)
 }
 
 func (con *Console) NetworkSidebarFragment(c echo.Context) error {
@@ -1184,13 +1264,57 @@ func (con *Console) NetworkSidebarFragment(c echo.Context) error {
 }
 
 func (con *Console) TPSFragment(c echo.Context) error {
-	// TODO: Implement TPS fragment using database queries
-	return c.String(http.StatusNotImplemented, "TODO: Implement TPS fragment")
+	ctx := c.Request().Context()
+
+	// Get latest SLA rollup for TPS data
+	var tps float64 = 0
+	latestSlaRollup, err := con.etl.GetDB().GetLatestSlaRollup(ctx)
+	if err != nil {
+		con.logger.Debug("Failed to get latest SLA rollup", "error", err)
+		// Fall back to default value
+		tps = 0.1
+	} else {
+		tps = latestSlaRollup.Tps
+	}
+
+	// Get total transactions for 30d calculation
+	totalTransactions, err := con.etl.GetDB().GetTotalTransactions(ctx)
+	if err != nil {
+		con.logger.Warn("Failed to get total transactions", "error", err)
+		totalTransactions = 0
+	}
+
+	stats := &pages.DashboardStats{
+		TPS:                  tps,
+		TotalTransactions30d: int64(totalTransactions), // Using total as approximation for 30d
+	}
+
+	// Render the TPS fragment template
+	fragment := pages.TPSFragment(stats)
+	return fragment.Render(ctx, c.Response().Writer)
 }
 
 func (con *Console) TotalTransactionsFragment(c echo.Context) error {
-	// TODO: Implement total transactions fragment using database queries
-	return c.String(http.StatusNotImplemented, "TODO: Implement total transactions fragment")
+	ctx := c.Request().Context()
+
+	// Get total transactions count
+	totalTransactions, err := con.etl.GetDB().GetTotalTransactions(ctx)
+	if err != nil {
+		con.logger.Warn("Failed to get total transactions", "error", err)
+		totalTransactions = 0
+	}
+
+	// TODO: Implement proper 24h transaction queries for percentage change calculation
+	// For now, we'll use placeholder values
+	stats := &pages.DashboardStats{
+		TotalTransactions:            int64(totalTransactions),
+		TotalTransactions24h:         0, // TODO: Implement time-based queries
+		TotalTransactionsPrevious24h: 0, // TODO: Implement time-based queries
+	}
+
+	// Render the total transactions fragment template
+	fragment := pages.TotalTransactionsFragment(stats)
+	return fragment.Render(ctx, c.Response().Writer)
 }
 
 type SSEEvent struct {

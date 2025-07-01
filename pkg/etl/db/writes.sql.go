@@ -206,8 +206,8 @@ func (q *Queries) InsertSlaNodeReport(ctx context.Context, arg InsertSlaNodeRepo
 }
 
 const insertSlaRollup = `-- name: InsertSlaRollup :exec
-insert into etl_sla_rollups (block_start, block_end, block_height, validator_count, block_quota, tx_hash, created_at)
-values ($1, $2, $3, $4, $5, $6, $7)
+insert into etl_sla_rollups (block_start, block_end, block_height, validator_count, block_quota, bps, tps, tx_hash, created_at)
+values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 `
 
 type InsertSlaRollupParams struct {
@@ -216,6 +216,8 @@ type InsertSlaRollupParams struct {
 	BlockHeight    int64            `json:"block_height"`
 	ValidatorCount int32            `json:"validator_count"`
 	BlockQuota     int32            `json:"block_quota"`
+	Bps            float64          `json:"bps"`
+	Tps            float64          `json:"tps"`
 	TxHash         string           `json:"tx_hash"`
 	CreatedAt      pgtype.Timestamp `json:"created_at"`
 }
@@ -227,6 +229,8 @@ func (q *Queries) InsertSlaRollup(ctx context.Context, arg InsertSlaRollupParams
 		arg.BlockHeight,
 		arg.ValidatorCount,
 		arg.BlockQuota,
+		arg.Bps,
+		arg.Tps,
 		arg.TxHash,
 		arg.CreatedAt,
 	)
@@ -234,8 +238,8 @@ func (q *Queries) InsertSlaRollup(ctx context.Context, arg InsertSlaRollupParams
 }
 
 const insertSlaRollupReturningId = `-- name: InsertSlaRollupReturningId :one
-insert into etl_sla_rollups (block_start, block_end, block_height, validator_count, block_quota, tx_hash, created_at)
-values ($1, $2, $3, $4, $5, $6, $7)
+insert into etl_sla_rollups (block_start, block_end, block_height, validator_count, block_quota, bps, tps, tx_hash, created_at)
+values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 returning id
 `
 
@@ -245,6 +249,8 @@ type InsertSlaRollupReturningIdParams struct {
 	BlockHeight    int64            `json:"block_height"`
 	ValidatorCount int32            `json:"validator_count"`
 	BlockQuota     int32            `json:"block_quota"`
+	Bps            float64          `json:"bps"`
+	Tps            float64          `json:"tps"`
 	TxHash         string           `json:"tx_hash"`
 	CreatedAt      pgtype.Timestamp `json:"created_at"`
 }
@@ -256,6 +262,8 @@ func (q *Queries) InsertSlaRollupReturningId(ctx context.Context, arg InsertSlaR
 		arg.BlockHeight,
 		arg.ValidatorCount,
 		arg.BlockQuota,
+		arg.Bps,
+		arg.Tps,
 		arg.TxHash,
 		arg.CreatedAt,
 	)

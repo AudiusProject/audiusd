@@ -32,12 +32,12 @@ insert into etl_validator_deregistrations (comet_address, comet_pubkey, block_he
 values ($1, $2, $3, $4);
 
 -- name: InsertSlaRollup :exec
-insert into etl_sla_rollups (block_start, block_end, block_height, validator_count, block_quota, tx_hash, created_at)
-values ($1, $2, $3, $4, $5, $6, $7);
+insert into etl_sla_rollups (block_start, block_end, block_height, validator_count, block_quota, bps, tps, tx_hash, created_at)
+values ($1, $2, $3, $4, $5, $6, $7, $8, $9);
 
 -- name: InsertSlaRollupReturningId :one
-insert into etl_sla_rollups (block_start, block_end, block_height, validator_count, block_quota, tx_hash, created_at)
-values ($1, $2, $3, $4, $5, $6, $7)
+insert into etl_sla_rollups (block_start, block_end, block_height, validator_count, block_quota, bps, tps, tx_hash, created_at)
+values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 returning id;
 
 -- name: InsertSlaNodeReport :exec

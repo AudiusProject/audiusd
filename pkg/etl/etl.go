@@ -22,7 +22,7 @@ type ETLService struct {
 	startingBlockHeight int64
 	endingBlockHeight   int64
 	checkReadiness      bool
-	chainID             string
+	ChainID             string
 
 	core   corev1connect.CoreServiceClient
 	pool   *pgxpool.Pool
@@ -90,13 +90,13 @@ func (e *ETLService) InitializeChainID(ctx context.Context) error {
 	nodeInfoResp, err := e.core.GetNodeInfo(ctx, connect.NewRequest(&corev1.GetNodeInfoRequest{}))
 	if err != nil {
 		// Use fallback chain ID if core service is not available
-		e.chainID = "--"
-		e.logger.Warn("Failed to get chain ID from core service, using fallback", "error", err, "chainID", e.chainID)
+		e.ChainID = "--"
+		e.logger.Warn("Failed to get chain ID from core service, using fallback", "error", err, "chainID", e.ChainID)
 		return nil
 	}
 
-	e.chainID = nodeInfoResp.Msg.Chainid
-	e.logger.Info("Initialized chain ID", "chainID", e.chainID)
+	e.ChainID = nodeInfoResp.Msg.Chainid
+	e.logger.Info("Initialized chain ID", "chainID", e.ChainID)
 	return nil
 }
 
