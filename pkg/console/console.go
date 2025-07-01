@@ -594,11 +594,35 @@ func (con *Console) ValidatorsUptimeByRollup(c echo.Context) error {
 
 	ctx := c.Request().Context()
 
+	// First, get the actual SLA rollup data to get tx_hash, created_at, block quota, etc.
+	rollupInfo, err := con.etl.GetDB().GetSlaRollupById(ctx, int32(rollupID))
+	if err != nil {
+		con.logger.Warn("Failed to get SLA rollup by ID", "rollupID", rollupID, "error", err)
+		return c.String(http.StatusNotFound, fmt.Sprintf("SLA rollup not found: %d", rollupID))
+	}
+
 	// Get validators for this specific SLA rollup
 	validatorsData, err := con.etl.GetDB().GetValidatorsForSlaRollup(ctx, int32(rollupID))
 	if err != nil {
 		con.logger.Warn("Failed to get validators for SLA rollup", "rollupID", rollupID, "error", err)
 		validatorsData = []db.GetValidatorsForSlaRollupRow{}
+	}
+
+	// Calculate challenge statistics dynamically for this rollup's block range
+	// This ensures we get the current accurate data instead of potentially stale pre-calculated values
+	challengeStats, err := con.etl.GetDB().GetChallengeStatisticsForBlockRange(ctx, db.GetChallengeStatisticsForBlockRangeParams{
+		Height:   rollupInfo.BlockStart,
+		Height_2: rollupInfo.BlockEnd,
+	})
+	if err != nil {
+		con.logger.Warn("Failed to get challenge statistics", "rollupID", rollupID, "error", err)
+		challengeStats = []db.GetChallengeStatisticsForBlockRangeRow{}
+	}
+
+	// Create a map for quick lookup of challenge statistics by address
+	challengeStatsMap := make(map[string]db.GetChallengeStatisticsForBlockRangeRow)
+	for _, stat := range challengeStats {
+		challengeStatsMap[stat.Address] = stat
 	}
 
 	// Build validator uptime info for each validator
@@ -618,18 +642,31 @@ func (con *Console) ValidatorsUptimeByRollup(c echo.Context) error {
 			UpdatedAt:    validatorsData[i].UpdatedAt,
 		}
 
-		// Create a single SLA report for this rollup if the validator has data
+		// Create a full SLA report for this rollup with all the required fields
 		var reportPointers []*db.EtlSlaNodeReport
-		if validatorsData[i].NumBlocksProposed.Valid {
-			slaReport := &db.EtlSlaNodeReport{
-				SlaRollupID:        int32(rollupID),
-				Address:            validatorsData[i].CometAddress,
-				NumBlocksProposed:  validatorsData[i].NumBlocksProposed.Int32,
-				ChallengesReceived: validatorsData[i].ChallengesReceived.Int32,
-				ChallengesFailed:   validatorsData[i].ChallengesFailed.Int32,
-			}
-			reportPointers = []*db.EtlSlaNodeReport{slaReport}
+		slaReport := &db.EtlSlaNodeReport{
+			SlaRollupID:        int32(rollupID),
+			Address:            validatorsData[i].CometAddress,
+			NumBlocksProposed:  0, // Default to 0
+			ChallengesReceived: 0, // Default to 0
+			ChallengesFailed:   0, // Default to 0
+			TxHash:             rollupInfo.TxHash,
+			CreatedAt:          rollupInfo.CreatedAt,
+			BlockHeight:        rollupInfo.BlockHeight,
 		}
+
+		// Override with actual data if validator has report data (for blocks proposed)
+		if validatorsData[i].NumBlocksProposed.Valid {
+			slaReport.NumBlocksProposed = validatorsData[i].NumBlocksProposed.Int32
+		}
+
+		// Use dynamically calculated challenge statistics instead of potentially stale pre-calculated values
+		if stat, exists := challengeStatsMap[validatorsData[i].CometAddress]; exists {
+			slaReport.ChallengesReceived = int32(stat.ChallengesReceived)
+			slaReport.ChallengesFailed = int32(stat.ChallengesFailed)
+		}
+
+		reportPointers = []*db.EtlSlaNodeReport{slaReport}
 
 		validators = append(validators, &pages.ValidatorUptimeInfo{
 			Validator:     validator,
@@ -640,6 +677,7 @@ func (con *Console) ValidatorsUptimeByRollup(c echo.Context) error {
 	props := pages.ValidatorsUptimeByRollupProps{
 		Validators: validators,
 		RollupID:   int32(rollupID),
+		RollupData: &rollupInfo,
 	}
 
 	p := pages.ValidatorsUptimeByRollup(props)

@@ -31,6 +31,28 @@ const (
 	TxTypeRelease                            = "release"
 )
 
+// ChallengeStats represents storage proof challenge statistics for a validator
+type ChallengeStats struct {
+	ChallengesReceived int32
+	ChallengesFailed   int32
+}
+
+// StorageProofState tracks storage proof challenges and their resolution
+type StorageProofState struct {
+	Height          int64
+	Proofs          map[string]*StorageProofEntry // address -> proof entry
+	ProverAddresses map[string]int                // address -> vote count for who should be provers
+	Resolved        bool
+}
+
+type StorageProofEntry struct {
+	Address         string
+	ProverAddresses []string
+	ProofSignature  []byte
+	Cid             string
+	SignatureValid  bool // determined during verification
+}
+
 func (etl *ETLService) Run() error {
 	dbUrl := etl.dbURL
 	if dbUrl == "" {
@@ -297,13 +319,14 @@ func (etl *ETLService) indexBlocks() error {
 					insertTxParams.TxType = TxTypeSlaRollup
 					sr := signedTx.SlaRollup
 
+					// Use the number of reports in the rollup as the validator count
+					// This matches what the original core system does
+					validatorCount := int32(len(sr.Reports))
+
 					// Calculate block quota (total blocks divided by number of validators)
 					var blockQuota int32 = 0
-					if sr.BlockEnd > sr.BlockStart {
-						validatorCount, err := etl.db.GetActiveValidatorCount(context.Background())
-						if err == nil && validatorCount > 0 {
-							blockQuota = int32(sr.BlockEnd-sr.BlockStart) / int32(validatorCount)
-						}
+					if sr.BlockEnd > sr.BlockStart && validatorCount > 0 {
+						blockQuota = int32(sr.BlockEnd-sr.BlockStart) / validatorCount
 					}
 
 					// Insert SLA rollup and get the ID
@@ -311,7 +334,7 @@ func (etl *ETLService) indexBlocks() error {
 						BlockStart:     sr.BlockStart,
 						BlockEnd:       sr.BlockEnd,
 						BlockHeight:    block.Height,
-						ValidatorCount: int32(len(sr.Reports)),
+						ValidatorCount: validatorCount,
 						BlockQuota:     blockQuota,
 						TxHash:         tx.Hash,
 						CreatedAt:      pgtype.Timestamp{Time: sr.Timestamp.AsTime(), Valid: true}, // Use rollup timestamp, not block timestamp
@@ -319,14 +342,23 @@ func (etl *ETLService) indexBlocks() error {
 					if err != nil {
 						etl.logger.Errorf("error inserting SLA rollup: %v", err)
 					} else {
-						// Insert SLA node reports with the actual rollup ID
+						// Get storage proof challenge statistics for this SLA period
+						challengeStats, err := etl.calculateChallengeStatistics(sr.BlockStart, sr.BlockEnd)
+						if err != nil {
+							etl.logger.Errorf("error calculating challenge statistics: %v", err)
+							challengeStats = make(map[string]ChallengeStats) // fallback to empty map
+						}
+
+						// Insert SLA node reports with the actual rollup ID and challenge data
 						for _, report := range sr.Reports {
+							stats := challengeStats[report.Address] // Get challenge stats for this validator
+
 							err = etl.db.InsertSlaNodeReport(context.Background(), db.InsertSlaNodeReportParams{
 								SlaRollupID:        rollupId, // Use the actual rollup ID
 								Address:            report.Address,
 								NumBlocksProposed:  report.NumBlocksProposed,
-								ChallengesReceived: 0, // SLA rollups don't track challenges - that's for storage proofs
-								ChallengesFailed:   0, // SLA rollups don't track challenges - that's for storage proofs
+								ChallengesReceived: stats.ChallengesReceived,
+								ChallengesFailed:   stats.ChallengesFailed,
 								BlockHeight:        block.Height,
 								TxHash:             tx.Hash,
 								CreatedAt:          pgtype.Timestamp{Time: sr.Timestamp.AsTime(), Valid: true}, // Use rollup timestamp
@@ -345,6 +377,8 @@ func (etl *ETLService) indexBlocks() error {
 						ProverAddresses: sp.ProverAddresses,
 						Cid:             sp.Cid,
 						ProofSignature:  sp.ProofSignature,
+						Proof:           nil, // Will be set during verification
+						Status:          "unresolved",
 						BlockHeight:     block.Height,
 						TxHash:          tx.Hash,
 						CreatedAt:       pgtype.Timestamp{Time: block.Timestamp.AsTime(), Valid: true},
@@ -364,6 +398,12 @@ func (etl *ETLService) indexBlocks() error {
 					})
 					if err != nil {
 						etl.logger.Errorf("error inserting storage proof verification: %v", err)
+					} else {
+						// Process consensus for this storage proof challenge
+						err = etl.processStorageProofConsensus(spv.Height, spv.Proof, block.Height, tx.Hash, block.Timestamp.AsTime())
+						if err != nil {
+							etl.logger.Errorf("error processing storage proof consensus: %v", err)
+						}
 					}
 				case *corev1.SignedTransaction_Attestation:
 					at := signedTx.Attestation
@@ -493,4 +533,102 @@ func (etl *ETLService) startPgNotifyListener(ctx context.Context) error {
 			}
 		}
 	}
+}
+
+// calculateChallengeStatistics aggregates storage proof challenge data for validators within a block range
+// NOTE: This function may be called before all storage proof data for the block range is available,
+// leading to potentially inaccurate pre-calculated statistics. Consider calculating these dynamically
+// in the UI instead of storing them in the database.
+func (etl *ETLService) calculateChallengeStatistics(blockStart, blockEnd int64) (map[string]ChallengeStats, error) {
+	ctx := context.Background()
+	stats := make(map[string]ChallengeStats)
+
+	// Use the ETL database method to get challenge statistics with proper status tracking
+	results, err := etl.db.GetChallengeStatisticsForBlockRange(ctx, db.GetChallengeStatisticsForBlockRangeParams{
+		Height:   blockStart,
+		Height_2: blockEnd,
+	})
+	if err != nil {
+		return stats, fmt.Errorf("error querying challenge statistics: %v", err)
+	}
+
+	// Convert results to our ChallengeStats map
+	for _, result := range results {
+		stats[result.Address] = ChallengeStats{
+			ChallengesReceived: int32(result.ChallengesReceived),
+			ChallengesFailed:   int32(result.ChallengesFailed),
+		}
+	}
+
+	return stats, nil
+}
+
+func (etl *ETLService) processStorageProofConsensus(height int64, proof []byte, blockHeight int64, txHash string, blockTime time.Time) error {
+	ctx := context.Background()
+
+	// Get all storage proofs for this height
+	storageProofs, err := etl.db.GetStorageProofsForHeight(ctx, height)
+	if err != nil {
+		return fmt.Errorf("error getting storage proofs for height %d: %v", height, err)
+	}
+
+	if len(storageProofs) == 0 {
+		// No storage proofs submitted for this height
+		return nil
+	}
+
+	// In the ETL context, we can't do cryptographic verification like the core system does,
+	// but we can implement simplified consensus logic based on majority agreement.
+
+	// Count consensus on who the expected provers were
+	expectedProvers := make(map[string]int)
+	for _, sp := range storageProofs {
+		for _, proverAddr := range sp.ProverAddresses {
+			expectedProvers[proverAddr]++
+		}
+	}
+
+	// Determine majority threshold (more than half of submitted proofs)
+	majorityThreshold := len(storageProofs) / 2
+
+	// Mark proofs as 'pass' if they submitted and were part of majority consensus
+	passedProvers := make(map[string]bool)
+	for _, sp := range storageProofs {
+		if sp.Address != "" && sp.ProofSignature != nil {
+			// This prover submitted a proof - mark as passed
+			err = etl.db.UpdateStorageProofStatus(ctx, db.UpdateStorageProofStatusParams{
+				Status:  "pass",
+				Proof:   proof,
+				Height:  height,
+				Address: sp.Address,
+			})
+			if err != nil {
+				etl.logger.Errorf("error updating storage proof status to pass: %v", err)
+			} else {
+				passedProvers[sp.Address] = true
+			}
+		}
+	}
+
+	// Insert failed storage proofs for validators who were expected by majority but didn't submit
+	for expectedProver, voteCount := range expectedProvers {
+		if voteCount > majorityThreshold && !passedProvers[expectedProver] {
+			// This validator was expected by majority consensus but didn't submit a proof
+			err = etl.db.InsertFailedStorageProof(ctx, db.InsertFailedStorageProofParams{
+				Height:      height,
+				Address:     expectedProver,
+				BlockHeight: blockHeight,
+				TxHash:      txHash,
+				CreatedAt:   pgtype.Timestamp{Time: blockTime, Valid: true},
+			})
+			if err != nil {
+				etl.logger.Errorf("error inserting failed storage proof for %s: %v", expectedProver, err)
+			}
+		}
+	}
+
+	etl.logger.Debugf("Processed storage proof consensus for height %d: %d proofs passed, %d expected by majority",
+		height, len(passedProvers), len(expectedProvers))
+
+	return nil
 }

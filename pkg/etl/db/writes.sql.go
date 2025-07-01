@@ -265,8 +265,8 @@ func (q *Queries) InsertSlaRollupReturningId(ctx context.Context, arg InsertSlaR
 }
 
 const insertStorageProof = `-- name: InsertStorageProof :exec
-insert into etl_storage_proofs (height, address, prover_addresses, cid, proof_signature, block_height, tx_hash, created_at)
-values ($1, $2, $3, $4, $5, $6, $7, $8)
+insert into etl_storage_proofs (height, address, prover_addresses, cid, proof_signature, proof, status, block_height, tx_hash, created_at)
+values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 `
 
 type InsertStorageProofParams struct {
@@ -275,6 +275,8 @@ type InsertStorageProofParams struct {
 	ProverAddresses []string         `json:"prover_addresses"`
 	Cid             string           `json:"cid"`
 	ProofSignature  []byte           `json:"proof_signature"`
+	Proof           []byte           `json:"proof"`
+	Status          EtlProofStatus   `json:"status"`
 	BlockHeight     int64            `json:"block_height"`
 	TxHash          string           `json:"tx_hash"`
 	CreatedAt       pgtype.Timestamp `json:"created_at"`
@@ -287,6 +289,8 @@ func (q *Queries) InsertStorageProof(ctx context.Context, arg InsertStorageProof
 		arg.ProverAddresses,
 		arg.Cid,
 		arg.ProofSignature,
+		arg.Proof,
+		arg.Status,
 		arg.BlockHeight,
 		arg.TxHash,
 		arg.CreatedAt,

@@ -16,6 +16,10 @@ import (
 	"strings"
 )
 
+const (
+	slaMeetsThreshold = 0.8 // 80% threshold for both PoW and PoS
+)
+
 func extractHostname(endpoint string) string {
 	// Remove protocol if present
 	if strings.HasPrefix(endpoint, "http://") {
@@ -37,22 +41,165 @@ func extractHostname(endpoint string) string {
 	return endpoint
 }
 
-func meetsSlaThreshold(report *db.EtlSlaNodeReport) bool {
-	// Simplified SLA check since we don't have block quota in node reports
-	if report.NumBlocksProposed > 0 && report.ChallengesFailed <= (report.ChallengesReceived/5) {
-		return true
+func meetsPoWSla(report *db.EtlSlaNodeReport, blockQuota int32) bool {
+	if blockQuota <= 0 {
+		return true // No quota means no requirement
 	}
-	return report.NumBlocksProposed == 0 // Consider no activity as meeting SLA
+
+	faultRatio := float64(report.NumBlocksProposed) / float64(blockQuota)
+	return faultRatio >= slaMeetsThreshold
 }
 
-func getUptimeColor(report *db.EtlSlaNodeReport) string {
+func meetsPoSSla(report *db.EtlSlaNodeReport) bool {
+	if report.ChallengesReceived <= 0 {
+		return true // No challenges means passing
+	}
+
+	successRatio := 1.0 - (float64(report.ChallengesFailed) / float64(report.ChallengesReceived))
+	return successRatio >= slaMeetsThreshold
+}
+
+func meetsSlaThreshold(report *db.EtlSlaNodeReport, blockQuota int32) bool {
+	// Node is considered dead if it proposed no blocks
+	if report.NumBlocksProposed == 0 {
+		return false
+	}
+
+	// Must meet both PoW and PoS SLA requirements
+	return meetsPoWSla(report, blockQuota) && meetsPoSSla(report)
+}
+
+func getUptimeColor(report *db.EtlSlaNodeReport, blockQuota int32) string {
 	if report.NumBlocksProposed == 0 {
 		return "bg-gray-800"
 	}
-	if meetsSlaThreshold(report) {
+	if meetsSlaThreshold(report, blockQuota) {
 		return "bg-green-500"
 	}
 	return "bg-red-500"
+}
+
+func getStatusText(validatorStatus string, report *db.EtlSlaNodeReport, blockQuota int32) (string, string) {
+	// First determine validator registration status
+	var statusText, statusClass string
+	switch validatorStatus {
+	case "active":
+		statusText = "Active"
+		statusClass = "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200"
+	case "deregistered":
+		statusText = "Deregistered"
+		statusClass = "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200"
+	case "misbehavior_deregistered":
+		statusText = "Misbehavior"
+		statusClass = "bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200"
+	default:
+		statusText = "Unknown"
+		statusClass = "bg-gray-100 dark:bg-gray-600 text-gray-800 dark:text-gray-200"
+	}
+
+	// Then determine SLA status for active validators
+	if validatorStatus == "active" && report != nil {
+		if report.NumBlocksProposed == 0 {
+			statusText += " / Dead"
+			statusClass = "bg-gray-800 text-white"
+		} else if meetsSlaThreshold(report, blockQuota) {
+			statusText += " / Pass"
+			statusClass = "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200"
+		} else {
+			statusText += " / Fail"
+			statusClass = "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200"
+		}
+	}
+
+	return statusText, statusClass
+}
+
+func getValidatorStatusDisplay(validatorInfo *ValidatorUptimeInfo, rollupData *db.EtlSlaRollup) (string, string) {
+	var blockQuota int32 = 0
+	if rollupData != nil {
+		blockQuota = rollupData.BlockQuota
+	}
+
+	var report *db.EtlSlaNodeReport = nil
+	if len(validatorInfo.RecentRollups) > 0 {
+		report = validatorInfo.RecentRollups[0]
+	}
+
+	return getStatusText(validatorInfo.Validator.Status, report, blockQuota)
+}
+
+func getValidatorStatusText(validatorInfo *ValidatorUptimeInfo, rollupData *db.EtlSlaRollup) string {
+	switch validatorInfo.Validator.Status {
+	case "active":
+		return "Active"
+	case "deregistered":
+		return "Deregistered"
+	case "misbehavior_deregistered":
+		return "Misbehavior"
+	default:
+		return "Unknown"
+	}
+}
+
+func getValidatorStatusClass(validatorInfo *ValidatorUptimeInfo, rollupData *db.EtlSlaRollup) string {
+	switch validatorInfo.Validator.Status {
+	case "active":
+		return "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200"
+	case "deregistered":
+		return "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200"
+	case "misbehavior_deregistered":
+		return "bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200"
+	default:
+		return "bg-gray-100 dark:bg-gray-600 text-gray-800 dark:text-gray-200"
+	}
+}
+
+func getSlaStatusText(validatorInfo *ValidatorUptimeInfo, rollupData *db.EtlSlaRollup) string {
+	if validatorInfo.Validator.Status != "active" {
+		return "" // Only show SLA for active validators
+	}
+
+	if len(validatorInfo.RecentRollups) == 0 {
+		return "No Data"
+	}
+
+	report := validatorInfo.RecentRollups[0]
+	var blockQuota int32 = 0
+	if rollupData != nil {
+		blockQuota = rollupData.BlockQuota
+	}
+
+	if report.NumBlocksProposed == 0 {
+		return "Dead"
+	} else if meetsSlaThreshold(report, blockQuota) {
+		return "Pass"
+	} else {
+		return "Fail"
+	}
+}
+
+func getSlaStatusClass(validatorInfo *ValidatorUptimeInfo, rollupData *db.EtlSlaRollup) string {
+	if validatorInfo.Validator.Status != "active" {
+		return "" // Only show SLA for active validators
+	}
+
+	if len(validatorInfo.RecentRollups) == 0 {
+		return "bg-gray-100 dark:bg-gray-600 text-gray-800 dark:text-gray-200"
+	}
+
+	report := validatorInfo.RecentRollups[0]
+	var blockQuota int32 = 0
+	if rollupData != nil {
+		blockQuota = rollupData.BlockQuota
+	}
+
+	if report.NumBlocksProposed == 0 {
+		return "bg-gray-800 text-white"
+	} else if meetsSlaThreshold(report, blockQuota) {
+		return "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200"
+	} else {
+		return "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200"
+	}
 }
 
 type ValidatorUptimeInfo struct {
@@ -67,6 +214,7 @@ type ValidatorsUptimeProps struct {
 type ValidatorsUptimeByRollupProps struct {
 	Validators []*ValidatorUptimeInfo
 	RollupID   int32
+	RollupData *db.EtlSlaRollup
 }
 
 func getLatestRollupInfo(validators []*ValidatorUptimeInfo) *db.EtlSlaNodeReport {
@@ -138,7 +286,7 @@ func ValidatorsUptime(props ValidatorsUptimeProps) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = ValidatorsUptimeTable(props.Validators).Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = ValidatorsUptimeTable(props.Validators, nil).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -196,7 +344,7 @@ func ValidatorsUptimeByRollup(props ValidatorsUptimeByRollupProps) templ.Compone
 			var templ_7745c5c3_Var5 string
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprint(props.RollupID))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators_uptime.templ`, Line: 131, Col: 110}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators_uptime.templ`, Line: 279, Col: 110}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 			if templ_7745c5c3_Err != nil {
@@ -209,7 +357,7 @@ func ValidatorsUptimeByRollup(props ValidatorsUptimeByRollupProps) templ.Compone
 			var templ_7745c5c3_Var6 string
 			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprint(props.RollupID))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators_uptime.templ`, Line: 133, Col: 71}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators_uptime.templ`, Line: 281, Col: 71}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 			if templ_7745c5c3_Err != nil {
@@ -222,7 +370,7 @@ func ValidatorsUptimeByRollup(props ValidatorsUptimeByRollupProps) templ.Compone
 			var templ_7745c5c3_Var7 string
 			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprint(len(props.Validators)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators_uptime.templ`, Line: 137, Col: 40}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators_uptime.templ`, Line: 285, Col: 40}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 			if templ_7745c5c3_Err != nil {
@@ -232,11 +380,11 @@ func ValidatorsUptimeByRollup(props ValidatorsUptimeByRollupProps) templ.Compone
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = ValidatorsUptimeSummaryForRollup(props.Validators, props.RollupID).Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = ValidatorsUptimeSummaryForRollup(props.Validators, props.RollupID, props.RollupData).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = ValidatorsUptimeTable(props.Validators).Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = ValidatorsUptimeTable(props.Validators, props.RollupData).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -254,7 +402,7 @@ func ValidatorsUptimeByRollup(props ValidatorsUptimeByRollupProps) templ.Compone
 	})
 }
 
-func ValidatorsUptimeSummaryForRollup(validators []*ValidatorUptimeInfo, rollupId int32) templ.Component {
+func ValidatorsUptimeSummaryForRollup(validators []*ValidatorUptimeInfo, rollupId int32, rollupData *db.EtlSlaRollup) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -275,16 +423,16 @@ func ValidatorsUptimeSummaryForRollup(validators []*ValidatorUptimeInfo, rollupI
 			templ_7745c5c3_Var8 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		if rollupInfo := getRollupInfo(validators, rollupId); rollupInfo != nil {
+		if rollupData != nil {
 			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "<div class=\"grid grid-cols-1 md:grid-cols-4 gap-4 mb-6\"><div class=\"bg-slate-100 dark:bg-gray-700 rounded-md p-4 text-center\"><dt class=\"text-lg font-semibold text-gray-900 dark:text-gray-100\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			if rollupInfo.CreatedAt.Valid {
+			if rollupData.CreatedAt.Valid {
 				var templ_7745c5c3_Var9 string
-				templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(rollupInfo.CreatedAt.Time.Format("06-01-02"))
+				templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(rollupData.CreatedAt.Time.Format("06-01-02"))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators_uptime.templ`, Line: 153, Col: 52}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators_uptime.templ`, Line: 301, Col: 52}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 				if templ_7745c5c3_Err != nil {
@@ -295,9 +443,9 @@ func ValidatorsUptimeSummaryForRollup(validators []*ValidatorUptimeInfo, rollupI
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var10 string
-				templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(rollupInfo.CreatedAt.Time.Format("15:04:05 MST"))
+				templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(rollupData.CreatedAt.Time.Format("15:04:05 MST"))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators_uptime.templ`, Line: 155, Col: 56}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators_uptime.templ`, Line: 303, Col: 56}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 				if templ_7745c5c3_Err != nil {
@@ -314,9 +462,9 @@ func ValidatorsUptimeSummaryForRollup(validators []*ValidatorUptimeInfo, rollupI
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var11 string
-			templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("#%d", rollupInfo.SlaRollupID))
+			templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("#%d", rollupData.ID))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators_uptime.templ`, Line: 164, Col: 49}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators_uptime.templ`, Line: 312, Col: 40}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 			if templ_7745c5c3_Err != nil {
@@ -327,69 +475,56 @@ func ValidatorsUptimeSummaryForRollup(validators []*ValidatorUptimeInfo, rollupI
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var12 string
-			templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", rollupInfo.NumBlocksProposed))
+			templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", rollupData.BlockEnd-rollupData.BlockStart+1))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators_uptime.templ`, Line: 170, Col: 54}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators_uptime.templ`, Line: 318, Col: 73}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "</dt><dd class=\"text-sm text-gray-500 dark:text-gray-400 mt-1\">Blocks Proposed</dd></div><div class=\"bg-slate-100 dark:bg-gray-700 rounded-md p-4 text-center\"><dt class=\"text-2xl font-bold text-gray-900 dark:text-gray-100\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "</dt><dd class=\"text-sm text-gray-500 dark:text-gray-400 mt-1\">Total Blocks</dd></div><div class=\"bg-slate-100 dark:bg-gray-700 rounded-md p-4 text-center\"><dt class=\"text-2xl font-bold text-gray-900 dark:text-gray-100\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var13 string
-			templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", getTotalValidatorsCount(validators)))
+			templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", rollupData.ValidatorCount))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators_uptime.templ`, Line: 176, Col: 61}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators_uptime.templ`, Line: 324, Col: 51}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "</dt><dd class=\"text-sm text-gray-500 dark:text-gray-400 mt-1\">Active Validators</dd></div></div> <div class=\"grid grid-cols-1 md:grid-cols-3 gap-4 mb-6\"><div class=\"bg-slate-100 dark:bg-gray-700 rounded-md p-4 text-center\"><dt class=\"text-2xl font-bold text-gray-900 dark:text-gray-100\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "</dt><dd class=\"text-sm text-gray-500 dark:text-gray-400 mt-1\">Active Validators</dd></div></div> <div class=\"grid grid-cols-1 md:grid-cols-2 gap-4 mb-6\"><div class=\"bg-slate-100 dark:bg-gray-700 rounded-md p-4 text-center\"><dt class=\"text-2xl font-bold text-gray-900 dark:text-gray-100\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var14 string
-			templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", rollupInfo.ChallengesReceived))
+			templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", rollupData.BlockQuota))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators_uptime.templ`, Line: 185, Col: 55}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators_uptime.templ`, Line: 333, Col: 47}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "</dt><dd class=\"text-sm text-gray-500 dark:text-gray-400 mt-1\">Challenges Received</dd></div><div class=\"bg-slate-100 dark:bg-gray-700 rounded-md p-4 text-center\"><dt class=\"text-2xl font-bold text-gray-900 dark:text-gray-100\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "</dt><dd class=\"text-sm text-gray-500 dark:text-gray-400 mt-1\">Block Quota</dd></div><div class=\"bg-slate-100 dark:bg-gray-700 rounded-md p-4 text-center\"><dt class=\"text-sm font-mono text-gray-900 dark:text-gray-100 break-all\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			var templ_7745c5c3_Var15 string
-			templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", rollupInfo.ChallengesFailed))
-			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators_uptime.templ`, Line: 191, Col: 53}
-			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "</dt><dd class=\"text-sm text-gray-500 dark:text-gray-400 mt-1\">Challenges Failed</dd></div><div class=\"bg-slate-100 dark:bg-gray-700 rounded-md p-4 text-center\"><dt class=\"text-sm font-mono text-gray-900 dark:text-gray-100 break-all\">")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			if rollupInfo.TxHash != "" {
-				templ_7745c5c3_Err = templates.StringWithTooltipCustom(rollupInfo.TxHash, 8, 4).Render(ctx, templ_7745c5c3_Buffer)
+			if rollupData.TxHash != "" {
+				templ_7745c5c3_Err = templates.StringWithTooltipCustom(rollupData.TxHash, 8, 4).Render(ctx, templ_7745c5c3_Buffer)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			} else {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "—")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "—")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "</dt><dd class=\"text-sm text-gray-500 dark:text-gray-400 mt-1\">Transaction Hash</dd></div></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "</dt><dd class=\"text-sm text-gray-500 dark:text-gray-400 mt-1\">Transaction Hash</dd></div></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -398,7 +533,7 @@ func ValidatorsUptimeSummaryForRollup(validators []*ValidatorUptimeInfo, rollupI
 	})
 }
 
-func ValidatorsUptimeTable(validators []*ValidatorUptimeInfo) templ.Component {
+func ValidatorsUptimeTable(validators []*ValidatorUptimeInfo, rollupData *db.EtlSlaRollup) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -414,31 +549,31 @@ func ValidatorsUptimeTable(validators []*ValidatorUptimeInfo) templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var16 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var16 == nil {
-			templ_7745c5c3_Var16 = templ.NopComponent
+		templ_7745c5c3_Var15 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var15 == nil {
+			templ_7745c5c3_Var15 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
 		if len(validators) > 0 {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "<div class=\"overflow-x-auto\"><table class=\"min-w-full\"><thead><tr class=\"border-b border-gray-200 dark:border-gray-700\"><th class=\"text-left py-3 px-4 font-medium text-gray-900 dark:text-gray-100\">Validator</th><th class=\"text-left py-3 px-4 font-medium text-gray-900 dark:text-gray-100\">Endpoint</th><th class=\"text-left py-3 px-4 font-medium text-gray-900 dark:text-gray-100\">Status</th><th class=\"text-left py-3 px-4 font-medium text-gray-900 dark:text-gray-100\">Voting Power</th><th class=\"text-center py-3 px-4 font-medium text-gray-900 dark:text-gray-100\">Recent SLA Rollups</th></tr></thead> <tbody>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "<div class=\"overflow-x-auto\"><table class=\"min-w-full\"><thead><tr class=\"border-b border-gray-200 dark:border-gray-700\"><th class=\"text-left py-3 px-4 font-medium text-gray-900 dark:text-gray-100\">Validator</th><th class=\"text-left py-3 px-4 font-medium text-gray-900 dark:text-gray-100\">Endpoint</th><th class=\"text-center py-3 px-4 font-medium text-gray-900 dark:text-gray-100\">Blocks Proposed</th><th class=\"text-center py-3 px-4 font-medium text-gray-900 dark:text-gray-100\">Challenges Received</th><th class=\"text-center py-3 px-4 font-medium text-gray-900 dark:text-gray-100\">Challenges Failed</th><th class=\"text-center py-3 px-4 font-medium text-gray-900 dark:text-gray-100\">Status</th></tr></thead> <tbody>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			for _, validatorInfo := range validators {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "<tr class=\"border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700\"><td class=\"py-4 px-4\"><a href=\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "<tr class=\"border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700\"><td class=\"py-4 px-4\"><a href=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				var templ_7745c5c3_Var17 templ.SafeURL
-				templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(fmt.Sprintf("/validator/%s", validatorInfo.Validator.Address)))
+				var templ_7745c5c3_Var16 templ.SafeURL
+				templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(fmt.Sprintf("/validator/%s", validatorInfo.Validator.Address)))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators_uptime.templ`, Line: 226, Col: 94}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators_uptime.templ`, Line: 369, Col: 94}
 				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "\" class=\"text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 hover:underline\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "\" class=\"text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 hover:underline\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -446,129 +581,189 @@ func ValidatorsUptimeTable(validators []*ValidatorUptimeInfo) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "</a></td><td class=\"py-4 px-4 text-sm\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "</a></td><td class=\"py-4 px-4 text-sm\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				var templ_7745c5c3_Var18 string
-				templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(extractHostname(validatorInfo.Validator.Endpoint))
+				var templ_7745c5c3_Var17 string
+				templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinStringErrs(extractHostname(validatorInfo.Validator.Endpoint))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators_uptime.templ`, Line: 231, Col: 59}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators_uptime.templ`, Line: 374, Col: 59}
 				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "</td><td class=\"py-4 px-4\">")
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				switch validatorInfo.Validator.Status {
-				case "active":
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, "<span class=\"px-2 py-1 text-xs rounded bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200\">Active</span>")
-					if templ_7745c5c3_Err != nil {
-						return templ_7745c5c3_Err
-					}
-				case "deregistered":
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, "<span class=\"px-2 py-1 text-xs rounded bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200\">Deregistered</span>")
-					if templ_7745c5c3_Err != nil {
-						return templ_7745c5c3_Err
-					}
-				case "misbehavior_deregistered":
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 26, "<span class=\"px-2 py-1 text-xs rounded bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200\">Misbehavior</span>")
-					if templ_7745c5c3_Err != nil {
-						return templ_7745c5c3_Err
-					}
-				default:
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, "<span class=\"px-2 py-1 text-xs rounded bg-gray-100 dark:bg-gray-600 text-gray-800 dark:text-gray-200\">Unknown</span>")
-					if templ_7745c5c3_Err != nil {
-						return templ_7745c5c3_Err
-					}
-				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "</td><td class=\"py-4 px-4 text-sm font-mono\">")
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				var templ_7745c5c3_Var19 string
-				templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", validatorInfo.Validator.VotingPower))
-				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators_uptime.templ`, Line: 246, Col: 64}
-				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 29, "</td><td class=\"py-4 px-4\"><div class=\"flex items-center justify-center gap-1\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "</td><td class=\"py-4 px-4 text-center text-sm font-mono\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				if len(validatorInfo.RecentRollups) > 0 {
-					for _, rollup := range validatorInfo.RecentRollups {
-						var templ_7745c5c3_Var20 = []any{"w-3 h-6 rounded-sm", getUptimeColor(rollup)}
-						templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var20...)
-						if templ_7745c5c3_Err != nil {
-							return templ_7745c5c3_Err
-						}
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "<div class=\"")
-						if templ_7745c5c3_Err != nil {
-							return templ_7745c5c3_Err
-						}
-						var templ_7745c5c3_Var21 string
-						templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs(templ.CSSClasses(templ_7745c5c3_Var20).String())
-						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators_uptime.templ`, Line: 1, Col: 0}
-						}
-						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
-						if templ_7745c5c3_Err != nil {
-							return templ_7745c5c3_Err
-						}
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 31, "\" title=\"")
-						if templ_7745c5c3_Err != nil {
-							return templ_7745c5c3_Err
-						}
-						var templ_7745c5c3_Var22 string
-						templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("SLA #%d: %d blocks proposed, %d/%d challenges", rollup.SlaRollupID, rollup.NumBlocksProposed, rollup.ChallengesFailed, rollup.ChallengesReceived))
-						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators_uptime.templ`, Line: 254, Col: 178}
-						}
-						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var22))
-						if templ_7745c5c3_Err != nil {
-							return templ_7745c5c3_Err
-						}
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 32, "\"></div>")
-						if templ_7745c5c3_Err != nil {
-							return templ_7745c5c3_Err
-						}
+					var templ_7745c5c3_Var18 string
+					templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", validatorInfo.RecentRollups[0].NumBlocksProposed))
+					if templ_7745c5c3_Err != nil {
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators_uptime.templ`, Line: 378, Col: 78}
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 33, " ")
+					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					for i := len(validatorInfo.RecentRollups); i < 5; i++ {
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 34, "<div class=\"w-3 h-6 bg-gray-200 dark:bg-gray-700 rounded-sm\" title=\"No data available\"></div>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, " ")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					if rollupData != nil {
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, "<span class=\"text-gray-400 text-xs ml-1\">/ ")
+						if templ_7745c5c3_Err != nil {
+							return templ_7745c5c3_Err
+						}
+						var templ_7745c5c3_Var19 string
+						templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", rollupData.BlockQuota))
+						if templ_7745c5c3_Err != nil {
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators_uptime.templ`, Line: 380, Col: 95}
+						}
+						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
+						if templ_7745c5c3_Err != nil {
+							return templ_7745c5c3_Err
+						}
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, "</span>")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
 					}
 				} else {
-					for i := 0; i < 5; i++ {
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 35, "<div class=\"w-3 h-6 bg-gray-200 dark:bg-gray-700 rounded-sm\" title=\"No uptime data available\"></div>")
-						if templ_7745c5c3_Err != nil {
-							return templ_7745c5c3_Err
-						}
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 26, "<span class=\"text-gray-400 dark:text-gray-600\">—</span>")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
 					}
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 36, "</div></td></tr>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, "</td><td class=\"py-4 px-4 text-center text-sm font-mono\">")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				if len(validatorInfo.RecentRollups) > 0 {
+					var templ_7745c5c3_Var20 string
+					templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", validatorInfo.RecentRollups[0].ChallengesReceived))
+					if templ_7745c5c3_Err != nil {
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators_uptime.templ`, Line: 388, Col: 79}
+					}
+					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var20))
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+				} else {
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "<span class=\"text-gray-400 dark:text-gray-600\">—</span>")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 29, "</td><td class=\"py-4 px-4 text-center text-sm font-mono\">")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				if len(validatorInfo.RecentRollups) > 0 {
+					var templ_7745c5c3_Var21 string
+					templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", validatorInfo.RecentRollups[0].ChallengesFailed))
+					if templ_7745c5c3_Err != nil {
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators_uptime.templ`, Line: 395, Col: 77}
+					}
+					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+				} else {
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "<span class=\"text-gray-400 dark:text-gray-600\">—</span>")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 31, "</td><td class=\"py-4 px-4 text-center\"><div class=\"flex flex-col gap-1 items-center\">")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				var templ_7745c5c3_Var22 = []any{"px-2 py-1 text-xs rounded " + getValidatorStatusClass(validatorInfo, rollupData)}
+				templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var22...)
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 32, "<span class=\"")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				var templ_7745c5c3_Var23 string
+				templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinStringErrs(templ.CSSClasses(templ_7745c5c3_Var22).String())
+				if templ_7745c5c3_Err != nil {
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators_uptime.templ`, Line: 1, Col: 0}
+				}
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var23))
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 33, "\">")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				var templ_7745c5c3_Var24 string
+				templ_7745c5c3_Var24, templ_7745c5c3_Err = templ.JoinStringErrs(getValidatorStatusText(validatorInfo, rollupData))
+				if templ_7745c5c3_Err != nil {
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators_uptime.templ`, Line: 403, Col: 61}
+				}
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var24))
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 34, "</span> ")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				if getSlaStatusText(validatorInfo, rollupData) != "" {
+					var templ_7745c5c3_Var25 = []any{"px-2 py-1 text-xs rounded " + getSlaStatusClass(validatorInfo, rollupData)}
+					templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var25...)
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 35, "<span class=\"")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					var templ_7745c5c3_Var26 string
+					templ_7745c5c3_Var26, templ_7745c5c3_Err = templ.JoinStringErrs(templ.CSSClasses(templ_7745c5c3_Var25).String())
+					if templ_7745c5c3_Err != nil {
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators_uptime.templ`, Line: 1, Col: 0}
+					}
+					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var26))
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 36, "\">")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					var templ_7745c5c3_Var27 string
+					templ_7745c5c3_Var27, templ_7745c5c3_Err = templ.JoinStringErrs(getSlaStatusText(validatorInfo, rollupData))
+					if templ_7745c5c3_Err != nil {
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators_uptime.templ`, Line: 407, Col: 56}
+					}
+					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var27))
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 37, "</span>")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 38, "</div></td></tr>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 37, "</tbody></table></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 39, "</tbody></table></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 38, "<div class=\"text-center py-12\"><p class=\"text-gray-500 dark:text-gray-400\">No validator uptime data found</p></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 40, "<div class=\"text-center py-12\"><p class=\"text-gray-500 dark:text-gray-400\">No validator uptime data found</p></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

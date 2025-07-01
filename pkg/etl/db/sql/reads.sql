@@ -132,7 +132,7 @@ limit $1 offset $2;
 -- name: GetActiveValidators :many
 select * from etl_validators
 where status = 'active'
-order by voting_power desc
+order by comet_address
 limit $1 offset $2;
 
 -- name: GetValidatorRegistrations :many
@@ -160,23 +160,27 @@ order by block_height desc
 limit $2;
 
 -- name: GetValidatorsForSlaRollup :many
-select v.*, snr.num_blocks_proposed, snr.challenges_received, snr.challenges_failed
+select distinct v.*, snr.num_blocks_proposed, snr.challenges_received, snr.challenges_failed
 from etl_validators v
 left join etl_sla_node_reports snr on v.comet_address = snr.address and snr.sla_rollup_id = $1
 where v.status = 'active'
-order by v.voting_power desc;
+order by v.comet_address, v.id;
 
 -- name: GetAllActiveValidatorsWithRecentRollups :many
 select v.*, snr.sla_rollup_id, snr.num_blocks_proposed, snr.challenges_received, snr.challenges_failed, snr.block_height as report_block_height, snr.created_at as report_created_at
 from etl_validators v
 left join etl_sla_node_reports snr on v.comet_address = snr.address
 where v.status = 'active'
-order by v.voting_power desc, snr.sla_rollup_id desc;
+order by v.comet_address, v.id, snr.sla_rollup_id desc;
 
 -- name: GetSlaRollupsWithPagination :many
 select * from etl_sla_rollups
 order by id desc
 limit $1 offset $2;
+
+-- name: GetSlaRollupById :one
+select * from etl_sla_rollups
+where id = $1;
 
 -- name: GetBlockTransactionCount :one
 select count(*) from etl_transactions
@@ -185,3 +189,29 @@ where block_height = $1;
 -- name: GetActiveValidatorCount :one
 select count(*) from etl_validators
 where status = 'active';
+
+-- Storage proof consensus queries
+-- name: GetStorageProofsForHeight :many
+select * from etl_storage_proofs
+where height = $1;
+
+-- name: UpdateStorageProofStatus :exec
+update etl_storage_proofs
+set status = $1, proof = $2
+where height = $3 and address = $4;
+
+-- name: InsertFailedStorageProof :exec
+insert into etl_storage_proofs (
+  height, address, prover_addresses, cid, proof_signature, proof, status, block_height, tx_hash, created_at
+) values (
+  $1, $2, '{}', '', null, null, 'fail', $3, $4, $5
+);
+
+-- name: GetChallengeStatisticsForBlockRange :many
+select 
+  sp.address,
+  count(*) as challenges_received,
+  count(*) filter (where sp.status = 'fail') as challenges_failed
+from etl_storage_proofs sp
+where sp.height >= $1 and sp.height <= $2
+group by sp.address;

@@ -1,5 +1,8 @@
 -- Tables for ETL service
 
+-- Storage proof status enum
+create type etl_proof_status as enum ('unresolved', 'pass', 'fail');
+
 create table if not exists etl_addresses(
   id serial primary key,
   address text not null,
@@ -115,6 +118,8 @@ create table if not exists etl_storage_proofs(
   prover_addresses text[] not null,
   cid text not null,
   proof_signature bytea,
+  proof bytea,
+  status etl_proof_status not null default 'unresolved',
   block_height bigint not null,
   tx_hash text not null,
   created_at timestamp not null

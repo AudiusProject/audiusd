@@ -5,8 +5,54 @@
 package db
 
 import (
+	"database/sql/driver"
+	"fmt"
+
 	"github.com/jackc/pgx/v5/pgtype"
 )
+
+type EtlProofStatus string
+
+const (
+	EtlProofStatusUnresolved EtlProofStatus = "unresolved"
+	EtlProofStatusPass       EtlProofStatus = "pass"
+	EtlProofStatusFail       EtlProofStatus = "fail"
+)
+
+func (e *EtlProofStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = EtlProofStatus(s)
+	case string:
+		*e = EtlProofStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for EtlProofStatus: %T", src)
+	}
+	return nil
+}
+
+type NullEtlProofStatus struct {
+	EtlProofStatus EtlProofStatus `json:"etl_proof_status"`
+	Valid          bool           `json:"valid"` // Valid is true if EtlProofStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullEtlProofStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.EtlProofStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.EtlProofStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullEtlProofStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.EtlProofStatus), nil
+}
 
 type EtlAddress struct {
 	ID                   int32            `json:"id"`
@@ -82,6 +128,8 @@ type EtlStorageProof struct {
 	ProverAddresses []string         `json:"prover_addresses"`
 	Cid             string           `json:"cid"`
 	ProofSignature  []byte           `json:"proof_signature"`
+	Proof           []byte           `json:"proof"`
+	Status          EtlProofStatus   `json:"status"`
 	BlockHeight     int64            `json:"block_height"`
 	TxHash          string           `json:"tx_hash"`
 	CreatedAt       pgtype.Timestamp `json:"created_at"`

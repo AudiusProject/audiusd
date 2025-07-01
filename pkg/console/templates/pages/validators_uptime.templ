@@ -8,6 +8,10 @@ import (
 	"strings"
 )
 
+const (
+	slaMeetsThreshold = 0.8 // 80% threshold for both PoW and PoS
+)
+
 func extractHostname(endpoint string) string {
 	// Remove protocol if present
 	if strings.HasPrefix(endpoint, "http://") {
@@ -29,22 +33,165 @@ func extractHostname(endpoint string) string {
 	return endpoint
 }
 
-func meetsSlaThreshold(report *db.EtlSlaNodeReport) bool {
-	// Simplified SLA check since we don't have block quota in node reports
-	if report.NumBlocksProposed > 0 && report.ChallengesFailed <= (report.ChallengesReceived/5) {
-		return true
+func meetsPoWSla(report *db.EtlSlaNodeReport, blockQuota int32) bool {
+	if blockQuota <= 0 {
+		return true // No quota means no requirement
 	}
-	return report.NumBlocksProposed == 0 // Consider no activity as meeting SLA
+
+	faultRatio := float64(report.NumBlocksProposed) / float64(blockQuota)
+	return faultRatio >= slaMeetsThreshold
 }
 
-func getUptimeColor(report *db.EtlSlaNodeReport) string {
+func meetsPoSSla(report *db.EtlSlaNodeReport) bool {
+	if report.ChallengesReceived <= 0 {
+		return true // No challenges means passing
+	}
+
+	successRatio := 1.0 - (float64(report.ChallengesFailed) / float64(report.ChallengesReceived))
+	return successRatio >= slaMeetsThreshold
+}
+
+func meetsSlaThreshold(report *db.EtlSlaNodeReport, blockQuota int32) bool {
+	// Node is considered dead if it proposed no blocks
+	if report.NumBlocksProposed == 0 {
+		return false
+	}
+
+	// Must meet both PoW and PoS SLA requirements
+	return meetsPoWSla(report, blockQuota) && meetsPoSSla(report)
+}
+
+func getUptimeColor(report *db.EtlSlaNodeReport, blockQuota int32) string {
 	if report.NumBlocksProposed == 0 {
 		return "bg-gray-800"
 	}
-	if meetsSlaThreshold(report) {
+	if meetsSlaThreshold(report, blockQuota) {
 		return "bg-green-500"
 	}
 	return "bg-red-500"
+}
+
+func getStatusText(validatorStatus string, report *db.EtlSlaNodeReport, blockQuota int32) (string, string) {
+	// First determine validator registration status
+	var statusText, statusClass string
+	switch validatorStatus {
+	case "active":
+		statusText = "Active"
+		statusClass = "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200"
+	case "deregistered":
+		statusText = "Deregistered"
+		statusClass = "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200"
+	case "misbehavior_deregistered":
+		statusText = "Misbehavior"
+		statusClass = "bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200"
+	default:
+		statusText = "Unknown"
+		statusClass = "bg-gray-100 dark:bg-gray-600 text-gray-800 dark:text-gray-200"
+	}
+
+	// Then determine SLA status for active validators
+	if validatorStatus == "active" && report != nil {
+		if report.NumBlocksProposed == 0 {
+			statusText += " / Dead"
+			statusClass = "bg-gray-800 text-white"
+		} else if meetsSlaThreshold(report, blockQuota) {
+			statusText += " / Pass"
+			statusClass = "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200"
+		} else {
+			statusText += " / Fail"
+			statusClass = "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200"
+		}
+	}
+
+	return statusText, statusClass
+}
+
+func getValidatorStatusDisplay(validatorInfo *ValidatorUptimeInfo, rollupData *db.EtlSlaRollup) (string, string) {
+	var blockQuota int32 = 0
+	if rollupData != nil {
+		blockQuota = rollupData.BlockQuota
+	}
+
+	var report *db.EtlSlaNodeReport = nil
+	if len(validatorInfo.RecentRollups) > 0 {
+		report = validatorInfo.RecentRollups[0]
+	}
+
+	return getStatusText(validatorInfo.Validator.Status, report, blockQuota)
+}
+
+func getValidatorStatusText(validatorInfo *ValidatorUptimeInfo, rollupData *db.EtlSlaRollup) string {
+	switch validatorInfo.Validator.Status {
+	case "active":
+		return "Active"
+	case "deregistered":
+		return "Deregistered"
+	case "misbehavior_deregistered":
+		return "Misbehavior"
+	default:
+		return "Unknown"
+	}
+}
+
+func getValidatorStatusClass(validatorInfo *ValidatorUptimeInfo, rollupData *db.EtlSlaRollup) string {
+	switch validatorInfo.Validator.Status {
+	case "active":
+		return "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200"
+	case "deregistered":
+		return "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200"
+	case "misbehavior_deregistered":
+		return "bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200"
+	default:
+		return "bg-gray-100 dark:bg-gray-600 text-gray-800 dark:text-gray-200"
+	}
+}
+
+func getSlaStatusText(validatorInfo *ValidatorUptimeInfo, rollupData *db.EtlSlaRollup) string {
+	if validatorInfo.Validator.Status != "active" {
+		return "" // Only show SLA for active validators
+	}
+
+	if len(validatorInfo.RecentRollups) == 0 {
+		return "No Data"
+	}
+
+	report := validatorInfo.RecentRollups[0]
+	var blockQuota int32 = 0
+	if rollupData != nil {
+		blockQuota = rollupData.BlockQuota
+	}
+
+	if report.NumBlocksProposed == 0 {
+		return "Dead"
+	} else if meetsSlaThreshold(report, blockQuota) {
+		return "Pass"
+	} else {
+		return "Fail"
+	}
+}
+
+func getSlaStatusClass(validatorInfo *ValidatorUptimeInfo, rollupData *db.EtlSlaRollup) string {
+	if validatorInfo.Validator.Status != "active" {
+		return "" // Only show SLA for active validators
+	}
+
+	if len(validatorInfo.RecentRollups) == 0 {
+		return "bg-gray-100 dark:bg-gray-600 text-gray-800 dark:text-gray-200"
+	}
+
+	report := validatorInfo.RecentRollups[0]
+	var blockQuota int32 = 0
+	if rollupData != nil {
+		blockQuota = rollupData.BlockQuota
+	}
+
+	if report.NumBlocksProposed == 0 {
+		return "bg-gray-800 text-white"
+	} else if meetsSlaThreshold(report, blockQuota) {
+		return "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200"
+	} else {
+		return "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200"
+	}
 }
 
 type ValidatorUptimeInfo struct {
@@ -59,6 +206,7 @@ type ValidatorsUptimeProps struct {
 type ValidatorsUptimeByRollupProps struct {
 	Validators []*ValidatorUptimeInfo
 	RollupID   int32
+	RollupData *db.EtlSlaRollup
 }
 
 func getLatestRollupInfo(validators []*ValidatorUptimeInfo) *db.EtlSlaNodeReport {
@@ -118,7 +266,7 @@ templ ValidatorsUptime(props ValidatorsUptimeProps) {
 					</div>
 				</div>
 			</div>
-			@ValidatorsUptimeTable(props.Validators)
+			@ValidatorsUptimeTable(props.Validators, nil)
 		</div>
 	}
 }
@@ -138,21 +286,21 @@ templ ValidatorsUptimeByRollup(props ValidatorsUptimeByRollupProps) {
 				</div>
 			</div>
 			// Add summary cards section for the specific rollup
-			@ValidatorsUptimeSummaryForRollup(props.Validators, props.RollupID)
-			@ValidatorsUptimeTable(props.Validators)
+			@ValidatorsUptimeSummaryForRollup(props.Validators, props.RollupID, props.RollupData)
+			@ValidatorsUptimeTable(props.Validators, props.RollupData)
 		</div>
 	}
 }
 
-templ ValidatorsUptimeSummaryForRollup(validators []*ValidatorUptimeInfo, rollupId int32) {
-	if rollupInfo := getRollupInfo(validators, rollupId); rollupInfo != nil {
+templ ValidatorsUptimeSummaryForRollup(validators []*ValidatorUptimeInfo, rollupId int32, rollupData *db.EtlSlaRollup) {
+	if rollupData != nil {
 		<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
 			<div class="bg-slate-100 dark:bg-gray-700 rounded-md p-4 text-center">
 				<dt class="text-lg font-semibold text-gray-900 dark:text-gray-100">
-					if rollupInfo.CreatedAt.Valid {
-						{ rollupInfo.CreatedAt.Time.Format("06-01-02") }
+					if rollupData.CreatedAt.Valid {
+						{ rollupData.CreatedAt.Time.Format("06-01-02") }
 						<br/>
-						{ rollupInfo.CreatedAt.Time.Format("15:04:05 MST") }
+						{ rollupData.CreatedAt.Time.Format("15:04:05 MST") }
 					} else {
 						—
 					}
@@ -161,41 +309,35 @@ templ ValidatorsUptimeSummaryForRollup(validators []*ValidatorUptimeInfo, rollup
 			</div>
 			<div class="bg-slate-100 dark:bg-gray-700 rounded-md p-4 text-center">
 				<dt class="text-2xl font-bold text-gray-900 dark:text-gray-100">
-					{ fmt.Sprintf("#%d", rollupInfo.SlaRollupID) }
+					{ fmt.Sprintf("#%d", rollupData.ID) }
 				</dt>
 				<dd class="text-sm text-gray-500 dark:text-gray-400 mt-1">SLA Rollup ID</dd>
 			</div>
 			<div class="bg-slate-100 dark:bg-gray-700 rounded-md p-4 text-center">
 				<dt class="text-2xl font-bold text-gray-900 dark:text-gray-100">
-					{ fmt.Sprintf("%d", rollupInfo.NumBlocksProposed) }
+					{ fmt.Sprintf("%d", rollupData.BlockEnd - rollupData.BlockStart + 1) }
 				</dt>
-				<dd class="text-sm text-gray-500 dark:text-gray-400 mt-1">Blocks Proposed</dd>
+				<dd class="text-sm text-gray-500 dark:text-gray-400 mt-1">Total Blocks</dd>
 			</div>
 			<div class="bg-slate-100 dark:bg-gray-700 rounded-md p-4 text-center">
 				<dt class="text-2xl font-bold text-gray-900 dark:text-gray-100">
-					{ fmt.Sprintf("%d", getTotalValidatorsCount(validators)) }
+					{ fmt.Sprintf("%d", rollupData.ValidatorCount) }
 				</dt>
 				<dd class="text-sm text-gray-500 dark:text-gray-400 mt-1">Active Validators</dd>
 			</div>
 		</div>
 		// Add additional metrics row
-		<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+		<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
 			<div class="bg-slate-100 dark:bg-gray-700 rounded-md p-4 text-center">
 				<dt class="text-2xl font-bold text-gray-900 dark:text-gray-100">
-					{ fmt.Sprintf("%d", rollupInfo.ChallengesReceived) }
+					{ fmt.Sprintf("%d", rollupData.BlockQuota) }
 				</dt>
-				<dd class="text-sm text-gray-500 dark:text-gray-400 mt-1">Challenges Received</dd>
-			</div>
-			<div class="bg-slate-100 dark:bg-gray-700 rounded-md p-4 text-center">
-				<dt class="text-2xl font-bold text-gray-900 dark:text-gray-100">
-					{ fmt.Sprintf("%d", rollupInfo.ChallengesFailed) }
-				</dt>
-				<dd class="text-sm text-gray-500 dark:text-gray-400 mt-1">Challenges Failed</dd>
+				<dd class="text-sm text-gray-500 dark:text-gray-400 mt-1">Block Quota</dd>
 			</div>
 			<div class="bg-slate-100 dark:bg-gray-700 rounded-md p-4 text-center">
 				<dt class="text-sm font-mono text-gray-900 dark:text-gray-100 break-all">
-					if rollupInfo.TxHash != "" {
-						@templates.StringWithTooltipCustom(rollupInfo.TxHash, 8, 4)
+					if rollupData.TxHash != "" {
+						@templates.StringWithTooltipCustom(rollupData.TxHash, 8, 4)
 					} else {
 						—
 					}
@@ -206,7 +348,7 @@ templ ValidatorsUptimeSummaryForRollup(validators []*ValidatorUptimeInfo, rollup
 	}
 }
 
-templ ValidatorsUptimeTable(validators []*ValidatorUptimeInfo) {
+templ ValidatorsUptimeTable(validators []*ValidatorUptimeInfo, rollupData *db.EtlSlaRollup) {
 	if len(validators) > 0 {
 		<div class="overflow-x-auto">
 			<table class="min-w-full">
@@ -214,9 +356,10 @@ templ ValidatorsUptimeTable(validators []*ValidatorUptimeInfo) {
 					<tr class="border-b border-gray-200 dark:border-gray-700">
 						<th class="text-left py-3 px-4 font-medium text-gray-900 dark:text-gray-100">Validator</th>
 						<th class="text-left py-3 px-4 font-medium text-gray-900 dark:text-gray-100">Endpoint</th>
-						<th class="text-left py-3 px-4 font-medium text-gray-900 dark:text-gray-100">Status</th>
-						<th class="text-left py-3 px-4 font-medium text-gray-900 dark:text-gray-100">Voting Power</th>
-						<th class="text-center py-3 px-4 font-medium text-gray-900 dark:text-gray-100">Recent SLA Rollups</th>
+						<th class="text-center py-3 px-4 font-medium text-gray-900 dark:text-gray-100">Blocks Proposed</th>
+						<th class="text-center py-3 px-4 font-medium text-gray-900 dark:text-gray-100">Challenges Received</th>
+						<th class="text-center py-3 px-4 font-medium text-gray-900 dark:text-gray-100">Challenges Failed</th>
+						<th class="text-center py-3 px-4 font-medium text-gray-900 dark:text-gray-100">Status</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -230,39 +373,39 @@ templ ValidatorsUptimeTable(validators []*ValidatorUptimeInfo) {
 							<td class="py-4 px-4 text-sm">
 								{ extractHostname(validatorInfo.Validator.Endpoint) }
 							</td>
-							<td class="py-4 px-4">
-								switch validatorInfo.Validator.Status {
-									case "active":
-										<span class="px-2 py-1 text-xs rounded bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">Active</span>
-									case "deregistered":
-										<span class="px-2 py-1 text-xs rounded bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200">Deregistered</span>
-									case "misbehavior_deregistered":
-										<span class="px-2 py-1 text-xs rounded bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200">Misbehavior</span>
-									default:
-										<span class="px-2 py-1 text-xs rounded bg-gray-100 dark:bg-gray-600 text-gray-800 dark:text-gray-200">Unknown</span>
+							<td class="py-4 px-4 text-center text-sm font-mono">
+								if len(validatorInfo.RecentRollups) > 0 {
+									{ fmt.Sprintf("%d", validatorInfo.RecentRollups[0].NumBlocksProposed) }
+									if rollupData != nil {
+										<span class="text-gray-400 text-xs ml-1">/ { fmt.Sprintf("%d", rollupData.BlockQuota) }</span>
+									}
+								} else {
+									<span class="text-gray-400 dark:text-gray-600">—</span>
 								}
 							</td>
-							<td class="py-4 px-4 text-sm font-mono">
-								{ fmt.Sprintf("%d", validatorInfo.Validator.VotingPower) }
+							<td class="py-4 px-4 text-center text-sm font-mono">
+								if len(validatorInfo.RecentRollups) > 0 {
+									{ fmt.Sprintf("%d", validatorInfo.RecentRollups[0].ChallengesReceived) }
+								} else {
+									<span class="text-gray-400 dark:text-gray-600">—</span>
+								}
 							</td>
-							<td class="py-4 px-4">
-								<div class="flex items-center justify-center gap-1">
-									if len(validatorInfo.RecentRollups) > 0 {
-										for _, rollup := range validatorInfo.RecentRollups {
-											<div
-												class={ "w-3 h-6 rounded-sm", getUptimeColor(rollup) }
-												title={ fmt.Sprintf("SLA #%d: %d blocks proposed, %d/%d challenges", rollup.SlaRollupID, rollup.NumBlocksProposed, rollup.ChallengesFailed, rollup.ChallengesReceived) }
-											></div>
-										}
-										// Fill remaining slots with empty bars if less than 5 rollups
-										for i := len(validatorInfo.RecentRollups); i < 5; i++ {
-											<div class="w-3 h-6 bg-gray-200 dark:bg-gray-700 rounded-sm" title="No data available"></div>
-										}
-									} else {
-										// Show placeholder bars if no uptime data available
-										for i := 0; i < 5; i++ {
-											<div class="w-3 h-6 bg-gray-200 dark:bg-gray-700 rounded-sm" title="No uptime data available"></div>
-										}
+							<td class="py-4 px-4 text-center text-sm font-mono">
+								if len(validatorInfo.RecentRollups) > 0 {
+									{ fmt.Sprintf("%d", validatorInfo.RecentRollups[0].ChallengesFailed) }
+								} else {
+									<span class="text-gray-400 dark:text-gray-600">—</span>
+								}
+							</td>
+							<td class="py-4 px-4 text-center">
+								<div class="flex flex-col gap-1 items-center">
+									<span class={ "px-2 py-1 text-xs rounded " + getValidatorStatusClass(validatorInfo, rollupData) }>
+										{ getValidatorStatusText(validatorInfo, rollupData) }
+									</span>
+									if getSlaStatusText(validatorInfo, rollupData) != "" {
+										<span class={ "px-2 py-1 text-xs rounded " + getSlaStatusClass(validatorInfo, rollupData) }>
+											{ getSlaStatusText(validatorInfo, rollupData) }
+										</span>
 									}
 								</div>
 							</td>

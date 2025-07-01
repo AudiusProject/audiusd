@@ -26,7 +26,7 @@ func (q *Queries) GetActiveValidatorCount(ctx context.Context) (int64, error) {
 const getActiveValidators = `-- name: GetActiveValidators :many
 select id, address, endpoint, comet_address, node_type, spid, voting_power, status, registered_at, deregistered_at, created_at, updated_at from etl_validators
 where status = 'active'
-order by voting_power desc
+order by comet_address
 limit $1 offset $2
 `
 
@@ -73,7 +73,7 @@ select v.id, v.address, v.endpoint, v.comet_address, v.node_type, v.spid, v.voti
 from etl_validators v
 left join etl_sla_node_reports snr on v.comet_address = snr.address
 where v.status = 'active'
-order by v.voting_power desc, snr.sla_rollup_id desc
+order by v.comet_address, v.id, snr.sla_rollup_id desc
 `
 
 type GetAllActiveValidatorsWithRecentRollupsRow struct {
@@ -241,6 +241,47 @@ func (q *Queries) GetBlocksByPage(ctx context.Context, arg GetBlocksByPageParams
 			&i.BlockHeight,
 			&i.BlockTime,
 		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getChallengeStatisticsForBlockRange = `-- name: GetChallengeStatisticsForBlockRange :many
+select 
+  sp.address,
+  count(*) as challenges_received,
+  count(*) filter (where sp.status = 'fail') as challenges_failed
+from etl_storage_proofs sp
+where sp.height >= $1 and sp.height <= $2
+group by sp.address
+`
+
+type GetChallengeStatisticsForBlockRangeParams struct {
+	Height   int64 `json:"height"`
+	Height_2 int64 `json:"height_2"`
+}
+
+type GetChallengeStatisticsForBlockRangeRow struct {
+	Address            string `json:"address"`
+	ChallengesReceived int64  `json:"challenges_received"`
+	ChallengesFailed   int64  `json:"challenges_failed"`
+}
+
+func (q *Queries) GetChallengeStatisticsForBlockRange(ctx context.Context, arg GetChallengeStatisticsForBlockRangeParams) ([]GetChallengeStatisticsForBlockRangeRow, error) {
+	rows, err := q.db.Query(ctx, getChallengeStatisticsForBlockRange, arg.Height, arg.Height_2)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetChallengeStatisticsForBlockRangeRow
+	for rows.Next() {
+		var i GetChallengeStatisticsForBlockRangeRow
+		if err := rows.Scan(&i.Address, &i.ChallengesReceived, &i.ChallengesFailed); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -505,6 +546,27 @@ func (q *Queries) GetSlaNodeReportsByBlockHeightCursor(ctx context.Context, arg 
 	return items, nil
 }
 
+const getSlaRollupById = `-- name: GetSlaRollupById :one
+select id, block_start, block_end, block_height, validator_count, block_quota, tx_hash, created_at from etl_sla_rollups
+where id = $1
+`
+
+func (q *Queries) GetSlaRollupById(ctx context.Context, id int32) (EtlSlaRollup, error) {
+	row := q.db.QueryRow(ctx, getSlaRollupById, id)
+	var i EtlSlaRollup
+	err := row.Scan(
+		&i.ID,
+		&i.BlockStart,
+		&i.BlockEnd,
+		&i.BlockHeight,
+		&i.ValidatorCount,
+		&i.BlockQuota,
+		&i.TxHash,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const getSlaRollupByTxHash = `-- name: GetSlaRollupByTxHash :one
 select id, block_start, block_end, block_height, validator_count, block_quota, tx_hash, created_at from etl_sla_rollups
 where tx_hash = $1
@@ -609,7 +671,7 @@ func (q *Queries) GetSlaRollupsWithPagination(ctx context.Context, arg GetSlaRol
 }
 
 const getStorageProofByTxHash = `-- name: GetStorageProofByTxHash :one
-select id, height, address, prover_addresses, cid, proof_signature, block_height, tx_hash, created_at from etl_storage_proofs
+select id, height, address, prover_addresses, cid, proof_signature, proof, status, block_height, tx_hash, created_at from etl_storage_proofs
 where tx_hash = $1
 `
 
@@ -623,6 +685,8 @@ func (q *Queries) GetStorageProofByTxHash(ctx context.Context, txHash string) (E
 		&i.ProverAddresses,
 		&i.Cid,
 		&i.ProofSignature,
+		&i.Proof,
+		&i.Status,
 		&i.BlockHeight,
 		&i.TxHash,
 		&i.CreatedAt,
@@ -690,7 +754,7 @@ func (q *Queries) GetStorageProofVerificationsByBlockHeightCursor(ctx context.Co
 }
 
 const getStorageProofsByBlockHeightCursor = `-- name: GetStorageProofsByBlockHeightCursor :many
-select id, height, address, prover_addresses, cid, proof_signature, block_height, tx_hash, created_at from etl_storage_proofs
+select id, height, address, prover_addresses, cid, proof_signature, proof, status, block_height, tx_hash, created_at from etl_storage_proofs
 where block_height > $1 or (block_height = $1 and id > $2)
 order by block_height, id
 limit $3
@@ -718,6 +782,46 @@ func (q *Queries) GetStorageProofsByBlockHeightCursor(ctx context.Context, arg G
 			&i.ProverAddresses,
 			&i.Cid,
 			&i.ProofSignature,
+			&i.Proof,
+			&i.Status,
+			&i.BlockHeight,
+			&i.TxHash,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getStorageProofsForHeight = `-- name: GetStorageProofsForHeight :many
+select id, height, address, prover_addresses, cid, proof_signature, proof, status, block_height, tx_hash, created_at from etl_storage_proofs
+where height = $1
+`
+
+// Storage proof consensus queries
+func (q *Queries) GetStorageProofsForHeight(ctx context.Context, height int64) ([]EtlStorageProof, error) {
+	rows, err := q.db.Query(ctx, getStorageProofsForHeight, height)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []EtlStorageProof
+	for rows.Next() {
+		var i EtlStorageProof
+		if err := rows.Scan(
+			&i.ID,
+			&i.Height,
+			&i.Address,
+			&i.ProverAddresses,
+			&i.Cid,
+			&i.ProofSignature,
+			&i.Proof,
+			&i.Status,
 			&i.BlockHeight,
 			&i.TxHash,
 			&i.CreatedAt,
@@ -1158,11 +1262,11 @@ func (q *Queries) GetValidatorRegistrationsByBlockHeightCursor(ctx context.Conte
 }
 
 const getValidatorsForSlaRollup = `-- name: GetValidatorsForSlaRollup :many
-select v.id, v.address, v.endpoint, v.comet_address, v.node_type, v.spid, v.voting_power, v.status, v.registered_at, v.deregistered_at, v.created_at, v.updated_at, snr.num_blocks_proposed, snr.challenges_received, snr.challenges_failed
+select distinct v.id, v.address, v.endpoint, v.comet_address, v.node_type, v.spid, v.voting_power, v.status, v.registered_at, v.deregistered_at, v.created_at, v.updated_at, snr.num_blocks_proposed, snr.challenges_received, snr.challenges_failed
 from etl_validators v
 left join etl_sla_node_reports snr on v.comet_address = snr.address and snr.sla_rollup_id = $1
 where v.status = 'active'
-order by v.voting_power desc
+order by v.comet_address, v.id
 `
 
 type GetValidatorsForSlaRollupRow struct {
@@ -1217,4 +1321,54 @@ func (q *Queries) GetValidatorsForSlaRollup(ctx context.Context, slaRollupID int
 		return nil, err
 	}
 	return items, nil
+}
+
+const insertFailedStorageProof = `-- name: InsertFailedStorageProof :exec
+insert into etl_storage_proofs (
+  height, address, prover_addresses, cid, proof_signature, proof, status, block_height, tx_hash, created_at
+) values (
+  $1, $2, '{}', '', null, null, 'fail', $3, $4, $5
+)
+`
+
+type InsertFailedStorageProofParams struct {
+	Height      int64            `json:"height"`
+	Address     string           `json:"address"`
+	BlockHeight int64            `json:"block_height"`
+	TxHash      string           `json:"tx_hash"`
+	CreatedAt   pgtype.Timestamp `json:"created_at"`
+}
+
+func (q *Queries) InsertFailedStorageProof(ctx context.Context, arg InsertFailedStorageProofParams) error {
+	_, err := q.db.Exec(ctx, insertFailedStorageProof,
+		arg.Height,
+		arg.Address,
+		arg.BlockHeight,
+		arg.TxHash,
+		arg.CreatedAt,
+	)
+	return err
+}
+
+const updateStorageProofStatus = `-- name: UpdateStorageProofStatus :exec
+update etl_storage_proofs
+set status = $1, proof = $2
+where height = $3 and address = $4
+`
+
+type UpdateStorageProofStatusParams struct {
+	Status  EtlProofStatus `json:"status"`
+	Proof   []byte         `json:"proof"`
+	Height  int64          `json:"height"`
+	Address string         `json:"address"`
+}
+
+func (q *Queries) UpdateStorageProofStatus(ctx context.Context, arg UpdateStorageProofStatusParams) error {
+	_, err := q.db.Exec(ctx, updateStorageProofStatus,
+		arg.Status,
+		arg.Proof,
+		arg.Height,
+		arg.Address,
+	)
+	return err
 }

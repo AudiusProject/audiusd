@@ -49,8 +49,8 @@ insert into etl_validator_misbehavior_deregistrations (comet_address, pub_key, b
 values ($1, $2, $3, $4, $5);
 
 -- name: InsertStorageProof :exec
-insert into etl_storage_proofs (height, address, prover_addresses, cid, proof_signature, block_height, tx_hash, created_at)
-values ($1, $2, $3, $4, $5, $6, $7, $8);
+insert into etl_storage_proofs (height, address, prover_addresses, cid, proof_signature, proof, status, block_height, tx_hash, created_at)
+values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);
 
 -- name: InsertStorageProofVerification :exec
 insert into etl_storage_proof_verifications (height, proof, block_height, tx_hash, created_at)
