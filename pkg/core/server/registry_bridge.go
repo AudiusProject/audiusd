@@ -31,7 +31,7 @@ func (s *Server) startRegistryBridge() error {
 	if s.isDevEnvironment() {
 		s.logger.Info("running in dev, registering on ethereum")
 		// allow ethservice to initialize
-		time.Sleep(5 * time.Second)
+		time.Sleep(10 * time.Second)
 		if err := s.registerSelfOnEth(); err != nil {
 			s.logger.Errorf("error registering onto eth: %v", err)
 			return err
@@ -232,7 +232,7 @@ func (s *Server) registerSelfOnComet(ctx context.Context, delegateOwnerWallet ge
 				},
 			}))
 			if err != nil {
-				s.logger.Error("failed to get registration attestation from %s: %v", addr, err)
+				s.logger.Errorf("failed to get registration attestation from %s: %v", addr, err)
 				continue
 			}
 			attestations = append(attestations, resp.Msg.Signature)

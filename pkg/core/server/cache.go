@@ -260,7 +260,8 @@ func (s *Server) startCacheRefresh() error {
 		go func() {
 			defer wg.Done()
 			if err := s.cacheSnapshots(); err != nil {
-				s.logger.Errorf("error caching snapshots: %v", err)
+				// Too noisy
+				//s.logger.Errorf("error caching snapshots: %v", err)
 			}
 		}()
 		wg.Wait()

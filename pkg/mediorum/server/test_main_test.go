@@ -3,10 +3,12 @@ package server
 import (
 	"fmt"
 	"log"
+	"log/slog"
 	"os"
 	"testing"
 	"time"
 
+	"github.com/AudiusProject/audiusd/pkg/common"
 	coreServer "github.com/AudiusProject/audiusd/pkg/core/server"
 	"github.com/AudiusProject/audiusd/pkg/pos"
 	"github.com/AudiusProject/audiusd/pkg/version"
@@ -49,7 +51,7 @@ func setupTestNetwork(replicationFactor, serverCount int) []*MediorumServer {
 			},
 		}
 		posChannel := make(chan pos.PoSRequest)
-		server, err := New(config, posChannel, &coreServer.CoreService{})
+		server, err := New(config, posChannel, &coreServer.CoreService{}, common.NewLogger(&slog.HandlerOptions{}))
 		if err != nil {
 			panic(err)
 		}
