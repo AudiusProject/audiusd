@@ -18,6 +18,7 @@ create table if not exists etl_transactions(
   block_height bigint not null,
   tx_index integer not null,
   tx_type text not null,
+  address text,
   created_at timestamp not null
 );
 
@@ -150,6 +151,9 @@ create table if not exists etl_validators(
 );
 
 -- Indexes
+create index if not exists etl_transactions_address_idx on etl_transactions(address);
+create index if not exists etl_transactions_tx_type_idx on etl_transactions(tx_type);
+create index if not exists etl_transactions_created_at_idx on etl_transactions(created_at);
 
 -- Pgnotify triggers
 

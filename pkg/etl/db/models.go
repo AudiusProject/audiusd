@@ -150,6 +150,7 @@ type EtlTransaction struct {
 	BlockHeight int64            `json:"block_height"`
 	TxIndex     int32            `json:"tx_index"`
 	TxType      string           `json:"tx_type"`
+	Address     pgtype.Text      `json:"address"`
 	CreatedAt   pgtype.Timestamp `json:"created_at"`
 }
 

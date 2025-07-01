@@ -215,3 +215,47 @@ select
 from etl_storage_proofs sp
 where sp.height >= $1 and sp.height <= $2
 group by sp.address;
+
+-- Account transaction queries  
+-- name: GetTransactionsByAddress :many
+select t.*, 
+       case 
+         when t.tx_type = 'manage_entity' then coalesce(me.action || me.entity_type, t.tx_type)
+         else t.tx_type
+       end as relation
+from etl_transactions t
+left join etl_manage_entities me on t.tx_hash = me.tx_hash and t.tx_type = 'manage_entity'
+where t.address = $1
+  and ($2 = '' or 
+       case 
+         when t.tx_type = 'manage_entity' then coalesce(me.action || me.entity_type, t.tx_type) = $2
+         else t.tx_type = $2
+       end)
+  and ($3::timestamp is null or t.created_at >= $3)
+  and ($4::timestamp is null or t.created_at <= $4)
+order by t.block_height desc, t.tx_index desc
+limit $5 offset $6;
+
+-- name: GetTransactionCountByAddress :one
+select count(*)
+from etl_transactions t
+left join etl_manage_entities me on t.tx_hash = me.tx_hash and t.tx_type = 'manage_entity'
+where t.address = $1
+  and ($2 = '' or 
+       case 
+         when t.tx_type = 'manage_entity' then coalesce(me.action || me.entity_type, t.tx_type) = $2
+         else t.tx_type = $2
+       end)
+  and ($3::timestamp is null or t.created_at >= $3)
+  and ($4::timestamp is null or t.created_at <= $4);
+
+-- name: GetRelationTypesByAddress :many
+select distinct 
+       case 
+         when t.tx_type = 'manage_entity' then coalesce(me.action || me.entity_type, t.tx_type)
+         else t.tx_type
+       end as relation_type
+from etl_transactions t
+left join etl_manage_entities me on t.tx_hash = me.tx_hash and t.tx_type = 'manage_entity'
+where t.address = $1
+order by relation_type;

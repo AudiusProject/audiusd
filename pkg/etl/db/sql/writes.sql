@@ -4,8 +4,8 @@ values ($1, $2, $3, $4)
 on conflict do nothing;
 
 -- name: InsertTransaction :exec
-insert into etl_transactions (tx_hash, block_height, tx_index, tx_type, created_at)
-values ($1, $2, $3, $4, $5);
+insert into etl_transactions (tx_hash, block_height, tx_index, tx_type, address, created_at)
+values ($1, $2, $3, $4, $5, $6);
 
 -- name: InsertBlock :exec
 insert into etl_blocks (proposer_address, block_height, block_time)

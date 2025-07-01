@@ -214,13 +214,18 @@ func (etl *ETLService) indexBlocks() error {
 					TxHash:      tx.Hash,
 					BlockHeight: block.Height,
 					TxIndex:     int32(index),
-					TxType:      "", // We'll update this after determining the type
+					TxType:      "",                        // We'll update this after determining the type
+					Address:     pgtype.Text{Valid: false}, // We'll update this after determining the address
 					CreatedAt:   pgtype.Timestamp{Time: block.Timestamp.AsTime(), Valid: true},
 				}
 
 				switch signedTx := tx.Transaction.Transaction.(type) {
 				case *corev1.SignedTransaction_Plays:
 					insertTxParams.TxType = TxTypePlay
+					// Use the first play's user_id as the transaction address
+					if len(signedTx.Plays.GetPlays()) > 0 {
+						insertTxParams.Address = pgtype.Text{String: signedTx.Plays.GetPlays()[0].UserId, Valid: true}
+					}
 					// Process plays with batch insert
 					plays := signedTx.Plays.GetPlays()
 					if len(plays) > 0 {
@@ -270,6 +275,7 @@ func (etl *ETLService) indexBlocks() error {
 				case *corev1.SignedTransaction_ManageEntity:
 					insertTxParams.TxType = TxTypeManageEntity
 					me := signedTx.ManageEntity
+					insertTxParams.Address = pgtype.Text{String: me.GetSigner(), Valid: true}
 
 					// Insert address first
 					err := etl.db.InsertAddress(context.Background(), db.InsertAddressParams{
@@ -305,6 +311,9 @@ func (etl *ETLService) indexBlocks() error {
 				case *corev1.SignedTransaction_ValidatorDeregistration:
 					insertTxParams.TxType = TxTypeValidatorMisbehaviorDeregistration
 					vd := signedTx.ValidatorDeregistration
+					// For deregistration we only have comet address, we'll need to look up eth address
+					// For now use comet address, can be improved later
+					insertTxParams.Address = pgtype.Text{String: vd.CometAddress, Valid: true}
 					err = etl.db.InsertValidatorMisbehaviorDeregistration(context.Background(), db.InsertValidatorMisbehaviorDeregistrationParams{
 						CometAddress: vd.CometAddress,
 						PubKey:       vd.PubKey,
@@ -318,6 +327,7 @@ func (etl *ETLService) indexBlocks() error {
 				case *corev1.SignedTransaction_SlaRollup:
 					insertTxParams.TxType = TxTypeSlaRollup
 					sr := signedTx.SlaRollup
+					// SLA rollups affect multiple validators, so we leave address as null
 
 					// Use the number of reports in the rollup as the validator count
 					// This matches what the original core system does
@@ -371,6 +381,7 @@ func (etl *ETLService) indexBlocks() error {
 				case *corev1.SignedTransaction_StorageProof:
 					insertTxParams.TxType = TxTypeStorageProof
 					sp := signedTx.StorageProof
+					insertTxParams.Address = pgtype.Text{String: sp.Address, Valid: true}
 					err = etl.db.InsertStorageProof(context.Background(), db.InsertStorageProofParams{
 						Height:          sp.Height,
 						Address:         sp.Address,
@@ -389,6 +400,7 @@ func (etl *ETLService) indexBlocks() error {
 				case *corev1.SignedTransaction_StorageProofVerification:
 					insertTxParams.TxType = TxTypeStorageProofVerification
 					spv := signedTx.StorageProofVerification
+					// Storage proof verification doesn't have a specific address, leave as null
 					err = etl.db.InsertStorageProofVerification(context.Background(), db.InsertStorageProofVerificationParams{
 						Height:      spv.Height,
 						Proof:       spv.Proof,
@@ -409,6 +421,7 @@ func (etl *ETLService) indexBlocks() error {
 					at := signedTx.Attestation
 					if vr := at.GetValidatorRegistration(); vr != nil {
 						insertTxParams.TxType = TxTypeValidatorRegistration
+						insertTxParams.Address = pgtype.Text{String: vr.DelegateWallet, Valid: true}
 						err = etl.db.InsertValidatorRegistration(context.Background(), db.InsertValidatorRegistrationParams{
 							Address:      vr.DelegateWallet,
 							Endpoint:     vr.Endpoint,
@@ -444,6 +457,9 @@ func (etl *ETLService) indexBlocks() error {
 					}
 					if vd := at.GetValidatorDeregistration(); vd != nil {
 						insertTxParams.TxType = TxTypeValidatorDeregistration
+						// For attestation deregistration we only have comet address, need to look up eth address
+						// For now use comet address, can be improved later
+						insertTxParams.Address = pgtype.Text{String: vd.CometAddress, Valid: true}
 						err = etl.db.InsertValidatorDeregistration(context.Background(), db.InsertValidatorDeregistrationParams{
 							CometAddress: vd.CometAddress,
 							CometPubkey:  vd.PubKey,

@@ -461,6 +461,38 @@ func (q *Queries) GetPlaysByTxHash(ctx context.Context, txHash string) ([]EtlPla
 	return items, nil
 }
 
+const getRelationTypesByAddress = `-- name: GetRelationTypesByAddress :many
+select distinct 
+       case 
+         when t.tx_type = 'manage_entity' then coalesce(me.action || me.entity_type, t.tx_type)
+         else t.tx_type
+       end as relation_type
+from etl_transactions t
+left join etl_manage_entities me on t.tx_hash = me.tx_hash and t.tx_type = 'manage_entity'
+where t.address = $1
+order by relation_type
+`
+
+func (q *Queries) GetRelationTypesByAddress(ctx context.Context, address pgtype.Text) ([]interface{}, error) {
+	rows, err := q.db.Query(ctx, getRelationTypesByAddress, address)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []interface{}
+	for rows.Next() {
+		var relation_type interface{}
+		if err := rows.Scan(&relation_type); err != nil {
+			return nil, err
+		}
+		items = append(items, relation_type)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getSlaNodeReportsByAddress = `-- name: GetSlaNodeReportsByAddress :many
 select id, sla_rollup_id, address, num_blocks_proposed, challenges_received, challenges_failed, block_height, tx_hash, created_at from etl_sla_node_reports
 where address = $1
@@ -848,7 +880,7 @@ func (q *Queries) GetTotalTransactions(ctx context.Context) (int32, error) {
 }
 
 const getTransactionByHash = `-- name: GetTransactionByHash :one
-select id, tx_hash, block_height, tx_index, tx_type, created_at from etl_transactions
+select id, tx_hash, block_height, tx_index, tx_type, address, created_at from etl_transactions
 where tx_hash = $1
 `
 
@@ -861,13 +893,124 @@ func (q *Queries) GetTransactionByHash(ctx context.Context, txHash string) (EtlT
 		&i.BlockHeight,
 		&i.TxIndex,
 		&i.TxType,
+		&i.Address,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
+const getTransactionCountByAddress = `-- name: GetTransactionCountByAddress :one
+select count(*)
+from etl_transactions t
+left join etl_manage_entities me on t.tx_hash = me.tx_hash and t.tx_type = 'manage_entity'
+where t.address = $1
+  and ($2 = '' or 
+       case 
+         when t.tx_type = 'manage_entity' then coalesce(me.action || me.entity_type, t.tx_type) = $2
+         else t.tx_type = $2
+       end)
+  and ($3::timestamp is null or t.created_at >= $3)
+  and ($4::timestamp is null or t.created_at <= $4)
+`
+
+type GetTransactionCountByAddressParams struct {
+	Address pgtype.Text      `json:"address"`
+	Column2 interface{}      `json:"column_2"`
+	Column3 pgtype.Timestamp `json:"column_3"`
+	Column4 pgtype.Timestamp `json:"column_4"`
+}
+
+func (q *Queries) GetTransactionCountByAddress(ctx context.Context, arg GetTransactionCountByAddressParams) (int64, error) {
+	row := q.db.QueryRow(ctx, getTransactionCountByAddress,
+		arg.Address,
+		arg.Column2,
+		arg.Column3,
+		arg.Column4,
+	)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const getTransactionsByAddress = `-- name: GetTransactionsByAddress :many
+select t.id, t.tx_hash, t.block_height, t.tx_index, t.tx_type, t.address, t.created_at, 
+       case 
+         when t.tx_type = 'manage_entity' then coalesce(me.action || me.entity_type, t.tx_type)
+         else t.tx_type
+       end as relation
+from etl_transactions t
+left join etl_manage_entities me on t.tx_hash = me.tx_hash and t.tx_type = 'manage_entity'
+where t.address = $1
+  and ($2 = '' or 
+       case 
+         when t.tx_type = 'manage_entity' then coalesce(me.action || me.entity_type, t.tx_type) = $2
+         else t.tx_type = $2
+       end)
+  and ($3::timestamp is null or t.created_at >= $3)
+  and ($4::timestamp is null or t.created_at <= $4)
+order by t.block_height desc, t.tx_index desc
+limit $5 offset $6
+`
+
+type GetTransactionsByAddressParams struct {
+	Address pgtype.Text      `json:"address"`
+	Column2 interface{}      `json:"column_2"`
+	Column3 pgtype.Timestamp `json:"column_3"`
+	Column4 pgtype.Timestamp `json:"column_4"`
+	Limit   int32            `json:"limit"`
+	Offset  int32            `json:"offset"`
+}
+
+type GetTransactionsByAddressRow struct {
+	ID          int32            `json:"id"`
+	TxHash      string           `json:"tx_hash"`
+	BlockHeight int64            `json:"block_height"`
+	TxIndex     int32            `json:"tx_index"`
+	TxType      string           `json:"tx_type"`
+	Address     pgtype.Text      `json:"address"`
+	CreatedAt   pgtype.Timestamp `json:"created_at"`
+	Relation    interface{}      `json:"relation"`
+}
+
+// Account transaction queries
+func (q *Queries) GetTransactionsByAddress(ctx context.Context, arg GetTransactionsByAddressParams) ([]GetTransactionsByAddressRow, error) {
+	rows, err := q.db.Query(ctx, getTransactionsByAddress,
+		arg.Address,
+		arg.Column2,
+		arg.Column3,
+		arg.Column4,
+		arg.Limit,
+		arg.Offset,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetTransactionsByAddressRow
+	for rows.Next() {
+		var i GetTransactionsByAddressRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.TxHash,
+			&i.BlockHeight,
+			&i.TxIndex,
+			&i.TxType,
+			&i.Address,
+			&i.CreatedAt,
+			&i.Relation,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getTransactionsByBlockHeightCursor = `-- name: GetTransactionsByBlockHeightCursor :many
-select id, tx_hash, block_height, tx_index, tx_type, created_at from etl_transactions
+select id, tx_hash, block_height, tx_index, tx_type, address, created_at from etl_transactions
 where block_height > $1 or (block_height = $1 and id > $2)
 order by block_height, id
 limit $3
@@ -894,6 +1037,7 @@ func (q *Queries) GetTransactionsByBlockHeightCursor(ctx context.Context, arg Ge
 			&i.BlockHeight,
 			&i.TxIndex,
 			&i.TxType,
+			&i.Address,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -907,7 +1051,7 @@ func (q *Queries) GetTransactionsByBlockHeightCursor(ctx context.Context, arg Ge
 }
 
 const getTransactionsByPage = `-- name: GetTransactionsByPage :many
-select id, tx_hash, block_height, tx_index, tx_type, created_at from etl_transactions
+select id, tx_hash, block_height, tx_index, tx_type, address, created_at from etl_transactions
 order by block_height desc, tx_index desc
 limit $1 offset $2
 `
@@ -932,6 +1076,7 @@ func (q *Queries) GetTransactionsByPage(ctx context.Context, arg GetTransactions
 			&i.BlockHeight,
 			&i.TxIndex,
 			&i.TxType,
+			&i.Address,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err

@@ -323,8 +323,8 @@ func (q *Queries) InsertStorageProofVerification(ctx context.Context, arg Insert
 }
 
 const insertTransaction = `-- name: InsertTransaction :exec
-insert into etl_transactions (tx_hash, block_height, tx_index, tx_type, created_at)
-values ($1, $2, $3, $4, $5)
+insert into etl_transactions (tx_hash, block_height, tx_index, tx_type, address, created_at)
+values ($1, $2, $3, $4, $5, $6)
 `
 
 type InsertTransactionParams struct {
@@ -332,6 +332,7 @@ type InsertTransactionParams struct {
 	BlockHeight int64            `json:"block_height"`
 	TxIndex     int32            `json:"tx_index"`
 	TxType      string           `json:"tx_type"`
+	Address     pgtype.Text      `json:"address"`
 	CreatedAt   pgtype.Timestamp `json:"created_at"`
 }
 
@@ -341,6 +342,7 @@ func (q *Queries) InsertTransaction(ctx context.Context, arg InsertTransactionPa
 		arg.BlockHeight,
 		arg.TxIndex,
 		arg.TxType,
+		arg.Address,
 		arg.CreatedAt,
 	)
 	return err

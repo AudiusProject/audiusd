@@ -1007,8 +1007,132 @@ func (con *Console) Account(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "Address parameter is required")
 	}
 
-	// TODO: Implement account lookup and transaction history using database queries
-	return c.String(http.StatusNotImplemented, fmt.Sprintf("TODO: Implement account lookup for address %s", address))
+	// Parse query parameters
+	pageParam := c.QueryParam("page")
+	countParam := c.QueryParam("count")
+	relationFilter := c.QueryParam("relation")
+	startDate := c.QueryParam("start_date")
+	endDate := c.QueryParam("end_date")
+
+	page := int32(1) // default to page 1
+	if pageParam != "" {
+		if parsedPage, err := strconv.ParseInt(pageParam, 10, 32); err == nil && parsedPage > 0 {
+			page = int32(parsedPage)
+		}
+	}
+
+	count := int32(50) // default to 50 per page
+	if countParam != "" {
+		if parsedCount, err := strconv.ParseInt(countParam, 10, 32); err == nil && parsedCount > 0 && parsedCount <= 200 {
+			count = int32(parsedCount)
+		}
+	}
+
+	// Calculate offset from page number
+	offset := (page - 1) * count
+
+	ctx := c.Request().Context()
+	etlDB := con.etl.GetDB()
+
+	// Parse date filters
+	var startTimestamp, endTimestamp pgtype.Timestamp
+	if startDate != "" {
+		if t, err := time.Parse("2006-01-02", startDate); err == nil {
+			startTimestamp = pgtype.Timestamp{Time: t, Valid: true}
+		}
+	}
+	if endDate != "" {
+		if t, err := time.Parse("2006-01-02", endDate); err == nil {
+			// Add 24 hours to include the entire end date
+			endTimestamp = pgtype.Timestamp{Time: t.Add(24 * time.Hour), Valid: true}
+		}
+	}
+
+	// Get transactions for this address
+	transactionRows, err := etlDB.GetTransactionsByAddress(ctx, db.GetTransactionsByAddressParams{
+		Address: pgtype.Text{String: address, Valid: true},
+		Column2: relationFilter, // empty string means all relations
+		Column3: startTimestamp,
+		Column4: endTimestamp,
+		Limit:   count,
+		Offset:  offset,
+	})
+	if err != nil {
+		con.logger.Error("Failed to get transactions for address", "address", address, "error", err)
+		return c.String(http.StatusInternalServerError, "Failed to get transactions")
+	}
+
+	// Get total count for pagination
+	totalCount, err := etlDB.GetTransactionCountByAddress(ctx, db.GetTransactionCountByAddressParams{
+		Address: pgtype.Text{String: address, Valid: true},
+		Column2: relationFilter,
+		Column3: startTimestamp,
+		Column4: endTimestamp,
+	})
+	if err != nil {
+		con.logger.Error("Failed to get transaction count for address", "address", address, "error", err)
+		return c.String(http.StatusInternalServerError, "Failed to get transaction count")
+	}
+
+	// Get available relation types for filter dropdown
+	relationTypesRaw, err := etlDB.GetRelationTypesByAddress(ctx, pgtype.Text{String: address, Valid: true})
+	if err != nil {
+		con.logger.Error("Failed to get relation types for address", "address", address, "error", err)
+		// Don't fail the request, just log the error
+		relationTypesRaw = []interface{}{}
+	}
+
+	// Convert interface{} slice to string slice
+	relationTypes := make([]string, len(relationTypesRaw))
+	for i, rt := range relationTypesRaw {
+		if str, ok := rt.(string); ok {
+			relationTypes[i] = str
+		} else {
+			relationTypes[i] = fmt.Sprintf("%v", rt)
+		}
+	}
+
+	// Convert transaction rows to transactions and extract relations
+	transactions := make([]*db.EtlTransaction, len(transactionRows))
+	txRelations := make([]string, len(transactionRows))
+	for i, row := range transactionRows {
+		transactions[i] = &db.EtlTransaction{
+			ID:          row.ID,
+			TxHash:      row.TxHash,
+			BlockHeight: row.BlockHeight,
+			TxIndex:     row.TxIndex,
+			TxType:      row.TxType,
+			CreatedAt:   row.CreatedAt,
+		}
+		// Handle relation type assertion
+		if str, ok := row.Relation.(string); ok {
+			txRelations[i] = str
+		} else {
+			txRelations[i] = fmt.Sprintf("%v", row.Relation)
+		}
+	}
+
+	// Calculate pagination state
+	hasNext := int64(offset+count) < totalCount
+	hasPrev := page > 1
+
+	props := pages.AccountProps{
+		Address:       address,
+		Transactions:  transactions,
+		TxRelations:   txRelations,
+		CurrentPage:   page,
+		HasNext:       hasNext,
+		HasPrev:       hasPrev,
+		PageSize:      count,
+		RelationTypes: relationTypes,
+		CurrentFilter: relationFilter,
+		StartDate:     startDate,
+		EndDate:       endDate,
+	}
+
+	p := pages.Account(props)
+	ctx = c.Request().Context()
+	return p.Render(ctx, c.Response().Writer)
 }
 
 func (con *Console) stubRoute(c echo.Context) error {
