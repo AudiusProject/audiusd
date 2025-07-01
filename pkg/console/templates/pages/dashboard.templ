@@ -261,7 +261,7 @@ templ Dashboard(props DashboardProps) {
 			<!-- Section 3: Transaction Analytics -->
 			<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6">
 				<div class="flex items-center justify-between mb-6">
-					<h3 class="text-xl font-bold text-gray-900 dark:text-gray-100">Network Performance</h3>
+					<h3 class="text-xl font-bold text-gray-900 dark:text-gray-100">Transaction Analytics</h3>
 				</div>
 				<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 					<!-- Primary Metrics -->
@@ -318,37 +318,11 @@ templ Dashboard(props DashboardProps) {
 					<div class="flex items-center justify-between">
 						<div class="flex items-center space-x-3">
 							<div class="w-3 h-3 bg-purple-500 rounded-full animate-pulse"></div>
-							<h3 class="text-lg font-bold text-gray-900 dark:text-gray-100 tracking-wide">📈 Network Performance Over Time</h3>
+							<h2 class="text-lg font-bold text-gray-900 dark:text-gray-100 tracking-wide">Network Performance</h2>
 						</div>
 						<a href="/rollups" class="text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 hover:underline text-sm">View rollups →</a>
 					</div>
 					<div class="mt-3 flex items-center justify-between">
-						<div class="flex items-center space-x-6 text-sm text-gray-600 dark:text-gray-400">
-							<div class="flex items-center space-x-2">
-								<div class="flex space-x-1">
-									<div class="w-2 h-3 rounded-sm" style="background-color: #1e3a8a;"></div>
-									<div class="w-2 h-3 rounded-sm" style="background-color: #3b82f6;"></div>
-									<div class="w-2 h-3 rounded-sm" style="background-color: #93c5fd;"></div>
-								</div>
-								<span class="font-medium">Validators (Left)</span>
-							</div>
-							<div class="flex items-center space-x-2">
-								<div class="flex space-x-1">
-									<div class="w-2 h-3 rounded-sm" style="background-color: #86198f;"></div>
-									<div class="w-2 h-3 rounded-sm" style="background-color: #d946ef;"></div>
-									<div class="w-2 h-3 rounded-sm" style="background-color: #f0abfc;"></div>
-								</div>
-								<span class="font-medium">BPS (Right)</span>
-							</div>
-							<div class="flex items-center space-x-2">
-								<div class="flex space-x-1">
-									<div class="w-2 h-3 rounded-sm" style="background-color: #be185d;"></div>
-									<div class="w-2 h-3 rounded-sm" style="background-color: #ec4899;"></div>
-									<div class="w-2 h-3 rounded-sm" style="background-color: #fbcfe8;"></div>
-								</div>
-								<span class="font-medium">TPS (Right)</span>
-							</div>
-						</div>
 						<div
 							class="flex items-center space-x-4 text-xs text-gray-500 dark:text-gray-400"
 							x-data="chartMeta()"
@@ -1173,10 +1147,13 @@ templ SLAChartScript() {
 									fill: false,
 									tension: 0.3,
 									pointRadius: 0,
-									pointHoverRadius: 4,
+									pointHoverRadius: 6,
 									pointBackgroundColor: isDarkMode ? '#60a5fa' : '#2563eb',
 									pointBorderColor: isDarkMode ? '#1f2937' : '#ffffff',
 									pointBorderWidth: 2,
+									pointHoverBackgroundColor: isDarkMode ? '#93c5fd' : '#1d4ed8',
+									pointHoverBorderColor: isDarkMode ? '#1f2937' : '#ffffff',
+									pointHoverBorderWidth: 3,
 									yAxisID: 'y'
 								},
 								{
@@ -1188,10 +1165,13 @@ templ SLAChartScript() {
 									fill: false,
 									tension: 0.3,
 									pointRadius: 0,
-									pointHoverRadius: 4,
+									pointHoverRadius: 6,
 									pointBackgroundColor: isDarkMode ? '#c084fc' : '#7c3aed',
 									pointBorderColor: isDarkMode ? '#1f2937' : '#ffffff',
 									pointBorderWidth: 2,
+									pointHoverBackgroundColor: isDarkMode ? '#ddd6fe' : '#5b21b6',
+									pointHoverBorderColor: isDarkMode ? '#1f2937' : '#ffffff',
+									pointHoverBorderWidth: 3,
 									yAxisID: 'y1'
 								},
 								{
@@ -1203,10 +1183,13 @@ templ SLAChartScript() {
 									fill: false,
 									tension: 0.3,
 									pointRadius: 0,
-									pointHoverRadius: 4,
+									pointHoverRadius: 6,
 									pointBackgroundColor: isDarkMode ? '#f472b6' : '#db2777',
 									pointBorderColor: isDarkMode ? '#1f2937' : '#ffffff',
 									pointBorderWidth: 2,
+									pointHoverBackgroundColor: isDarkMode ? '#fce7f3' : '#be185d',
+									pointHoverBorderColor: isDarkMode ? '#1f2937' : '#ffffff',
+									pointHoverBorderWidth: 3,
 									yAxisID: 'y1'
 								}
 							]
@@ -1215,8 +1198,8 @@ templ SLAChartScript() {
 							responsive: true,
 							maintainAspectRatio: false,
 							interaction: {
-								mode: 'nearest',
-								intersect: true,
+								mode: 'index',
+								intersect: false,
 							},
 							elements: {
 								line: {
@@ -1224,8 +1207,9 @@ templ SLAChartScript() {
 								},
 								point: {
 									radius: 0,
-									hoverRadius: 4,
-									borderWidth: 2
+									hoverRadius: 6,
+									borderWidth: 2,
+									hoverBorderWidth: 3
 								}
 							},
 							animation: {
@@ -1242,65 +1226,79 @@ templ SLAChartScript() {
 									align: 'start',
 									labels: {
 										usePointStyle: true,
-										pointStyle: 'line',
+										pointStyle: 'rect',
 										color: isDarkMode ? '#d1d5db' : '#4b5563',
 										font: {
 											size: 11,
 											weight: '400'
 										},
 										padding: 20,
-										pointStyleWidth: 25
+										pointStyleWidth: 15,
+										generateLabels: function(chart) {
+											const original = Chart.defaults.plugins.legend.labels.generateLabels;
+											const labels = original.call(this, chart);
+											
+											labels.forEach((label, index) => {
+												const dataset = chart.data.datasets[index];
+												if (dataset) {
+													label.fillStyle = dataset.borderColor;
+													label.strokeStyle = dataset.borderColor;
+													label.pointStyle = 'rect';
+												}
+											});
+											
+											return labels;
+										}
 									}
 								},
 								tooltip: {
-									backgroundColor: isDarkMode ? 'rgba(17, 24, 39, 0.98)' : 'rgba(255, 255, 255, 0.98)',
-									titleColor: isDarkMode ? '#d1d5db' : '#374151',
-									bodyColor: isDarkMode ? '#d1d5db' : '#374151',
-									borderColor: isDarkMode ? '#4b5563' : '#e5e7eb',
+									backgroundColor: isDarkMode ? 'rgba(17, 24, 39, 0.96)' : 'rgba(255, 255, 255, 0.96)',
+									titleColor: isDarkMode ? '#f3f4f6' : '#1f2937',
+									bodyColor: isDarkMode ? '#e5e7eb' : '#374151',
+									borderColor: isDarkMode ? '#6b7280' : '#d1d5db',
 									borderWidth: 1,
-									cornerRadius: 6,
+									cornerRadius: 8,
 									displayColors: true,
 									titleFont: {
 										size: 12,
-										weight: '500'
+										weight: '600'
 									},
 									bodyFont: {
-										size: 11,
+										size: 10,
 										weight: '400'
 									},
-									padding: 10,
+									padding: 12,
+									maxWidth: 350,
+									titleSpacing: 4,
+									bodySpacing: 2,
 									callbacks: {
 										title: (context) => {
 											const dataIndex = context[0].dataIndex;
 											const point = this.chartData[dataIndex];
 											if (!point) return '';
 											const date = new Date(point.timestamp);
-											return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+											return date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
 										},
 										label: (context) => {
 											const datasetLabel = context.dataset.label;
 											const value = context.parsed.y;
 											
 											if (datasetLabel === 'Validators') {
-												return `👥 Validators: ${value}`;
+												return `Validators: ${value}`;
 											} else if (datasetLabel === 'BPS') {
-												return `⚡ BPS: ${value.toFixed(3)}`;
+												return `BPS: ${value.toFixed(2)}`;
 											} else if (datasetLabel === 'TPS') {
-												return `📊 TPS: ${value.toFixed(3)}`;
+												return `TPS: ${value.toFixed(2)}`;
 											}
 											return '';
 										},
 										afterBody: (context) => {
 											const dataIndex = context[0].dataIndex;
 											const point = this.chartData[dataIndex];
-											if (!point) return [''];
+											if (!point) return [];
 											return [
 												'',
-												`🔗 Rollup #${point.rollupId}`,
-												`📦 Block ${point.blockHeight}`,
-												`📊 Range: ${point.blockStart.toLocaleString()} - ${point.blockEnd.toLocaleString()}`,
-												'',
-												'💡 Click to view rollup details'
+												`Block ${point.blockHeight.toLocaleString()}`
 											];
 										}
 									}
