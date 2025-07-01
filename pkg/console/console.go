@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -13,6 +14,7 @@ import (
 	"github.com/AudiusProject/audiusd/pkg/console/templates/pages"
 	"github.com/AudiusProject/audiusd/pkg/etl"
 	"github.com/AudiusProject/audiusd/pkg/etl/db"
+	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/labstack/echo/v4"
 	"golang.org/x/sync/errgroup"
@@ -1005,6 +1007,37 @@ func (con *Console) Account(c echo.Context) error {
 	address := c.Param("address")
 	if address == "" {
 		return c.String(http.StatusBadRequest, "Address parameter is required")
+	}
+
+	isEthAddress := ethcommon.IsHexAddress(address)
+	if !isEthAddress {
+		// assume handle and query audius api
+		res, err := http.Get(fmt.Sprintf("https://api.audius.co/v1/users/handle/%s", address))
+		if err != nil {
+			return c.String(http.StatusBadRequest, "Invalid address")
+		}
+		defer res.Body.Close()
+		body, err := io.ReadAll(res.Body)
+		if err != nil {
+			return c.String(http.StatusBadRequest, "Invalid address")
+		}
+
+		type audiusUser struct {
+			Wallet string `json:"wallet"`
+		}
+
+		type audiusResponse struct {
+			Data audiusUser `json:"data"`
+		}
+
+		var response audiusResponse
+		err = json.Unmarshal(body, &response)
+		if err != nil {
+			return c.String(http.StatusBadRequest, "Invalid address")
+		}
+		address = response.Data.Wallet
+
+		return c.Redirect(http.StatusTemporaryRedirect, fmt.Sprintf("/account/%s", address))
 	}
 
 	// Parse query parameters
