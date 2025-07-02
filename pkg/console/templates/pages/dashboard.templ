@@ -1180,15 +1180,18 @@ templ SLAChartScript() {
 
 					// Calculate dynamic axis ranges
 					const validatorValues = this.chartData.map(point => point.validatorCount);
+					const healthyValidatorValues = this.chartData.map(point => point.healthyValidators);
 					const bpsValues = this.chartData.map(point => point.bps);
 					const tpsValues = this.chartData.map(point => point.tps);
 					
+					// Combined validator values for left axis (include both total and healthy validators)
+					const allValidatorValues = [...validatorValues, ...healthyValidatorValues];
 					// Combined performance values for right axis
 					const performanceValues = [...bpsValues, ...tpsValues];
 					
-					// Calculate min/max with padding
-					const validatorMin = Math.max(0, Math.min(...validatorValues) - 5);
-					const validatorMax = Math.max(...validatorValues) + 5;
+					// Calculate min/max with padding - now includes both validator count and healthy validator count
+					const validatorMin = Math.max(0, Math.min(...allValidatorValues) - 3);
+					const validatorMax = Math.max(...allValidatorValues) + 3;
 					const performanceMin = Math.max(0, Math.min(...performanceValues) - 1);
 					const performanceMax = Math.max(...performanceValues) + 2;
 
