@@ -157,6 +157,82 @@ create index if not exists etl_transactions_address_idx on etl_transactions(addr
 create index if not exists etl_transactions_tx_type_idx on etl_transactions(tx_type);
 create index if not exists etl_transactions_created_at_idx on etl_transactions(created_at);
 
+-- Additional comprehensive indexes for query optimization
+
+-- Primary key and ordering indexes
+create index if not exists etl_blocks_id_desc_idx on etl_blocks(id desc);
+create index if not exists etl_transactions_id_desc_idx on etl_transactions(id desc);
+create index if not exists etl_blocks_block_height_desc_idx on etl_blocks(block_height desc);
+create index if not exists etl_transactions_block_height_desc_idx on etl_transactions(block_height desc, tx_index desc);
+
+-- Cursor pagination composite indexes (block_height, id) for efficient pagination
+create index if not exists etl_transactions_cursor_idx on etl_transactions(block_height, id);
+create index if not exists etl_plays_cursor_idx on etl_plays(block_height, id);
+create index if not exists etl_manage_entities_cursor_idx on etl_manage_entities(block_height, id);
+create index if not exists etl_validator_registrations_cursor_idx on etl_validator_registrations(block_height, id);
+create index if not exists etl_validator_deregistrations_cursor_idx on etl_validator_deregistrations(block_height, id);
+create index if not exists etl_sla_rollups_cursor_idx on etl_sla_rollups(block_height, id);
+create index if not exists etl_sla_node_reports_cursor_idx on etl_sla_node_reports(block_height, id);
+create index if not exists etl_validator_misbehavior_deregistrations_cursor_idx on etl_validator_misbehavior_deregistrations(block_height, id);
+create index if not exists etl_storage_proofs_cursor_idx on etl_storage_proofs(block_height, id);
+create index if not exists etl_storage_proof_verifications_cursor_idx on etl_storage_proof_verifications(block_height, id);
+
+-- Hash lookup indexes for O(1) access
+create unique index if not exists etl_transactions_tx_hash_idx on etl_transactions(tx_hash);
+create index if not exists etl_plays_tx_hash_idx on etl_plays(tx_hash);
+create index if not exists etl_manage_entities_tx_hash_idx on etl_manage_entities(tx_hash);
+create index if not exists etl_validator_registrations_tx_hash_idx on etl_validator_registrations(tx_hash);
+create index if not exists etl_validator_deregistrations_tx_hash_idx on etl_validator_deregistrations(tx_hash);
+create index if not exists etl_sla_rollups_tx_hash_idx on etl_sla_rollups(tx_hash);
+create index if not exists etl_storage_proofs_tx_hash_idx on etl_storage_proofs(tx_hash);
+create index if not exists etl_storage_proof_verifications_tx_hash_idx on etl_storage_proof_verifications(tx_hash);
+
+-- Block queries
+create index if not exists etl_blocks_block_height_idx on etl_blocks(block_height);
+create index if not exists etl_blocks_block_time_idx on etl_blocks(block_time);
+create index if not exists etl_blocks_block_time_range_idx on etl_blocks(block_time, block_height);
+
+-- Validator-specific indexes
+create index if not exists etl_validators_status_idx on etl_validators(status);
+create index if not exists etl_validators_comet_address_idx on etl_validators(comet_address);
+create index if not exists etl_validators_address_lower_idx on etl_validators(lower(address));
+create index if not exists etl_validators_comet_address_lower_idx on etl_validators(lower(comet_address));
+create index if not exists etl_validator_registrations_comet_address_idx on etl_validator_registrations(comet_address);
+create index if not exists etl_validator_deregistrations_comet_address_idx on etl_validator_deregistrations(comet_address);
+
+-- Address-based queries with case-insensitive matching
+create index if not exists etl_transactions_address_lower_idx on etl_transactions(lower(address));
+create index if not exists etl_sla_node_reports_address_lower_idx on etl_sla_node_reports(lower(address));
+
+-- Storage proof queries
+create index if not exists etl_storage_proofs_height_idx on etl_storage_proofs(height);
+create index if not exists etl_storage_proofs_height_address_idx on etl_storage_proofs(height, address);
+create index if not exists etl_storage_proofs_height_range_idx on etl_storage_proofs(height, address) where height >= 0;
+
+-- SLA rollup and node report relationships
+create index if not exists etl_sla_node_reports_sla_rollup_id_idx on etl_sla_node_reports(sla_rollup_id);
+create index if not exists etl_sla_node_reports_address_sla_rollup_idx on etl_sla_node_reports(address, sla_rollup_id);
+create index if not exists etl_sla_rollups_block_height_desc_idx on etl_sla_rollups(block_height desc, id desc);
+
+-- Complex query optimizations for GetTransactionsByAddress and GetAllActiveValidatorsWithRecentRollups
+create index if not exists etl_transactions_address_filter_idx on etl_transactions(lower(address), tx_type, created_at, block_height desc, tx_index desc);
+create index if not exists etl_validators_active_reports_idx on etl_validators(status, comet_address) where status = 'active';
+
+-- Manage entities for transaction relation queries
+create index if not exists etl_manage_entities_tx_hash_action_entity_idx on etl_manage_entities(tx_hash, action, entity_type);
+
+-- Time-based analysis indexes for dashboard views
+create index if not exists etl_transactions_created_at_type_idx on etl_transactions(created_at, tx_type);
+create index if not exists etl_blocks_block_time_height_idx on etl_blocks(block_time desc, block_height desc);
+
+-- Covering indexes for frequently accessed columns to avoid table lookups
+create index if not exists etl_validators_status_covering_idx on etl_validators(status, comet_address, endpoint, node_type, spid, voting_power) where status = 'active';
+create index if not exists etl_sla_rollups_latest_covering_idx on etl_sla_rollups(block_height desc, id desc, block_start, block_end, validator_count, block_quota, bps, tps);
+
+-- Partial indexes for specific query patterns
+create index if not exists etl_storage_proofs_status_unresolved_idx on etl_storage_proofs(height, address) where status = 'unresolved';
+create index if not exists etl_storage_proofs_status_fail_idx on etl_storage_proofs(height, address) where status = 'fail';
+
 -- Pgnotify triggers
 
 -- Function to notify when a new block is inserted
