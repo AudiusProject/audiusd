@@ -41,7 +41,7 @@ type Console struct {
 	etl                *etl.ETLService
 	logger             *common.Logger
 	trustedNode        *sdk.AudiusdSDK
-	latestTrustedBlock atomic.Uint64
+	latestTrustedBlock atomic.Int64
 }
 
 func NewConsole(etl *etl.ETLService, e *echo.Echo, env string) *Console {
@@ -63,7 +63,7 @@ func NewConsole(etl *etl.ETLService, e *echo.Echo, env string) *Console {
 		trustedNodeURL = "rpc.dev.audius.engineering"
 	}
 
-	return &Console{etl: etl, e: e, logger: common.NewLogger(nil).Child("console"), env: env, trustedNode: sdk.NewAudiusdSDK(trustedNodeURL), latestTrustedBlock: atomic.Uint64{}}
+	return &Console{etl: etl, e: e, logger: common.NewLogger(nil).Child("console"), env: env, trustedNode: sdk.NewAudiusdSDK(trustedNodeURL)}
 }
 
 func (con *Console) SetupRoutes() {
@@ -149,7 +149,8 @@ func (con *Console) Run() error {
 			con.logger.Warn("Failed to initialize node info", "error", err)
 			con.latestTrustedBlock.Store(0)
 		} else {
-			con.latestTrustedBlock.Store(uint64(info.Msg.CurrentHeight))
+			con.logger.Info("Initialized node info", "height", info.Msg.CurrentHeight)
+			con.latestTrustedBlock.Store(info.Msg.CurrentHeight)
 		}
 
 		ticker := time.NewTicker(10 * time.Second)
@@ -161,9 +162,8 @@ func (con *Console) Run() error {
 				con.logger.Warn("Failed to get node info", "error", err)
 				continue
 			}
-			if con.latestTrustedBlock.Load() < uint64(info.Msg.CurrentHeight) {
-				con.latestTrustedBlock.Store(uint64(info.Msg.CurrentHeight))
-			}
+			con.latestTrustedBlock.Store(info.Msg.CurrentHeight)
+			con.logger.Info("Updated node info", "height", info.Msg.CurrentHeight)
 		}
 		return nil
 	})
@@ -257,12 +257,20 @@ func (con *Console) Dashboard(c echo.Context) error {
 	var blockDelta int64
 	syncProgressPercentage := float64(100) // Default to fully synced
 
-	if trustedBlockHeight > 0 && latestBlockHeight > 0 {
+	con.logger.Info("Latest block height", "height", latestBlockHeight)
+	con.logger.Info("Trusted block height", "height", trustedBlockHeight)
+
+	if trustedBlockHeight >= 0 && latestBlockHeight >= 0 {
+
 		blockDelta = trustedBlockHeight - latestBlockHeight
 		isSyncing = blockDelta > syncThreshold
 
+		con.logger.Info("Block delta", "delta", blockDelta)
+		con.logger.Info("Is syncing", "isSyncing", isSyncing)
+
 		if isSyncing && trustedBlockHeight > 0 {
 			syncProgressPercentage = (float64(latestBlockHeight) / float64(trustedBlockHeight)) * 100
+			con.logger.Info("Sync progress percentage", "percentage", syncProgressPercentage)
 			// Ensure percentage doesn't exceed 100
 			if syncProgressPercentage > 100 {
 				syncProgressPercentage = 100
@@ -271,6 +279,7 @@ func (con *Console) Dashboard(c echo.Context) error {
 			syncProgressPercentage = 100 // Fully synced
 		}
 	} else {
+		con.logger.Info("No trusted block info, assuming synced")
 		// If we don't have trusted block info, assume synced
 		isSyncing = false
 		blockDelta = 0
