@@ -42,6 +42,8 @@ type Console struct {
 	logger             *common.Logger
 	trustedNode        *sdk.AudiusdSDK
 	latestTrustedBlock atomic.Int64
+	lastRefreshTime    atomic.Int64  // Unix timestamp of last refresh
+	refreshInterval    time.Duration // How often to refresh
 }
 
 func NewConsole(etl *etl.ETLService, e *echo.Echo, env string) *Console {
@@ -63,10 +65,20 @@ func NewConsole(etl *etl.ETLService, e *echo.Echo, env string) *Console {
 		trustedNodeURL = "rpc.dev.audius.engineering"
 	}
 
-	return &Console{etl: etl, e: e, logger: common.NewLogger(nil).Child("console"), env: env, trustedNode: sdk.NewAudiusdSDK(trustedNodeURL)}
+	return &Console{
+		etl:             etl,
+		e:               e,
+		logger:          common.NewLogger(nil).Child("console"),
+		env:             env,
+		trustedNode:     sdk.NewAudiusdSDK(trustedNodeURL),
+		refreshInterval: 10 * time.Second,
+	}
 }
 
-func (con *Console) SetupRoutes() {
+func (con *Console) Initialize() {
+	// start refresher
+	go con.refreshTrustedBlock()
+
 	e := con.e
 	e.HideBanner = true
 
@@ -151,6 +163,7 @@ func (con *Console) Run() error {
 		} else {
 			con.logger.Info("Initialized node info", "height", info.Msg.CurrentHeight)
 			con.latestTrustedBlock.Store(info.Msg.CurrentHeight)
+			con.lastRefreshTime.Store(time.Now().Unix())
 		}
 
 		ticker := time.NewTicker(10 * time.Second)
@@ -163,6 +176,7 @@ func (con *Console) Run() error {
 				continue
 			}
 			con.latestTrustedBlock.Store(info.Msg.CurrentHeight)
+			con.lastRefreshTime.Store(time.Now().Unix())
 			con.logger.Info("Updated node info", "height", info.Msg.CurrentHeight)
 		}
 		return nil
@@ -1639,4 +1653,21 @@ func (con *Console) Search(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]interface{}{
 		"results": []interface{}{},
 	})
+}
+
+// refreshTrustedBlock refreshes the trusted block height every 10 seconds
+func (con *Console) refreshTrustedBlock() {
+	ticker := time.NewTicker(10 * time.Second)
+	defer ticker.Stop()
+
+	for range ticker.C {
+		info, err := con.trustedNode.Core.GetNodeInfo(context.Background(), &connect.Request[corev1.GetNodeInfoRequest]{})
+		if err != nil {
+			con.logger.Warn("Failed to refresh node info", "error", err)
+			// Use the cached value if refresh fails
+		} else {
+			con.latestTrustedBlock.Store(info.Msg.CurrentHeight)
+			con.lastRefreshTime.Store(time.Now().Unix())
+		}
+	}
 }

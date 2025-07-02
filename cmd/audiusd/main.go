@@ -390,7 +390,7 @@ func startEchoProxy(hostUrl *url.URL, logger *common.Logger, coreService *coreSe
 		// start indexing immediately
 		etlService.SetCheckReadiness(false)
 		c := consolev2.NewConsole(etlService, e, network)
-		c.SetupRoutes()
+		c.Initialize()
 	}
 
 	go func() {

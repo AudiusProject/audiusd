@@ -38,7 +38,7 @@ func main() {
 	etl.SetCheckReadiness(false)
 
 	console := console.NewConsole(etl, nil, "prod")
-	console.SetupRoutes()
+	console.Initialize()
 
 	defer console.Stop()
 	if err := console.Run(); err != nil {
