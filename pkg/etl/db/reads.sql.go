@@ -334,6 +334,42 @@ func (q *Queries) GetDashboardTransactionTypes(ctx context.Context) ([]MvDashboa
 	return items, nil
 }
 
+const getHealthyValidatorCountsForRollups = `-- name: GetHealthyValidatorCountsForRollups :many
+SELECT 
+  sr.id as rollup_id,
+  COALESCE(COUNT(*) FILTER (WHERE snr.challenges_failed = 0 OR snr.challenges_received = 0), 0) as healthy_validators
+FROM etl_sla_rollups sr
+LEFT JOIN etl_sla_node_reports snr ON sr.id = snr.sla_rollup_id  
+WHERE sr.id = ANY($1::int[])
+GROUP BY sr.id
+ORDER BY sr.id
+`
+
+type GetHealthyValidatorCountsForRollupsRow struct {
+	RollupID          int32       `json:"rollup_id"`
+	HealthyValidators interface{} `json:"healthy_validators"`
+}
+
+func (q *Queries) GetHealthyValidatorCountsForRollups(ctx context.Context, dollar_1 []int32) ([]GetHealthyValidatorCountsForRollupsRow, error) {
+	rows, err := q.db.Query(ctx, getHealthyValidatorCountsForRollups, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetHealthyValidatorCountsForRollupsRow
+	for rows.Next() {
+		var i GetHealthyValidatorCountsForRollupsRow
+		if err := rows.Scan(&i.RollupID, &i.HealthyValidators); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getLatestIndexedBlock = `-- name: GetLatestIndexedBlock :one
 SELECT block_height
 FROM etl_blocks

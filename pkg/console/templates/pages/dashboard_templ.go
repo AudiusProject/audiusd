@@ -51,14 +51,15 @@ type PlayEvent struct {
 }
 
 type SLAPerformanceDataPoint struct {
-	RollupID       int32   `json:"rollupId"`
-	BlockHeight    int64   `json:"blockHeight"`
-	Timestamp      string  `json:"timestamp"`
-	ValidatorCount int32   `json:"validatorCount"`
-	BPS            float64 `json:"bps"`
-	TPS            float64 `json:"tps"`
-	BlockStart     int64   `json:"blockStart"`
-	BlockEnd       int64   `json:"blockEnd"`
+	RollupID          int32   `json:"rollupId"`
+	BlockHeight       int64   `json:"blockHeight"`
+	Timestamp         string  `json:"timestamp"`
+	ValidatorCount    int32   `json:"validatorCount"`
+	HealthyValidators int32   `json:"healthyValidators"`
+	BPS               float64 `json:"bps"`
+	TPS               float64 `json:"tps"`
+	BlockStart        int64   `json:"blockStart"`
+	BlockEnd          int64   `json:"blockEnd"`
 }
 
 type DashboardProps struct {
@@ -193,7 +194,7 @@ func Dashboard(props DashboardProps) templ.Component {
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(props.Stats.ChainID)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 182, Col: 91}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 183, Col: 91}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {
@@ -211,7 +212,7 @@ func Dashboard(props DashboardProps) templ.Component {
 				var templ_7745c5c3_Var4 string
 				templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%.2fs", props.Stats.AvgBlockTime))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 187, Col: 119}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 188, Col: 119}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 				if templ_7745c5c3_Err != nil {
@@ -229,7 +230,7 @@ func Dashboard(props DashboardProps) templ.Component {
 				var templ_7745c5c3_Var5 string
 				templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%.2fs", 1.0/props.Stats.BPS))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 189, Col: 114}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 190, Col: 114}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 				if templ_7745c5c3_Err != nil {
@@ -242,7 +243,7 @@ func Dashboard(props DashboardProps) templ.Component {
 				var templ_7745c5c3_Var6 string
 				templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%.2f BPS", props.Stats.BPS))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 190, Col: 102}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 191, Col: 102}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 				if templ_7745c5c3_Err != nil {
@@ -290,7 +291,7 @@ func Dashboard(props DashboardProps) templ.Component {
 					var templ_7745c5c3_Var7 string
 					templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d blocks to go", props.Stats.BlockDelta))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 219, Col: 68}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 220, Col: 68}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 					if templ_7745c5c3_Err != nil {
@@ -304,7 +305,7 @@ func Dashboard(props DashboardProps) templ.Component {
 				var templ_7745c5c3_Var8 string
 				templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d / %d", props.Stats.LatestIndexedHeight, props.Stats.LatestChainHeight))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 223, Col: 97}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 224, Col: 97}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 				if templ_7745c5c3_Err != nil {
@@ -317,7 +318,7 @@ func Dashboard(props DashboardProps) templ.Component {
 				var templ_7745c5c3_Var9 string
 				templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%.1f%%", props.SyncProgressPercentage))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 224, Col: 63}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 225, Col: 63}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 				if templ_7745c5c3_Err != nil {
@@ -357,7 +358,7 @@ func Dashboard(props DashboardProps) templ.Component {
 			var templ_7745c5c3_Var12 string
 			templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("init({ validatorCount: %d })", props.Stats.ValidatorCount))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 255, Col: 153}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 256, Col: 153}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 			if templ_7745c5c3_Err != nil {
@@ -394,7 +395,7 @@ func Dashboard(props DashboardProps) templ.Component {
 			var templ_7745c5c3_Var13 string
 			templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(formatNumber(props.Stats.TotalTransactions24h))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 282, Col: 127}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 283, Col: 127}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 			if templ_7745c5c3_Err != nil {
@@ -407,7 +408,7 @@ func Dashboard(props DashboardProps) templ.Component {
 			var templ_7745c5c3_Var14 string
 			templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(formatNumber(props.Stats.TotalTransactions7d))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 287, Col: 126}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 288, Col: 126}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 			if templ_7745c5c3_Err != nil {
@@ -420,7 +421,7 @@ func Dashboard(props DashboardProps) templ.Component {
 			var templ_7745c5c3_Var15 string
 			templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(formatNumber(props.Stats.TotalTransactions7d / 7))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 288, Col: 118}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 289, Col: 118}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 			if templ_7745c5c3_Err != nil {
@@ -433,7 +434,7 @@ func Dashboard(props DashboardProps) templ.Component {
 			var templ_7745c5c3_Var16 string
 			templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(formatNumber(props.Stats.TotalTransactions30d))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 292, Col: 127}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 293, Col: 127}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
 			if templ_7745c5c3_Err != nil {
@@ -446,7 +447,7 @@ func Dashboard(props DashboardProps) templ.Component {
 			var templ_7745c5c3_Var17 string
 			templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinStringErrs(formatNumber(props.Stats.TotalTransactions30d / 30))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 293, Col: 120}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 294, Col: 120}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
 			if templ_7745c5c3_Err != nil {
@@ -465,7 +466,7 @@ func Dashboard(props DashboardProps) templ.Component {
 					var templ_7745c5c3_Var18 string
 					templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(breakdown.Type)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 304, Col: 128}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 305, Col: 128}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 					if templ_7745c5c3_Err != nil {
@@ -478,7 +479,7 @@ func Dashboard(props DashboardProps) templ.Component {
 					var templ_7745c5c3_Var19 string
 					templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinStringErrs(formatNumber(breakdown.Count))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 305, Col: 121}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 306, Col: 121}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
 					if templ_7745c5c3_Err != nil {
@@ -507,7 +508,7 @@ func Dashboard(props DashboardProps) templ.Component {
 				var templ_7745c5c3_Var20 string
 				templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.JoinStringErrs(templ.JSONString(props.SLAPerformanceData))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 331, Col: 68}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 332, Col: 68}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var20))
 				if templ_7745c5c3_Err != nil {
@@ -520,7 +521,7 @@ func Dashboard(props DashboardProps) templ.Component {
 				var templ_7745c5c3_Var21 string
 				templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs(templ.JSONString(props.SLAPerformanceData))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 351, Col: 67}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 352, Col: 67}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
 				if templ_7745c5c3_Err != nil {
@@ -548,7 +549,7 @@ func Dashboard(props DashboardProps) templ.Component {
 					var templ_7745c5c3_Var22 templ.SafeURL
 					templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(fmt.Sprintf("/block/%d", block.BlockHeight)))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 369, Col: 78}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 370, Col: 78}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var22))
 					if templ_7745c5c3_Err != nil {
@@ -561,7 +562,7 @@ func Dashboard(props DashboardProps) templ.Component {
 					var templ_7745c5c3_Var23 string
 					templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("#%d", block.BlockHeight))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 370, Col: 50}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 371, Col: 50}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var23))
 					if templ_7745c5c3_Err != nil {
@@ -574,7 +575,7 @@ func Dashboard(props DashboardProps) templ.Component {
 					var templ_7745c5c3_Var24 templ.SafeURL
 					templ_7745c5c3_Var24, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(fmt.Sprintf("/validator/%s", block.ProposerAddress)))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 372, Col: 86}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 373, Col: 86}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var24))
 					if templ_7745c5c3_Err != nil {
@@ -588,7 +589,7 @@ func Dashboard(props DashboardProps) templ.Component {
 						var templ_7745c5c3_Var25 string
 						templ_7745c5c3_Var25, templ_7745c5c3_Err = templ.JoinStringErrs(block.ProposerAddress[:4])
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 374, Col: 39}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 375, Col: 39}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var25))
 						if templ_7745c5c3_Err != nil {
@@ -601,7 +602,7 @@ func Dashboard(props DashboardProps) templ.Component {
 						var templ_7745c5c3_Var26 string
 						templ_7745c5c3_Var26, templ_7745c5c3_Err = templ.JoinStringErrs(block.ProposerAddress[len(block.ProposerAddress)-4:])
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 374, Col: 98}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 375, Col: 98}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var26))
 						if templ_7745c5c3_Err != nil {
@@ -611,7 +612,7 @@ func Dashboard(props DashboardProps) templ.Component {
 						var templ_7745c5c3_Var27 string
 						templ_7745c5c3_Var27, templ_7745c5c3_Err = templ.JoinStringErrs(block.ProposerAddress)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 376, Col: 35}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 377, Col: 35}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var27))
 						if templ_7745c5c3_Err != nil {
@@ -665,7 +666,7 @@ func Dashboard(props DashboardProps) templ.Component {
 					var templ_7745c5c3_Var28 templ.SafeURL
 					templ_7745c5c3_Var28, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(fmt.Sprintf("/transaction/%s", tx.TxHash)))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 405, Col: 76}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 406, Col: 76}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var28))
 					if templ_7745c5c3_Err != nil {
@@ -679,7 +680,7 @@ func Dashboard(props DashboardProps) templ.Component {
 						var templ_7745c5c3_Var29 string
 						templ_7745c5c3_Var29, templ_7745c5c3_Err = templ.JoinStringErrs(tx.TxHash[:4])
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 407, Col: 27}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 408, Col: 27}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var29))
 						if templ_7745c5c3_Err != nil {
@@ -692,7 +693,7 @@ func Dashboard(props DashboardProps) templ.Component {
 						var templ_7745c5c3_Var30 string
 						templ_7745c5c3_Var30, templ_7745c5c3_Err = templ.JoinStringErrs(tx.TxHash[len(tx.TxHash)-4:])
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 407, Col: 62}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 408, Col: 62}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var30))
 						if templ_7745c5c3_Err != nil {
@@ -702,7 +703,7 @@ func Dashboard(props DashboardProps) templ.Component {
 						var templ_7745c5c3_Var31 string
 						templ_7745c5c3_Var31, templ_7745c5c3_Err = templ.JoinStringErrs(tx.TxHash)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 409, Col: 23}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 410, Col: 23}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var31))
 						if templ_7745c5c3_Err != nil {
@@ -716,7 +717,7 @@ func Dashboard(props DashboardProps) templ.Component {
 					var templ_7745c5c3_Var32 string
 					templ_7745c5c3_Var32, templ_7745c5c3_Err = templ.JoinStringErrs(tx.TxType)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 413, Col: 22}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 414, Col: 22}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var32))
 					if templ_7745c5c3_Err != nil {
@@ -734,7 +735,7 @@ func Dashboard(props DashboardProps) templ.Component {
 						var templ_7745c5c3_Var33 templ.SafeURL
 						templ_7745c5c3_Var33, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(fmt.Sprintf("/block/%d", blockHeight)))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 416, Col: 73}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 417, Col: 73}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var33))
 						if templ_7745c5c3_Err != nil {
@@ -747,7 +748,7 @@ func Dashboard(props DashboardProps) templ.Component {
 						var templ_7745c5c3_Var34 string
 						templ_7745c5c3_Var34, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("#%d", blockHeight))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 417, Col: 45}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 418, Col: 45}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var34))
 						if templ_7745c5c3_Err != nil {
@@ -859,7 +860,7 @@ func StatsHeaderFragment(stats *DashboardStats, syncProgressPercentage float64) 
 		var templ_7745c5c3_Var36 string
 		templ_7745c5c3_Var36, templ_7745c5c3_Err = templ.JoinStringErrs(stats.ChainID)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 475, Col: 82}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 476, Col: 82}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var36))
 		if templ_7745c5c3_Err != nil {
@@ -877,7 +878,7 @@ func StatsHeaderFragment(stats *DashboardStats, syncProgressPercentage float64) 
 			var templ_7745c5c3_Var37 string
 			templ_7745c5c3_Var37, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%.2fs", stats.AvgBlockTime))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 480, Col: 110}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 481, Col: 110}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var37))
 			if templ_7745c5c3_Err != nil {
@@ -895,7 +896,7 @@ func StatsHeaderFragment(stats *DashboardStats, syncProgressPercentage float64) 
 			var templ_7745c5c3_Var38 string
 			templ_7745c5c3_Var38, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%.2fs", 1.0/stats.BPS))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 482, Col: 105}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 483, Col: 105}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var38))
 			if templ_7745c5c3_Err != nil {
@@ -908,7 +909,7 @@ func StatsHeaderFragment(stats *DashboardStats, syncProgressPercentage float64) 
 			var templ_7745c5c3_Var39 string
 			templ_7745c5c3_Var39, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%.2f BPS", stats.BPS))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 483, Col: 93}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 484, Col: 93}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var39))
 			if templ_7745c5c3_Err != nil {
@@ -956,7 +957,7 @@ func StatsHeaderFragment(stats *DashboardStats, syncProgressPercentage float64) 
 				var templ_7745c5c3_Var40 string
 				templ_7745c5c3_Var40, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d blocks to go", stats.BlockDelta))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 512, Col: 59}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 513, Col: 59}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var40))
 				if templ_7745c5c3_Err != nil {
@@ -970,7 +971,7 @@ func StatsHeaderFragment(stats *DashboardStats, syncProgressPercentage float64) 
 			var templ_7745c5c3_Var41 string
 			templ_7745c5c3_Var41, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d / %d", stats.LatestIndexedHeight, stats.LatestChainHeight))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 516, Col: 82}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 517, Col: 82}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var41))
 			if templ_7745c5c3_Err != nil {
@@ -983,7 +984,7 @@ func StatsHeaderFragment(stats *DashboardStats, syncProgressPercentage float64) 
 			var templ_7745c5c3_Var42 string
 			templ_7745c5c3_Var42, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%.1f%%", syncProgressPercentage))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 517, Col: 54}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 518, Col: 54}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var42))
 			if templ_7745c5c3_Err != nil {
@@ -1052,7 +1053,7 @@ func TPSFragment(stats *DashboardStats) templ.Component {
 		var templ_7745c5c3_Var46 string
 		templ_7745c5c3_Var46, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%.1f", stats.TPS))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 534, Col: 105}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 535, Col: 105}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var46))
 		if templ_7745c5c3_Err != nil {
@@ -1065,7 +1066,7 @@ func TPSFragment(stats *DashboardStats) templ.Component {
 		var templ_7745c5c3_Var47 string
 		templ_7745c5c3_Var47, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%.1f", float64(stats.TotalTransactions30d)/(30*24*60*60)))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 535, Col: 137}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 536, Col: 137}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var47))
 		if templ_7745c5c3_Err != nil {
@@ -1107,7 +1108,7 @@ func TotalTransactionsFragment(stats *DashboardStats) templ.Component {
 		var templ_7745c5c3_Var49 string
 		templ_7745c5c3_Var49, templ_7745c5c3_Err = templ.JoinStringErrs(formatNumber(stats.TotalTransactions))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 542, Col: 112}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 543, Col: 112}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var49))
 		if templ_7745c5c3_Err != nil {
@@ -1142,7 +1143,7 @@ func TotalTransactionsFragment(stats *DashboardStats) templ.Component {
 		var templ_7745c5c3_Var52 string
 		templ_7745c5c3_Var52, templ_7745c5c3_Err = templ.JoinStringErrs(getPercentageChangeText(stats.TotalTransactions24h, stats.TotalTransactionsPrevious24h))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 543, Col: 227}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 544, Col: 227}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var52))
 		if templ_7745c5c3_Err != nil {
@@ -1267,7 +1268,7 @@ func SLAChartScript() templ.Component {
 			templ_7745c5c3_Var56 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 100, "<script src=\"https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js\"></script><script>\n\t\tfunction chartMeta() {\n\t\t\treturn {\n\t\t\t\tblockRange: '',\n\t\t\t\ttimeRange: '',\n\t\t\t\t\n\t\t\t\tinit() {\n\t\t\t\t\tconst dataStr = this.$el.getAttribute('data-chart-data');\n\t\t\t\t\t\n\t\t\t\t\ttry {\n\t\t\t\t\t\tconst chartData = JSON.parse(dataStr);\n\t\t\t\t\t\tif (chartData && chartData.length > 0) {\n\t\t\t\t\t\t\t// Sort by block height\n\t\t\t\t\t\t\tchartData.sort((a, b) => a.blockHeight - b.blockHeight);\n\t\t\t\t\t\t\t\n\t\t\t\t\t\t\tconst firstBlock = chartData[0].blockHeight;\n\t\t\t\t\t\t\tconst lastBlock = chartData[chartData.length - 1].blockHeight;\n\t\t\t\t\t\t\tthis.blockRange = `Blocks ${firstBlock.toLocaleString()} - ${lastBlock.toLocaleString()}`;\n\t\t\t\t\t\t\t\n\t\t\t\t\t\t\t// Calculate time range\n\t\t\t\t\t\t\tconst firstTime = new Date(chartData[0].timestamp);\n\t\t\t\t\t\t\tconst lastTime = new Date(chartData[chartData.length - 1].timestamp);\n\t\t\t\t\t\t\tconst now = new Date();\n\t\t\t\t\t\t\t\n\t\t\t\t\t\t\t// Time since last data point\n\t\t\t\t\t\t\tconst timeSinceMs = now - lastTime;\n\t\t\t\t\t\t\tconst timeSince = this.formatTimeSince(timeSinceMs);\n\t\t\t\t\t\t\t\n\t\t\t\t\t\t\t// Duration of the data range\n\t\t\t\t\t\t\tconst durationMs = lastTime - firstTime;\n\t\t\t\t\t\t\tconst duration = this.formatDuration(durationMs);\n\t\t\t\t\t\t\t\n\t\t\t\t\t\t\tthis.timeRange = `${duration} span • ${timeSince} ago`;\n\t\t\t\t\t\t} else {\n\t\t\t\t\t\t\tthis.blockRange = 'No data available';\n\t\t\t\t\t\t\tthis.timeRange = '';\n\t\t\t\t\t\t}\n\t\t\t\t\t} catch (e) {\n\t\t\t\t\t\tconsole.error('Failed to parse chart meta data:', e);\n\t\t\t\t\t\tthis.blockRange = 'Error loading data';\n\t\t\t\t\t\tthis.timeRange = '';\n\t\t\t\t\t}\n\t\t\t\t},\n\t\t\t\t\n\t\t\t\tformatTimeSince(ms) {\n\t\t\t\t\tconst seconds = Math.floor(ms / 1000);\n\t\t\t\t\tconst minutes = Math.floor(seconds / 60);\n\t\t\t\t\tconst hours = Math.floor(minutes / 60);\n\t\t\t\t\tconst days = Math.floor(hours / 24);\n\t\t\t\t\t\n\t\t\t\t\tif (days > 0) return `${days} day${days > 1 ? 's' : ''}`;\n\t\t\t\t\tif (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''}`;\n\t\t\t\t\tif (minutes > 0) return `${minutes} min`;\n\t\t\t\t\treturn `${seconds} sec`;\n\t\t\t\t},\n\t\t\t\t\n\t\t\t\tformatDuration(ms) {\n\t\t\t\t\tconst seconds = Math.floor(ms / 1000);\n\t\t\t\t\tconst minutes = Math.floor(seconds / 60);\n\t\t\t\t\tconst hours = Math.floor(minutes / 60);\n\t\t\t\t\tconst days = Math.floor(hours / 24);\n\t\t\t\t\t\n\t\t\t\t\tif (days > 0) return `${days} day${days > 1 ? 's' : ''}`;\n\t\t\t\t\tif (hours > 0) return `${hours}h`;\n\t\t\t\t\tif (minutes > 0) return `${minutes}m`;\n\t\t\t\t\treturn `${seconds}s`;\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\n\t\tfunction slaChart() {\n\t\t\treturn {\n\t\t\t\tchart: null,\n\t\t\t\tchartData: [],\n\t\t\t\t\n\t\t\t\tinitChart() {\n\t\t\t\t\t// Get data from the data attribute\n\t\t\t\t\tconst canvas = document.getElementById('slaPerformanceChart');\n\t\t\t\t\tif (!canvas) {\n\t\t\t\t\t\tconsole.error('Chart canvas not found');\n\t\t\t\t\t\treturn;\n\t\t\t\t\t}\n\t\t\t\t\t\n\t\t\t\t\tconst dataStr = canvas.getAttribute('data-chart-data');\n\t\t\t\t\tif (!dataStr || dataStr === 'null' || dataStr === 'undefined') {\n\t\t\t\t\t\tconsole.log('No chart data available');\n\t\t\t\t\t\tcanvas.style.display = 'none';\n\t\t\t\t\t\treturn;\n\t\t\t\t\t}\n\t\t\t\t\t\n\t\t\t\t\ttry {\n\t\t\t\t\t\tthis.chartData = JSON.parse(dataStr);\n\t\t\t\t\t} catch (e) {\n\t\t\t\t\t\tconsole.error('Failed to parse chart data:', e, 'Raw data:', dataStr);\n\t\t\t\t\t\tthis.chartData = [];\n\t\t\t\t\t\tcanvas.style.display = 'none';\n\t\t\t\t\t\treturn;\n\t\t\t\t\t}\n\n\t\t\t\t\t// If no data or invalid data, don't create chart\n\t\t\t\t\tif (!this.chartData || !Array.isArray(this.chartData) || this.chartData.length === 0) {\n\t\t\t\t\t\tconsole.log('Invalid or empty chart data:', this.chartData);\n\t\t\t\t\t\tcanvas.style.display = 'none';\n\t\t\t\t\t\treturn;\n\t\t\t\t\t}\n\n\t\t\t\t\t// Validate each data point\n\t\t\t\t\tconst validData = this.chartData.filter(point => {\n\t\t\t\t\t\treturn point && \n\t\t\t\t\t\t       typeof point.rollupId === 'number' && \n\t\t\t\t\t\t       typeof point.blockHeight === 'number' && \n\t\t\t\t\t\t       typeof point.timestamp === 'string' && \n\t\t\t\t\t\t       typeof point.validatorCount === 'number' && \n\t\t\t\t\t\t       typeof point.bps === 'number' && \n\t\t\t\t\t\t       typeof point.tps === 'number';\n\t\t\t\t\t});\n\n\t\t\t\t\tif (validData.length === 0) {\n\t\t\t\t\t\tconsole.log('No valid data points found');\n\t\t\t\t\t\tcanvas.style.display = 'none';\n\t\t\t\t\t\treturn;\n\t\t\t\t\t}\n\n\t\t\t\t\tthis.chartData = validData;\n\n\t\t\t\t\t// Sort data by block height (ascending)\n\t\t\t\t\tthis.chartData.sort((a, b) => a.blockHeight - b.blockHeight);\n\n\t\t\t\t\tconst ctx = canvas.getContext('2d');\n\t\t\t\t\tconst isDarkMode = document.documentElement.classList.contains('dark') || \n\t\t\t\t\t                  window.matchMedia('(prefers-color-scheme: dark)').matches;\n\n\t\t\t\t\t// Calculate dynamic axis ranges\n\t\t\t\t\tconst validatorValues = this.chartData.map(point => point.validatorCount);\n\t\t\t\t\tconst bpsValues = this.chartData.map(point => point.bps);\n\t\t\t\t\tconst tpsValues = this.chartData.map(point => point.tps);\n\t\t\t\t\t\n\t\t\t\t\t// Combined performance values for right axis\n\t\t\t\t\tconst performanceValues = [...bpsValues, ...tpsValues];\n\t\t\t\t\t\n\t\t\t\t\t// Calculate min/max with padding\n\t\t\t\t\tconst validatorMin = Math.max(0, Math.min(...validatorValues) - 5);\n\t\t\t\t\tconst validatorMax = Math.max(...validatorValues) + 5;\n\t\t\t\t\tconst performanceMin = Math.max(0, Math.min(...performanceValues) - 1);\n\t\t\t\t\tconst performanceMax = Math.max(...performanceValues) + 2;\n\n\t\t\t\t\tconst labels = this.chartData.map(point => {\n\t\t\t\t\t\tconst date = new Date(point.timestamp);\n\t\t\t\t\t\treturn date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});\n\t\t\t\t\t});\n\n\n\n\t\t\t\t\tthis.chart = new Chart(ctx, {\n\t\t\t\t\t\ttype: 'line',\n\t\t\t\t\t\tdata: {\n\t\t\t\t\t\t\tlabels: labels,\n\t\t\t\t\t\t\tdatasets: [\n\t\t\t\t\t\t\t\t{\n\t\t\t\t\t\t\t\t\tlabel: 'Validators',\n\t\t\t\t\t\t\t\t\tdata: this.chartData.map(point => point.validatorCount),\n\t\t\t\t\t\t\t\t\tborderColor: isDarkMode ? '#60a5fa' : '#2563eb',\n\t\t\t\t\t\t\t\t\tbackgroundColor: 'transparent',\n\t\t\t\t\t\t\t\t\tborderWidth: 2,\n\t\t\t\t\t\t\t\t\tfill: false,\n\t\t\t\t\t\t\t\t\ttension: 0.3,\n\t\t\t\t\t\t\t\t\tpointRadius: 0,\n\t\t\t\t\t\t\t\t\tpointHoverRadius: 6,\n\t\t\t\t\t\t\t\t\tpointBackgroundColor: isDarkMode ? '#60a5fa' : '#2563eb',\n\t\t\t\t\t\t\t\t\tpointBorderColor: isDarkMode ? '#1f2937' : '#ffffff',\n\t\t\t\t\t\t\t\t\tpointBorderWidth: 2,\n\t\t\t\t\t\t\t\t\tpointHoverBackgroundColor: isDarkMode ? '#93c5fd' : '#1d4ed8',\n\t\t\t\t\t\t\t\t\tpointHoverBorderColor: isDarkMode ? '#1f2937' : '#ffffff',\n\t\t\t\t\t\t\t\t\tpointHoverBorderWidth: 3,\n\t\t\t\t\t\t\t\t\tyAxisID: 'y'\n\t\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\t\t{\n\t\t\t\t\t\t\t\t\tlabel: 'BPS',\n\t\t\t\t\t\t\t\t\tdata: this.chartData.map(point => point.bps),\n\t\t\t\t\t\t\t\t\tborderColor: isDarkMode ? '#c084fc' : '#7c3aed',\n\t\t\t\t\t\t\t\t\tbackgroundColor: 'transparent',\n\t\t\t\t\t\t\t\t\tborderWidth: 2,\n\t\t\t\t\t\t\t\t\tfill: false,\n\t\t\t\t\t\t\t\t\ttension: 0.3,\n\t\t\t\t\t\t\t\t\tpointRadius: 0,\n\t\t\t\t\t\t\t\t\tpointHoverRadius: 6,\n\t\t\t\t\t\t\t\t\tpointBackgroundColor: isDarkMode ? '#c084fc' : '#7c3aed',\n\t\t\t\t\t\t\t\t\tpointBorderColor: isDarkMode ? '#1f2937' : '#ffffff',\n\t\t\t\t\t\t\t\t\tpointBorderWidth: 2,\n\t\t\t\t\t\t\t\t\tpointHoverBackgroundColor: isDarkMode ? '#ddd6fe' : '#5b21b6',\n\t\t\t\t\t\t\t\t\tpointHoverBorderColor: isDarkMode ? '#1f2937' : '#ffffff',\n\t\t\t\t\t\t\t\t\tpointHoverBorderWidth: 3,\n\t\t\t\t\t\t\t\t\tyAxisID: 'y1'\n\t\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\t\t{\n\t\t\t\t\t\t\t\t\tlabel: 'TPS',\n\t\t\t\t\t\t\t\t\tdata: this.chartData.map(point => point.tps),\n\t\t\t\t\t\t\t\t\tborderColor: isDarkMode ? '#f472b6' : '#db2777',\n\t\t\t\t\t\t\t\t\tbackgroundColor: 'transparent',\n\t\t\t\t\t\t\t\t\tborderWidth: 2,\n\t\t\t\t\t\t\t\t\tfill: false,\n\t\t\t\t\t\t\t\t\ttension: 0.3,\n\t\t\t\t\t\t\t\t\tpointRadius: 0,\n\t\t\t\t\t\t\t\t\tpointHoverRadius: 6,\n\t\t\t\t\t\t\t\t\tpointBackgroundColor: isDarkMode ? '#f472b6' : '#db2777',\n\t\t\t\t\t\t\t\t\tpointBorderColor: isDarkMode ? '#1f2937' : '#ffffff',\n\t\t\t\t\t\t\t\t\tpointBorderWidth: 2,\n\t\t\t\t\t\t\t\t\tpointHoverBackgroundColor: isDarkMode ? '#fce7f3' : '#be185d',\n\t\t\t\t\t\t\t\t\tpointHoverBorderColor: isDarkMode ? '#1f2937' : '#ffffff',\n\t\t\t\t\t\t\t\t\tpointHoverBorderWidth: 3,\n\t\t\t\t\t\t\t\t\tyAxisID: 'y1'\n\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t]\n\t\t\t\t\t\t},\n\t\t\t\t\t\toptions: {\n\t\t\t\t\t\t\tresponsive: true,\n\t\t\t\t\t\t\tmaintainAspectRatio: false,\n\t\t\t\t\t\t\tinteraction: {\n\t\t\t\t\t\t\t\tmode: 'index',\n\t\t\t\t\t\t\t\tintersect: false,\n\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\telements: {\n\t\t\t\t\t\t\t\tline: {\n\t\t\t\t\t\t\t\t\tborderWidth: 2,\n\t\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\t\tpoint: {\n\t\t\t\t\t\t\t\t\tradius: 0,\n\t\t\t\t\t\t\t\t\thoverRadius: 6,\n\t\t\t\t\t\t\t\t\tborderWidth: 2,\n\t\t\t\t\t\t\t\t\thoverBorderWidth: 3\n\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\tanimation: {\n\t\t\t\t\t\t\t\tduration: 300,\n\t\t\t\t\t\t\t\teasing: 'easeInOutQuart'\n\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\tplugins: {\n\t\t\t\t\t\t\t\ttitle: {\n\t\t\t\t\t\t\t\t\tdisplay: false\n\t\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\t\tlegend: {\n\t\t\t\t\t\t\t\t\tdisplay: true,\n\t\t\t\t\t\t\t\t\tposition: 'top',\n\t\t\t\t\t\t\t\t\talign: 'start',\n\t\t\t\t\t\t\t\t\tlabels: {\n\t\t\t\t\t\t\t\t\t\tusePointStyle: true,\n\t\t\t\t\t\t\t\t\t\tpointStyle: 'rect',\n\t\t\t\t\t\t\t\t\t\tcolor: isDarkMode ? '#d1d5db' : '#4b5563',\n\t\t\t\t\t\t\t\t\t\tfont: {\n\t\t\t\t\t\t\t\t\t\t\tsize: 11,\n\t\t\t\t\t\t\t\t\t\t\tweight: '400'\n\t\t\t\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\t\t\t\tpadding: 20,\n\t\t\t\t\t\t\t\t\t\tpointStyleWidth: 15,\n\t\t\t\t\t\t\t\t\t\tgenerateLabels: function(chart) {\n\t\t\t\t\t\t\t\t\t\t\tconst original = Chart.defaults.plugins.legend.labels.generateLabels;\n\t\t\t\t\t\t\t\t\t\t\tconst labels = original.call(this, chart);\n\t\t\t\t\t\t\t\t\t\t\t\n\t\t\t\t\t\t\t\t\t\t\tlabels.forEach((label, index) => {\n\t\t\t\t\t\t\t\t\t\t\t\tconst dataset = chart.data.datasets[index];\n\t\t\t\t\t\t\t\t\t\t\t\tif (dataset) {\n\t\t\t\t\t\t\t\t\t\t\t\t\tlabel.fillStyle = dataset.borderColor;\n\t\t\t\t\t\t\t\t\t\t\t\t\tlabel.strokeStyle = dataset.borderColor;\n\t\t\t\t\t\t\t\t\t\t\t\t\tlabel.pointStyle = 'rect';\n\t\t\t\t\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t\t\t\t\t});\n\t\t\t\t\t\t\t\t\t\t\t\n\t\t\t\t\t\t\t\t\t\t\treturn labels;\n\t\t\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\t\ttooltip: {\n\t\t\t\t\t\t\t\t\tbackgroundColor: isDarkMode ? 'rgba(17, 24, 39, 0.96)' : 'rgba(255, 255, 255, 0.96)',\n\t\t\t\t\t\t\t\t\ttitleColor: isDarkMode ? '#f3f4f6' : '#1f2937',\n\t\t\t\t\t\t\t\t\tbodyColor: isDarkMode ? '#e5e7eb' : '#374151',\n\t\t\t\t\t\t\t\t\tborderColor: isDarkMode ? '#6b7280' : '#d1d5db',\n\t\t\t\t\t\t\t\t\tborderWidth: 1,\n\t\t\t\t\t\t\t\t\tcornerRadius: 8,\n\t\t\t\t\t\t\t\t\tdisplayColors: true,\n\t\t\t\t\t\t\t\t\ttitleFont: {\n\t\t\t\t\t\t\t\t\t\tsize: 12,\n\t\t\t\t\t\t\t\t\t\tweight: '600'\n\t\t\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\t\t\tbodyFont: {\n\t\t\t\t\t\t\t\t\t\tsize: 10,\n\t\t\t\t\t\t\t\t\t\tweight: '400'\n\t\t\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\t\t\tpadding: 12,\n\t\t\t\t\t\t\t\t\tmaxWidth: 350,\n\t\t\t\t\t\t\t\t\ttitleSpacing: 4,\n\t\t\t\t\t\t\t\t\tbodySpacing: 2,\n\t\t\t\t\t\t\t\t\tcallbacks: {\n\t\t\t\t\t\t\t\t\t\ttitle: (context) => {\n\t\t\t\t\t\t\t\t\t\t\tconst dataIndex = context[0].dataIndex;\n\t\t\t\t\t\t\t\t\t\t\tconst point = this.chartData[dataIndex];\n\t\t\t\t\t\t\t\t\t\t\tif (!point) return '';\n\t\t\t\t\t\t\t\t\t\t\tconst date = new Date(point.timestamp);\n\t\t\t\t\t\t\t\t\t\t\treturn date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});\n\t\t\t\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\t\t\t\tlabel: (context) => {\n\t\t\t\t\t\t\t\t\t\t\tconst datasetLabel = context.dataset.label;\n\t\t\t\t\t\t\t\t\t\t\tconst value = context.parsed.y;\n\t\t\t\t\t\t\t\t\t\t\tconst dataIndex = context.dataIndex;\n\t\t\t\t\t\t\t\t\t\t\tconst point = this.chartData[dataIndex];\n\t\t\t\t\t\t\t\t\t\t\t\n\t\t\t\t\t\t\t\t\t\t\tif (datasetLabel === 'Validators') {\n\t\t\t\t\t\t\t\t\t\t\t\treturn `Validators: ${value}`;\n\t\t\t\t\t\t\t\t\t\t\t} else if (datasetLabel === 'BPS') {\n\t\t\t\t\t\t\t\t\t\t\t\t// Convert BPS to Block Time for better readability\n\t\t\t\t\t\t\t\t\t\t\t\tconst blockTime = point && point.bps > 0 ? (1 / point.bps) : 0;\n\t\t\t\t\t\t\t\t\t\t\t\treturn `Block Time: ${blockTime.toFixed(2)}s`;\n\t\t\t\t\t\t\t\t\t\t\t} else if (datasetLabel === 'TPS') {\n\t\t\t\t\t\t\t\t\t\t\t\treturn `Transactions/sec: ${value.toFixed(2)}`;\n\t\t\t\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t\t\t\t\treturn '';\n\t\t\t\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\t\t\t\tafterBody: (context) => {\n\t\t\t\t\t\t\t\t\t\t\tconst dataIndex = context[0].dataIndex;\n\t\t\t\t\t\t\t\t\t\t\tconst point = this.chartData[dataIndex];\n\t\t\t\t\t\t\t\t\t\t\tif (!point) return [];\n\t\t\t\t\t\t\t\t\t\t\treturn [\n\t\t\t\t\t\t\t\t\t\t\t\t'',\n\t\t\t\t\t\t\t\t\t\t\t\t`Block ${point.blockHeight.toLocaleString()}`\n\t\t\t\t\t\t\t\t\t\t\t];\n\t\t\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\tscales: {\n\t\t\t\t\t\t\t\tx: {\n\t\t\t\t\t\t\t\t\tdisplay: true,\n\t\t\t\t\t\t\t\t\ttitle: {\n\t\t\t\t\t\t\t\t\t\tdisplay: false\n\t\t\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\t\t\tticks: {\n\t\t\t\t\t\t\t\t\t\tcolor: isDarkMode ? '#9ca3af' : '#6b7280',\n\t\t\t\t\t\t\t\t\t\tmaxTicksLimit: 8,\n\t\t\t\t\t\t\t\t\t\tfont: {\n\t\t\t\t\t\t\t\t\t\t\tweight: '400',\n\t\t\t\t\t\t\t\t\t\t\tsize: 10\n\t\t\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\t\t\tgrid: {\n\t\t\t\t\t\t\t\t\t\tcolor: isDarkMode ? '#374151' : '#f3f4f6',\n\t\t\t\t\t\t\t\t\t\tlineWidth: 0.5,\n\t\t\t\t\t\t\t\t\t\tborderDash: [3, 3]\n\t\t\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\t\t\tborder: {\n\t\t\t\t\t\t\t\t\t\tcolor: isDarkMode ? '#4b5563' : '#d1d5db',\n\t\t\t\t\t\t\t\t\t\twidth: 0.5\n\t\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\t\ty: {\n\t\t\t\t\t\t\t\t\ttype: 'linear',\n\t\t\t\t\t\t\t\t\tdisplay: true,\n\t\t\t\t\t\t\t\t\tposition: 'left',\n\t\t\t\t\t\t\t\t\tmin: validatorMin,\n\t\t\t\t\t\t\t\t\tmax: validatorMax,\n\t\t\t\t\t\t\t\t\ttitle: {\n\t\t\t\t\t\t\t\t\t\tdisplay: true,\n\t\t\t\t\t\t\t\t\t\ttext: 'Validators',\n\t\t\t\t\t\t\t\t\t\tcolor: isDarkMode ? '#9ca3af' : '#6b7280',\n\t\t\t\t\t\t\t\t\t\tfont: {\n\t\t\t\t\t\t\t\t\t\t\tweight: '500',\n\t\t\t\t\t\t\t\t\t\t\tsize: 11\n\t\t\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\t\t\tticks: {\n\t\t\t\t\t\t\t\t\t\tcolor: isDarkMode ? '#9ca3af' : '#6b7280',\n\t\t\t\t\t\t\t\t\t\tfont: {\n\t\t\t\t\t\t\t\t\t\t\tweight: '400',\n\t\t\t\t\t\t\t\t\t\t\tsize: 10\n\t\t\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\t\t\tgrid: {\n\t\t\t\t\t\t\t\t\t\tcolor: isDarkMode ? '#374151' : '#f3f4f6',\n\t\t\t\t\t\t\t\t\t\tlineWidth: 0.5,\n\t\t\t\t\t\t\t\t\t\tborderDash: [3, 3]\n\t\t\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\t\t\tborder: {\n\t\t\t\t\t\t\t\t\t\tcolor: isDarkMode ? '#4b5563' : '#d1d5db',\n\t\t\t\t\t\t\t\t\t\twidth: 0.5\n\t\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\t\ty1: {\n\t\t\t\t\t\t\t\t\ttype: 'linear',\n\t\t\t\t\t\t\t\t\tdisplay: true,\n\t\t\t\t\t\t\t\t\tposition: 'right',\n\t\t\t\t\t\t\t\t\tmin: performanceMin,\n\t\t\t\t\t\t\t\t\tmax: performanceMax,\n\t\t\t\t\t\t\t\t\ttitle: {\n\t\t\t\t\t\t\t\t\t\tdisplay: true,\n\t\t\t\t\t\t\t\t\t\ttext: 'Performance (BPS/TPS)',\n\t\t\t\t\t\t\t\t\t\tcolor: isDarkMode ? '#9ca3af' : '#6b7280',\n\t\t\t\t\t\t\t\t\t\tfont: {\n\t\t\t\t\t\t\t\t\t\t\tweight: '500',\n\t\t\t\t\t\t\t\t\t\t\tsize: 11\n\t\t\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\t\t\tticks: {\n\t\t\t\t\t\t\t\t\t\tcolor: isDarkMode ? '#9ca3af' : '#6b7280',\n\t\t\t\t\t\t\t\t\t\tfont: {\n\t\t\t\t\t\t\t\t\t\t\tweight: '400',\n\t\t\t\t\t\t\t\t\t\t\tsize: 10\n\t\t\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\t\t\tgrid: {\n\t\t\t\t\t\t\t\t\t\tdrawOnChartArea: false,\n\t\t\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\t\t\tborder: {\n\t\t\t\t\t\t\t\t\t\tcolor: isDarkMode ? '#4b5563' : '#d1d5db',\n\t\t\t\t\t\t\t\t\t\twidth: 0.5\n\t\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\tonClick: (event, elements) => {\n\t\t\t\t\t\t\t\tif (elements.length > 0) {\n\t\t\t\t\t\t\t\t\tconst dataIndex = elements[0].index;\n\t\t\t\t\t\t\t\t\tconst point = this.chartData[dataIndex];\n\t\t\t\t\t\t\t\t\tif (point && point.rollupId) {\n\t\t\t\t\t\t\t\t\t\t// Navigate to rollup details page\n\t\t\t\t\t\t\t\t\t\twindow.location.href = `/validators/uptime/${point.rollupId}`;\n\t\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\tonHover: (event, elements) => {\n\t\t\t\t\t\t\t\tconst canvas = event.native.target;\n\t\t\t\t\t\t\t\tcanvas.style.cursor = elements.length > 0 ? 'pointer' : 'default';\n\t\t\t\t\t\t\t},\n\n\t\t\t\t\t\t\tlayout: {\n\t\t\t\t\t\t\t\tpadding: {\n\t\t\t\t\t\t\t\t\tleft: 10,\n\t\t\t\t\t\t\t\t\tright: 10,\n\t\t\t\t\t\t\t\t\ttop: 5,\n\t\t\t\t\t\t\t\t\tbottom: 5\n\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t}\n\t\t\t\t\t});\n\t\t\t\t},\n\n\n\n\n\n\t\t\t\t// Alpine.js lifecycle hook\n\t\t\t\tdestroy() {\n\t\t\t\t\tif (this.chart) {\n\t\t\t\t\t\tthis.chart.destroy();\n\t\t\t\t\t\tthis.chart = null;\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\t</script>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 100, "<script src=\"https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js\"></script><script>\n\t\tfunction chartMeta() {\n\t\t\treturn {\n\t\t\t\tblockRange: '',\n\t\t\t\ttimeRange: '',\n\t\t\t\t\n\t\t\t\tinit() {\n\t\t\t\t\tconst dataStr = this.$el.getAttribute('data-chart-data');\n\t\t\t\t\t\n\t\t\t\t\ttry {\n\t\t\t\t\t\tconst chartData = JSON.parse(dataStr);\n\t\t\t\t\t\tif (chartData && chartData.length > 0) {\n\t\t\t\t\t\t\t// Sort by block height\n\t\t\t\t\t\t\tchartData.sort((a, b) => a.blockHeight - b.blockHeight);\n\t\t\t\t\t\t\t\n\t\t\t\t\t\t\tconst firstBlock = chartData[0].blockHeight;\n\t\t\t\t\t\t\tconst lastBlock = chartData[chartData.length - 1].blockHeight;\n\t\t\t\t\t\t\tthis.blockRange = `Blocks ${firstBlock.toLocaleString()} - ${lastBlock.toLocaleString()}`;\n\t\t\t\t\t\t\t\n\t\t\t\t\t\t\t// Calculate time range\n\t\t\t\t\t\t\tconst firstTime = new Date(chartData[0].timestamp);\n\t\t\t\t\t\t\tconst lastTime = new Date(chartData[chartData.length - 1].timestamp);\n\t\t\t\t\t\t\tconst now = new Date();\n\t\t\t\t\t\t\t\n\t\t\t\t\t\t\t// Time since last data point\n\t\t\t\t\t\t\tconst timeSinceMs = now - lastTime;\n\t\t\t\t\t\t\tconst timeSince = this.formatTimeSince(timeSinceMs);\n\t\t\t\t\t\t\t\n\t\t\t\t\t\t\t// Duration of the data range\n\t\t\t\t\t\t\tconst durationMs = lastTime - firstTime;\n\t\t\t\t\t\t\tconst duration = this.formatDuration(durationMs);\n\t\t\t\t\t\t\t\n\t\t\t\t\t\t\tthis.timeRange = `${duration} span • ${timeSince} ago`;\n\t\t\t\t\t\t} else {\n\t\t\t\t\t\t\tthis.blockRange = 'No data available';\n\t\t\t\t\t\t\tthis.timeRange = '';\n\t\t\t\t\t\t}\n\t\t\t\t\t} catch (e) {\n\t\t\t\t\t\tconsole.error('Failed to parse chart meta data:', e);\n\t\t\t\t\t\tthis.blockRange = 'Error loading data';\n\t\t\t\t\t\tthis.timeRange = '';\n\t\t\t\t\t}\n\t\t\t\t},\n\t\t\t\t\n\t\t\t\tformatTimeSince(ms) {\n\t\t\t\t\tconst seconds = Math.floor(ms / 1000);\n\t\t\t\t\tconst minutes = Math.floor(seconds / 60);\n\t\t\t\t\tconst hours = Math.floor(minutes / 60);\n\t\t\t\t\tconst days = Math.floor(hours / 24);\n\t\t\t\t\t\n\t\t\t\t\tif (days > 0) return `${days} day${days > 1 ? 's' : ''}`;\n\t\t\t\t\tif (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''}`;\n\t\t\t\t\tif (minutes > 0) return `${minutes} min`;\n\t\t\t\t\treturn `${seconds} sec`;\n\t\t\t\t},\n\t\t\t\t\n\t\t\t\tformatDuration(ms) {\n\t\t\t\t\tconst seconds = Math.floor(ms / 1000);\n\t\t\t\t\tconst minutes = Math.floor(seconds / 60);\n\t\t\t\t\tconst hours = Math.floor(minutes / 60);\n\t\t\t\t\tconst days = Math.floor(hours / 24);\n\t\t\t\t\t\n\t\t\t\t\tif (days > 0) return `${days} day${days > 1 ? 's' : ''}`;\n\t\t\t\t\tif (hours > 0) return `${hours}h`;\n\t\t\t\t\tif (minutes > 0) return `${minutes}m`;\n\t\t\t\t\treturn `${seconds}s`;\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\n\t\tfunction slaChart() {\n\t\t\treturn {\n\t\t\t\tchart: null,\n\t\t\t\tchartData: [],\n\t\t\t\t\n\t\t\t\tinitChart() {\n\t\t\t\t\t// Get data from the data attribute\n\t\t\t\t\tconst canvas = document.getElementById('slaPerformanceChart');\n\t\t\t\t\tif (!canvas) {\n\t\t\t\t\t\tconsole.error('Chart canvas not found');\n\t\t\t\t\t\treturn;\n\t\t\t\t\t}\n\t\t\t\t\t\n\t\t\t\t\tconst dataStr = canvas.getAttribute('data-chart-data');\n\t\t\t\t\tif (!dataStr || dataStr === 'null' || dataStr === 'undefined') {\n\t\t\t\t\t\tconsole.log('No chart data available');\n\t\t\t\t\t\tcanvas.style.display = 'none';\n\t\t\t\t\t\treturn;\n\t\t\t\t\t}\n\t\t\t\t\t\n\t\t\t\t\ttry {\n\t\t\t\t\t\tthis.chartData = JSON.parse(dataStr);\n\t\t\t\t\t} catch (e) {\n\t\t\t\t\t\tconsole.error('Failed to parse chart data:', e, 'Raw data:', dataStr);\n\t\t\t\t\t\tthis.chartData = [];\n\t\t\t\t\t\tcanvas.style.display = 'none';\n\t\t\t\t\t\treturn;\n\t\t\t\t\t}\n\n\t\t\t\t\t// If no data or invalid data, don't create chart\n\t\t\t\t\tif (!this.chartData || !Array.isArray(this.chartData) || this.chartData.length === 0) {\n\t\t\t\t\t\tconsole.log('Invalid or empty chart data:', this.chartData);\n\t\t\t\t\t\tcanvas.style.display = 'none';\n\t\t\t\t\t\treturn;\n\t\t\t\t\t}\n\n\t\t\t\t\t// Validate each data point\n\t\t\t\t\tconst validData = this.chartData.filter(point => {\n\t\t\t\t\t\treturn point && \n\t\t\t\t\t\t       typeof point.rollupId === 'number' && \n\t\t\t\t\t\t       typeof point.blockHeight === 'number' && \n\t\t\t\t\t\t       typeof point.timestamp === 'string' && \n\t\t\t\t\t\t       typeof point.validatorCount === 'number' && \n\t\t\t\t\t\t       typeof point.bps === 'number' && \n\t\t\t\t\t\t       typeof point.tps === 'number';\n\t\t\t\t\t});\n\n\t\t\t\t\tif (validData.length === 0) {\n\t\t\t\t\t\tconsole.log('No valid data points found');\n\t\t\t\t\t\tcanvas.style.display = 'none';\n\t\t\t\t\t\treturn;\n\t\t\t\t\t}\n\n\t\t\t\t\tthis.chartData = validData;\n\n\t\t\t\t\t// Sort data by block height (ascending)\n\t\t\t\t\tthis.chartData.sort((a, b) => a.blockHeight - b.blockHeight);\n\n\t\t\t\t\tconst ctx = canvas.getContext('2d');\n\t\t\t\t\tconst isDarkMode = document.documentElement.classList.contains('dark') || \n\t\t\t\t\t                  window.matchMedia('(prefers-color-scheme: dark)').matches;\n\n\t\t\t\t\t// Calculate dynamic axis ranges\n\t\t\t\t\tconst validatorValues = this.chartData.map(point => point.validatorCount);\n\t\t\t\t\tconst bpsValues = this.chartData.map(point => point.bps);\n\t\t\t\t\tconst tpsValues = this.chartData.map(point => point.tps);\n\t\t\t\t\t\n\t\t\t\t\t// Combined performance values for right axis\n\t\t\t\t\tconst performanceValues = [...bpsValues, ...tpsValues];\n\t\t\t\t\t\n\t\t\t\t\t// Calculate min/max with padding\n\t\t\t\t\tconst validatorMin = Math.max(0, Math.min(...validatorValues) - 5);\n\t\t\t\t\tconst validatorMax = Math.max(...validatorValues) + 5;\n\t\t\t\t\tconst performanceMin = Math.max(0, Math.min(...performanceValues) - 1);\n\t\t\t\t\tconst performanceMax = Math.max(...performanceValues) + 2;\n\n\t\t\t\t\tconst labels = this.chartData.map(point => {\n\t\t\t\t\t\tconst date = new Date(point.timestamp);\n\t\t\t\t\t\treturn date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});\n\t\t\t\t\t});\n\n\n\n\t\t\t\t\tthis.chart = new Chart(ctx, {\n\t\t\t\t\t\ttype: 'line',\n\t\t\t\t\t\tdata: {\n\t\t\t\t\t\t\tlabels: labels,\n\t\t\t\t\t\t\tdatasets: [\n\t\t\t\t\t\t\t\t{\n\t\t\t\t\t\t\t\t\tlabel: 'Validators',\n\t\t\t\t\t\t\t\t\tdata: this.chartData.map(point => point.validatorCount),\n\t\t\t\t\t\t\t\t\tborderColor: isDarkMode ? '#60a5fa' : '#2563eb',\n\t\t\t\t\t\t\t\t\tbackgroundColor: 'transparent',\n\t\t\t\t\t\t\t\t\tborderWidth: 2,\n\t\t\t\t\t\t\t\t\tfill: false,\n\t\t\t\t\t\t\t\t\ttension: 0.3,\n\t\t\t\t\t\t\t\t\tpointRadius: 0,\n\t\t\t\t\t\t\t\t\tpointHoverRadius: 6,\n\t\t\t\t\t\t\t\t\tpointBackgroundColor: isDarkMode ? '#60a5fa' : '#2563eb',\n\t\t\t\t\t\t\t\t\tpointBorderColor: isDarkMode ? '#1f2937' : '#ffffff',\n\t\t\t\t\t\t\t\t\tpointBorderWidth: 2,\n\t\t\t\t\t\t\t\t\tpointHoverBackgroundColor: isDarkMode ? '#93c5fd' : '#1d4ed8',\n\t\t\t\t\t\t\t\t\tpointHoverBorderColor: isDarkMode ? '#1f2937' : '#ffffff',\n\t\t\t\t\t\t\t\t\tpointHoverBorderWidth: 3,\n\t\t\t\t\t\t\t\t\tyAxisID: 'y'\n\t\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\t\t{\n\t\t\t\t\t\t\t\t\tlabel: 'Healthy Validators',\n\t\t\t\t\t\t\t\t\tdata: this.chartData.map(point => point.healthyValidators),\n\t\t\t\t\t\t\t\t\tborderColor: isDarkMode ? '#10b981' : '#059669',\n\t\t\t\t\t\t\t\t\tbackgroundColor: 'transparent',\n\t\t\t\t\t\t\t\t\tborderWidth: 2,\n\t\t\t\t\t\t\t\t\tfill: false,\n\t\t\t\t\t\t\t\t\ttension: 0.3,\n\t\t\t\t\t\t\t\t\tpointRadius: 0,\n\t\t\t\t\t\t\t\t\tpointHoverRadius: 6,\n\t\t\t\t\t\t\t\t\tpointBackgroundColor: isDarkMode ? '#10b981' : '#059669',\n\t\t\t\t\t\t\t\t\tpointBorderColor: isDarkMode ? '#1f2937' : '#ffffff',\n\t\t\t\t\t\t\t\t\tpointBorderWidth: 2,\n\t\t\t\t\t\t\t\t\tpointHoverBackgroundColor: isDarkMode ? '#34d399' : '#047857',\n\t\t\t\t\t\t\t\t\tpointHoverBorderColor: isDarkMode ? '#1f2937' : '#ffffff',\n\t\t\t\t\t\t\t\t\tpointHoverBorderWidth: 3,\n\t\t\t\t\t\t\t\t\tyAxisID: 'y'\n\t\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\t\t{\n\t\t\t\t\t\t\t\t\tlabel: 'BPS',\n\t\t\t\t\t\t\t\t\tdata: this.chartData.map(point => point.bps),\n\t\t\t\t\t\t\t\t\tborderColor: isDarkMode ? '#c084fc' : '#7c3aed',\n\t\t\t\t\t\t\t\t\tbackgroundColor: 'transparent',\n\t\t\t\t\t\t\t\t\tborderWidth: 2,\n\t\t\t\t\t\t\t\t\tfill: false,\n\t\t\t\t\t\t\t\t\ttension: 0.3,\n\t\t\t\t\t\t\t\t\tpointRadius: 0,\n\t\t\t\t\t\t\t\t\tpointHoverRadius: 6,\n\t\t\t\t\t\t\t\t\tpointBackgroundColor: isDarkMode ? '#c084fc' : '#7c3aed',\n\t\t\t\t\t\t\t\t\tpointBorderColor: isDarkMode ? '#1f2937' : '#ffffff',\n\t\t\t\t\t\t\t\t\tpointBorderWidth: 2,\n\t\t\t\t\t\t\t\t\tpointHoverBackgroundColor: isDarkMode ? '#ddd6fe' : '#5b21b6',\n\t\t\t\t\t\t\t\t\tpointHoverBorderColor: isDarkMode ? '#1f2937' : '#ffffff',\n\t\t\t\t\t\t\t\t\tpointHoverBorderWidth: 3,\n\t\t\t\t\t\t\t\t\tyAxisID: 'y1'\n\t\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\t\t{\n\t\t\t\t\t\t\t\t\tlabel: 'TPS',\n\t\t\t\t\t\t\t\t\tdata: this.chartData.map(point => point.tps),\n\t\t\t\t\t\t\t\t\tborderColor: isDarkMode ? '#f472b6' : '#db2777',\n\t\t\t\t\t\t\t\t\tbackgroundColor: 'transparent',\n\t\t\t\t\t\t\t\t\tborderWidth: 2,\n\t\t\t\t\t\t\t\t\tfill: false,\n\t\t\t\t\t\t\t\t\ttension: 0.3,\n\t\t\t\t\t\t\t\t\tpointRadius: 0,\n\t\t\t\t\t\t\t\t\tpointHoverRadius: 6,\n\t\t\t\t\t\t\t\t\tpointBackgroundColor: isDarkMode ? '#f472b6' : '#db2777',\n\t\t\t\t\t\t\t\t\tpointBorderColor: isDarkMode ? '#1f2937' : '#ffffff',\n\t\t\t\t\t\t\t\t\tpointBorderWidth: 2,\n\t\t\t\t\t\t\t\t\tpointHoverBackgroundColor: isDarkMode ? '#fce7f3' : '#be185d',\n\t\t\t\t\t\t\t\t\tpointHoverBorderColor: isDarkMode ? '#1f2937' : '#ffffff',\n\t\t\t\t\t\t\t\t\tpointHoverBorderWidth: 3,\n\t\t\t\t\t\t\t\t\tyAxisID: 'y1'\n\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t]\n\t\t\t\t\t\t},\n\t\t\t\t\t\toptions: {\n\t\t\t\t\t\t\tresponsive: true,\n\t\t\t\t\t\t\tmaintainAspectRatio: false,\n\t\t\t\t\t\t\tinteraction: {\n\t\t\t\t\t\t\t\tmode: 'index',\n\t\t\t\t\t\t\t\tintersect: false,\n\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\telements: {\n\t\t\t\t\t\t\t\tline: {\n\t\t\t\t\t\t\t\t\tborderWidth: 2,\n\t\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\t\tpoint: {\n\t\t\t\t\t\t\t\t\tradius: 0,\n\t\t\t\t\t\t\t\t\thoverRadius: 6,\n\t\t\t\t\t\t\t\t\tborderWidth: 2,\n\t\t\t\t\t\t\t\t\thoverBorderWidth: 3\n\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\tanimation: {\n\t\t\t\t\t\t\t\tduration: 300,\n\t\t\t\t\t\t\t\teasing: 'easeInOutQuart'\n\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\tplugins: {\n\t\t\t\t\t\t\t\ttitle: {\n\t\t\t\t\t\t\t\t\tdisplay: false\n\t\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\t\tlegend: {\n\t\t\t\t\t\t\t\t\tdisplay: true,\n\t\t\t\t\t\t\t\t\tposition: 'top',\n\t\t\t\t\t\t\t\t\talign: 'start',\n\t\t\t\t\t\t\t\t\tlabels: {\n\t\t\t\t\t\t\t\t\t\tusePointStyle: true,\n\t\t\t\t\t\t\t\t\t\tpointStyle: 'rect',\n\t\t\t\t\t\t\t\t\t\tcolor: isDarkMode ? '#d1d5db' : '#4b5563',\n\t\t\t\t\t\t\t\t\t\tfont: {\n\t\t\t\t\t\t\t\t\t\t\tsize: 11,\n\t\t\t\t\t\t\t\t\t\t\tweight: '400'\n\t\t\t\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\t\t\t\tpadding: 20,\n\t\t\t\t\t\t\t\t\t\tpointStyleWidth: 15,\n\t\t\t\t\t\t\t\t\t\tgenerateLabels: function(chart) {\n\t\t\t\t\t\t\t\t\t\t\tconst original = Chart.defaults.plugins.legend.labels.generateLabels;\n\t\t\t\t\t\t\t\t\t\t\tconst labels = original.call(this, chart);\n\t\t\t\t\t\t\t\t\t\t\t\n\t\t\t\t\t\t\t\t\t\t\tlabels.forEach((label, index) => {\n\t\t\t\t\t\t\t\t\t\t\t\tconst dataset = chart.data.datasets[index];\n\t\t\t\t\t\t\t\t\t\t\t\tif (dataset) {\n\t\t\t\t\t\t\t\t\t\t\t\t\tlabel.fillStyle = dataset.borderColor;\n\t\t\t\t\t\t\t\t\t\t\t\t\tlabel.strokeStyle = dataset.borderColor;\n\t\t\t\t\t\t\t\t\t\t\t\t\tlabel.pointStyle = 'rect';\n\t\t\t\t\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t\t\t\t\t});\n\t\t\t\t\t\t\t\t\t\t\t\n\t\t\t\t\t\t\t\t\t\t\treturn labels;\n\t\t\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\t\ttooltip: {\n\t\t\t\t\t\t\t\t\tbackgroundColor: isDarkMode ? 'rgba(17, 24, 39, 0.96)' : 'rgba(255, 255, 255, 0.96)',\n\t\t\t\t\t\t\t\t\ttitleColor: isDarkMode ? '#f3f4f6' : '#1f2937',\n\t\t\t\t\t\t\t\t\tbodyColor: isDarkMode ? '#e5e7eb' : '#374151',\n\t\t\t\t\t\t\t\t\tborderColor: isDarkMode ? '#6b7280' : '#d1d5db',\n\t\t\t\t\t\t\t\t\tborderWidth: 1,\n\t\t\t\t\t\t\t\t\tcornerRadius: 8,\n\t\t\t\t\t\t\t\t\tdisplayColors: true,\n\t\t\t\t\t\t\t\t\ttitleFont: {\n\t\t\t\t\t\t\t\t\t\tsize: 12,\n\t\t\t\t\t\t\t\t\t\tweight: '600'\n\t\t\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\t\t\tbodyFont: {\n\t\t\t\t\t\t\t\t\t\tsize: 10,\n\t\t\t\t\t\t\t\t\t\tweight: '400'\n\t\t\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\t\t\tpadding: 12,\n\t\t\t\t\t\t\t\t\tmaxWidth: 350,\n\t\t\t\t\t\t\t\t\ttitleSpacing: 4,\n\t\t\t\t\t\t\t\t\tbodySpacing: 2,\n\t\t\t\t\t\t\t\t\tcallbacks: {\n\t\t\t\t\t\t\t\t\t\ttitle: (context) => {\n\t\t\t\t\t\t\t\t\t\t\tconst dataIndex = context[0].dataIndex;\n\t\t\t\t\t\t\t\t\t\t\tconst point = this.chartData[dataIndex];\n\t\t\t\t\t\t\t\t\t\t\tif (!point) return '';\n\t\t\t\t\t\t\t\t\t\t\tconst date = new Date(point.timestamp);\n\t\t\t\t\t\t\t\t\t\t\treturn date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});\n\t\t\t\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\t\t\t\tlabel: (context) => {\n\t\t\t\t\t\t\t\t\t\t\tconst datasetLabel = context.dataset.label;\n\t\t\t\t\t\t\t\t\t\t\tconst value = context.parsed.y;\n\t\t\t\t\t\t\t\t\t\t\tconst dataIndex = context.dataIndex;\n\t\t\t\t\t\t\t\t\t\t\tconst point = this.chartData[dataIndex];\n\t\t\t\t\t\t\t\t\t\t\t\n\t\t\t\t\t\t\t\t\t\t\tif (datasetLabel === 'Validators') {\n\t\t\t\t\t\t\t\t\t\t\t\treturn `Validators: ${value}`;\n\t\t\t\t\t\t\t\t\t\t\t} else if (datasetLabel === 'Healthy Validators') {\n\t\t\t\t\t\t\t\t\t\t\t\treturn `Healthy Validators: ${value}`;\n\t\t\t\t\t\t\t\t\t\t\t} else if (datasetLabel === 'BPS') {\n\t\t\t\t\t\t\t\t\t\t\t\t// Convert BPS to Block Time for better readability\n\t\t\t\t\t\t\t\t\t\t\t\tconst blockTime = point && point.bps > 0 ? (1 / point.bps) : 0;\n\t\t\t\t\t\t\t\t\t\t\t\treturn `Block Time: ${blockTime.toFixed(2)}s`;\n\t\t\t\t\t\t\t\t\t\t\t} else if (datasetLabel === 'TPS') {\n\t\t\t\t\t\t\t\t\t\t\t\treturn `Transactions/sec: ${value.toFixed(2)}`;\n\t\t\t\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t\t\t\t\treturn '';\n\t\t\t\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\t\t\t\tafterBody: (context) => {\n\t\t\t\t\t\t\t\t\t\t\tconst dataIndex = context[0].dataIndex;\n\t\t\t\t\t\t\t\t\t\t\tconst point = this.chartData[dataIndex];\n\t\t\t\t\t\t\t\t\t\t\tif (!point) return [];\n\t\t\t\t\t\t\t\t\t\t\treturn [\n\t\t\t\t\t\t\t\t\t\t\t\t'',\n\t\t\t\t\t\t\t\t\t\t\t\t`Block ${point.blockHeight.toLocaleString()}`\n\t\t\t\t\t\t\t\t\t\t\t];\n\t\t\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\tscales: {\n\t\t\t\t\t\t\t\tx: {\n\t\t\t\t\t\t\t\t\tdisplay: true,\n\t\t\t\t\t\t\t\t\ttitle: {\n\t\t\t\t\t\t\t\t\t\tdisplay: false\n\t\t\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\t\t\tticks: {\n\t\t\t\t\t\t\t\t\t\tcolor: isDarkMode ? '#9ca3af' : '#6b7280',\n\t\t\t\t\t\t\t\t\t\tmaxTicksLimit: 8,\n\t\t\t\t\t\t\t\t\t\tfont: {\n\t\t\t\t\t\t\t\t\t\t\tweight: '400',\n\t\t\t\t\t\t\t\t\t\t\tsize: 10\n\t\t\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\t\t\tgrid: {\n\t\t\t\t\t\t\t\t\t\tcolor: isDarkMode ? '#374151' : '#f3f4f6',\n\t\t\t\t\t\t\t\t\t\tlineWidth: 0.5,\n\t\t\t\t\t\t\t\t\t\tborderDash: [3, 3]\n\t\t\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\t\t\tborder: {\n\t\t\t\t\t\t\t\t\t\tcolor: isDarkMode ? '#4b5563' : '#d1d5db',\n\t\t\t\t\t\t\t\t\t\twidth: 0.5\n\t\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\t\ty: {\n\t\t\t\t\t\t\t\t\ttype: 'linear',\n\t\t\t\t\t\t\t\t\tdisplay: true,\n\t\t\t\t\t\t\t\t\tposition: 'left',\n\t\t\t\t\t\t\t\t\tmin: validatorMin,\n\t\t\t\t\t\t\t\t\tmax: validatorMax,\n\t\t\t\t\t\t\t\t\ttitle: {\n\t\t\t\t\t\t\t\t\t\tdisplay: true,\n\t\t\t\t\t\t\t\t\t\ttext: 'Validators',\n\t\t\t\t\t\t\t\t\t\tcolor: isDarkMode ? '#9ca3af' : '#6b7280',\n\t\t\t\t\t\t\t\t\t\tfont: {\n\t\t\t\t\t\t\t\t\t\t\tweight: '500',\n\t\t\t\t\t\t\t\t\t\t\tsize: 11\n\t\t\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\t\t\tticks: {\n\t\t\t\t\t\t\t\t\t\tcolor: isDarkMode ? '#9ca3af' : '#6b7280',\n\t\t\t\t\t\t\t\t\t\tfont: {\n\t\t\t\t\t\t\t\t\t\t\tweight: '400',\n\t\t\t\t\t\t\t\t\t\t\tsize: 10\n\t\t\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\t\t\tgrid: {\n\t\t\t\t\t\t\t\t\t\tcolor: isDarkMode ? '#374151' : '#f3f4f6',\n\t\t\t\t\t\t\t\t\t\tlineWidth: 0.5,\n\t\t\t\t\t\t\t\t\t\tborderDash: [3, 3]\n\t\t\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\t\t\tborder: {\n\t\t\t\t\t\t\t\t\t\tcolor: isDarkMode ? '#4b5563' : '#d1d5db',\n\t\t\t\t\t\t\t\t\t\twidth: 0.5\n\t\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\t\ty1: {\n\t\t\t\t\t\t\t\t\ttype: 'linear',\n\t\t\t\t\t\t\t\t\tdisplay: true,\n\t\t\t\t\t\t\t\t\tposition: 'right',\n\t\t\t\t\t\t\t\t\tmin: performanceMin,\n\t\t\t\t\t\t\t\t\tmax: performanceMax,\n\t\t\t\t\t\t\t\t\ttitle: {\n\t\t\t\t\t\t\t\t\t\tdisplay: true,\n\t\t\t\t\t\t\t\t\t\ttext: 'Performance (BPS/TPS)',\n\t\t\t\t\t\t\t\t\t\tcolor: isDarkMode ? '#9ca3af' : '#6b7280',\n\t\t\t\t\t\t\t\t\t\tfont: {\n\t\t\t\t\t\t\t\t\t\t\tweight: '500',\n\t\t\t\t\t\t\t\t\t\t\tsize: 11\n\t\t\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\t\t\tticks: {\n\t\t\t\t\t\t\t\t\t\tcolor: isDarkMode ? '#9ca3af' : '#6b7280',\n\t\t\t\t\t\t\t\t\t\tfont: {\n\t\t\t\t\t\t\t\t\t\t\tweight: '400',\n\t\t\t\t\t\t\t\t\t\t\tsize: 10\n\t\t\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\t\t\tgrid: {\n\t\t\t\t\t\t\t\t\t\tdrawOnChartArea: false,\n\t\t\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\t\t\tborder: {\n\t\t\t\t\t\t\t\t\t\tcolor: isDarkMode ? '#4b5563' : '#d1d5db',\n\t\t\t\t\t\t\t\t\t\twidth: 0.5\n\t\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\tonClick: (event, elements) => {\n\t\t\t\t\t\t\t\tif (elements.length > 0) {\n\t\t\t\t\t\t\t\t\tconst dataIndex = elements[0].index;\n\t\t\t\t\t\t\t\t\tconst point = this.chartData[dataIndex];\n\t\t\t\t\t\t\t\t\tif (point && point.rollupId) {\n\t\t\t\t\t\t\t\t\t\t// Navigate to rollup details page\n\t\t\t\t\t\t\t\t\t\twindow.location.href = `/validators/uptime/${point.rollupId}`;\n\t\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\tonHover: (event, elements) => {\n\t\t\t\t\t\t\t\tconst canvas = event.native.target;\n\t\t\t\t\t\t\t\tcanvas.style.cursor = elements.length > 0 ? 'pointer' : 'default';\n\t\t\t\t\t\t\t},\n\n\t\t\t\t\t\t\tlayout: {\n\t\t\t\t\t\t\t\tpadding: {\n\t\t\t\t\t\t\t\t\tleft: 10,\n\t\t\t\t\t\t\t\t\tright: 10,\n\t\t\t\t\t\t\t\t\ttop: 5,\n\t\t\t\t\t\t\t\t\tbottom: 5\n\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t}\n\t\t\t\t\t});\n\t\t\t\t},\n\n\n\n\n\n\t\t\t\t// Alpine.js lifecycle hook\n\t\t\t\tdestroy() {\n\t\t\t\t\tif (this.chart) {\n\t\t\t\t\t\tthis.chart.destroy();\n\t\t\t\t\t\tthis.chart = null;\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\t</script>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -1303,7 +1304,7 @@ func NetworkSidebarFragment(stats *DashboardStats) templ.Component {
 		var templ_7745c5c3_Var58 string
 		templ_7745c5c3_Var58, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", stats.ValidatorCount))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 1513, Col: 139}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 1534, Col: 139}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var58))
 		if templ_7745c5c3_Err != nil {

@@ -43,14 +43,15 @@ type PlayEvent struct {
 }
 
 type SLAPerformanceDataPoint struct {
-	RollupID       int32   `json:"rollupId"`
-	BlockHeight    int64   `json:"blockHeight"`
-	Timestamp      string  `json:"timestamp"`
-	ValidatorCount int32   `json:"validatorCount"`
-	BPS            float64 `json:"bps"`
-	TPS            float64 `json:"tps"`
-	BlockStart     int64   `json:"blockStart"`
-	BlockEnd       int64   `json:"blockEnd"`
+	RollupID          int32   `json:"rollupId"`
+	BlockHeight       int64   `json:"blockHeight"`
+	Timestamp         string  `json:"timestamp"`
+	ValidatorCount    int32   `json:"validatorCount"`
+	HealthyValidators int32   `json:"healthyValidators"`
+	BPS               float64 `json:"bps"`
+	TPS               float64 `json:"tps"`
+	BlockStart        int64   `json:"blockStart"`
+	BlockEnd          int64   `json:"blockEnd"`
 }
 
 type DashboardProps struct {
@@ -1222,6 +1223,24 @@ templ SLAChartScript() {
 									yAxisID: 'y'
 								},
 								{
+									label: 'Healthy Validators',
+									data: this.chartData.map(point => point.healthyValidators),
+									borderColor: isDarkMode ? '#10b981' : '#059669',
+									backgroundColor: 'transparent',
+									borderWidth: 2,
+									fill: false,
+									tension: 0.3,
+									pointRadius: 0,
+									pointHoverRadius: 6,
+									pointBackgroundColor: isDarkMode ? '#10b981' : '#059669',
+									pointBorderColor: isDarkMode ? '#1f2937' : '#ffffff',
+									pointBorderWidth: 2,
+									pointHoverBackgroundColor: isDarkMode ? '#34d399' : '#047857',
+									pointHoverBorderColor: isDarkMode ? '#1f2937' : '#ffffff',
+									pointHoverBorderWidth: 3,
+									yAxisID: 'y'
+								},
+								{
 									label: 'BPS',
 									data: this.chartData.map(point => point.bps),
 									borderColor: isDarkMode ? '#c084fc' : '#7c3aed',
@@ -1352,6 +1371,8 @@ templ SLAChartScript() {
 											
 											if (datasetLabel === 'Validators') {
 												return `Validators: ${value}`;
+											} else if (datasetLabel === 'Healthy Validators') {
+												return `Healthy Validators: ${value}`;
 											} else if (datasetLabel === 'BPS') {
 												// Convert BPS to Block Time for better readability
 												const blockTime = point && point.bps > 0 ? (1 / point.bps) : 0;

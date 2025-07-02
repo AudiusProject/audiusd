@@ -362,6 +362,29 @@ func (con *Console) Dashboard(c echo.Context) error {
 	if len(slaRollupsData) > 0 {
 		con.logger.Info("Building SLA performance chart data", "rollupCount", len(slaRollupsData))
 
+		// Extract rollup IDs for healthy validators query
+		rollupIDs := make([]int32, len(slaRollupsData))
+		for i, rollup := range slaRollupsData {
+			rollupIDs[i] = rollup.ID
+		}
+
+		// Get healthy validator counts for these rollups
+		healthyValidatorData, err := con.etl.GetDB().GetHealthyValidatorCountsForRollups(ctx, rollupIDs)
+		if err != nil {
+			con.logger.Warn("Failed to get healthy validator counts", "error", err)
+			healthyValidatorData = []db.GetHealthyValidatorCountsForRollupsRow{}
+		}
+
+		// Build a map for quick lookup of healthy validator counts
+		healthyValidatorsMap := make(map[int32]int32)
+		for _, hvData := range healthyValidatorData {
+			if healthyCount, ok := hvData.HealthyValidators.(int64); ok {
+				healthyValidatorsMap[hvData.RollupID] = int32(healthyCount)
+			} else {
+				healthyValidatorsMap[hvData.RollupID] = 0
+			}
+		}
+
 		// Filter out invalid rollups and build valid data points
 		validDataPoints := make([]*pages.SLAPerformanceDataPoint, 0, len(slaRollupsData))
 		for i, rollup := range slaRollupsData {
@@ -411,16 +434,23 @@ func (con *Console) Dashboard(c echo.Context) error {
 				validatorCount = 1 // Minimum of 1 validator
 			}
 
+			// Get healthy validators count for this rollup
+			healthyValidators := int32(0)
+			if healthyCount, exists := healthyValidatorsMap[rollup.ID]; exists {
+				healthyValidators = healthyCount
+			}
+
 			// Create a fully validated data point
 			dataPoint := &pages.SLAPerformanceDataPoint{
-				RollupID:       rollup.ID,
-				BlockHeight:    rollup.BlockHeight,
-				Timestamp:      rollup.CreatedAt.Time.Format(time.RFC3339),
-				ValidatorCount: validatorCount,
-				BPS:            rollup.Bps,
-				TPS:            rollup.Tps,
-				BlockStart:     rollup.BlockStart,
-				BlockEnd:       rollup.BlockEnd,
+				RollupID:          rollup.ID,
+				BlockHeight:       rollup.BlockHeight,
+				Timestamp:         rollup.CreatedAt.Time.Format(time.RFC3339),
+				ValidatorCount:    validatorCount,
+				HealthyValidators: healthyValidators,
+				BPS:               rollup.Bps,
+				TPS:               rollup.Tps,
+				BlockStart:        rollup.BlockStart,
+				BlockEnd:          rollup.BlockEnd,
 			}
 
 			// Extra safety check - ensure we're not adding nil
