@@ -8,12 +8,16 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
+	"connectrpc.com/connect"
+	corev1 "github.com/AudiusProject/audiusd/pkg/api/core/v1"
 	"github.com/AudiusProject/audiusd/pkg/common"
 	"github.com/AudiusProject/audiusd/pkg/console/templates/pages"
 	"github.com/AudiusProject/audiusd/pkg/etl"
 	"github.com/AudiusProject/audiusd/pkg/etl/db"
+	"github.com/AudiusProject/audiusd/pkg/sdk"
 	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/labstack/echo/v4"
@@ -32,60 +36,12 @@ var imagesFS embed.FS
 var jsFS embed.FS
 
 type Console struct {
-	env    string
-	e      *echo.Echo
-	etl    *etl.ETLService
-	logger *common.Logger
-}
-
-// TODO: Add these structs to a proper location once we have the full ETL API defined
-type DashboardStats struct {
-	CurrentBlockHeight           int64
-	ChainID                      string
-	BPS                          float64
-	TPS                          float64
-	TotalTransactions            int64
-	ValidatorCount               int32
-	LatestBlock                  *LatestBlockInfo
-	RecentProposers              []*ProposerInfo
-	IsSyncing                    bool
-	LatestIndexedHeight          int64
-	LatestChainHeight            int64
-	BlockDelta                   int64
-	TotalTransactions24h         int64
-	TotalTransactionsPrevious24h int64
-	TotalTransactions7d          int64
-	TotalTransactions30d         int64
-	AvgBlockTime                 float32 // Average block time from latest SLA rollup in seconds
-}
-
-type LatestBlockInfo struct {
-	// TODO: Define fields for latest block info
-	Height   int64
-	Proposer string
-	Time     time.Time
-	TxCount  int32
-}
-
-type ProposerInfo struct {
-	// TODO: Define fields for proposer info
-	Address     string
-	BlockHeight int64
-	Time        time.Time
-}
-
-type TransactionTypeBreakdown struct {
-	Type  string
-	Count int64
-	Color string
-}
-
-// TODO: Add more placeholder types for features we haven't implemented yet
-type PlayEvent struct {
-	Timestamp string  `json:"timestamp"`
-	Lat       float64 `json:"lat"`
-	Lng       float64 `json:"lng"`
-	Duration  int     `json:"duration"`
+	env                string
+	e                  *echo.Echo
+	etl                *etl.ETLService
+	logger             *common.Logger
+	trustedNode        *sdk.AudiusdSDK
+	latestTrustedBlock atomic.Uint64
 }
 
 func NewConsole(etl *etl.ETLService, e *echo.Echo, env string) *Console {
@@ -95,7 +51,19 @@ func NewConsole(etl *etl.ETLService, e *echo.Echo, env string) *Console {
 	if env == "" {
 		env = "prod"
 	}
-	return &Console{etl: etl, e: e, logger: common.NewLogger(nil).Child("console"), env: env}
+
+	trustedNodeURL := ""
+
+	switch env {
+	case "prod", "production", "mainnet":
+		trustedNodeURL = "rpc.audius.engineering"
+	case "staging", "stage", "testnet":
+		trustedNodeURL = "rpc.staging.audius.engineering"
+	case "dev":
+		trustedNodeURL = "rpc.dev.audius.engineering"
+	}
+
+	return &Console{etl: etl, e: e, logger: common.NewLogger(nil).Child("console"), env: env, trustedNode: sdk.NewAudiusdSDK(trustedNodeURL), latestTrustedBlock: atomic.Uint64{}}
 }
 
 func (con *Console) SetupRoutes() {
@@ -174,6 +142,31 @@ func (con *Console) SetupRoutes() {
 
 func (con *Console) Run() error {
 	g, _ := errgroup.WithContext(context.Background())
+
+	g.Go(func() error {
+		info, err := con.trustedNode.Core.GetNodeInfo(context.Background(), &connect.Request[corev1.GetNodeInfoRequest]{})
+		if err != nil {
+			con.logger.Warn("Failed to initialize node info", "error", err)
+			con.latestTrustedBlock.Store(0)
+		} else {
+			con.latestTrustedBlock.Store(uint64(info.Msg.CurrentHeight))
+		}
+
+		ticker := time.NewTicker(10 * time.Second)
+		defer ticker.Stop()
+
+		for range ticker.C {
+			info, err := con.trustedNode.Core.GetNodeInfo(context.Background(), &connect.Request[corev1.GetNodeInfoRequest]{})
+			if err != nil {
+				con.logger.Warn("Failed to get node info", "error", err)
+				continue
+			}
+			if con.latestTrustedBlock.Load() < uint64(info.Msg.CurrentHeight) {
+				con.latestTrustedBlock.Store(uint64(info.Msg.CurrentHeight))
+			}
+		}
+		return nil
+	})
 
 	g.Go(func() error {
 		if err := con.etl.Run(); err != nil {
@@ -255,6 +248,35 @@ func (con *Console) Dashboard(c echo.Context) error {
 		latestBlockHeight = 0
 	}
 
+	// Get latest trusted block height from the trusted node
+	trustedBlockHeight := int64(con.latestTrustedBlock.Load())
+
+	// Calculate sync status - consider synced if within 60 blocks of the head
+	const syncThreshold = 60
+	var isSyncing bool
+	var blockDelta int64
+	syncProgressPercentage := float64(100) // Default to fully synced
+
+	if trustedBlockHeight > 0 && latestBlockHeight > 0 {
+		blockDelta = trustedBlockHeight - latestBlockHeight
+		isSyncing = blockDelta > syncThreshold
+
+		if isSyncing && trustedBlockHeight > 0 {
+			syncProgressPercentage = (float64(latestBlockHeight) / float64(trustedBlockHeight)) * 100
+			// Ensure percentage doesn't exceed 100
+			if syncProgressPercentage > 100 {
+				syncProgressPercentage = 100
+			}
+		} else {
+			syncProgressPercentage = 100 // Fully synced
+		}
+	} else {
+		// If we don't have trusted block info, assume synced
+		isSyncing = false
+		blockDelta = 0
+		syncProgressPercentage = 100
+	}
+
 	// Get latest SLA rollup for BPS/TPS data
 	var bps, tps float64 = 0, 0
 	var avgBlockTime float32 = 0
@@ -313,12 +335,12 @@ func (con *Console) Dashboard(c echo.Context) error {
 		TPS:                          tps,
 		TotalTransactions:            txStats.TotalTransactions,
 		ValidatorCount:               validatorCount,
-		LatestBlock:                  nil,   // TODO: Implement
-		RecentProposers:              nil,   // TODO: Implement
-		IsSyncing:                    false, // TODO: Implement sync status check
+		LatestBlock:                  nil, // TODO: Implement
+		RecentProposers:              nil, // TODO: Implement
+		IsSyncing:                    isSyncing,
 		LatestIndexedHeight:          latestBlockHeight,
-		LatestChainHeight:            latestBlockHeight,
-		BlockDelta:                   0,
+		LatestChainHeight:            trustedBlockHeight,
+		BlockDelta:                   blockDelta,
 		TotalTransactions24h:         txStats.Transactions24h,
 		TotalTransactionsPrevious24h: txStats.TransactionsPrevious24h,
 		TotalTransactions7d:          txStats.Transactions7d,
@@ -473,9 +495,6 @@ func (con *Console) Dashboard(c echo.Context) error {
 
 	// Final debug of what we're passing to template
 	con.logger.Info("Final SLA performance data for template", "dataPoints", len(slaPerformanceData))
-
-	// Calculate sync progress percentage
-	syncProgressPercentage := float64(100) // Assume synced for now
 
 	// Convert rollups to pointers for template
 	recentSLARollups := make([]*db.EtlSlaRollup, len(slaRollupsData))
@@ -1370,6 +1389,35 @@ func (con *Console) StatsHeaderFragment(c echo.Context) error {
 		latestBlockHeight = 0
 	}
 
+	// Get latest trusted block height from the trusted node
+	trustedBlockHeight := int64(con.latestTrustedBlock.Load())
+
+	// Calculate sync status - consider synced if within 60 blocks of the head
+	const syncThreshold = 60
+	var isSyncing bool
+	var blockDelta int64
+	syncProgressPercentage := float64(100) // Default to fully synced
+
+	if trustedBlockHeight > 0 && latestBlockHeight > 0 {
+		blockDelta = trustedBlockHeight - latestBlockHeight
+		isSyncing = blockDelta > syncThreshold
+
+		if isSyncing && trustedBlockHeight > 0 {
+			syncProgressPercentage = (float64(latestBlockHeight) / float64(trustedBlockHeight)) * 100
+			// Ensure percentage doesn't exceed 100
+			if syncProgressPercentage > 100 {
+				syncProgressPercentage = 100
+			}
+		} else {
+			syncProgressPercentage = 100 // Fully synced
+		}
+	} else {
+		// If we don't have trusted block info, assume synced
+		isSyncing = false
+		blockDelta = 0
+		syncProgressPercentage = 100
+	}
+
 	// Get latest SLA rollup for BPS/TPS data
 	var bps float64 = 0
 	var avgBlockTime float32 = 0
@@ -1402,14 +1450,11 @@ func (con *Console) StatsHeaderFragment(c echo.Context) error {
 		BPS:                 bps,
 		ValidatorCount:      validatorCount,
 		AvgBlockTime:        avgBlockTime,
-		IsSyncing:           false, // TODO: Implement sync status check
+		IsSyncing:           isSyncing,
 		LatestIndexedHeight: latestBlockHeight,
-		LatestChainHeight:   latestBlockHeight,
-		BlockDelta:          0,
+		LatestChainHeight:   trustedBlockHeight,
+		BlockDelta:          blockDelta,
 	}
-
-	// Calculate sync progress percentage
-	syncProgressPercentage := float64(100) // Assume synced for now
 
 	// Render the stats header fragment template
 	fragment := pages.StatsHeaderFragment(stats, syncProgressPercentage)
