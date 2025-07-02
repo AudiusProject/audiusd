@@ -151,7 +151,7 @@ templ Dashboard(props DashboardProps) {
 		<div class="space-y-6" x-data="blockEvents()" x-init="init()">
 			<!-- Section 1: Current Stats -->
 			<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6">
-				<div id="stats-header" hx-get="/fragments/stats-header" hx-trigger="every 10s" hx-swap="outerHTML" x-data="blockEvents()" x-init="init()">
+				<div id="stats-header" x-data="blockEvents()" x-init="init()">
 					<div class="flex items-center justify-between">
 						<div class="flex-1">
 							<h4 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Block Height</h4>
