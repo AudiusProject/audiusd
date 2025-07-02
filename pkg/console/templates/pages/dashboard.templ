@@ -1347,13 +1347,17 @@ templ SLAChartScript() {
 										label: (context) => {
 											const datasetLabel = context.dataset.label;
 											const value = context.parsed.y;
+											const dataIndex = context.dataIndex;
+											const point = this.chartData[dataIndex];
 											
 											if (datasetLabel === 'Validators') {
 												return `Validators: ${value}`;
 											} else if (datasetLabel === 'BPS') {
-												return `BPS: ${value.toFixed(2)}`;
+												// Convert BPS to Block Time for better readability
+												const blockTime = point && point.bps > 0 ? (1 / point.bps) : 0;
+												return `Block Time: ${blockTime.toFixed(2)}s`;
 											} else if (datasetLabel === 'TPS') {
-												return `TPS: ${value.toFixed(2)}`;
+												return `Transactions/sec: ${value.toFixed(2)}`;
 											}
 											return '';
 										},
