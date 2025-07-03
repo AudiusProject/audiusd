@@ -48,7 +48,7 @@ func (ss *MediorumServer) startFixTruncatedQmWorker(ctx context.Context) {
 			}
 
 			if len(cidBatch) == 0 {
-				break
+				return
 			}
 
 			wg := sync.WaitGroup{}

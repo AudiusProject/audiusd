@@ -227,7 +227,11 @@ down: ss-down
 		down -v
 
 .PHONY: test
-test: mediorum-test core-test
+test: mediorum-test core-test unit-test
+
+.PHONY: unit-test
+unit-test:
+	go test -v -count=1 -timeout=60s ./pkg/lifecycle/
 
 .PHONY: mediorum-test
 mediorum-test:

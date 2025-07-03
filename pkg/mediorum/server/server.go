@@ -625,7 +625,7 @@ func (ss *MediorumServer) startPprofServer(ctx context.Context) {
 	go func() {
 		defer close(done)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Println("pprof server error: %v", err)
+			ss.logger.Error("pprof server error", "error", err)
 		}
 	}()
 	for {
@@ -682,7 +682,7 @@ func (ss *MediorumServer) refreshPeersAndSigners(ctx context.Context) {
 			slices.Sort(configCombined)
 			if !slices.Equal(combined, configCombined) {
 				ss.logger.Info("peers or signers changed on chain. restarting...", "peers", len(peers), "signers", len(signers), "combined", combined, "configCombined", configCombined)
-				ss.Stop()
+				go ss.Stop()
 				return
 			}
 		case <-ctx.Done():

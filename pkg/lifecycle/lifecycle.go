@@ -20,6 +20,7 @@ type Lifecycle struct {
 	cancel     context.CancelFunc
 	wg         sync.WaitGroup
 	logger     *common.Logger
+	childrenMU sync.RWMutex
 	children   []*Lifecycle
 	isShutDown atomic.Bool
 }
@@ -39,6 +40,8 @@ func NewFromLifecycle(lc *Lifecycle, name string) *Lifecycle {
 		panic("attempting to derive new lifecycle from already shut down lifecycle")
 	}
 	newLc := NewLifecycle(lc.ctx, name, lc.logger)
+	lc.childrenMU.Lock()
+	defer lc.childrenMU.Unlock()
 	lc.children = append(lc.children, newLc)
 	return newLc
 }
@@ -49,9 +52,9 @@ func (l *Lifecycle) AddManagedRoutine(name string, f func(context.Context)) {
 	}
 	l.logger.Infof("Starting managed goroutine '%s'", name)
 	l.wg.Add(1)
-	defer l.wg.Done()
 	go func() {
-		defer l.logger.Infof("Shutdown managed goroutine '%s'", name)
+		defer l.logger.Infof("Shut down managed goroutine '%s'", name)
+		defer l.wg.Done()
 		f(l.ctx)
 	}()
 }
@@ -78,11 +81,16 @@ func (l *Lifecycle) ShutdownWithTimeout(timeout time.Duration) error {
 	}()
 
 	l.logger.Info("Lifecycle shutdown signaled. Waiting for managed goroutines to finish...")
+	timeoutCh := time.After(timeout)
 	select {
 	case err := <-done:
-		l.logger.Info("Lifecycle shutdown complete")
+		if err != nil {
+			l.logger.Errorf("error shutting down child lifecycle: %v", err)
+		} else {
+			l.logger.Info("Lifecycle shutdown complete")
+		}
 		return err
-	case <-time.After(timeout):
+	case <-timeoutCh:
 		l.logger.Info("Lifecycle shutdown timed out")
 		return errors.New("lifecycle shutdown timed out")
 	}
