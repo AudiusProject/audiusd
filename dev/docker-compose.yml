@@ -202,6 +202,8 @@ services:
         condition: service_started
       eth-ganache:
         condition: service_healthy
+      nginx:
+        condition: service_healthy
     profiles:
       - core-tests
 
