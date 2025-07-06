@@ -88,6 +88,7 @@ func (s *Server) onPeerTick() error {
 			rpc := corev1connect.NewCoreServiceClient(http.DefaultClient, validator.Endpoint)
 			_, err = rpc.Ping(context.Background(), connect.NewRequest(&v1.PingRequest{}))
 			if err != nil {
+				s.logger.Errorf("could not ping peer at '%s', got error: %v", validator.Endpoint, err)
 				return
 			} else {
 				s.logger.Infof("pinged peer %s", validator.Endpoint)
