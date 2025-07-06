@@ -270,3 +270,13 @@ core-test:
 		--project-directory='./' \
 		--profile=core-tests \
 		down -v
+
+.PHONY: test-down
+test-down:
+	@docker compose \
+		--file='dev/docker-compose.yml' \
+		--project-name='test' \
+		--project-directory='./' \
+		--profile=core-tests \
+		--profile=mediorum-unittests \
+		down -v

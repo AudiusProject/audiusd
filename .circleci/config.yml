@@ -76,6 +76,11 @@ commands:
             if ! grep 'node1.audiusd.devnet' /etc/hosts; then
               echo "127.0.0.1       node1.audiusd.devnet node2.audiusd.devnet node3.audiusd.devnet node4.audiusd.devnet" | sudo tee -a /etc/hosts
             fi
+      - run:
+          name: 'Install self-signed ssl certificate'
+          command: |
+            sudo cp dev/tls/cert.pem /usr/local/share/ca-certificates/devnet.audiusd.crt
+            sudo update-ca-certificates
 
 jobs:
   build-audiusd-bin:
@@ -149,6 +154,11 @@ jobs:
             AUDIUSD_IMAGE=audius/audiusd:${CIRCLE_SHA1}-amd64 \
             AUDIUSD_TEST_IMAGE=audius/audiusd:${CIRCLE_SHA1}-test \
             TTY_FLAG="--no-TTY" make core-test
+      - run:
+          when: always
+          name: Clean up tests
+          command: |
+            make test-down
       - when:
           condition:
             equal: [ main, << pipeline.git.branch >> ]
