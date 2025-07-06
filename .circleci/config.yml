@@ -68,7 +68,14 @@ commands:
           command: |
             echo ${BUF_TOKEN} | buf registry login --token-stdin
             buf push --create --git-metadata
-
+  devnet-setup:
+    steps:
+      - run:
+          name: 'Ensure /etc/hosts is up to date'
+          command: |
+            if ! grep 'node1.audiusd.devnet' /etc/hosts; then
+              echo "127.0.0.1       node1.audiusd.devnet node2.audiusd.devnet node3.audiusd.devnet node4.audiusd.devnet" | sudo tee -a /etc/hosts
+            fi
 
 jobs:
   build-audiusd-bin:
@@ -109,6 +116,7 @@ jobs:
     resource_class: audiusproject/gcp-n2-standard-4
     steps:
       - checkout
+      - devnet-setup
       - attach_workspace:
           at: ./
       - docker-login
