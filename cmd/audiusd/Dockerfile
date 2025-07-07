@@ -67,11 +67,6 @@ ENV PATH="/usr/local/go/bin:${PATH}"
 ENV GOPATH="/go"
 ENV GOROOT="/usr/local/go"
 
-COPY ./dev/tls/cert.pem /usr/share/ca-certificates/devnet.crt
-RUN chmod 644 /usr/share/ca-certificates/devnet.crt && \
-    echo "devnet.crt" >> /etc/ca-certificates.conf && \
-    update-ca-certificates
-
 WORKDIR /app
 COPY --from=builder /go/pkg/mod /go/pkg/mod
 

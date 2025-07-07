@@ -117,7 +117,6 @@ jobs:
     resource_class: audiusproject/gcp-n2-standard-4
     steps:
       - checkout
-      - devnet-setup
       - attach_workspace:
           at: ./
       - docker-login
@@ -138,7 +137,7 @@ jobs:
               --build-arg PREBUILT_BINARY=bin/audiusd-x86_64-linux \
               -t audius/audiusd:${CIRCLE_SHA1}-test \
               -f ./cmd/audiusd/Dockerfile.ci ./
-            
+
             DOCKER_DEFAULT_PLATFORM=linux/amd64 docker build \
               --target harness \
               --build-arg GIT_SHA=${CIRCLE_SHA1} \
@@ -150,7 +149,7 @@ jobs:
           command: |
             AUDIUSD_IMAGE=audius/audiusd:${CIRCLE_SHA1}-test \
             AUDIUSD_TEST_HARNESS_IMAGE=audius/audiusd:${CIRCLE_SHA1}-harness \
-            TTY_FLAG="--no-TTY" echo bypassed for testing purposes #make mediorum-test
+            TTY_FLAG="--no-TTY" make mediorum-test
       - run:
           name: Run (integration) core tests
           command: |
@@ -161,7 +160,7 @@ jobs:
           when: always
           name: Clean up tests
           command: |
-            echo bypassed cleanup for testing purposes #make test-down
+            make test-down
       - when:
           condition:
             equal: [ main, << pipeline.git.branch >> ]
