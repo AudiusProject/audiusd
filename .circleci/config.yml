@@ -131,24 +131,31 @@ jobs:
               -t audius/audiusd:${CIRCLE_SHA1}-amd64 \
               -f ./cmd/audiusd/Dockerfile.ci ./
             docker push audius/audiusd:${CIRCLE_SHA1}-amd64
-            
+
             DOCKER_DEFAULT_PLATFORM=linux/amd64 docker build \
               --target test \
               --build-arg GIT_SHA=${CIRCLE_SHA1} \
               --build-arg PREBUILT_BINARY=bin/audiusd-x86_64-linux \
               -t audius/audiusd:${CIRCLE_SHA1}-test \
               -f ./cmd/audiusd/Dockerfile.ci ./
+            
+            DOCKER_DEFAULT_PLATFORM=linux/amd64 docker build \
+              --target harness \
+              --build-arg GIT_SHA=${CIRCLE_SHA1} \
+              --build-arg PREBUILT_BINARY=bin/audiusd-x86_64-linux \
+              -t audius/audiusd:${CIRCLE_SHA1}-harness \
+              -f ./cmd/audiusd/Dockerfile.ci ./
       - run:
           name: Run (unit) mediorum tests
           command: |
             AUDIUSD_IMAGE=audius/audiusd:${CIRCLE_SHA1}-test \
-            AUDIUSD_TEST_IMAGE=audius/audiusd:${CIRCLE_SHA1}-test \
+            AUDIUSD_TEST_HARNESS_IMAGE=audius/audiusd:${CIRCLE_SHA1}-harness \
             TTY_FLAG="--no-TTY" echo bypassed for testing purposes #make mediorum-test
       - run:
           name: Run (integration) core tests
           command: |
             AUDIUSD_IMAGE=audius/audiusd:${CIRCLE_SHA1}-test \
-            AUDIUSD_TEST_IMAGE=audius/audiusd:${CIRCLE_SHA1}-test \
+            AUDIUSD_TEST_HARNESS_IMAGE=audius/audiusd:${CIRCLE_SHA1}-harness \
             TTY_FLAG="--no-TTY" make core-test
       - run:
           when: always
