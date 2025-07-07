@@ -235,7 +235,7 @@ unit-test:
 
 .PHONY: mediorum-test
 mediorum-test:
-	@if [ -z "$(AUDIUSD_TEST_IMAGE)" ]; then \
+	@if [ -z "$(AUDIUSD_TEST_HARNESS_IMAGE)" ]; then \
 		make docker-harness; \
 	fi
 	@docker compose \
@@ -254,7 +254,7 @@ mediorum-test:
 
 .PHONY: core-test
 core-test:
-	@if [ -z "$(AUDIUSD_TEST_IMAGE)" ]; then \
+	@if [ -z "$(AUDIUSD_TEST_HARNESS_IMAGE)" ]; then \
 		make docker-harness; \
 	fi
 	docker compose \
