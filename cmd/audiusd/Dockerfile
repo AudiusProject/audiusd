@@ -50,7 +50,7 @@ ENTRYPOINT ["/bin/entrypoint.sh"]
 
 
 # Image on which to base anything used for development, testing, etc.
-FROM prod AS testbase 
+FROM prod AS toolbase 
 
 COPY ./dev/tls/cert.pem /usr/share/ca-certificates/devnet.crt
 RUN chmod 644 /usr/share/ca-certificates/devnet.crt && \
@@ -61,7 +61,7 @@ RUN chmod 644 /usr/share/ca-certificates/devnet.crt && \
 
 # Image from which go tests can be executed in the same network
 # with all the audiusd deps installed
-FROM testbase AS harness
+FROM toolbase AS harness
 
 COPY --from=golang:alpine /usr/local/go/ /usr/local/go/
 
@@ -80,11 +80,11 @@ ENV AUDIUSD_TEST_HARNESS_MODE="true"
 
 # Image for running audiusd during CI tests.
 # Ideally nothing should be added here unless strictly necessary.
-FROM testbase AS ci
+FROM toolbase AS ci
 # no-op
 
 
 # Image for running audiusd for development.
 # Add any developer convenience tools or state here that don't belong in CI
-FROM testbase AS dev
+FROM toolbase AS dev
 # no-op
