@@ -33,10 +33,8 @@ require (
 	golang.org/x/sync v0.13.0
 	google.golang.org/grpc v1.70.0
 	google.golang.org/protobuf v1.36.6
-	gopkg.in/yaml.v2 v2.4.0
 	gorm.io/driver/postgres v1.5.0
 	gorm.io/gorm v1.25.5
-	nhooyr.io/websocket v1.8.11
 )
 
 require (

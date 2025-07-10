@@ -51,15 +51,6 @@ ignore-code-gen:
 	@echo "Warning: not regenerating .go files from sql, templ, proto, etc. Using existing artifacts instead."
 	@touch $(SQL_ARTIFACTS) $(TEMPL_ARTIFACTS) $(PROTO_ARTIFACTS) go.mod
 
-.PHONY: build-wrapper-local build-push-wrapper
-docker-wrapper-local:
-	@echo "Building Docker image for local platform..."
-	docker buildx build --load -t audius/audius-d:$(WRAPPER_TAG) pkg/orchestration
-
-docker-push-wrapper:
-	@echo "Building and pushing Docker images for all platforms..."
-	docker buildx build --platform linux/amd64,linux/arm64 --push -t audius/audius-d:$(WRAPPER_TAG) pkg/orchestration
-
 .PHONY: build-push-cpp
 docker-push-cpp:
 	docker buildx build --platform linux/amd64,linux/arm64 --push -t audius/cpp:bookworm -f ./cmd/audiusd/Dockerfile.deps ./
