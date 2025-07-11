@@ -388,16 +388,6 @@ func New(config MediorumConfig, provider registrar.PeerProvider, posChannel chan
 	routes.POST("/delist_status/insert", ss.serveInsertDelistStatus, ss.requireBodySignedByOwner)
 
 	// -------------------
-	// healthz
-	healthz := routes.Group("/healthz")
-	healthzUrl, err := url.Parse("http://healthz")
-	if err != nil {
-		return nil, fmt.Errorf("Invalid healthz URL: %v", err)
-	}
-	healthzProxy := httputil.NewSingleHostReverseProxy(healthzUrl)
-	healthz.Any("*", echo.WrapHandler(healthzProxy))
-
-	// -------------------
 	// reverse proxy /d and /d_api to uptime container
 	uptimeUrl, err := url.Parse("http://uptime:1996")
 	if err != nil {
