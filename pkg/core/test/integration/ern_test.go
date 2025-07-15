@@ -20,6 +20,11 @@ func TestERNProcessing(t *testing.T) {
 	ctx := context.Background()
 	sdk := utils.DiscoveryOne
 
+	nodeInfo, err := sdk.Core.GetNodeInfo(ctx, connect.NewRequest(&corev1.GetNodeInfoRequest{}))
+	assert.NoError(t, err)
+	chainId := nodeInfo.Msg.Chainid
+	recentBlock := nodeInfo.Msg.CurrentHeight
+
 	// Wait for node to be ready
 	timeout := time.After(30 * time.Second)
 	for {
@@ -160,8 +165,8 @@ func TestERNProcessing(t *testing.T) {
 	// Create envelope with the DDEX message
 	envelope := &corev1beta1.Envelope{
 		Header: &corev1beta1.EnvelopeHeader{
-			ChainId:    "test-chain",
-			Expiration: time.Now().Add(time.Hour).Unix(),
+			ChainId:    chainId,
+			Expiration: recentBlock + 100,
 			Nonce:      uuid.NewString(),
 		},
 		Messages: []*corev1beta1.Message{

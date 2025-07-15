@@ -590,6 +590,17 @@ func (s *Server) isValidV2Transaction(tx []byte) (*v1beta1.Transaction, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// check tx header info
+	header := msg.Envelope.Header
+	if header.ChainId != s.config.GenesisFile.ChainID {
+		return nil, fmt.Errorf("invalid chain id: %s", header.ChainId)
+	}
+
+	if header.Expiration < s.cache.currentHeight.Load() {
+		return nil, fmt.Errorf("transaction expired")
+	}
+
 	return &msg, nil
 }
 
