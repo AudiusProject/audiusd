@@ -11,6 +11,7 @@ import (
 	"time"
 
 	v1 "github.com/AudiusProject/audiusd/pkg/api/core/v1"
+	"github.com/AudiusProject/audiusd/pkg/api/core/v1beta1"
 	"github.com/AudiusProject/audiusd/pkg/common"
 	"github.com/AudiusProject/audiusd/pkg/core/db"
 	abcitypes "github.com/cometbft/cometbft/abci/types"
@@ -168,7 +169,13 @@ func (s *Server) PrepareProposal(ctx context.Context, proposal *abcitypes.Prepar
 
 	// TODO: parallelize
 	for _, tx := range txMemBatch {
-		txBytes, err := proto.Marshal(tx)
+		var txBytes []byte
+		var err error
+		if tx.Txv2 != nil {
+			txBytes, err = proto.Marshal(tx.Txv2)
+		} else {
+			txBytes, err = proto.Marshal(tx.Tx)
+		}
 		if err != nil {
 			s.logger.Errorf("tx made it into prepare but couldn't be marshalled: %v", err)
 			continue
@@ -288,6 +295,27 @@ func (s *Server) FinalizeBlock(ctx context.Context, req *abcitypes.FinalizeBlock
 			// always append to finalized even in error conditions to be removed from mempool
 			state.finalizedTxs = append(state.finalizedTxs, txhash)
 		} else {
+			// could be v2 transaction
+			v2Tx, err := s.isValidV2Transaction(tx)
+			if err == nil {
+				txs[i] = &abcitypes.ExecTxResult{Code: abcitypes.CodeTypeOK}
+				// Calculate hash from envelope only, to match connect.go
+				txhash := s.toTxHash(v2Tx.Envelope)
+
+				// finalize v2 transaction
+				if err := s.getDb().StoreTransaction(ctx, db.StoreTransactionParams{
+					BlockID:     req.Height,
+					Index:       int32(i),
+					TxHash:      txhash,
+					Transaction: tx,
+					CreatedAt:   s.db.ToPgxTimestamp(req.Time),
+				}); err != nil {
+					s.logger.Errorf("failed to store transaction: %v", err)
+				}
+				state.finalizedTxs = append(state.finalizedTxs, txhash)
+				continue
+			}
+
 			logger.Errorf("Error: invalid transaction index %v", i)
 			txs[i] = &abcitypes.ExecTxResult{Code: 1}
 		}
@@ -556,6 +584,15 @@ func (s *Server) isValidSignedTransaction(tx []byte) (*v1.SignedTransaction, err
 	return &msg, nil
 }
 
+func (s *Server) isValidV2Transaction(tx []byte) (*v1beta1.Transaction, error) {
+	var msg v1beta1.Transaction
+	err := proto.Unmarshal(tx, &msg)
+	if err != nil {
+		return nil, err
+	}
+	return &msg, nil
+}
+
 func (s *Server) validateBlockTxs(ctx context.Context, blockTime time.Time, blockHeight int64, misbehavior []abcitypes.Misbehavior, txs [][]byte) (bool, error) {
 	for _, tx := range txs {
 		valid, err := s.validateBlockTx(ctx, blockTime, blockHeight, misbehavior, tx)
@@ -571,8 +608,13 @@ func (s *Server) validateBlockTxs(ctx context.Context, blockTime time.Time, bloc
 func (s *Server) validateBlockTx(ctx context.Context, blockTime time.Time, blockHeight int64, misbehavior []abcitypes.Misbehavior, tx []byte) (bool, error) {
 	signedTx, err := s.isValidSignedTransaction(tx)
 	if err != nil {
-		s.logger.Error("Invalid block: unrecognized transaction type")
-		return false, nil
+		// check if the tx is a v2 transaction
+		_, err := s.isValidV2Transaction(tx)
+		if err != nil {
+			s.logger.Error("Invalid block: unrecognized transaction type")
+			return false, nil
+		}
+		return true, nil
 	}
 
 	switch signedTx.Transaction.(type) {

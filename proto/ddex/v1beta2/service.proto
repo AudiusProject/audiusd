@@ -1,0 +1,164 @@
+syntax = "proto3";
+
+package ddex.v1beta2;
+
+import "ddex/v1beta2/ern.proto";
+
+option go_package = "github.com/AudiusProject/audiusd/pkg/api/ddex/v1beta2";
+
+// Service for processing DDEX Electronic Release Notifications
+service DDEXService {
+  // Process a new release message
+  rpc ProcessNewReleaseMessage(ProcessNewReleaseMessageRequest) returns (ProcessNewReleaseMessageResponse);
+
+  // Get release information by ID
+  rpc GetRelease(GetReleaseRequest) returns (GetReleaseResponse);
+
+  // Search for releases
+  rpc SearchReleases(SearchReleasesRequest) returns (SearchReleasesResponse);
+
+  // Get sound recording information
+  rpc GetSoundRecording(GetSoundRecordingRequest) returns (GetSoundRecordingResponse);
+
+  // Validate a DDEX message
+  rpc ValidateMessage(ValidateMessageRequest) returns (ValidateMessageResponse);
+}
+
+// Request/Response messages
+message ProcessNewReleaseMessageRequest {
+  NewReleaseMessage message = 1;
+  ProcessingOptions options = 2;
+}
+
+message ProcessNewReleaseMessageResponse {
+  string transaction_id = 1;
+  ProcessingStatus status = 2;
+  repeated ValidationError errors = 3;
+  repeated string created_release_ids = 4;
+  repeated string created_resource_ids = 5;
+}
+
+message ProcessingOptions {
+  bool validate_only = 1;
+  bool ignore_duplicates = 2;
+  string namespace = 3;
+}
+
+message ProcessingStatus {
+  enum Status {
+    UNKNOWN = 0;
+    SUCCESS = 1;
+    PARTIAL_SUCCESS = 2;
+    FAILED = 3;
+    VALIDATION_ERROR = 4;
+  }
+  Status status = 1;
+  string message = 2;
+  int32 processed_releases = 3;
+  int32 processed_resources = 4;
+}
+
+message ValidationError {
+  enum Severity {
+    UNKNOWN_SEVERITY = 0;
+    INFO = 1;
+    WARNING = 2;
+    ERROR = 3;
+    CRITICAL = 4;
+  }
+  Severity severity = 1;
+  string code = 2;
+  string message = 3;
+  string path = 4; // JSON path to the problematic field
+  string suggestion = 5;
+}
+
+message GetReleaseRequest {
+  oneof identifier {
+    string release_reference = 1;
+    string grid = 2;
+    string icpn = 3;
+    string catalog_number = 4;
+  }
+  string namespace = 5;
+}
+
+message GetReleaseResponse {
+  Release release = 1;
+  repeated SoundRecording associated_resources = 2;
+  repeated Deal associated_deals = 3;
+}
+
+message SearchReleasesRequest {
+  string query = 1;
+  SearchFilters filters = 2;
+  int32 limit = 3;
+  int32 offset = 4;
+  repeated string sort_by = 5;
+}
+
+message SearchFilters {
+  string artist_name = 1;
+  string release_type = 2;
+  string genre = 3;
+  DateRange release_date_range = 4;
+  repeated string territory_codes = 5;
+  string label = 6;
+}
+
+message DateRange {
+  string start_date = 1; // ISO date format
+  string end_date = 2; // ISO date format
+}
+
+message SearchReleasesResponse {
+  repeated ReleaseSearchResult results = 1;
+  int32 total_count = 2;
+  int32 offset = 3;
+  int32 limit = 4;
+}
+
+message ReleaseSearchResult {
+  Release release = 1;
+  double relevance_score = 2;
+  repeated string matched_fields = 3;
+}
+
+message GetSoundRecordingRequest {
+  oneof identifier {
+    string resource_reference = 1;
+    string isrc = 2;
+  }
+  string namespace = 3;
+}
+
+message GetSoundRecordingResponse {
+  SoundRecording sound_recording = 1;
+  repeated Release associated_releases = 2;
+}
+
+message ValidateMessageRequest {
+  NewReleaseMessage message = 1;
+  ValidationOptions options = 2;
+}
+
+message ValidationOptions {
+  bool strict_mode = 1;
+  repeated string skip_validation_rules = 2;
+  string schema_version = 3;
+}
+
+message ValidateMessageResponse {
+  bool is_valid = 1;
+  repeated ValidationError errors = 2;
+  repeated ValidationError warnings = 3;
+  ValidationSummary summary = 4;
+}
+
+message ValidationSummary {
+  int32 total_errors = 1;
+  int32 total_warnings = 2;
+  int32 total_resources_validated = 3;
+  int32 total_releases_validated = 4;
+  int32 total_deals_validated = 5;
+}

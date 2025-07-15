@@ -1,0 +1,274 @@
+syntax = "proto3";
+
+package ddex.v1beta2;
+
+option go_package = "github.com/AudiusProject/audiusd/pkg/api/ddex/v1beta2";
+
+// Root message for Electronic Release Notification
+message NewReleaseMessage {
+  string avs_version_id = 1;
+  string language_and_script_code = 2;
+  MessageHeader message_header = 3;
+  repeated Party party_list = 4;
+  repeated SoundRecording resource_list = 5;
+  repeated Release release_list = 6;
+  DealList deal_list = 7;
+}
+
+// Message header information
+message MessageHeader {
+  string message_thread_id = 1;
+  string message_id = 2;
+  MessageSender message_sender = 3;
+  MessageRecipient message_recipient = 4;
+  string message_created_date_time = 5;
+  string message_control_type = 6;
+}
+
+message MessageSender {
+  string party_id = 1;
+  PartyName party_name = 2;
+}
+
+message MessageRecipient {
+  string party_id = 1;
+  PartyName party_name = 2;
+}
+
+// Party information (artists, labels, etc.)
+message Party {
+  string party_reference = 1;
+  repeated PartyName party_name = 2;
+  PartyId party_id = 3;
+}
+
+message PartyName {
+  string language_and_script_code = 1;
+  string full_name = 2;
+}
+
+message PartyId {
+  string dpid = 1;
+  string address = 2;
+}
+
+// Sound recording (track) information
+message SoundRecording {
+  string resource_reference = 1;
+  string type = 2;
+  SoundRecordingEdition sound_recording_edition = 3;
+  string display_title_text = 4;
+  string language_and_script_code = 5;
+  DisplayTitle display_title = 6;
+  string version_type = 7;
+  string display_artist_name = 8;
+  repeated DisplayArtist display_artist = 9;
+  repeated Contributor contributor = 10;
+  string duration = 11;
+  string first_publication_date = 12;
+  string parental_warning_type = 13;
+  string language_of_performance = 14;
+}
+
+message SoundRecordingEdition {
+  string type = 1;
+  ResourceId resource_id = 2;
+  PLine p_line = 3;
+  TechnicalDetails technical_details = 4;
+}
+
+message ResourceId {
+  string isrc = 1;
+}
+
+message PLine {
+  int32 year = 1;
+  string p_line_text = 2;
+}
+
+message TechnicalDetails {
+  string technical_resource_details_reference = 1;
+  DeliveryFile delivery_file = 2;
+  bool is_clip = 3;
+  ClipDetails clip_details = 4;
+}
+
+message DeliveryFile {
+  string type = 1;
+  string audio_codec_type = 2;
+  int32 number_of_channels = 3;
+  SamplingRate sampling_rate = 4;
+  int32 bits_per_sample = 5;
+  File file = 6;
+  bool is_provided_in_delivery = 7;
+}
+
+message SamplingRate {
+  string unit_of_measure = 1;
+  double value = 2;
+}
+
+message File {
+  string uri = 1;
+  HashSum hash_sum = 2;
+  int64 file_size = 3;
+}
+
+message HashSum {
+  string algorithm = 1;
+  string hash_sum_value = 2;
+}
+
+message ClipDetails {
+  string technical_resource_details_reference = 1;
+  string clip_type = 2;
+  Timing timing = 3;
+  string expression_type = 4;
+}
+
+message Timing {
+  int64 start_point = 1;
+  int64 end_point = 2;
+  string duration_used = 3;
+}
+
+message DisplayTitle {
+  string language_and_script_code = 1;
+  string title_text = 2;
+  SubTitle sub_title = 3;
+}
+
+message SubTitle {
+  string sub_title_type = 1;
+  string text = 2;
+}
+
+message DisplayArtist {
+  int32 sequence_number = 1;
+  string artist_party_reference = 2;
+  string display_artist_role = 3;
+  repeated string artistic_role = 4;
+}
+
+message Contributor {
+  int32 sequence_number = 1;
+  string contributor_party_reference = 2;
+  repeated Role role = 3;
+}
+
+message Role {
+  string namespace = 1;
+  string user_defined_value = 2;
+  string value = 3; // For standard roles like Composer, Lyricist, etc.
+}
+
+// Release information (album/single)
+message Release {
+  string release_reference = 1;
+  string release_type = 2;
+  ReleaseId release_id = 3;
+  string display_title_text = 4;
+  string language_and_script_code = 5;
+  DisplayTitle display_title = 6;
+  string display_artist_name = 7;
+  repeated DisplayArtist display_artist = 8;
+  string release_label_reference = 9;
+  string label_type = 10;
+  PLine p_line = 11;
+  string duration = 12;
+  repeated Genre genre = 13;
+  string original_release_date = 14;
+  string parental_warning_type = 15;
+  ResourceGroup resource_group = 16;
+}
+
+message ReleaseId {
+  string grid = 1;
+  string icpn = 2;
+  CatalogNumber catalog_number = 3;
+}
+
+message CatalogNumber {
+  string namespace = 1;
+  string value = 2;
+}
+
+message Genre {
+  string applicable_territory_code = 1;
+  string genre_text = 2;
+}
+
+message ResourceGroup {
+  string resource_group_type = 1;
+  AdditionalTitle additional_title = 2;
+  int32 sequence_number = 3;
+  repeated ResourceGroupContentItem resource_group_content_item = 4;
+  repeated ResourceGroup nested_resource_group = 5; // For nested groups like multiple discs
+}
+
+message AdditionalTitle {
+  string title_type = 1;
+  string title_text = 2;
+}
+
+message ResourceGroupContentItem {
+  int32 sequence_number = 1;
+  string release_resource_reference = 2;
+}
+
+// Deal information (licensing/distribution terms)
+message DealList {
+  repeated ReleaseDeal release_deal = 1;
+}
+
+message ReleaseDeal {
+  repeated string deal_release_reference = 1;
+  repeated Deal deal = 2;
+}
+
+message Deal {
+  DealTerms deal_terms = 1;
+}
+
+message DealTerms {
+  repeated string territory_code = 1;
+  string validity_period = 2;
+  repeated UseType use_type = 3;
+  CommercialModelType commercial_model_type = 4;
+  repeated string distribution_channel = 5;
+  PriceInformation price_information = 6;
+}
+
+message UseType {
+  string value = 1;
+  string user_defined_value = 2;
+}
+
+message CommercialModelType {
+  string value = 1;
+  string user_defined_value = 2;
+}
+
+message PriceInformation {
+  Price price = 1;
+  string wholesale_price_per_unit = 2;
+}
+
+message Price {
+  string currency_code = 1;
+  double amount = 2;
+  string price_type = 3;
+}
+
+// Additional utility messages for extensions
+message LanguageAndScriptCode {
+  string code = 1;
+}
+
+message DateTime {
+  string iso_string = 1;
+}
+
+message Duration {
+  string iso_duration = 1; // ISO 8601 duration format like PT0H3M37S
+}

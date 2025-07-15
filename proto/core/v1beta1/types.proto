@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package core.v1beta1;
+
+import "ddex/v1beta2/ern.proto";
+
+option go_package = "github.com/AudiusProject/audiusd/pkg/api/core/v1beta1";
+
+// CometBFT Transaction
+message Transaction {
+  bytes signature = 1; // EIP-712 signature
+  Envelope envelope = 2; // DDEX-style batch of messages
+}
+
+// DDEX Envelope
+message Envelope {
+  EnvelopeHeader header = 1;
+  repeated Message messages = 2;
+}
+
+message EnvelopeHeader {
+  string chain_id = 1;
+  int64 expiration = 2;
+  string nonce = 3;
+}
+
+// DDEX-style messages (oneof schema)
+message Message {
+  oneof message {
+    ddex.v1beta2.NewReleaseMessage ern = 1;
+    // MediaEnrichmentAndDescription mead = 2;
+    // PlaylistInformationExchange pie = 3;
+    // DigitalSalesReport dsr = 4;
+    // ContentDistributionMessage cdm = 5;
+  }
+}

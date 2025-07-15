@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package core.v1;
 
+import "core/v1beta1/types.proto";
 import "ddex/v1beta1/release.proto";
 import "google/protobuf/timestamp.proto";
 
@@ -169,6 +170,7 @@ message GetTransactionResponse {
 
 message SendTransactionRequest {
   SignedTransaction transaction = 1;
+  core.v1beta1.Transaction transactionv2 = 2;
 }
 
 message SendTransactionResponse {
@@ -177,6 +179,7 @@ message SendTransactionResponse {
 
 message ForwardTransactionRequest {
   SignedTransaction transaction = 1;
+  core.v1beta1.Transaction transactionv2 = 2;
 }
 
 message ForwardTransactionResponse {}
@@ -215,6 +218,7 @@ message Transaction {
   int64 height = 4;
   string block_hash = 5;
   google.protobuf.Timestamp timestamp = 6;
+  core.v1beta1.Transaction transactionv2 = 7;
 }
 
 message SignedTransaction {
