@@ -183,7 +183,7 @@ services:
 
   test-core:
     image: ${AUDIUSD_TEST_HARNESS_IMAGE:-audius/audiusd:harness}
-    command: go test -v -count=1 -timeout=60s ./pkg/core/...
+    command: go test -v -count=1 -timeout=60s ./pkg/integration_tests/...
     volumes:
       - ./cmd:/app/cmd
       - ./pkg:/app/pkg

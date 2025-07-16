@@ -396,21 +396,18 @@ func (s *Server) deregisterMissingNode(ctx context.Context, ethAddress string) {
 	pubKey := ed25519.PubKey(node.CometPubKey)
 	rendezvous := common.GetAttestorRendezvous(addrs, pubKey.Bytes(), s.config.AttDeregistrationRSize)
 	attestations := make([]string, 0, s.config.AttRegistrationRSize)
-	dereg := &corev1.ValidatorDeregistration{
-		CometAddress: s.config.ProposerAddress,
-		PubKey:       s.config.CometKey.PubKey().Bytes(),
+	dereg := corev1.ValidatorDeregistration{
+		CometAddress: node.CometAddress,
+		PubKey:       pubKey.Bytes(),
 		Deadline:     s.cache.currentHeight.Load() + 120,
 	}
 
 	peers := s.GetPeers()
 	for addr := range rendezvous {
 		if peer, ok := peers[addr]; ok {
+			deregCopy := dereg
 			resp, err := peer.GetDeregistrationAttestation(ctx, connect.NewRequest(&corev1.GetDeregistrationAttestationRequest{
-				Deregistration: &corev1.ValidatorDeregistration{
-					CometAddress: s.config.ProposerAddress,
-					PubKey:       s.config.CometKey.PubKey().Bytes(),
-					Deadline:     s.cache.currentHeight.Load() + 120,
-				},
+				Deregistration: &deregCopy,
 			}))
 			if err != nil {
 				s.logger.Error("failed to get deregistration attestation from %s: %v", addr, err)
@@ -422,7 +419,7 @@ func (s *Server) deregisterMissingNode(ctx context.Context, ethAddress string) {
 
 	deregistrationAtt := &corev1.Attestation{
 		Signatures: attestations,
-		Body:       &corev1.Attestation_ValidatorDeregistration{ValidatorDeregistration: dereg},
+		Body:       &corev1.Attestation_ValidatorDeregistration{ValidatorDeregistration: &dereg},
 	}
 
 	txBytes, err := proto.Marshal(deregistrationAtt)

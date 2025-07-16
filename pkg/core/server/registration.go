@@ -153,7 +153,7 @@ func (s *Server) isValidDeregisterNodeAttestation(ctx context.Context, tx *v1.Si
 	return nil
 }
 
-func (s *Server) finalizeDeregisterValidatorAttestation(ctx context.Context, tx *v1.SignedTransaction, misbehavior []abcitypes.Misbehavior) error {
+func (s *Server) finalizeDeregisterValidatorAttestation(ctx context.Context, tx *v1.SignedTransaction) error {
 	dereg := tx.GetAttestation().GetValidatorDeregistration()
 	if dereg == nil {
 		return fmt.Errorf("unknown attestation fell into isValidDeregisterNodeAttestation: %v", tx)

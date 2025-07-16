@@ -45,6 +45,8 @@ func (s *Server) finalizeAttestation(ctx context.Context, tx *v1.SignedTransacti
 	switch t := tx.GetAttestation().Body.(type) {
 	case *v1.Attestation_ValidatorRegistration:
 		return tx, s.finalizeRegisterNodeAttestation(ctx, tx, blockHeight)
+	case *v1.Attestation_ValidatorDeregistration:
+		return tx, s.finalizeDeregisterValidatorAttestation(ctx, tx)
 	default:
 		return nil, fmt.Errorf("unhandled attestation: %v %T", tx, t)
 	}
@@ -54,6 +56,8 @@ func getAttestationBodyBytes(att *v1.Attestation) ([]byte, error) {
 	switch t := att.Body.(type) {
 	case *v1.Attestation_ValidatorRegistration:
 		return proto.Marshal(att.GetValidatorRegistration())
+	case *v1.Attestation_ValidatorDeregistration:
+		return proto.Marshal(att.GetValidatorDeregistration())
 	default:
 		return nil, fmt.Errorf("unhandled attestation: %v %T", att, t)
 	}
