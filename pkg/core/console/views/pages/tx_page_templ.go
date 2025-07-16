@@ -41,10 +41,12 @@ func (p *Pages) toJSON(tx []byte) map[string]interface{} {
 		if err != nil {
 			return empty
 		}
-	}
-	jsonData, err = protojson.Marshal(&transaction)
-	if err != nil {
 		return empty
+	} else {
+		jsonData, err = protojson.Marshal(&transaction)
+		if err != nil {
+			return empty
+		}
 	}
 
 	var obj map[string]interface{}
@@ -120,7 +122,7 @@ func (p *Pages) TxPageHTML(view *TxView) templ.Component {
 				var templ_7745c5c3_Var4 string
 				templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(view.Hash)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/tx_page.templ`, Line: 70, Col: 28}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/tx_page.templ`, Line: 72, Col: 28}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 				if templ_7745c5c3_Err != nil {
@@ -159,7 +161,7 @@ func (p *Pages) TxPageHTML(view *TxView) templ.Component {
 				var templ_7745c5c3_Var6 string
 				templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(view.Block)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/tx_page.templ`, Line: 75, Col: 30}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/tx_page.templ`, Line: 77, Col: 30}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 				if templ_7745c5c3_Err != nil {
@@ -182,7 +184,7 @@ func (p *Pages) TxPageHTML(view *TxView) templ.Component {
 			var templ_7745c5c3_Var7 string
 			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(humanize.Time(view.Timestamp))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/tx_page.templ`, Line: 79, Col: 41}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/tx_page.templ`, Line: 81, Col: 41}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 			if templ_7745c5c3_Err != nil {
@@ -195,7 +197,7 @@ func (p *Pages) TxPageHTML(view *TxView) templ.Component {
 			var templ_7745c5c3_Var8 string
 			templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(p.renderJSON(p.toJSON(view.Tx)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/tx_page.templ`, Line: 82, Col: 96}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/tx_page.templ`, Line: 84, Col: 96}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 			if templ_7745c5c3_Err != nil {

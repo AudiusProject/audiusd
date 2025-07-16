@@ -202,66 +202,62 @@ func TestERNProcessing(t *testing.T) {
 	txhash := submitRes.Msg.Transaction.Hash
 	assert.Equal(t, expectedTxHash, txhash)
 
+	// Test the transaction receipt functionality
+	assert.NotNil(t, submitRes.Msg.TransactionReceipt)
+	receipt := submitRes.Msg.TransactionReceipt
+
+	// Verify basic receipt fields
+	assert.Equal(t, expectedTxHash, receipt.TxHash)
+	assert.Equal(t, chainId, receipt.EnvelopeInfo.ChainId)
+	assert.Equal(t, int32(1), receipt.EnvelopeInfo.MessageCount)
+	assert.Len(t, receipt.MessageReceipts, 1)
+
+	// Verify the ERN acknowledgment
+	ernReceipt := receipt.MessageReceipts[0]
+	assert.Equal(t, int32(0), ernReceipt.MessageIndex)
+	assert.NotNil(t, ernReceipt.GetErnAck())
+
+	ernAck := ernReceipt.GetErnAck()
+
+	// Verify the main ERN address is present
+	assert.NotNil(t, ernAck.ReleaseAddress)
+	assert.NotEmpty(t, ernAck.ReleaseAddress.Address)
+	assert.Equal(t, uint32(0), ernAck.ReleaseAddress.Index)
+
+	// Verify sound recording addresses are present (should have 2 tracks)
+	assert.Len(t, ernAck.SoundRecordingAddresses, 2)
+	for i, srAddr := range ernAck.SoundRecordingAddresses {
+		assert.NotEmpty(t, srAddr.Address)
+		assert.Equal(t, uint32(i), srAddr.Index)
+	}
+
+	// Verify release addresses are in party addresses
+	assert.Len(t, ernAck.PartyAddresses, 1) // Should have 1 release
+	assert.NotEmpty(t, ernAck.PartyAddresses[0].Address)
+
+	t.Logf("Transaction receipt verified:")
+	t.Logf("- ERN address: %s", ernAck.ReleaseAddress.Address)
+	t.Logf("- Sound recording addresses: %v", func() []string {
+		addrs := make([]string, len(ernAck.SoundRecordingAddresses))
+		for i, addr := range ernAck.SoundRecordingAddresses {
+			addrs[i] = addr.Address
+		}
+		return addrs
+	}())
+	t.Logf("- Release addresses: %v", func() []string {
+		addrs := make([]string, len(ernAck.PartyAddresses))
+		for i, addr := range ernAck.PartyAddresses {
+			addrs[i] = addr.Address
+		}
+		return addrs
+	}())
+
 	// Wait a moment for transaction to be processed
 	time.Sleep(time.Second * 2)
 
-	// Retrieve and verify the transaction
-	ernRes, err := sdk.Core.GetTransaction(ctx, connect.NewRequest(&corev1.GetTransactionRequest{TxHash: txhash}))
-	assert.NoError(t, err)
-
-	// Verify the retrieved transaction has the envelope structure
-	retrievedTransaction := ernRes.Msg.Transaction.Transactionv2
-	assert.NotNil(t, retrievedTransaction)
-
-	// For envelope format, we need to check if it has Transactionv2
-	// The response structure may differ, so let's verify key DDEX data was processed
-	// by checking that our transaction was successfully stored and can be retrieved
-
-	// Verify the transaction hash matches
-	assert.Equal(t, expectedTxHash, txhash)
-
-	// Verify the transaction was processed (the fact that we can retrieve it indicates success)
-	assert.NotNil(t, retrievedTransaction)
-
-	t.Logf("Successfully processed test ERN with transaction hash: %s", txhash)
-	t.Logf("DDEX v1beta2 message contained:")
-	t.Logf("- Message ID: %s", testERN.MessageHeader.MessageId)
-	t.Logf("- Album: %s by %s", testERN.ReleaseList[0].DisplayTitleText, testERN.ReleaseList[0].DisplayArtistName)
-	t.Logf("- Number of tracks: %d", len(testERN.ResourceList))
-	t.Logf("- Number of parties: %d", len(testERN.PartyList))
-
-	// Verify core DDEX data from our test message
-	assert.Equal(t, "T0100042156789_TST", testERN.MessageHeader.MessageThreadId)
-	assert.Equal(t, "123456789", testERN.MessageHeader.MessageId)
-	assert.Equal(t, "PADPIDA2024010101T", testERN.MessageHeader.MessageSender.PartyId)
-	assert.Equal(t, "Test Music Records", testERN.MessageHeader.MessageSender.PartyName.FullName)
-
-	// Verify we have the expected DDEX data structure
-	assert.Len(t, testERN.ResourceList, 2) // Stardust Highway and Galactic Dreams
-	assert.Len(t, testERN.ReleaseList, 1)  // Live - Cosmic Festival Sessions album
-	assert.Len(t, testERN.PartyList, 3)    // The Cosmic Wanderers, Luna Rivers, Echo Stone
-
-	// Verify specific ISRCs from the test data
-	assert.Equal(t, "TEST12345001", testERN.ResourceList[0].SoundRecordingEdition.ResourceId.Isrc) // Stardust Highway (Live)
-	assert.Equal(t, "TEST12345002", testERN.ResourceList[1].SoundRecordingEdition.ResourceId.Isrc) // Galactic Dreams (Live)
-
-	// Verify album details
-	release := testERN.ReleaseList[0]
-	assert.Equal(t, "Live - Cosmic Festival Sessions", release.DisplayTitleText)
-	assert.Equal(t, "The Cosmic Wanderers", release.DisplayArtistName)
-	assert.Equal(t, "A10301T00042156789", release.ReleaseId.Grid)
-	assert.Equal(t, "123456789012", release.ReleaseId.Icpn)
-
-	// Test GetERN functionality
-	// Use the message sender's party ID as the address for retrieval
-	senderPartyId := testERN.MessageHeader.MessageSender.PartyId
-
-	// Wait a moment to ensure the ERN message is fully processed and stored
-	time.Sleep(time.Second * 2)
-
-	// Retrieve the ERN message using GetERN
+	// Test GetERN functionality using the main ERN address from the receipt
 	ernGetReq := &corev1.GetERNRequest{
-		Address: senderPartyId,
+		Address: ernAck.ReleaseAddress.Address,
 	}
 
 	ernGetRes, err := sdk.Core.GetERN(ctx, connect.NewRequest(ernGetReq))
@@ -295,7 +291,7 @@ func TestERNProcessing(t *testing.T) {
 	assert.Equal(t, testERN.PartyList[0].PartyReference, retrievedERN.PartyList[0].PartyReference)
 	assert.Equal(t, testERN.PartyList[0].PartyName[0].FullName, retrievedERN.PartyList[0].PartyName[0].FullName)
 
-	t.Logf("Successfully retrieved ERN message for address: %s", senderPartyId)
+	t.Logf("Successfully retrieved ERN message for address: %s", ernAck.ReleaseAddress.Address)
 	t.Logf("Retrieved ERN contains same data as original:")
 	t.Logf("- Message ID: %s", retrievedERN.MessageHeader.MessageId)
 	t.Logf("- Album: %s by %s", retrievedERN.ReleaseList[0].DisplayTitleText, retrievedERN.ReleaseList[0].DisplayArtistName)

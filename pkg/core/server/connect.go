@@ -388,6 +388,11 @@ func (c *CoreService) SendTransaction(ctx context.Context, req *connect.Request[
 			return nil, err
 		}
 
+		receipt, err := c.buildTxReceipt(ctx, req.Msg.Transactionv2, &block)
+		if err != nil {
+			return nil, err
+		}
+
 		return connect.NewResponse(&v1.SendTransactionResponse{
 			Transaction: &v1.Transaction{
 				Hash:        txhash,
@@ -397,6 +402,7 @@ func (c *CoreService) SendTransaction(ctx context.Context, req *connect.Request[
 				Timestamp:   timestamppb.New(block.CreatedAt.Time),
 				Transaction: req.Msg.Transaction,
 			},
+			TransactionReceipt: receipt,
 		}), nil
 	case <-time.After(30 * time.Second):
 		c.core.logger.Errorf("tx timeout waiting to be included %s", txhash)
