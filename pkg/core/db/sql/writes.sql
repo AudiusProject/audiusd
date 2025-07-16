@@ -225,3 +225,27 @@ insert into access_keys (track_id, pub_key) values ($1, $2);
 
 -- name: InsertManagementKey :exec
 insert into management_keys (track_id, address) values ($1, $2);
+
+-- ERN insert queries - simplified for protobuf storage
+-- name: InsertERNMessage :exec
+insert into ern_messages (
+    address,
+    tx_hash,
+    block_height,
+    sender_address,
+    raw_ern_message
+) values ($1, $2, $3, $4, $5);
+
+-- name: InsertERNReleaseAddresses :exec
+insert into ern_release_addresses (
+    address,
+    ern_address
+) 
+select unnest($1::text[]), $2;
+
+-- name: InsertERNSoundRecordingAddresses :exec
+insert into ern_sound_recording_addresses (
+    address,
+    ern_address
+) 
+select unnest($1::text[]), $2;

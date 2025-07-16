@@ -391,6 +391,72 @@ func (q *Queries) InsertDecodedValidatorRegistration(ctx context.Context, arg In
 	return err
 }
 
+const insertERNMessage = `-- name: InsertERNMessage :exec
+insert into ern_messages (
+    address,
+    tx_hash,
+    block_height,
+    sender_address,
+    raw_ern_message
+) values ($1, $2, $3, $4, $5)
+`
+
+type InsertERNMessageParams struct {
+	Address       string
+	TxHash        string
+	BlockHeight   int64
+	SenderAddress string
+	RawErnMessage []byte
+}
+
+// ERN insert queries - simplified for protobuf storage
+func (q *Queries) InsertERNMessage(ctx context.Context, arg InsertERNMessageParams) error {
+	_, err := q.db.Exec(ctx, insertERNMessage,
+		arg.Address,
+		arg.TxHash,
+		arg.BlockHeight,
+		arg.SenderAddress,
+		arg.RawErnMessage,
+	)
+	return err
+}
+
+const insertERNReleaseAddresses = `-- name: InsertERNReleaseAddresses :exec
+insert into ern_release_addresses (
+    address,
+    ern_address
+) 
+select unnest($1::text[]), $2
+`
+
+type InsertERNReleaseAddressesParams struct {
+	Column1    []string
+	ErnAddress string
+}
+
+func (q *Queries) InsertERNReleaseAddresses(ctx context.Context, arg InsertERNReleaseAddressesParams) error {
+	_, err := q.db.Exec(ctx, insertERNReleaseAddresses, arg.Column1, arg.ErnAddress)
+	return err
+}
+
+const insertERNSoundRecordingAddresses = `-- name: InsertERNSoundRecordingAddresses :exec
+insert into ern_sound_recording_addresses (
+    address,
+    ern_address
+) 
+select unnest($1::text[]), $2
+`
+
+type InsertERNSoundRecordingAddressesParams struct {
+	Column1    []string
+	ErnAddress string
+}
+
+func (q *Queries) InsertERNSoundRecordingAddresses(ctx context.Context, arg InsertERNSoundRecordingAddressesParams) error {
+	_, err := q.db.Exec(ctx, insertERNSoundRecordingAddresses, arg.Column1, arg.ErnAddress)
+	return err
+}
+
 const insertEtlDuplicate = `-- name: InsertEtlDuplicate :exec
 insert into core_etl_tx_duplicates (tx_hash, table_name, duplicate_type)
 values ($1, $2, $3)

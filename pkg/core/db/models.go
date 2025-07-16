@@ -198,6 +198,27 @@ type CoreValidator struct {
 	CometPubKey  string
 }
 
+type ErnMessage struct {
+	ID            int64
+	Address       string
+	TxHash        string
+	BlockHeight   int64
+	SenderAddress string
+	RawErnMessage []byte
+}
+
+type ErnReleaseAddress struct {
+	ID         int64
+	Address    string
+	ErnAddress string
+}
+
+type ErnSoundRecordingAddress struct {
+	ID         int64
+	Address    string
+	ErnAddress string
+}
+
 type ManagementKey struct {
 	ID      int32
 	TrackID string

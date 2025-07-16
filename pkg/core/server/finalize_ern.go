@@ -7,7 +7,9 @@ import (
 	"github.com/AudiusProject/audiusd/pkg/api/core/v1beta1"
 	"github.com/AudiusProject/audiusd/pkg/api/ddex/v1beta2"
 	"github.com/AudiusProject/audiusd/pkg/common"
+	"github.com/AudiusProject/audiusd/pkg/core/db"
 	abcitypes "github.com/cometbft/cometbft/abci/types"
+	"google.golang.org/protobuf/proto"
 )
 
 func (s *Server) finalizeV2Transaction(ctx context.Context, req *abcitypes.FinalizeBlockRequest, tx *v1beta1.Transaction) error {
@@ -49,8 +51,48 @@ func (s *Server) finalizeV2Transaction(ctx context.Context, req *abcitypes.Final
 }
 
 func (s *Server) finalizeERNCreate(ctx context.Context, req *abcitypes.FinalizeBlockRequest, tx *v1beta1.Transaction, ern *v1beta2.NewReleaseMessage) error {
+	txHash := s.toTxHash(tx.Envelope)
 	ernAddress := common.CreateAddress(ern, s.config.GenesisFile.ChainID, req.Height, tx.Envelope.Header.Nonce)
-	s.logger.Info("finalizing ERN create", "ern_address", ernAddress)
+
+	releaseAddresses := make([]string, len(ern.ReleaseList))
+	soundRecordingAddresses := make([]string, len(ern.ResourceList))
+
+	for i, release := range ern.ReleaseList {
+		releaseAddresses[i] = common.CreateAddress(release, s.config.GenesisFile.ChainID, req.Height, tx.Envelope.Header.Nonce)
+	}
+
+	for i, resource := range ern.ResourceList {
+		soundRecordingAddresses[i] = common.CreateAddress(resource, s.config.GenesisFile.ChainID, req.Height, tx.Envelope.Header.Nonce)
+	}
+
+	rawErnMessage, err := proto.Marshal(ern)
+	if err != nil {
+		return fmt.Errorf("failed to marshal ERN message: %w", err)
+	}
+
+	// TODO: recover sender address from tx
+	senderAddress := ""
+
+	qtx := s.getDb()
+
+	qtx.InsertERNMessage(ctx, db.InsertERNMessageParams{
+		Address:       ernAddress,
+		TxHash:        txHash,
+		BlockHeight:   req.Height,
+		SenderAddress: senderAddress,
+		RawErnMessage: rawErnMessage,
+	})
+
+	qtx.InsertERNReleaseAddresses(ctx, db.InsertERNReleaseAddressesParams{
+		Column1:    releaseAddresses,
+		ErnAddress: ernAddress,
+	})
+
+	qtx.InsertERNSoundRecordingAddresses(ctx, db.InsertERNSoundRecordingAddressesParams{
+		Column1:    soundRecordingAddresses,
+		ErnAddress: ernAddress,
+	})
+
 	// TODO: persist ERN to storage
 	return nil
 }

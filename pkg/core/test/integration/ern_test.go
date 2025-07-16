@@ -251,4 +251,52 @@ func TestERNProcessing(t *testing.T) {
 	assert.Equal(t, "The Cosmic Wanderers", release.DisplayArtistName)
 	assert.Equal(t, "A10301T00042156789", release.ReleaseId.Grid)
 	assert.Equal(t, "123456789012", release.ReleaseId.Icpn)
+
+	// Test GetERN functionality
+	// Use the message sender's party ID as the address for retrieval
+	senderPartyId := testERN.MessageHeader.MessageSender.PartyId
+
+	// Wait a moment to ensure the ERN message is fully processed and stored
+	time.Sleep(time.Second * 2)
+
+	// Retrieve the ERN message using GetERN
+	ernGetReq := &corev1.GetERNRequest{
+		Address: senderPartyId,
+	}
+
+	ernGetRes, err := sdk.Core.GetERN(ctx, connect.NewRequest(ernGetReq))
+	assert.NoError(t, err)
+	assert.NotNil(t, ernGetRes.Msg.Ern)
+
+	retrievedERN := ernGetRes.Msg.Ern
+
+	// Verify the retrieved ERN matches our original test data
+	assert.Equal(t, testERN.MessageHeader.MessageId, retrievedERN.MessageHeader.MessageId)
+	assert.Equal(t, testERN.MessageHeader.MessageThreadId, retrievedERN.MessageHeader.MessageThreadId)
+	assert.Equal(t, testERN.MessageHeader.MessageSender.PartyId, retrievedERN.MessageHeader.MessageSender.PartyId)
+	assert.Equal(t, testERN.MessageHeader.MessageSender.PartyName.FullName, retrievedERN.MessageHeader.MessageSender.PartyName.FullName)
+
+	// Verify resource list
+	assert.Len(t, retrievedERN.ResourceList, 2)
+	assert.Equal(t, testERN.ResourceList[0].ResourceReference, retrievedERN.ResourceList[0].ResourceReference)
+	assert.Equal(t, testERN.ResourceList[0].SoundRecordingEdition.ResourceId.Isrc, retrievedERN.ResourceList[0].SoundRecordingEdition.ResourceId.Isrc)
+	assert.Equal(t, testERN.ResourceList[1].ResourceReference, retrievedERN.ResourceList[1].ResourceReference)
+	assert.Equal(t, testERN.ResourceList[1].SoundRecordingEdition.ResourceId.Isrc, retrievedERN.ResourceList[1].SoundRecordingEdition.ResourceId.Isrc)
+
+	// Verify release list
+	assert.Len(t, retrievedERN.ReleaseList, 1)
+	assert.Equal(t, testERN.ReleaseList[0].ReleaseReference, retrievedERN.ReleaseList[0].ReleaseReference)
+	assert.Equal(t, testERN.ReleaseList[0].DisplayTitleText, retrievedERN.ReleaseList[0].DisplayTitleText)
+	assert.Equal(t, testERN.ReleaseList[0].DisplayArtistName, retrievedERN.ReleaseList[0].DisplayArtistName)
+	assert.Equal(t, testERN.ReleaseList[0].ReleaseId.Grid, retrievedERN.ReleaseList[0].ReleaseId.Grid)
+
+	// Verify party list
+	assert.Len(t, retrievedERN.PartyList, 3)
+	assert.Equal(t, testERN.PartyList[0].PartyReference, retrievedERN.PartyList[0].PartyReference)
+	assert.Equal(t, testERN.PartyList[0].PartyName[0].FullName, retrievedERN.PartyList[0].PartyName[0].FullName)
+
+	t.Logf("Successfully retrieved ERN message for address: %s", senderPartyId)
+	t.Logf("Retrieved ERN contains same data as original:")
+	t.Logf("- Message ID: %s", retrievedERN.MessageHeader.MessageId)
+	t.Logf("- Album: %s by %s", retrievedERN.ReleaseList[0].DisplayTitleText, retrievedERN.ReleaseList[0].DisplayArtistName)
 }

@@ -687,6 +687,114 @@ func (q *Queries) GetDecodedTxsByType(ctx context.Context, arg GetDecodedTxsByTy
 	return items, nil
 }
 
+const getERNAddressByTxHash = `-- name: GetERNAddressByTxHash :one
+select address from ern_messages where tx_hash = $1 order by block_height asc limit 1
+`
+
+func (q *Queries) GetERNAddressByTxHash(ctx context.Context, txHash string) (string, error) {
+	row := q.db.QueryRow(ctx, getERNAddressByTxHash, txHash)
+	var address string
+	err := row.Scan(&address)
+	return address, err
+}
+
+const getERNMessages = `-- name: GetERNMessages :many
+select id, address, tx_hash, block_height, sender_address, raw_ern_message from ern_messages where address = $1 order by block_height asc
+`
+
+func (q *Queries) GetERNMessages(ctx context.Context, address string) ([]ErnMessage, error) {
+	rows, err := q.db.Query(ctx, getERNMessages, address)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ErnMessage
+	for rows.Next() {
+		var i ErnMessage
+		if err := rows.Scan(
+			&i.ID,
+			&i.Address,
+			&i.TxHash,
+			&i.BlockHeight,
+			&i.SenderAddress,
+			&i.RawErnMessage,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getERNMessagesByReleaseAddress = `-- name: GetERNMessagesByReleaseAddress :many
+select ern_messages.id, ern_messages.address, ern_messages.tx_hash, ern_messages.block_height, ern_messages.sender_address, ern_messages.raw_ern_message from ern_messages
+join ern_release_addresses on ern_messages.address = ern_release_addresses.ern_address
+where ern_release_addresses.address = $1 order by ern_messages.block_height asc
+`
+
+func (q *Queries) GetERNMessagesByReleaseAddress(ctx context.Context, address string) ([]ErnMessage, error) {
+	rows, err := q.db.Query(ctx, getERNMessagesByReleaseAddress, address)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ErnMessage
+	for rows.Next() {
+		var i ErnMessage
+		if err := rows.Scan(
+			&i.ID,
+			&i.Address,
+			&i.TxHash,
+			&i.BlockHeight,
+			&i.SenderAddress,
+			&i.RawErnMessage,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getERNMessagesBySoundRecordingAddress = `-- name: GetERNMessagesBySoundRecordingAddress :many
+select ern_messages.id, ern_messages.address, ern_messages.tx_hash, ern_messages.block_height, ern_messages.sender_address, ern_messages.raw_ern_message from ern_messages
+join ern_sound_recording_addresses on ern_messages.address = ern_sound_recording_addresses.ern_address
+where ern_sound_recording_addresses.address = $1 order by ern_messages.block_height asc
+`
+
+func (q *Queries) GetERNMessagesBySoundRecordingAddress(ctx context.Context, address string) ([]ErnMessage, error) {
+	rows, err := q.db.Query(ctx, getERNMessagesBySoundRecordingAddress, address)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ErnMessage
+	for rows.Next() {
+		var i ErnMessage
+		if err := rows.Scan(
+			&i.ID,
+			&i.Address,
+			&i.TxHash,
+			&i.BlockHeight,
+			&i.SenderAddress,
+			&i.RawErnMessage,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getInProgressRollupReports = `-- name: GetInProgressRollupReports :many
 select id, address, blocks_proposed, sla_rollup_id from sla_node_reports
 where sla_rollup_id is null 
@@ -1251,6 +1359,30 @@ func (q *Queries) GetRegisteredNodesByType(ctx context.Context, nodeType string)
 	return items, nil
 }
 
+const getReleaseAddressesByERNAddress = `-- name: GetReleaseAddressesByERNAddress :many
+select address from ern_release_addresses where ern_address = $1
+`
+
+func (q *Queries) GetReleaseAddressesByERNAddress(ctx context.Context, ernAddress string) ([]string, error) {
+	rows, err := q.db.Query(ctx, getReleaseAddressesByERNAddress, ernAddress)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var address string
+		if err := rows.Scan(&address); err != nil {
+			return nil, err
+		}
+		items = append(items, address)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getRollupReportForNodeAndId = `-- name: GetRollupReportForNodeAndId :one
 select id, address, blocks_proposed, sla_rollup_id from sla_node_reports
 where address = $1 and sla_rollup_id = $2
@@ -1336,6 +1468,30 @@ func (q *Queries) GetSlaRollupWithTimestamp(ctx context.Context, time pgtype.Tim
 		&i.Time,
 	)
 	return i, err
+}
+
+const getSoundRecordingAddressesByERNAddress = `-- name: GetSoundRecordingAddressesByERNAddress :many
+select address from ern_sound_recording_addresses where ern_address = $1
+`
+
+func (q *Queries) GetSoundRecordingAddressesByERNAddress(ctx context.Context, ernAddress string) ([]string, error) {
+	rows, err := q.db.Query(ctx, getSoundRecordingAddressesByERNAddress, ernAddress)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var address string
+		if err := rows.Scan(&address); err != nil {
+			return nil, err
+		}
+		items = append(items, address)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getStorageProof = `-- name: GetStorageProof :one

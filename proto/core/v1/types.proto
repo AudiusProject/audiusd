@@ -4,6 +4,7 @@ package core.v1;
 
 import "core/v1beta1/types.proto";
 import "ddex/v1beta1/release.proto";
+import "ddex/v1beta2/ern.proto";
 import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/AudiusProject/audiusd/pkg/api/core/v1";
@@ -175,6 +176,7 @@ message SendTransactionRequest {
 
 message SendTransactionResponse {
   Transaction transaction = 1;
+  core.v1beta1.TransactionReceipt transaction_receipt = 2;
 }
 
 message ForwardTransactionRequest {
@@ -371,4 +373,12 @@ message GetRewardAttestationRequest {
 message GetRewardAttestationResponse {
   string owner = 1;
   string attestation = 2;
+}
+
+message GetERNRequest {
+  string address = 1;
+}
+
+message GetERNResponse {
+  ddex.v1beta2.NewReleaseMessage ern = 1;
 }

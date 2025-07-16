@@ -10,9 +10,11 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"dario.cat/mergo"
 	v1 "github.com/AudiusProject/audiusd/pkg/api/core/v1"
 	"github.com/AudiusProject/audiusd/pkg/api/core/v1/v1connect"
 	v1beta1 "github.com/AudiusProject/audiusd/pkg/api/core/v1beta1"
+	"github.com/AudiusProject/audiusd/pkg/api/ddex/v1beta2"
 	"github.com/AudiusProject/audiusd/pkg/common"
 	"github.com/AudiusProject/audiusd/pkg/rewards"
 	"github.com/jackc/pgx/v5"
@@ -607,4 +609,48 @@ func (c *CoreService) GetRewards(context.Context, *connect.Request[v1.GetRewards
 	}
 
 	return connect.NewResponse(res), nil
+}
+
+// GetERN implements v1connect.CoreServiceHandler.
+func (c *CoreService) GetERN(ctx context.Context, req *connect.Request[v1.GetERNRequest]) (*connect.Response[v1.GetERNResponse], error) {
+	ernMessages, err := c.core.db.GetERNMessages(ctx, req.Msg.Address)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(ernMessages) == 0 {
+		return nil, connect.NewError(connect.CodeNotFound, errors.New("ERN message not found"))
+	}
+
+	// TODO: make merging generic
+	// Unmarshal the first message as the base
+	baseERN := &v1beta2.NewReleaseMessage{}
+	err = proto.Unmarshal(ernMessages[0].RawErnMessage, baseERN)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal base ERN message: %w", err)
+	}
+
+	// Merge all subsequent ERN messages into the base using mergo
+	for i := 1; i < len(ernMessages); i++ {
+		currentERN := &v1beta2.NewReleaseMessage{}
+		err = proto.Unmarshal(ernMessages[i].RawErnMessage, currentERN)
+		if err != nil {
+			return nil, fmt.Errorf("failed to unmarshal ERN message at index %d: %w", i, err)
+		}
+
+		// Merge current ERN into base ERN
+		// WithOverride ensures newer values take precedence
+		// WithAppendSlice appends slices instead of replacing them
+		// WithoutDereference prevents copying the protobuf internal state
+		err = mergo.Merge(baseERN, currentERN,
+			mergo.WithOverride,
+			mergo.WithAppendSlice,
+			mergo.WithoutDereference,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to merge ERN message at index %d: %w", i, err)
+		}
+	}
+
+	return connect.NewResponse(&v1.GetERNResponse{Ern: baseERN}), nil
 }
