@@ -33,34 +33,16 @@ const (
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// DDEXServiceProcessNewReleaseMessageProcedure is the fully-qualified name of the DDEXService's
-	// ProcessNewReleaseMessage RPC.
-	DDEXServiceProcessNewReleaseMessageProcedure = "/ddex.v1beta2.DDEXService/ProcessNewReleaseMessage"
-	// DDEXServiceGetReleaseProcedure is the fully-qualified name of the DDEXService's GetRelease RPC.
-	DDEXServiceGetReleaseProcedure = "/ddex.v1beta2.DDEXService/GetRelease"
-	// DDEXServiceSearchReleasesProcedure is the fully-qualified name of the DDEXService's
-	// SearchReleases RPC.
-	DDEXServiceSearchReleasesProcedure = "/ddex.v1beta2.DDEXService/SearchReleases"
-	// DDEXServiceGetSoundRecordingProcedure is the fully-qualified name of the DDEXService's
-	// GetSoundRecording RPC.
-	DDEXServiceGetSoundRecordingProcedure = "/ddex.v1beta2.DDEXService/GetSoundRecording"
-	// DDEXServiceValidateMessageProcedure is the fully-qualified name of the DDEXService's
-	// ValidateMessage RPC.
-	DDEXServiceValidateMessageProcedure = "/ddex.v1beta2.DDEXService/ValidateMessage"
+	// DDEXServiceSubmitERNProcedure is the fully-qualified name of the DDEXService's SubmitERN RPC.
+	DDEXServiceSubmitERNProcedure = "/ddex.v1beta2.DDEXService/SubmitERN"
+	// DDEXServiceGetERNProcedure is the fully-qualified name of the DDEXService's GetERN RPC.
+	DDEXServiceGetERNProcedure = "/ddex.v1beta2.DDEXService/GetERN"
 )
 
 // DDEXServiceClient is a client for the ddex.v1beta2.DDEXService service.
 type DDEXServiceClient interface {
-	// Process a new release message
-	ProcessNewReleaseMessage(context.Context, *connect.Request[v1beta2.ProcessNewReleaseMessageRequest]) (*connect.Response[v1beta2.ProcessNewReleaseMessageResponse], error)
-	// Get release information by ID
-	GetRelease(context.Context, *connect.Request[v1beta2.GetReleaseRequest]) (*connect.Response[v1beta2.GetReleaseResponse], error)
-	// Search for releases
-	SearchReleases(context.Context, *connect.Request[v1beta2.SearchReleasesRequest]) (*connect.Response[v1beta2.SearchReleasesResponse], error)
-	// Get sound recording information
-	GetSoundRecording(context.Context, *connect.Request[v1beta2.GetSoundRecordingRequest]) (*connect.Response[v1beta2.GetSoundRecordingResponse], error)
-	// Validate a DDEX message
-	ValidateMessage(context.Context, *connect.Request[v1beta2.ValidateMessageRequest]) (*connect.Response[v1beta2.ValidateMessageResponse], error)
+	SubmitERN(context.Context, *connect.Request[v1beta2.SubmitERNRequest]) (*connect.Response[v1beta2.SubmitERNResponse], error)
+	GetERN(context.Context, *connect.Request[v1beta2.GetERNRequest]) (*connect.Response[v1beta2.GetERNResponse], error)
 }
 
 // NewDDEXServiceClient constructs a client for the ddex.v1beta2.DDEXService service. By default, it
@@ -74,34 +56,16 @@ func NewDDEXServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 	baseURL = strings.TrimRight(baseURL, "/")
 	dDEXServiceMethods := v1beta2.File_ddex_v1beta2_service_proto.Services().ByName("DDEXService").Methods()
 	return &dDEXServiceClient{
-		processNewReleaseMessage: connect.NewClient[v1beta2.ProcessNewReleaseMessageRequest, v1beta2.ProcessNewReleaseMessageResponse](
+		submitERN: connect.NewClient[v1beta2.SubmitERNRequest, v1beta2.SubmitERNResponse](
 			httpClient,
-			baseURL+DDEXServiceProcessNewReleaseMessageProcedure,
-			connect.WithSchema(dDEXServiceMethods.ByName("ProcessNewReleaseMessage")),
+			baseURL+DDEXServiceSubmitERNProcedure,
+			connect.WithSchema(dDEXServiceMethods.ByName("SubmitERN")),
 			connect.WithClientOptions(opts...),
 		),
-		getRelease: connect.NewClient[v1beta2.GetReleaseRequest, v1beta2.GetReleaseResponse](
+		getERN: connect.NewClient[v1beta2.GetERNRequest, v1beta2.GetERNResponse](
 			httpClient,
-			baseURL+DDEXServiceGetReleaseProcedure,
-			connect.WithSchema(dDEXServiceMethods.ByName("GetRelease")),
-			connect.WithClientOptions(opts...),
-		),
-		searchReleases: connect.NewClient[v1beta2.SearchReleasesRequest, v1beta2.SearchReleasesResponse](
-			httpClient,
-			baseURL+DDEXServiceSearchReleasesProcedure,
-			connect.WithSchema(dDEXServiceMethods.ByName("SearchReleases")),
-			connect.WithClientOptions(opts...),
-		),
-		getSoundRecording: connect.NewClient[v1beta2.GetSoundRecordingRequest, v1beta2.GetSoundRecordingResponse](
-			httpClient,
-			baseURL+DDEXServiceGetSoundRecordingProcedure,
-			connect.WithSchema(dDEXServiceMethods.ByName("GetSoundRecording")),
-			connect.WithClientOptions(opts...),
-		),
-		validateMessage: connect.NewClient[v1beta2.ValidateMessageRequest, v1beta2.ValidateMessageResponse](
-			httpClient,
-			baseURL+DDEXServiceValidateMessageProcedure,
-			connect.WithSchema(dDEXServiceMethods.ByName("ValidateMessage")),
+			baseURL+DDEXServiceGetERNProcedure,
+			connect.WithSchema(dDEXServiceMethods.ByName("GetERN")),
 			connect.WithClientOptions(opts...),
 		),
 	}
@@ -109,50 +73,24 @@ func NewDDEXServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 
 // dDEXServiceClient implements DDEXServiceClient.
 type dDEXServiceClient struct {
-	processNewReleaseMessage *connect.Client[v1beta2.ProcessNewReleaseMessageRequest, v1beta2.ProcessNewReleaseMessageResponse]
-	getRelease               *connect.Client[v1beta2.GetReleaseRequest, v1beta2.GetReleaseResponse]
-	searchReleases           *connect.Client[v1beta2.SearchReleasesRequest, v1beta2.SearchReleasesResponse]
-	getSoundRecording        *connect.Client[v1beta2.GetSoundRecordingRequest, v1beta2.GetSoundRecordingResponse]
-	validateMessage          *connect.Client[v1beta2.ValidateMessageRequest, v1beta2.ValidateMessageResponse]
+	submitERN *connect.Client[v1beta2.SubmitERNRequest, v1beta2.SubmitERNResponse]
+	getERN    *connect.Client[v1beta2.GetERNRequest, v1beta2.GetERNResponse]
 }
 
-// ProcessNewReleaseMessage calls ddex.v1beta2.DDEXService.ProcessNewReleaseMessage.
-func (c *dDEXServiceClient) ProcessNewReleaseMessage(ctx context.Context, req *connect.Request[v1beta2.ProcessNewReleaseMessageRequest]) (*connect.Response[v1beta2.ProcessNewReleaseMessageResponse], error) {
-	return c.processNewReleaseMessage.CallUnary(ctx, req)
+// SubmitERN calls ddex.v1beta2.DDEXService.SubmitERN.
+func (c *dDEXServiceClient) SubmitERN(ctx context.Context, req *connect.Request[v1beta2.SubmitERNRequest]) (*connect.Response[v1beta2.SubmitERNResponse], error) {
+	return c.submitERN.CallUnary(ctx, req)
 }
 
-// GetRelease calls ddex.v1beta2.DDEXService.GetRelease.
-func (c *dDEXServiceClient) GetRelease(ctx context.Context, req *connect.Request[v1beta2.GetReleaseRequest]) (*connect.Response[v1beta2.GetReleaseResponse], error) {
-	return c.getRelease.CallUnary(ctx, req)
-}
-
-// SearchReleases calls ddex.v1beta2.DDEXService.SearchReleases.
-func (c *dDEXServiceClient) SearchReleases(ctx context.Context, req *connect.Request[v1beta2.SearchReleasesRequest]) (*connect.Response[v1beta2.SearchReleasesResponse], error) {
-	return c.searchReleases.CallUnary(ctx, req)
-}
-
-// GetSoundRecording calls ddex.v1beta2.DDEXService.GetSoundRecording.
-func (c *dDEXServiceClient) GetSoundRecording(ctx context.Context, req *connect.Request[v1beta2.GetSoundRecordingRequest]) (*connect.Response[v1beta2.GetSoundRecordingResponse], error) {
-	return c.getSoundRecording.CallUnary(ctx, req)
-}
-
-// ValidateMessage calls ddex.v1beta2.DDEXService.ValidateMessage.
-func (c *dDEXServiceClient) ValidateMessage(ctx context.Context, req *connect.Request[v1beta2.ValidateMessageRequest]) (*connect.Response[v1beta2.ValidateMessageResponse], error) {
-	return c.validateMessage.CallUnary(ctx, req)
+// GetERN calls ddex.v1beta2.DDEXService.GetERN.
+func (c *dDEXServiceClient) GetERN(ctx context.Context, req *connect.Request[v1beta2.GetERNRequest]) (*connect.Response[v1beta2.GetERNResponse], error) {
+	return c.getERN.CallUnary(ctx, req)
 }
 
 // DDEXServiceHandler is an implementation of the ddex.v1beta2.DDEXService service.
 type DDEXServiceHandler interface {
-	// Process a new release message
-	ProcessNewReleaseMessage(context.Context, *connect.Request[v1beta2.ProcessNewReleaseMessageRequest]) (*connect.Response[v1beta2.ProcessNewReleaseMessageResponse], error)
-	// Get release information by ID
-	GetRelease(context.Context, *connect.Request[v1beta2.GetReleaseRequest]) (*connect.Response[v1beta2.GetReleaseResponse], error)
-	// Search for releases
-	SearchReleases(context.Context, *connect.Request[v1beta2.SearchReleasesRequest]) (*connect.Response[v1beta2.SearchReleasesResponse], error)
-	// Get sound recording information
-	GetSoundRecording(context.Context, *connect.Request[v1beta2.GetSoundRecordingRequest]) (*connect.Response[v1beta2.GetSoundRecordingResponse], error)
-	// Validate a DDEX message
-	ValidateMessage(context.Context, *connect.Request[v1beta2.ValidateMessageRequest]) (*connect.Response[v1beta2.ValidateMessageResponse], error)
+	SubmitERN(context.Context, *connect.Request[v1beta2.SubmitERNRequest]) (*connect.Response[v1beta2.SubmitERNResponse], error)
+	GetERN(context.Context, *connect.Request[v1beta2.GetERNRequest]) (*connect.Response[v1beta2.GetERNResponse], error)
 }
 
 // NewDDEXServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -162,48 +100,24 @@ type DDEXServiceHandler interface {
 // and JSON codecs. They also support gzip compression.
 func NewDDEXServiceHandler(svc DDEXServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
 	dDEXServiceMethods := v1beta2.File_ddex_v1beta2_service_proto.Services().ByName("DDEXService").Methods()
-	dDEXServiceProcessNewReleaseMessageHandler := connect.NewUnaryHandler(
-		DDEXServiceProcessNewReleaseMessageProcedure,
-		svc.ProcessNewReleaseMessage,
-		connect.WithSchema(dDEXServiceMethods.ByName("ProcessNewReleaseMessage")),
+	dDEXServiceSubmitERNHandler := connect.NewUnaryHandler(
+		DDEXServiceSubmitERNProcedure,
+		svc.SubmitERN,
+		connect.WithSchema(dDEXServiceMethods.ByName("SubmitERN")),
 		connect.WithHandlerOptions(opts...),
 	)
-	dDEXServiceGetReleaseHandler := connect.NewUnaryHandler(
-		DDEXServiceGetReleaseProcedure,
-		svc.GetRelease,
-		connect.WithSchema(dDEXServiceMethods.ByName("GetRelease")),
-		connect.WithHandlerOptions(opts...),
-	)
-	dDEXServiceSearchReleasesHandler := connect.NewUnaryHandler(
-		DDEXServiceSearchReleasesProcedure,
-		svc.SearchReleases,
-		connect.WithSchema(dDEXServiceMethods.ByName("SearchReleases")),
-		connect.WithHandlerOptions(opts...),
-	)
-	dDEXServiceGetSoundRecordingHandler := connect.NewUnaryHandler(
-		DDEXServiceGetSoundRecordingProcedure,
-		svc.GetSoundRecording,
-		connect.WithSchema(dDEXServiceMethods.ByName("GetSoundRecording")),
-		connect.WithHandlerOptions(opts...),
-	)
-	dDEXServiceValidateMessageHandler := connect.NewUnaryHandler(
-		DDEXServiceValidateMessageProcedure,
-		svc.ValidateMessage,
-		connect.WithSchema(dDEXServiceMethods.ByName("ValidateMessage")),
+	dDEXServiceGetERNHandler := connect.NewUnaryHandler(
+		DDEXServiceGetERNProcedure,
+		svc.GetERN,
+		connect.WithSchema(dDEXServiceMethods.ByName("GetERN")),
 		connect.WithHandlerOptions(opts...),
 	)
 	return "/ddex.v1beta2.DDEXService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case DDEXServiceProcessNewReleaseMessageProcedure:
-			dDEXServiceProcessNewReleaseMessageHandler.ServeHTTP(w, r)
-		case DDEXServiceGetReleaseProcedure:
-			dDEXServiceGetReleaseHandler.ServeHTTP(w, r)
-		case DDEXServiceSearchReleasesProcedure:
-			dDEXServiceSearchReleasesHandler.ServeHTTP(w, r)
-		case DDEXServiceGetSoundRecordingProcedure:
-			dDEXServiceGetSoundRecordingHandler.ServeHTTP(w, r)
-		case DDEXServiceValidateMessageProcedure:
-			dDEXServiceValidateMessageHandler.ServeHTTP(w, r)
+		case DDEXServiceSubmitERNProcedure:
+			dDEXServiceSubmitERNHandler.ServeHTTP(w, r)
+		case DDEXServiceGetERNProcedure:
+			dDEXServiceGetERNHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -213,22 +127,10 @@ func NewDDEXServiceHandler(svc DDEXServiceHandler, opts ...connect.HandlerOption
 // UnimplementedDDEXServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedDDEXServiceHandler struct{}
 
-func (UnimplementedDDEXServiceHandler) ProcessNewReleaseMessage(context.Context, *connect.Request[v1beta2.ProcessNewReleaseMessageRequest]) (*connect.Response[v1beta2.ProcessNewReleaseMessageResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ddex.v1beta2.DDEXService.ProcessNewReleaseMessage is not implemented"))
+func (UnimplementedDDEXServiceHandler) SubmitERN(context.Context, *connect.Request[v1beta2.SubmitERNRequest]) (*connect.Response[v1beta2.SubmitERNResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ddex.v1beta2.DDEXService.SubmitERN is not implemented"))
 }
 
-func (UnimplementedDDEXServiceHandler) GetRelease(context.Context, *connect.Request[v1beta2.GetReleaseRequest]) (*connect.Response[v1beta2.GetReleaseResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ddex.v1beta2.DDEXService.GetRelease is not implemented"))
-}
-
-func (UnimplementedDDEXServiceHandler) SearchReleases(context.Context, *connect.Request[v1beta2.SearchReleasesRequest]) (*connect.Response[v1beta2.SearchReleasesResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ddex.v1beta2.DDEXService.SearchReleases is not implemented"))
-}
-
-func (UnimplementedDDEXServiceHandler) GetSoundRecording(context.Context, *connect.Request[v1beta2.GetSoundRecordingRequest]) (*connect.Response[v1beta2.GetSoundRecordingResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ddex.v1beta2.DDEXService.GetSoundRecording is not implemented"))
-}
-
-func (UnimplementedDDEXServiceHandler) ValidateMessage(context.Context, *connect.Request[v1beta2.ValidateMessageRequest]) (*connect.Response[v1beta2.ValidateMessageResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ddex.v1beta2.DDEXService.ValidateMessage is not implemented"))
+func (UnimplementedDDEXServiceHandler) GetERN(context.Context, *connect.Request[v1beta2.GetERNRequest]) (*connect.Response[v1beta2.GetERNResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ddex.v1beta2.DDEXService.GetERN is not implemented"))
 }

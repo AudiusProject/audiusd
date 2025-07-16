@@ -312,6 +312,9 @@ func (s *Server) FinalizeBlock(ctx context.Context, req *abcitypes.FinalizeBlock
 				}); err != nil {
 					s.logger.Errorf("failed to store transaction: %v", err)
 				}
+
+				// finalize v2 transaction
+
 				state.finalizedTxs = append(state.finalizedTxs, txhash)
 				continue
 			}

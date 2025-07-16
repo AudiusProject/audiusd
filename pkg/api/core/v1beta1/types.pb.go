@@ -264,6 +264,259 @@ type Message_Ern struct {
 
 func (*Message_Ern) isMessage_Message() {}
 
+type TransactionReceipt struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	// Basic transaction identification
+	TxHash    string `protobuf:"bytes,1,opt,name=tx_hash,json=txHash,proto3" json:"tx_hash,omitempty"`
+	Height    int64  `protobuf:"varint,2,opt,name=height,proto3" json:"height,omitempty"`
+	Timestamp int64  `protobuf:"varint,3,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	// Transaction parties
+	Sender    string `protobuf:"bytes,4,opt,name=sender,proto3" json:"sender,omitempty"`       // Who signed the transaction
+	Responder string `protobuf:"bytes,5,opt,name=responder,proto3" json:"responder,omitempty"` // Node that responded to the request
+	Proposer  string `protobuf:"bytes,6,opt,name=proposer,proto3" json:"proposer,omitempty"`   // Node that proposed the block that included the transaction
+	// Envelope information from the transaction
+	EnvelopeInfo *EnvelopeReceiptInfo `protobuf:"bytes,7,opt,name=envelope_info,json=envelopeInfo,proto3" json:"envelope_info,omitempty"`
+	// Results from message processing (addresses, IDs, etc.)
+	MessageReceipts []*MessageReceipt `protobuf:"bytes,8,rep,name=message_receipts,json=messageReceipts,proto3" json:"message_receipts,omitempty"`
+}
+
+func (x *TransactionReceipt) Reset() {
+	*x = TransactionReceipt{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_core_v1beta1_types_proto_msgTypes[4]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *TransactionReceipt) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TransactionReceipt) ProtoMessage() {}
+
+func (x *TransactionReceipt) ProtoReflect() protoreflect.Message {
+	mi := &file_core_v1beta1_types_proto_msgTypes[4]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TransactionReceipt.ProtoReflect.Descriptor instead.
+func (*TransactionReceipt) Descriptor() ([]byte, []int) {
+	return file_core_v1beta1_types_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *TransactionReceipt) GetTxHash() string {
+	if x != nil {
+		return x.TxHash
+	}
+	return ""
+}
+
+func (x *TransactionReceipt) GetHeight() int64 {
+	if x != nil {
+		return x.Height
+	}
+	return 0
+}
+
+func (x *TransactionReceipt) GetTimestamp() int64 {
+	if x != nil {
+		return x.Timestamp
+	}
+	return 0
+}
+
+func (x *TransactionReceipt) GetSender() string {
+	if x != nil {
+		return x.Sender
+	}
+	return ""
+}
+
+func (x *TransactionReceipt) GetResponder() string {
+	if x != nil {
+		return x.Responder
+	}
+	return ""
+}
+
+func (x *TransactionReceipt) GetProposer() string {
+	if x != nil {
+		return x.Proposer
+	}
+	return ""
+}
+
+func (x *TransactionReceipt) GetEnvelopeInfo() *EnvelopeReceiptInfo {
+	if x != nil {
+		return x.EnvelopeInfo
+	}
+	return nil
+}
+
+func (x *TransactionReceipt) GetMessageReceipts() []*MessageReceipt {
+	if x != nil {
+		return x.MessageReceipts
+	}
+	return nil
+}
+
+type MessageReceipt struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	MessageIndex int32 `protobuf:"varint,1,opt,name=message_index,json=messageIndex,proto3" json:"message_index,omitempty"`
+	// Types that are assignable to Result:
+	//
+	//	*MessageReceipt_ErnAck
+	Result isMessageReceipt_Result `protobuf_oneof:"result"`
+}
+
+func (x *MessageReceipt) Reset() {
+	*x = MessageReceipt{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_core_v1beta1_types_proto_msgTypes[5]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *MessageReceipt) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MessageReceipt) ProtoMessage() {}
+
+func (x *MessageReceipt) ProtoReflect() protoreflect.Message {
+	mi := &file_core_v1beta1_types_proto_msgTypes[5]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MessageReceipt.ProtoReflect.Descriptor instead.
+func (*MessageReceipt) Descriptor() ([]byte, []int) {
+	return file_core_v1beta1_types_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *MessageReceipt) GetMessageIndex() int32 {
+	if x != nil {
+		return x.MessageIndex
+	}
+	return 0
+}
+
+func (m *MessageReceipt) GetResult() isMessageReceipt_Result {
+	if m != nil {
+		return m.Result
+	}
+	return nil
+}
+
+func (x *MessageReceipt) GetErnAck() *v1beta2.NewReleaseMessageAck {
+	if x, ok := x.GetResult().(*MessageReceipt_ErnAck); ok {
+		return x.ErnAck
+	}
+	return nil
+}
+
+type isMessageReceipt_Result interface {
+	isMessageReceipt_Result()
+}
+
+type MessageReceipt_ErnAck struct {
+	ErnAck *v1beta2.NewReleaseMessageAck `protobuf:"bytes,2,opt,name=ern_ack,json=ernAck,proto3,oneof"`
+}
+
+func (*MessageReceipt_ErnAck) isMessageReceipt_Result() {}
+
+type EnvelopeReceiptInfo struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	ChainId      string `protobuf:"bytes,1,opt,name=chain_id,json=chainId,proto3" json:"chain_id,omitempty"`
+	Expiration   int64  `protobuf:"varint,2,opt,name=expiration,proto3" json:"expiration,omitempty"`
+	Nonce        string `protobuf:"bytes,3,opt,name=nonce,proto3" json:"nonce,omitempty"`
+	MessageCount int32  `protobuf:"varint,4,opt,name=message_count,json=messageCount,proto3" json:"message_count,omitempty"`
+}
+
+func (x *EnvelopeReceiptInfo) Reset() {
+	*x = EnvelopeReceiptInfo{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_core_v1beta1_types_proto_msgTypes[6]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *EnvelopeReceiptInfo) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EnvelopeReceiptInfo) ProtoMessage() {}
+
+func (x *EnvelopeReceiptInfo) ProtoReflect() protoreflect.Message {
+	mi := &file_core_v1beta1_types_proto_msgTypes[6]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EnvelopeReceiptInfo.ProtoReflect.Descriptor instead.
+func (*EnvelopeReceiptInfo) Descriptor() ([]byte, []int) {
+	return file_core_v1beta1_types_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *EnvelopeReceiptInfo) GetChainId() string {
+	if x != nil {
+		return x.ChainId
+	}
+	return ""
+}
+
+func (x *EnvelopeReceiptInfo) GetExpiration() int64 {
+	if x != nil {
+		return x.Expiration
+	}
+	return 0
+}
+
+func (x *EnvelopeReceiptInfo) GetNonce() string {
+	if x != nil {
+		return x.Nonce
+	}
+	return ""
+}
+
+func (x *EnvelopeReceiptInfo) GetMessageCount() int32 {
+	if x != nil {
+		return x.MessageCount
+	}
+	return 0
+}
+
 var File_core_v1beta1_types_proto protoreflect.FileDescriptor
 
 var file_core_v1beta1_types_proto_rawDesc = []byte{
@@ -295,11 +548,48 @@ var file_core_v1beta1_types_proto_rawDesc = []byte{
 	0x0b, 0x32, 0x1f, 0x2e, 0x64, 0x64, 0x65, 0x78, 0x2e, 0x76, 0x31, 0x62, 0x65, 0x74, 0x61, 0x32,
 	0x2e, 0x4e, 0x65, 0x77, 0x52, 0x65, 0x6c, 0x65, 0x61, 0x73, 0x65, 0x4d, 0x65, 0x73, 0x73, 0x61,
 	0x67, 0x65, 0x48, 0x00, 0x52, 0x03, 0x65, 0x72, 0x6e, 0x42, 0x09, 0x0a, 0x07, 0x6d, 0x65, 0x73,
-	0x73, 0x61, 0x67, 0x65, 0x42, 0x37, 0x5a, 0x35, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63,
-	0x6f, 0x6d, 0x2f, 0x41, 0x75, 0x64, 0x69, 0x75, 0x73, 0x50, 0x72, 0x6f, 0x6a, 0x65, 0x63, 0x74,
-	0x2f, 0x61, 0x75, 0x64, 0x69, 0x75, 0x73, 0x64, 0x2f, 0x70, 0x6b, 0x67, 0x2f, 0x61, 0x70, 0x69,
-	0x2f, 0x63, 0x6f, 0x72, 0x65, 0x2f, 0x76, 0x31, 0x62, 0x65, 0x74, 0x61, 0x31, 0x62, 0x06, 0x70,
-	0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x73, 0x61, 0x67, 0x65, 0x22, 0xc6, 0x02, 0x0a, 0x12, 0x54, 0x72, 0x61, 0x6e, 0x73, 0x61, 0x63,
+	0x74, 0x69, 0x6f, 0x6e, 0x52, 0x65, 0x63, 0x65, 0x69, 0x70, 0x74, 0x12, 0x17, 0x0a, 0x07, 0x74,
+	0x78, 0x5f, 0x68, 0x61, 0x73, 0x68, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x74, 0x78,
+	0x48, 0x61, 0x73, 0x68, 0x12, 0x16, 0x0a, 0x06, 0x68, 0x65, 0x69, 0x67, 0x68, 0x74, 0x18, 0x02,
+	0x20, 0x01, 0x28, 0x03, 0x52, 0x06, 0x68, 0x65, 0x69, 0x67, 0x68, 0x74, 0x12, 0x1c, 0x0a, 0x09,
+	0x74, 0x69, 0x6d, 0x65, 0x73, 0x74, 0x61, 0x6d, 0x70, 0x18, 0x03, 0x20, 0x01, 0x28, 0x03, 0x52,
+	0x09, 0x74, 0x69, 0x6d, 0x65, 0x73, 0x74, 0x61, 0x6d, 0x70, 0x12, 0x16, 0x0a, 0x06, 0x73, 0x65,
+	0x6e, 0x64, 0x65, 0x72, 0x18, 0x04, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x73, 0x65, 0x6e, 0x64,
+	0x65, 0x72, 0x12, 0x1c, 0x0a, 0x09, 0x72, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x64, 0x65, 0x72, 0x18,
+	0x05, 0x20, 0x01, 0x28, 0x09, 0x52, 0x09, 0x72, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x64, 0x65, 0x72,
+	0x12, 0x1a, 0x0a, 0x08, 0x70, 0x72, 0x6f, 0x70, 0x6f, 0x73, 0x65, 0x72, 0x18, 0x06, 0x20, 0x01,
+	0x28, 0x09, 0x52, 0x08, 0x70, 0x72, 0x6f, 0x70, 0x6f, 0x73, 0x65, 0x72, 0x12, 0x46, 0x0a, 0x0d,
+	0x65, 0x6e, 0x76, 0x65, 0x6c, 0x6f, 0x70, 0x65, 0x5f, 0x69, 0x6e, 0x66, 0x6f, 0x18, 0x07, 0x20,
+	0x01, 0x28, 0x0b, 0x32, 0x21, 0x2e, 0x63, 0x6f, 0x72, 0x65, 0x2e, 0x76, 0x31, 0x62, 0x65, 0x74,
+	0x61, 0x31, 0x2e, 0x45, 0x6e, 0x76, 0x65, 0x6c, 0x6f, 0x70, 0x65, 0x52, 0x65, 0x63, 0x65, 0x69,
+	0x70, 0x74, 0x49, 0x6e, 0x66, 0x6f, 0x52, 0x0c, 0x65, 0x6e, 0x76, 0x65, 0x6c, 0x6f, 0x70, 0x65,
+	0x49, 0x6e, 0x66, 0x6f, 0x12, 0x47, 0x0a, 0x10, 0x6d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x5f,
+	0x72, 0x65, 0x63, 0x65, 0x69, 0x70, 0x74, 0x73, 0x18, 0x08, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x1c,
+	0x2e, 0x63, 0x6f, 0x72, 0x65, 0x2e, 0x76, 0x31, 0x62, 0x65, 0x74, 0x61, 0x31, 0x2e, 0x4d, 0x65,
+	0x73, 0x73, 0x61, 0x67, 0x65, 0x52, 0x65, 0x63, 0x65, 0x69, 0x70, 0x74, 0x52, 0x0f, 0x6d, 0x65,
+	0x73, 0x73, 0x61, 0x67, 0x65, 0x52, 0x65, 0x63, 0x65, 0x69, 0x70, 0x74, 0x73, 0x22, 0x7e, 0x0a,
+	0x0e, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x52, 0x65, 0x63, 0x65, 0x69, 0x70, 0x74, 0x12,
+	0x23, 0x0a, 0x0d, 0x6d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x5f, 0x69, 0x6e, 0x64, 0x65, 0x78,
+	0x18, 0x01, 0x20, 0x01, 0x28, 0x05, 0x52, 0x0c, 0x6d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x49,
+	0x6e, 0x64, 0x65, 0x78, 0x12, 0x3d, 0x0a, 0x07, 0x65, 0x72, 0x6e, 0x5f, 0x61, 0x63, 0x6b, 0x18,
+	0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x22, 0x2e, 0x64, 0x64, 0x65, 0x78, 0x2e, 0x76, 0x31, 0x62,
+	0x65, 0x74, 0x61, 0x32, 0x2e, 0x4e, 0x65, 0x77, 0x52, 0x65, 0x6c, 0x65, 0x61, 0x73, 0x65, 0x4d,
+	0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x41, 0x63, 0x6b, 0x48, 0x00, 0x52, 0x06, 0x65, 0x72, 0x6e,
+	0x41, 0x63, 0x6b, 0x42, 0x08, 0x0a, 0x06, 0x72, 0x65, 0x73, 0x75, 0x6c, 0x74, 0x22, 0x8b, 0x01,
+	0x0a, 0x13, 0x45, 0x6e, 0x76, 0x65, 0x6c, 0x6f, 0x70, 0x65, 0x52, 0x65, 0x63, 0x65, 0x69, 0x70,
+	0x74, 0x49, 0x6e, 0x66, 0x6f, 0x12, 0x19, 0x0a, 0x08, 0x63, 0x68, 0x61, 0x69, 0x6e, 0x5f, 0x69,
+	0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x63, 0x68, 0x61, 0x69, 0x6e, 0x49, 0x64,
+	0x12, 0x1e, 0x0a, 0x0a, 0x65, 0x78, 0x70, 0x69, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x18, 0x02,
+	0x20, 0x01, 0x28, 0x03, 0x52, 0x0a, 0x65, 0x78, 0x70, 0x69, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e,
+	0x12, 0x14, 0x0a, 0x05, 0x6e, 0x6f, 0x6e, 0x63, 0x65, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52,
+	0x05, 0x6e, 0x6f, 0x6e, 0x63, 0x65, 0x12, 0x23, 0x0a, 0x0d, 0x6d, 0x65, 0x73, 0x73, 0x61, 0x67,
+	0x65, 0x5f, 0x63, 0x6f, 0x75, 0x6e, 0x74, 0x18, 0x04, 0x20, 0x01, 0x28, 0x05, 0x52, 0x0c, 0x6d,
+	0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x43, 0x6f, 0x75, 0x6e, 0x74, 0x42, 0x37, 0x5a, 0x35, 0x67,
+	0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x41, 0x75, 0x64, 0x69, 0x75, 0x73,
+	0x50, 0x72, 0x6f, 0x6a, 0x65, 0x63, 0x74, 0x2f, 0x61, 0x75, 0x64, 0x69, 0x75, 0x73, 0x64, 0x2f,
+	0x70, 0x6b, 0x67, 0x2f, 0x61, 0x70, 0x69, 0x2f, 0x63, 0x6f, 0x72, 0x65, 0x2f, 0x76, 0x31, 0x62,
+	0x65, 0x74, 0x61, 0x31, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -314,24 +604,31 @@ func file_core_v1beta1_types_proto_rawDescGZIP() []byte {
 	return file_core_v1beta1_types_proto_rawDescData
 }
 
-var file_core_v1beta1_types_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_core_v1beta1_types_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_core_v1beta1_types_proto_goTypes = []interface{}{
-	(*Transaction)(nil),               // 0: core.v1beta1.Transaction
-	(*Envelope)(nil),                  // 1: core.v1beta1.Envelope
-	(*EnvelopeHeader)(nil),            // 2: core.v1beta1.EnvelopeHeader
-	(*Message)(nil),                   // 3: core.v1beta1.Message
-	(*v1beta2.NewReleaseMessage)(nil), // 4: ddex.v1beta2.NewReleaseMessage
+	(*Transaction)(nil),                  // 0: core.v1beta1.Transaction
+	(*Envelope)(nil),                     // 1: core.v1beta1.Envelope
+	(*EnvelopeHeader)(nil),               // 2: core.v1beta1.EnvelopeHeader
+	(*Message)(nil),                      // 3: core.v1beta1.Message
+	(*TransactionReceipt)(nil),           // 4: core.v1beta1.TransactionReceipt
+	(*MessageReceipt)(nil),               // 5: core.v1beta1.MessageReceipt
+	(*EnvelopeReceiptInfo)(nil),          // 6: core.v1beta1.EnvelopeReceiptInfo
+	(*v1beta2.NewReleaseMessage)(nil),    // 7: ddex.v1beta2.NewReleaseMessage
+	(*v1beta2.NewReleaseMessageAck)(nil), // 8: ddex.v1beta2.NewReleaseMessageAck
 }
 var file_core_v1beta1_types_proto_depIdxs = []int32{
 	1, // 0: core.v1beta1.Transaction.envelope:type_name -> core.v1beta1.Envelope
 	2, // 1: core.v1beta1.Envelope.header:type_name -> core.v1beta1.EnvelopeHeader
 	3, // 2: core.v1beta1.Envelope.messages:type_name -> core.v1beta1.Message
-	4, // 3: core.v1beta1.Message.ern:type_name -> ddex.v1beta2.NewReleaseMessage
-	4, // [4:4] is the sub-list for method output_type
-	4, // [4:4] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	7, // 3: core.v1beta1.Message.ern:type_name -> ddex.v1beta2.NewReleaseMessage
+	6, // 4: core.v1beta1.TransactionReceipt.envelope_info:type_name -> core.v1beta1.EnvelopeReceiptInfo
+	5, // 5: core.v1beta1.TransactionReceipt.message_receipts:type_name -> core.v1beta1.MessageReceipt
+	8, // 6: core.v1beta1.MessageReceipt.ern_ack:type_name -> ddex.v1beta2.NewReleaseMessageAck
+	7, // [7:7] is the sub-list for method output_type
+	7, // [7:7] is the sub-list for method input_type
+	7, // [7:7] is the sub-list for extension type_name
+	7, // [7:7] is the sub-list for extension extendee
+	0, // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_core_v1beta1_types_proto_init() }
@@ -388,9 +685,48 @@ func file_core_v1beta1_types_proto_init() {
 				return nil
 			}
 		}
+		file_core_v1beta1_types_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*TransactionReceipt); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_core_v1beta1_types_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*MessageReceipt); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_core_v1beta1_types_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*EnvelopeReceiptInfo); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
 	}
 	file_core_v1beta1_types_proto_msgTypes[3].OneofWrappers = []interface{}{
 		(*Message_Ern)(nil),
+	}
+	file_core_v1beta1_types_proto_msgTypes[5].OneofWrappers = []interface{}{
+		(*MessageReceipt_ErnAck)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -398,7 +734,7 @@ func file_core_v1beta1_types_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_core_v1beta1_types_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

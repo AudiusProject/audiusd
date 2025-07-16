@@ -34,3 +34,39 @@ message Message {
     // ContentDistributionMessage cdm = 5;
   }
 }
+
+message TransactionReceipt {
+  // Basic transaction identification
+  string tx_hash = 1;
+  int64 height = 2;
+  int64 timestamp = 3;
+
+  // Transaction parties
+  string sender = 4; // Who signed the transaction
+  string responder = 5; // Node that responded to the request
+  string proposer = 6; // Node that proposed the block that included the transaction
+
+  // Envelope information from the transaction
+  EnvelopeReceiptInfo envelope_info = 7;
+
+  // Results from message processing (addresses, IDs, etc.)
+  repeated MessageReceipt message_receipts = 8;
+}
+
+message MessageReceipt {
+  int32 message_index = 1;
+  oneof result {
+    ddex.v1beta2.NewReleaseMessageAck ern_ack = 2;
+    // MeadResult mead_result = 3;
+    // PieResult pie_result = 4;
+    // DsrResult dsr_result = 5;
+    // CdmResult cdm_result = 6;
+  }
+}
+
+message EnvelopeReceiptInfo {
+  string chain_id = 1;
+  int64 expiration = 2;
+  string nonce = 3;
+  int32 message_count = 4;
+}

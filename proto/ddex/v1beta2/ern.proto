@@ -4,6 +4,14 @@ package ddex.v1beta2;
 
 option go_package = "github.com/AudiusProject/audiusd/pkg/api/ddex/v1beta2";
 
+// Message control types for ERN operations
+enum MessageControlType {
+  MESSAGE_CONTROL_TYPE_UNSPECIFIED = 0;
+  MESSAGE_CONTROL_TYPE_NEW_RELEASE_MESSAGE = 1;
+  MESSAGE_CONTROL_TYPE_UPDATED_RELEASE_MESSAGE = 2;
+  MESSAGE_CONTROL_TYPE_TAKEDOWN_RELEASE_MESSAGE = 3;
+}
+
 // Root message for Electronic Release Notification
 message NewReleaseMessage {
   string avs_version_id = 1;
@@ -22,7 +30,7 @@ message MessageHeader {
   MessageSender message_sender = 3;
   MessageRecipient message_recipient = 4;
   string message_created_date_time = 5;
-  string message_control_type = 6;
+  MessageControlType message_control_type = 6;
 }
 
 message MessageSender {
@@ -271,4 +279,17 @@ message DateTime {
 
 message Duration {
   string iso_duration = 1; // ISO 8601 duration format like PT0H3M37S
+}
+
+// Acknowledgment for processed NewReleaseMessage
+message NewReleaseMessageAck {
+  message Address {
+    uint32 index = 1;
+    string address = 2;
+  }
+  Address release_address = 1; // Where the Release is stored
+  repeated Address party_addresses = 2; // Artist, label, publisher addresses
+  repeated Address sound_recording_addresses = 3; // Individual track addresses
+  repeated Address image_addresses = 4; // Album art, photo addresses
+  repeated Address deal_addresses = 5; // Licensing deal addresses
 }
