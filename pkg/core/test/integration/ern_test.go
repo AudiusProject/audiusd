@@ -61,7 +61,7 @@ func TestERNProcessing(t *testing.T) {
 				},
 			},
 			MessageCreatedDateTime: "2025-06-04T17:09:19.141Z",
-			MessageControlType:     "TestMessage",
+			MessageControlType:     ddex.MessageControlType_MESSAGE_CONTROL_TYPE_NEW_RELEASE_MESSAGE,
 		},
 		PartyList: []*ddex.Party{
 			{

@@ -7,11 +7,12 @@
 package v1beta1
 
 import (
+	reflect "reflect"
+	sync "sync"
+
 	v1beta2 "github.com/AudiusProject/audiusd/pkg/api/ddex/v1beta2"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	reflect "reflect"
-	sync "sync"
 )
 
 const (

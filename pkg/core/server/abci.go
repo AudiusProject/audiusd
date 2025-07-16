@@ -314,6 +314,10 @@ func (s *Server) FinalizeBlock(ctx context.Context, req *abcitypes.FinalizeBlock
 				}
 
 				// finalize v2 transaction
+				if err := s.finalizeV2Transaction(ctx, req, v2Tx); err != nil {
+					s.logger.Errorf("failed to finalize v2 transaction: %v", err)
+					txs[i] = &abcitypes.ExecTxResult{Code: 2}
+				}
 
 				state.finalizedTxs = append(state.finalizedTxs, txhash)
 				continue
