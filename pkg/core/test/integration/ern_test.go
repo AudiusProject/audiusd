@@ -46,27 +46,14 @@ func TestERNProcessing(t *testing.T) {
 		AvsVersionId:          "5",
 		LanguageAndScriptCode: "en",
 		MessageHeader: &ddex.MessageHeader{
-			MessageThreadId: "T0100042156789_TST",
-			MessageId:       "123456789",
-			MessageSender: &ddex.MessageSender{
-				PartyId: "PADPIDA2024010101T",
-				PartyName: &ddex.PartyName{
-					FullName: "Test Music Records",
-				},
-			},
-			MessageRecipient: &ddex.MessageRecipient{
-				PartyId: "PADPIDA202401120D9",
-				PartyName: &ddex.PartyName{
-					FullName: "Audius",
-				},
-			},
-			MessageCreatedDateTime: "2025-06-04T17:09:19.141Z",
-			MessageControlType:     ddex.MessageControlType_MESSAGE_CONTROL_TYPE_NEW_RELEASE_MESSAGE,
+			MessageControlType: ddex.MessageControlType_MESSAGE_CONTROL_TYPE_NEW_RELEASE_MESSAGE,
+			SenderAddress:      "0x1234567890123456789012345678901234567890",
+			RecipientAddress:   "0x0987654321098765432109876543210987654321",
 		},
 		PartyList: []*ddex.Party{
 			{
 				PartyReference: "P_ARTIST_8888888",
-				PartyName: []*ddex.PartyName{
+				PartyName: []*ddex.Party_PartyName{
 					{
 						LanguageAndScriptCode: "",
 						FullName:              "The Cosmic Wanderers",
@@ -76,13 +63,13 @@ func TestERNProcessing(t *testing.T) {
 						FullName:              "Les Vagabonds Cosmiques",
 					},
 				},
-				PartyId: &ddex.PartyId{
+				PartyId: &ddex.Party_PartyId{
 					Dpid: "PADPIDA2024010101T",
 				},
 			},
 			{
 				PartyReference: "P_ARTIST_7777777",
-				PartyName: []*ddex.PartyName{
+				PartyName: []*ddex.Party_PartyName{
 					{
 						FullName: "Luna Rivers",
 					},
@@ -90,74 +77,65 @@ func TestERNProcessing(t *testing.T) {
 			},
 			{
 				PartyReference: "P_ARTIST_6666666",
-				PartyName: []*ddex.PartyName{
+				PartyName: []*ddex.Party_PartyName{
 					{
 						FullName: "Echo Stone",
 					},
 				},
 			},
 		},
-		ResourceList: []*ddex.SoundRecording{
+		ResourceList: []*ddex.Resource{
 			{
-				ResourceReference: "A1",
-				Type:              "MusicalWorkSoundRecording",
-				SoundRecordingEdition: &ddex.SoundRecordingEdition{
-					Type: "NonImmersiveEdition",
-					ResourceId: &ddex.ResourceId{
-						Isrc: "TEST12345001",
-					},
-					PLine: &ddex.PLine{
-						Year:      2023,
-						PLineText: "(P) 2023 Test Music Records",
+				Resource: &ddex.Resource_SoundRecording_{
+					SoundRecording: &ddex.Resource_SoundRecording{
+						ResourceReference: "A1",
+						Type:              "MusicalWorkSoundRecording",
+						ResourceId: &ddex.Resource_ResourceId{
+							Isrc: "TEST12345001",
+						},
+						DisplayTitleText:      "Stardust Highway (Live at Festival Arena, Phoenix, AZ - October 2023)",
+						DisplayArtistName:     "The Cosmic Wanderers, Luna Rivers, Echo Stone, Nova Black, Phoenix Wright",
+						Duration:              "PT0H2M15S",
+						FirstPublicationDate:  "2024-01-15",
+						ParentalWarningType:   "NotExplicit",
+						LanguageOfPerformance: "en",
 					},
 				},
-				DisplayTitleText:      "Stardust Highway (Live at Festival Arena, Phoenix, AZ - October 2023)",
-				LanguageAndScriptCode: "en",
-				VersionType:           "LiveVersion",
-				DisplayArtistName:     "The Cosmic Wanderers, Luna Rivers, Echo Stone, Nova Black, Phoenix Wright",
-				Duration:              "PT0H2M15S",
-				FirstPublicationDate:  "2024-01-15",
-				ParentalWarningType:   "NotExplicit",
-				LanguageOfPerformance: "en",
 			},
 			{
-				ResourceReference: "A2",
-				Type:              "MusicalWorkSoundRecording",
-				SoundRecordingEdition: &ddex.SoundRecordingEdition{
-					Type: "NonImmersiveEdition",
-					ResourceId: &ddex.ResourceId{
-						Isrc: "TEST12345002",
-					},
-					PLine: &ddex.PLine{
-						Year:      2023,
-						PLineText: "(P) 2023 Test Music Records",
+				Resource: &ddex.Resource_SoundRecording_{
+					SoundRecording: &ddex.Resource_SoundRecording{
+						ResourceReference: "A2",
+						Type:              "MusicalWorkSoundRecording",
+						ResourceId: &ddex.Resource_ResourceId{
+							Isrc: "TEST12345002",
+						},
+						DisplayTitleText:      "Galactic Dreams (Live at Festival Arena, Phoenix, AZ - October 2023)",
+						DisplayArtistName:     "The Cosmic Wanderers, Luna Rivers, Echo Stone, Nova Black, Phoenix Wright",
+						Duration:              "PT0H3M42S",
+						FirstPublicationDate:  "2024-01-15",
+						ParentalWarningType:   "NotExplicit",
+						LanguageOfPerformance: "en",
 					},
 				},
-				DisplayTitleText:      "Galactic Dreams (Live at Festival Arena, Phoenix, AZ - October 2023)",
-				LanguageAndScriptCode: "en",
-				VersionType:           "LiveVersion",
-				DisplayArtistName:     "The Cosmic Wanderers, Luna Rivers, Echo Stone, Nova Black, Phoenix Wright",
-				Duration:              "PT0H3M42S",
-				FirstPublicationDate:  "2024-01-15",
-				ParentalWarningType:   "NotExplicit",
-				LanguageOfPerformance: "en",
 			},
 		},
 		ReleaseList: []*ddex.Release{
 			{
-				ReleaseReference: "R0",
-				ReleaseType:      "Album",
-				ReleaseId: &ddex.ReleaseId{
-					Grid: "A10301T00042156789",
-					Icpn: "123456789012",
-					CatalogNumber: &ddex.CatalogNumber{
-						Namespace: "DPID:PADPIDA2024010101T",
-						Value:     "T0100042156789",
+				Release: &ddex.Release_MainRelease_{
+					MainRelease: &ddex.Release_MainRelease{
+						ReleaseReference: "R0",
+						ReleaseType:      "Album",
+						ReleaseId: &ddex.Release_ReleaseId{
+							Grid:                   "A10301T00042156789",
+							Icpn:                   "123456789012",
+							CatalogNumber:          "T0100042156789",
+							CatalogNumberNamespace: "DPID:PADPIDA2024010101T",
+						},
+						DisplayTitleText:  "Live - Cosmic Festival Sessions",
+						DisplayArtistName: "The Cosmic Wanderers",
 					},
 				},
-				DisplayTitleText:      "Live - Cosmic Festival Sessions",
-				LanguageAndScriptCode: "en",
-				DisplayArtistName:     "The Cosmic Wanderers",
 			},
 		},
 	}
@@ -267,24 +245,23 @@ func TestERNProcessing(t *testing.T) {
 	retrievedERN := ernGetRes.Msg.Ern
 
 	// Verify the retrieved ERN matches our original test data
-	assert.Equal(t, testERN.MessageHeader.MessageId, retrievedERN.MessageHeader.MessageId)
-	assert.Equal(t, testERN.MessageHeader.MessageThreadId, retrievedERN.MessageHeader.MessageThreadId)
-	assert.Equal(t, testERN.MessageHeader.MessageSender.PartyId, retrievedERN.MessageHeader.MessageSender.PartyId)
-	assert.Equal(t, testERN.MessageHeader.MessageSender.PartyName.FullName, retrievedERN.MessageHeader.MessageSender.PartyName.FullName)
+	assert.Equal(t, testERN.MessageHeader.MessageControlType, retrievedERN.MessageHeader.MessageControlType)
+	assert.Equal(t, testERN.MessageHeader.SenderAddress, retrievedERN.MessageHeader.SenderAddress)
+	assert.Equal(t, testERN.MessageHeader.RecipientAddress, retrievedERN.MessageHeader.RecipientAddress)
 
 	// Verify resource list
 	assert.Len(t, retrievedERN.ResourceList, 2)
-	assert.Equal(t, testERN.ResourceList[0].ResourceReference, retrievedERN.ResourceList[0].ResourceReference)
-	assert.Equal(t, testERN.ResourceList[0].SoundRecordingEdition.ResourceId.Isrc, retrievedERN.ResourceList[0].SoundRecordingEdition.ResourceId.Isrc)
-	assert.Equal(t, testERN.ResourceList[1].ResourceReference, retrievedERN.ResourceList[1].ResourceReference)
-	assert.Equal(t, testERN.ResourceList[1].SoundRecordingEdition.ResourceId.Isrc, retrievedERN.ResourceList[1].SoundRecordingEdition.ResourceId.Isrc)
+	assert.Equal(t, testERN.ResourceList[0].GetSoundRecording().ResourceReference, retrievedERN.ResourceList[0].GetSoundRecording().ResourceReference)
+	assert.Equal(t, testERN.ResourceList[0].GetSoundRecording().ResourceId.Isrc, retrievedERN.ResourceList[0].GetSoundRecording().ResourceId.Isrc)
+	assert.Equal(t, testERN.ResourceList[1].GetSoundRecording().ResourceReference, retrievedERN.ResourceList[1].GetSoundRecording().ResourceReference)
+	assert.Equal(t, testERN.ResourceList[1].GetSoundRecording().ResourceId.Isrc, retrievedERN.ResourceList[1].GetSoundRecording().ResourceId.Isrc)
 
 	// Verify release list
 	assert.Len(t, retrievedERN.ReleaseList, 1)
-	assert.Equal(t, testERN.ReleaseList[0].ReleaseReference, retrievedERN.ReleaseList[0].ReleaseReference)
-	assert.Equal(t, testERN.ReleaseList[0].DisplayTitleText, retrievedERN.ReleaseList[0].DisplayTitleText)
-	assert.Equal(t, testERN.ReleaseList[0].DisplayArtistName, retrievedERN.ReleaseList[0].DisplayArtistName)
-	assert.Equal(t, testERN.ReleaseList[0].ReleaseId.Grid, retrievedERN.ReleaseList[0].ReleaseId.Grid)
+	assert.Equal(t, testERN.ReleaseList[0].GetMainRelease().ReleaseReference, retrievedERN.ReleaseList[0].GetMainRelease().ReleaseReference)
+	assert.Equal(t, testERN.ReleaseList[0].GetMainRelease().DisplayTitleText, retrievedERN.ReleaseList[0].GetMainRelease().DisplayTitleText)
+	assert.Equal(t, testERN.ReleaseList[0].GetMainRelease().DisplayArtistName, retrievedERN.ReleaseList[0].GetMainRelease().DisplayArtistName)
+	assert.Equal(t, testERN.ReleaseList[0].GetMainRelease().ReleaseId.Grid, retrievedERN.ReleaseList[0].GetMainRelease().ReleaseId.Grid)
 
 	// Verify party list
 	assert.Len(t, retrievedERN.PartyList, 3)
@@ -293,6 +270,6 @@ func TestERNProcessing(t *testing.T) {
 
 	t.Logf("Successfully retrieved ERN message for address: %s", ernAck.ReleaseAddress.Address)
 	t.Logf("Retrieved ERN contains same data as original:")
-	t.Logf("- Message ID: %s", retrievedERN.MessageHeader.MessageId)
-	t.Logf("- Album: %s by %s", retrievedERN.ReleaseList[0].DisplayTitleText, retrievedERN.ReleaseList[0].DisplayArtistName)
+	t.Logf("- Message Control Type: %v", retrievedERN.MessageHeader.MessageControlType)
+	t.Logf("- Album: %s by %s", retrievedERN.ReleaseList[0].GetMainRelease().DisplayTitleText, retrievedERN.ReleaseList[0].GetMainRelease().DisplayArtistName)
 }

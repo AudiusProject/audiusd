@@ -18,267 +18,265 @@ message NewReleaseMessage {
   string language_and_script_code = 2;
   MessageHeader message_header = 3;
   repeated Party party_list = 4;
-  repeated SoundRecording resource_list = 5;
+  repeated Resource resource_list = 5;
   repeated Release release_list = 6;
-  DealList deal_list = 7;
+  repeated Deal deal_list = 7;
 }
 
 // Message header information
 message MessageHeader {
-  string message_thread_id = 1;
-  string message_id = 2;
-  MessageSender message_sender = 3;
-  MessageRecipient message_recipient = 4;
-  string message_created_date_time = 5;
-  MessageControlType message_control_type = 6;
+  // type of message control, NEW_RELEASE_MESSAGE, UPDATED_RELEASE_MESSAGE, TAKEDOWN_RELEASE_MESSAGE
+  MessageControlType message_control_type = 1;
+  // address of the party sending the message, must match the recovered address from the signature
+  string sender_address = 2;
+  // address of the ERN receiving the update or deletion, must be empty for new release messages
+  string recipient_address = 3;
 }
 
-message MessageSender {
-  string party_id = 1;
-  PartyName party_name = 2;
-}
-
-message MessageRecipient {
-  string party_id = 1;
-  PartyName party_name = 2;
-}
-
-// Party information (artists, labels, etc.)
+// party information used to create and update a party individually or within an ERN message
 message Party {
-  string party_reference = 1;
-  repeated PartyName party_name = 2;
-  PartyId party_id = 3;
+  // protocol level address to reference a party
+  message PartyAddress {
+    string address = 1;
+  }
+
+  // IDs defined by the DDEX standard that can be used to reference a party
+  message PartyId {
+    string dpid = 1;
+  }
+
+  // name of the party
+  message PartyName {
+    string language_and_script_code = 1;
+    string full_name = 2;
+  }
+
+  // reference defined by the DDEX standard that can be used to reference a party
+  PartyAddress party_address = 1;
+  string party_reference = 2;
+  repeated PartyName party_name = 3;
+  PartyId party_id = 4;
 }
 
-message PartyName {
-  string language_and_script_code = 1;
-  string full_name = 2;
+// resource information used to create and update a resource individually or within an ERN message
+message Resource {
+  // protocol level address to reference a resource
+  message ResourceAddress {
+    string address = 1;
+  }
+
+  // IDs defined by the DDEX standard that can be used to reference a resource
+  message ResourceId {
+    string isrc = 1;
+    string proprietary_id = 2;
+    string proprietary_id_namespace = 3;
+  }
+
+  // contributor information for sound recordings
+  message Contributor {
+    string contributor_party_reference = 1;
+    repeated string role = 2;
+    repeated string user_defined_role = 3;
+    int32 sequence_number = 4;
+  }
+
+  // display artist information
+  message DisplayArtist {
+    string artist_party_reference = 1;
+    string display_artist_role = 2;
+    string artistic_role = 3;
+    int32 sequence_number = 4;
+  }
+
+  // sound recording resource
+  message SoundRecording {
+    // technical details for audio resources using mediorum CID-based storage
+    message SoundTechnicalDetails {
+      string technical_resource_details_reference = 1;
+
+      // mediorum storage reference
+      string cid = 2; // Content Identifier for decentralized storage
+      int64 file_size = 3; // Size of the file in bytes
+      string hash_sum = 4; // Hash of the file for integrity verification
+      string hash_algorithm = 5; // Algorithm used for hashing (e.g., "MD5", "SHA256")
+
+      // audio-specific technical details
+      string audio_codec_type = 6;
+      int32 number_of_channels = 7;
+      float sampling_rate = 8;
+      int32 bits_per_sample = 9;
+
+      // optional preview/clip information for audio
+      message ClipDetails {
+        string clip_cid = 1; // CID for preview clip
+        string clip_type = 2; // Type of clip (e.g., "Preview")
+        int32 start_point = 3; // Start point in samples
+        int32 end_point = 4; // End point in samples
+        string duration = 5; // Duration of clip (ISO 8601)
+      }
+      ClipDetails clip_details = 10;
+    }
+
+    ResourceAddress resource_address = 1;
+    string resource_reference = 2;
+    string type = 3;
+    ResourceId resource_id = 4;
+    string display_title_text = 5;
+    string display_artist_name = 6;
+    repeated DisplayArtist display_artist = 7;
+    repeated Contributor contributor = 8;
+    string duration = 9;
+    string first_publication_date = 10;
+    string parental_warning_type = 11;
+    string language_of_performance = 12;
+    SoundTechnicalDetails technical_details = 13;
+  }
+
+  // image resource
+  message Image {
+    // technical details for image resources using mediorum CID-based storage
+    message ImageTechnicalDetails {
+      string technical_resource_details_reference = 1;
+
+      // mediorum storage reference
+      string cid = 2; // Content Identifier for decentralized storage
+      int64 file_size = 3; // Size of the file in bytes
+      string hash_sum = 4; // Hash of the file for integrity verification
+      string hash_algorithm = 5; // Algorithm used for hashing (e.g., "MD5", "SHA256")
+
+      // image-specific technical details
+      string image_codec_type = 6;
+      int32 image_height = 7;
+      int32 image_width = 8;
+      int32 image_resolution = 9;
+    }
+
+    string resource_reference = 1;
+    string type = 2;
+    ResourceId resource_id = 3;
+    ImageTechnicalDetails technical_details = 4;
+  }
+
+  oneof resource {
+    SoundRecording sound_recording = 1;
+    Image image = 2;
+  }
 }
 
-message PartyId {
-  string dpid = 1;
-  string address = 2;
-}
-
-// Sound recording (track) information
-message SoundRecording {
-  string resource_reference = 1;
-  string type = 2;
-  SoundRecordingEdition sound_recording_edition = 3;
-  string display_title_text = 4;
-  string language_and_script_code = 5;
-  DisplayTitle display_title = 6;
-  string version_type = 7;
-  string display_artist_name = 8;
-  repeated DisplayArtist display_artist = 9;
-  repeated Contributor contributor = 10;
-  string duration = 11;
-  string first_publication_date = 12;
-  string parental_warning_type = 13;
-  string language_of_performance = 14;
-}
-
-message SoundRecordingEdition {
-  string type = 1;
-  ResourceId resource_id = 2;
-  PLine p_line = 3;
-  TechnicalDetails technical_details = 4;
-}
-
-message ResourceId {
-  string isrc = 1;
-}
-
-message PLine {
-  int32 year = 1;
-  string p_line_text = 2;
-}
-
-message TechnicalDetails {
-  string technical_resource_details_reference = 1;
-  DeliveryFile delivery_file = 2;
-  bool is_clip = 3;
-  ClipDetails clip_details = 4;
-}
-
-message DeliveryFile {
-  string type = 1;
-  string audio_codec_type = 2;
-  int32 number_of_channels = 3;
-  SamplingRate sampling_rate = 4;
-  int32 bits_per_sample = 5;
-  File file = 6;
-  bool is_provided_in_delivery = 7;
-}
-
-message SamplingRate {
-  string unit_of_measure = 1;
-  double value = 2;
-}
-
-message File {
-  string uri = 1;
-  HashSum hash_sum = 2;
-  int64 file_size = 3;
-}
-
-message HashSum {
-  string algorithm = 1;
-  string hash_sum_value = 2;
-}
-
-message ClipDetails {
-  string technical_resource_details_reference = 1;
-  string clip_type = 2;
-  Timing timing = 3;
-  string expression_type = 4;
-}
-
-message Timing {
-  int64 start_point = 1;
-  int64 end_point = 2;
-  string duration_used = 3;
-}
-
-message DisplayTitle {
-  string language_and_script_code = 1;
-  string title_text = 2;
-  SubTitle sub_title = 3;
-}
-
-message SubTitle {
-  string sub_title_type = 1;
-  string text = 2;
-}
-
-message DisplayArtist {
-  int32 sequence_number = 1;
-  string artist_party_reference = 2;
-  string display_artist_role = 3;
-  repeated string artistic_role = 4;
-}
-
-message Contributor {
-  int32 sequence_number = 1;
-  string contributor_party_reference = 2;
-  repeated Role role = 3;
-}
-
-message Role {
-  string namespace = 1;
-  string user_defined_value = 2;
-  string value = 3; // For standard roles like Composer, Lyricist, etc.
-}
-
-// Release information (album/single)
 message Release {
-  string release_reference = 1;
-  string release_type = 2;
-  ReleaseId release_id = 3;
-  string display_title_text = 4;
-  string language_and_script_code = 5;
-  DisplayTitle display_title = 6;
-  string display_artist_name = 7;
-  repeated DisplayArtist display_artist = 8;
-  string release_label_reference = 9;
-  string label_type = 10;
-  PLine p_line = 11;
-  string duration = 12;
-  repeated Genre genre = 13;
-  string original_release_date = 14;
-  string parental_warning_type = 15;
-  ResourceGroup resource_group = 16;
-}
+  // protocol level address to reference a release
+  message ReleaseAddress {
+    string address = 1;
+  }
 
-message ReleaseId {
-  string grid = 1;
-  string icpn = 2;
-  CatalogNumber catalog_number = 3;
-}
+  message ReleaseId {
+    string grid = 1;
+    string icpn = 2;
+    string catalog_number = 3;
+    string catalog_number_namespace = 4;
+    string proprietary_id = 5;
+    string proprietary_id_namespace = 6;
+  }
 
-message CatalogNumber {
-  string namespace = 1;
-  string value = 2;
-}
+  // display artist information for releases
+  message DisplayArtist {
+    string artist_party_reference = 1;
+    string display_artist_role = 2;
+    int32 sequence_number = 3;
+  }
 
-message Genre {
-  string applicable_territory_code = 1;
-  string genre_text = 2;
-}
+  // genre information
+  message Genre {
+    string genre_text = 1;
+    string applicable_territory_code = 2;
+  }
 
-message ResourceGroup {
-  string resource_group_type = 1;
-  AdditionalTitle additional_title = 2;
-  int32 sequence_number = 3;
-  repeated ResourceGroupContentItem resource_group_content_item = 4;
-  repeated ResourceGroup nested_resource_group = 5; // For nested groups like multiple discs
-}
+  // P-line information
+  message PLine {
+    string year = 1;
+    string p_line_text = 2;
+  }
 
-message AdditionalTitle {
-  string title_type = 1;
-  string title_text = 2;
-}
+  // resource group content item
+  message ResourceGroupContentItem {
+    int32 sequence_number = 1;
+    string release_resource_reference = 2;
+  }
 
-message ResourceGroupContentItem {
-  int32 sequence_number = 1;
-  string release_resource_reference = 2;
-}
+  // resource group information
+  message ResourceGroup {
+    string additional_title = 1;
+    string title_type = 2;
+    int32 sequence_number = 3;
+    repeated ResourceGroupContentItem resource_group_content_item = 4;
+    repeated string linked_release_resource_reference = 5;
+  }
 
-// Deal information (licensing/distribution terms)
-message DealList {
-  repeated ReleaseDeal release_deal = 1;
-}
+  message MainRelease {
+    ReleaseAddress release_address = 1;
+    string release_reference = 2;
+    // Single, EP, Album, Compilation, Soundtrack, Other
+    string release_type = 3;
+    ReleaseId release_id = 4;
+    string display_title_text = 5;
+    string display_artist_name = 6;
+    repeated DisplayArtist display_artist = 7;
+    string release_label_reference = 8;
+    string label_type = 9;
+    PLine p_line = 10;
+    string duration = 11;
+    repeated Genre genre = 13;
+    string original_release_date = 14;
+    string parental_warning_type = 15;
+    repeated ResourceGroup resource_group = 16;
+  }
 
-message ReleaseDeal {
-  repeated string deal_release_reference = 1;
-  repeated Deal deal = 2;
+  message TrackRelease {
+    ReleaseAddress release_address = 1;
+    string release_reference = 2;
+    ReleaseId release_id = 3;
+    string release_resource_reference = 4;
+    string release_label_reference = 5;
+    string label_type = 6;
+    repeated Genre genre = 7;
+  }
+
+  oneof release {
+    MainRelease main_release = 1;
+    TrackRelease track_release = 2;
+  }
 }
 
 message Deal {
-  DealTerms deal_terms = 1;
-}
+  // protocol level address to reference a deal
+  message DealAddress {
+    string address = 1;
+  }
 
-message DealTerms {
-  repeated string territory_code = 1;
-  string validity_period = 2;
-  repeated UseType use_type = 3;
-  CommercialModelType commercial_model_type = 4;
-  repeated string distribution_channel = 5;
-  PriceInformation price_information = 6;
-}
+  // validity period for deals
+  message ValidityPeriod {
+    string start_date_time = 1;
+    string end_date_time = 2;
+  }
 
-message UseType {
-  string value = 1;
-  string user_defined_value = 2;
-}
+  // deal terms information
+  message DealTerms {
+    repeated string territory_code = 1;
+    ValidityPeriod validity_period = 2;
+    string commercial_model_type = 3;
+    string use_type = 4;
+  }
 
-message CommercialModelType {
-  string value = 1;
-  string user_defined_value = 2;
-}
+  // release deal information
+  message ReleaseDeal {
+    DealAddress deal_address = 1;
+    string deal_release_reference = 2;
+    DealTerms deal_terms = 3;
+  }
 
-message PriceInformation {
-  Price price = 1;
-  string wholesale_price_per_unit = 2;
-}
-
-message Price {
-  string currency_code = 1;
-  double amount = 2;
-  string price_type = 3;
-}
-
-// Additional utility messages for extensions
-message LanguageAndScriptCode {
-  string code = 1;
-}
-
-message DateTime {
-  string iso_string = 1;
-}
-
-message Duration {
-  string iso_duration = 1; // ISO 8601 duration format like PT0H3M37S
+  oneof deal {
+    ReleaseDeal release_deal = 1;
+  }
 }
 
 // Acknowledgment for processed NewReleaseMessage
