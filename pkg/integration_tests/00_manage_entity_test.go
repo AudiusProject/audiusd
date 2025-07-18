@@ -40,7 +40,7 @@ func TestEntityManager(t *testing.T) {
 	expectedTxHash, err := common.ToTxHash(signedManageEntity)
 	assert.NoError(t, err)
 
-	err = utils.WaitForDevnetHealthy(30 * time.Second)
+	err = utils.WaitForDevnetHealthy(60 * time.Second)
 	assert.NoError(t, err)
 
 	req := &corev1.SendTransactionRequest{

@@ -3,6 +3,7 @@ package integration_tests
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"strings"
@@ -10,7 +11,6 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	corev1 "github.com/AudiusProject/audiusd/pkg/api/core/v1"
 	ethv1 "github.com/AudiusProject/audiusd/pkg/api/eth/v1"
 	"github.com/AudiusProject/audiusd/pkg/common"
 	"github.com/AudiusProject/audiusd/pkg/core/config"
@@ -29,9 +29,9 @@ const (
 
 type CometRPCResponse struct {
 	Result struct {
-		Validators []struct {
-			Address string `json:"address"`
-		} `json:"validators"`
+		ValidatorInfo struct {
+			VotingPower string `json:"voting_power"`
+		} `json:"validator_info"`
 	} `json:"result"`
 }
 
@@ -81,23 +81,34 @@ func TestDeregisterNode(t *testing.T) {
 		require.NotEqual(t, contentThreeEp, ep.Endpoint, "node4 should not be in returned endpoints")
 	}
 
-	time.Sleep(10 * time.Second)
-	statusResp, err := utils.ContentTwo.Core.GetStatus(ctx, connect.NewRequest(&corev1.GetStatusRequest{}))
-	require.NoError(t, err, "failed to get registered endpoints from node3 eth service")
-	require.True(t, statusResp.Msg.Ready, "node3 is unhealthy")
-	for _, peer := range statusResp.Msg.Peers.P2P {
-		require.NotEqual(t, contentThreeEp, peer.Endpoint, "node4 should not be in returned peers")
+	timeout := time.After(30 * time.Second)
+	for {
+		select {
+		case <-timeout:
+			require.Fail(t, "timed out waiting for node4 comet rpc to deregister", err)
+		default:
+		}
+		cometRpcResp, err := http.Get(contentThreeEp + "/core/crpc/status")
+		if err != nil {
+			time.Sleep(2 * time.Second)
+			continue
+		}
+		defer cometRpcResp.Body.Close()
+
+		body, err := io.ReadAll(cometRpcResp.Body)
+		require.NoError(t, err, "failed to read comet rpc response body")
+
+		var r CometRPCResponse
+		err = json.Unmarshal(body, &r)
+		require.NoError(t, err, "failed to marshall comet rpc response body")
+		if r.Result.ValidatorInfo.VotingPower != "0" {
+			err = errors.New("Voting power is still non-zero")
+			time.Sleep(2 * time.Second)
+			continue
+		}
+
+		require.Equal(t, "0", r.Result.ValidatorInfo.VotingPower)
+
+		break
 	}
-
-	cometRpcResp, err := http.Get(contentTwoEp + "/core/crpc/validators")
-	require.NoError(t, err, "failed to get validators from node3 cometRPC")
-	defer cometRpcResp.Body.Close()
-
-	body, err := io.ReadAll(cometRpcResp.Body)
-	require.NoError(t, err, "failed to read comet rpc response body")
-
-	var r CometRPCResponse
-	err = json.Unmarshal(body, &r)
-	require.NoError(t, err, "failed to marshall comet rpc response body")
-	require.Equal(t, 3, len(r.Result.Validators))
 }

@@ -191,6 +191,11 @@ services:
       - ./go.sum:/app/go.sum
     env_file:
       - ./dev/env/test-core.env
+    extra_hosts:
+      - 'node1.audiusd.devnet:host-gateway'
+      - 'node2.audiusd.devnet:host-gateway'
+      - 'node3.audiusd.devnet:host-gateway'
+      - 'node4.audiusd.devnet:host-gateway'
     depends_on:
       audiusd-1:
         condition: service_started

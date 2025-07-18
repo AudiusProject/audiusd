@@ -3,6 +3,7 @@ package server
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
@@ -108,7 +109,7 @@ func (s *Server) listenForEthContractEvents(ctx context.Context) {
 			// brief, randomized pause to allow deregistration event to propogate
 			// to all nodes and prevent thundering herd of deregistration attestations and txs
 			rand.Seed(time.Now().UnixNano())
-			randInterval := rand.Intn(10) + 10
+			randInterval := rand.Intn(10)
 			time.Sleep(time.Duration(randInterval) * time.Second)
 			s.deregisterMissingNode(ctx, dereg.DelegateWallet)
 		}
@@ -393,8 +394,24 @@ func (s *Server) deregisterMissingNode(ctx context.Context, ethAddress string) {
 		s.logger.Error("could not deregister node: failed to get currently registered nodes", "address", ethAddress, "error", err)
 		return
 	}
-	pubKey := ed25519.PubKey(node.CometPubKey)
-	rendezvous := common.GetAttestorRendezvous(addrs, pubKey.Bytes(), s.config.AttDeregistrationRSize)
+
+	// don't attempt to get attestation from deregistration subject node
+	filteredAddrs := addrs[:]
+	for i, addr := range addrs {
+		if addr == ethAddress { // delete (in-place) excluded address
+			filteredAddrs[i] = filteredAddrs[len(filteredAddrs)-1]
+			filteredAddrs = filteredAddrs[:len(filteredAddrs)-1]
+			break
+		}
+	}
+
+	pubkeyBytes, err := base64.StdEncoding.DecodeString(node.CometPubKey)
+	if err != nil {
+		s.logger.Error("could not deregister node: could not decode public key", "address", ethAddress, "public key", node.CometPubKey, "error", err)
+		return
+	}
+	pubKey := ed25519.PubKey(pubkeyBytes)
+	rendezvous := common.GetAttestorRendezvous(filteredAddrs, pubKey.Bytes(), s.config.AttDeregistrationRSize)
 	attestations := make([]string, 0, s.config.AttRegistrationRSize)
 	dereg := corev1.ValidatorDeregistration{
 		CometAddress: node.CometAddress,
@@ -404,7 +421,17 @@ func (s *Server) deregisterMissingNode(ctx context.Context, ethAddress string) {
 
 	peers := s.GetPeers()
 	for addr := range rendezvous {
-		if peer, ok := peers[addr]; ok {
+		if addr == s.config.WalletAddress {
+			deregCopy := dereg
+			resp, err := s.self.GetDeregistrationAttestation(ctx, connect.NewRequest(&corev1.GetDeregistrationAttestationRequest{
+				Deregistration: &deregCopy,
+			}))
+			if err != nil {
+				s.logger.Error("failed to get deregistration attestation from %s: %v", addr, err)
+				continue
+			}
+			attestations = append(attestations, resp.Msg.Signature)
+		} else if peer, ok := peers[addr]; ok {
 			deregCopy := dereg
 			resp, err := peer.GetDeregistrationAttestation(ctx, connect.NewRequest(&corev1.GetDeregistrationAttestationRequest{
 				Deregistration: &deregCopy,
