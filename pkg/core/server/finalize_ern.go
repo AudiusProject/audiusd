@@ -50,7 +50,7 @@ func (s *Server) finalizeV2Transaction(ctx context.Context, req *abcitypes.Final
 	return nil
 }
 
-func (s *Server) finalizeERNCreate(ctx context.Context, req *abcitypes.FinalizeBlockRequest, tx *v1beta1.Transaction, ern *v1beta2.NewReleaseMessage) error {
+func (s *Server) finalizeERNCreate(ctx context.Context, req *abcitypes.FinalizeBlockRequest, tx *v1beta1.Transaction, ern *v1beta2.ElectronicReleaseNotification) error {
 	txHash := s.toTxHash(tx.Envelope)
 	ernAddress := common.CreateAddress(ern, s.config.GenesisFile.ChainID, req.Height, tx.Envelope.Header.Nonce)
 

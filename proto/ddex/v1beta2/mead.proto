@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package ddex.v1beta2;
+
+option go_package = "github.com/AudiusProject/audiusd/pkg/api/ddex/v1beta2";
+
+message MEAD {
+  string address = 1;
+  string nonce = 2;
+  string raw_message = 3;
+}

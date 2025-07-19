@@ -13,14 +13,12 @@ enum MessageControlType {
 }
 
 // Root message for Electronic Release Notification
-message NewReleaseMessage {
-  string avs_version_id = 1;
-  string language_and_script_code = 2;
-  MessageHeader message_header = 3;
-  repeated Party party_list = 4;
-  repeated Resource resource_list = 5;
-  repeated Release release_list = 6;
-  repeated Deal deal_list = 7;
+message ElectronicReleaseNotification {
+  MessageHeader message_header = 1;
+  repeated Party party_list = 2;
+  repeated Resource resource_list = 3;
+  repeated Release release_list = 4;
+  repeated Deal deal_list = 5;
 }
 
 // Message header information
@@ -30,16 +28,13 @@ message MessageHeader {
   // address of the party sending the message, must match the recovered address from the signature
   string sender_address = 2;
   // address of the ERN receiving the update or deletion, must be empty for new release messages
-  string recipient_address = 3;
+  string ern_address = 3;
+  // nonce of the ERN message. Used for replay protection, ordering, and race conditions
+  uint64 nonce = 4;
 }
 
 // party information used to create and update a party individually or within an ERN message
 message Party {
-  // protocol level address to reference a party
-  message PartyAddress {
-    string address = 1;
-  }
-
   // IDs defined by the DDEX standard that can be used to reference a party
   message PartyId {
     string dpid = 1;
@@ -52,19 +47,13 @@ message Party {
   }
 
   // reference defined by the DDEX standard that can be used to reference a party
-  PartyAddress party_address = 1;
-  string party_reference = 2;
-  repeated PartyName party_name = 3;
-  PartyId party_id = 4;
+  string party_reference = 1;
+  repeated PartyName party_name = 2;
+  PartyId party_id = 3;
 }
 
 // resource information used to create and update a resource individually or within an ERN message
 message Resource {
-  // protocol level address to reference a resource
-  message ResourceAddress {
-    string address = 1;
-  }
-
   // IDs defined by the DDEX standard that can be used to reference a resource
   message ResourceId {
     string isrc = 1;
@@ -117,19 +106,18 @@ message Resource {
       ClipDetails clip_details = 10;
     }
 
-    ResourceAddress resource_address = 1;
-    string resource_reference = 2;
-    string type = 3;
-    ResourceId resource_id = 4;
-    string display_title_text = 5;
-    string display_artist_name = 6;
-    repeated DisplayArtist display_artist = 7;
-    repeated Contributor contributor = 8;
-    string duration = 9;
-    string first_publication_date = 10;
-    string parental_warning_type = 11;
-    string language_of_performance = 12;
-    SoundTechnicalDetails technical_details = 13;
+    string resource_reference = 1;
+    string type = 2;
+    ResourceId resource_id = 3;
+    string display_title_text = 4;
+    string display_artist_name = 5;
+    repeated DisplayArtist display_artist = 6;
+    repeated Contributor contributor = 7;
+    string duration = 8;
+    string first_publication_date = 9;
+    string parental_warning_type = 10;
+    string language_of_performance = 11;
+    SoundTechnicalDetails technical_details = 12;
   }
 
   // image resource
@@ -164,11 +152,6 @@ message Resource {
 }
 
 message Release {
-  // protocol level address to reference a release
-  message ReleaseAddress {
-    string address = 1;
-  }
-
   message ReleaseId {
     string grid = 1;
     string icpn = 2;
@@ -213,32 +196,30 @@ message Release {
   }
 
   message MainRelease {
-    ReleaseAddress release_address = 1;
-    string release_reference = 2;
+    string release_reference = 1;
     // Single, EP, Album, Compilation, Soundtrack, Other
-    string release_type = 3;
-    ReleaseId release_id = 4;
-    string display_title_text = 5;
-    string display_artist_name = 6;
-    repeated DisplayArtist display_artist = 7;
-    string release_label_reference = 8;
-    string label_type = 9;
-    PLine p_line = 10;
-    string duration = 11;
-    repeated Genre genre = 13;
-    string original_release_date = 14;
-    string parental_warning_type = 15;
-    repeated ResourceGroup resource_group = 16;
+    string release_type = 2;
+    ReleaseId release_id = 3;
+    string display_title_text = 4;
+    string display_artist_name = 5;
+    repeated DisplayArtist display_artist = 6;
+    string release_label_reference = 7;
+    string label_type = 8;
+    PLine p_line = 9;
+    string duration = 10;
+    repeated Genre genre = 11;
+    string original_release_date = 12;
+    string parental_warning_type = 13;
+    repeated ResourceGroup resource_group = 14;
   }
 
   message TrackRelease {
-    ReleaseAddress release_address = 1;
-    string release_reference = 2;
-    ReleaseId release_id = 3;
-    string release_resource_reference = 4;
-    string release_label_reference = 5;
-    string label_type = 6;
-    repeated Genre genre = 7;
+    string release_reference = 1;
+    ReleaseId release_id = 2;
+    string release_resource_reference = 3;
+    string release_label_reference = 4;
+    string label_type = 5;
+    repeated Genre genre = 6;
   }
 
   oneof release {
@@ -248,11 +229,6 @@ message Release {
 }
 
 message Deal {
-  // protocol level address to reference a deal
-  message DealAddress {
-    string address = 1;
-  }
-
   // validity period for deals
   message ValidityPeriod {
     string start_date_time = 1;
@@ -269,9 +245,8 @@ message Deal {
 
   // release deal information
   message ReleaseDeal {
-    DealAddress deal_address = 1;
-    string deal_release_reference = 2;
-    DealTerms deal_terms = 3;
+    string deal_release_reference = 1;
+    DealTerms deal_terms = 2;
   }
 
   oneof deal {
@@ -280,14 +255,9 @@ message Deal {
 }
 
 // Acknowledgment for processed NewReleaseMessage
-message NewReleaseMessageAck {
-  message Address {
-    uint32 index = 1;
-    string address = 2;
-  }
-  Address release_address = 1; // Where the Release is stored
-  repeated Address party_addresses = 2; // Artist, label, publisher addresses
-  repeated Address sound_recording_addresses = 3; // Individual track addresses
-  repeated Address image_addresses = 4; // Album art, photo addresses
-  repeated Address deal_addresses = 5; // Licensing deal addresses
+message ElectronicReleaseNotificationAck {
+  // location of the ERN messsage in the protocol
+  string address = 1;
+  // nonce of the ERN message, 1 after a new ERN message is created
+  uint64 nonce = 2;
 }

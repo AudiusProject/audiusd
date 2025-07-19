@@ -630,7 +630,7 @@ func (c *CoreService) GetERN(ctx context.Context, req *connect.Request[v1.GetERN
 
 	// TODO: make merging generic
 	// Unmarshal the first message as the base
-	baseERN := &v1beta2.NewReleaseMessage{}
+	baseERN := &v1beta2.ElectronicReleaseNotification{}
 	err = proto.Unmarshal(ernMessages[0].RawErnMessage, baseERN)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal base ERN message: %w", err)
@@ -638,7 +638,7 @@ func (c *CoreService) GetERN(ctx context.Context, req *connect.Request[v1.GetERN
 
 	// Merge all subsequent ERN messages into the base using mergo
 	for i := 1; i < len(ernMessages); i++ {
-		currentERN := &v1beta2.NewReleaseMessage{}
+		currentERN := &v1beta2.ElectronicReleaseNotification{}
 		err = proto.Unmarshal(ernMessages[i].RawErnMessage, currentERN)
 		if err != nil {
 			return nil, fmt.Errorf("failed to unmarshal ERN message at index %d: %w", i, err)
@@ -646,13 +646,7 @@ func (c *CoreService) GetERN(ctx context.Context, req *connect.Request[v1.GetERN
 
 		// Merge current ERN into base ERN
 		// WithOverride ensures newer values take precedence
-		// WithAppendSlice appends slices instead of replacing them
-		// WithoutDereference prevents copying the protobuf internal state
-		err = mergo.Merge(baseERN, currentERN,
-			mergo.WithOverride,
-			mergo.WithAppendSlice,
-			mergo.WithoutDereference,
-		)
+		err = mergo.Merge(baseERN, currentERN, mergo.WithOverride)
 		if err != nil {
 			return nil, fmt.Errorf("failed to merge ERN message at index %d: %w", i, err)
 		}

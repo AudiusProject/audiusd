@@ -42,7 +42,7 @@ func TestERNProcessing(t *testing.T) {
 	}
 
 	// Create DDEX v1beta2 message with fictional test data
-	testERN := &ddex.NewReleaseMessage{
+	testERN := &ddex.ElectronicReleaseNotification{
 		AvsVersionId:          "5",
 		LanguageAndScriptCode: "en",
 		MessageHeader: &ddex.MessageHeader{

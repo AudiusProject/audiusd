@@ -75,6 +75,12 @@ type CoreBlock struct {
 	CreatedAt pgtype.Timestamp
 }
 
+type CoreDeal struct {
+	ID      int64
+	Address string
+	Message []byte
+}
+
 type CoreEtlTx struct {
 	ID          int64
 	BlockHeight int64
@@ -167,6 +173,24 @@ type CoreEtlTxValidatorRegistration struct {
 	PubKey       []byte
 	Power        int64
 	CreatedAt    pgtype.Timestamptz
+}
+
+type CoreParty struct {
+	ID      int64
+	Address string
+	Message []byte
+}
+
+type CoreRelease struct {
+	ID      int64
+	Address string
+	Message []byte
+}
+
+type CoreResource struct {
+	ID      int64
+	Address string
+	Message []byte
 }
 
 type CoreTransaction struct {

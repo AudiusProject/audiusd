@@ -27,7 +27,7 @@ message EnvelopeHeader {
 // DDEX-style messages (oneof schema)
 message Message {
   oneof message {
-    ddex.v1beta2.NewReleaseMessage ern = 1;
+    ddex.v1beta2.ElectronicReleaseNotification ern = 1;
     // MediaEnrichmentAndDescription mead = 2;
     // PlaylistInformationExchange pie = 3;
     // DigitalSalesReport dsr = 4;
@@ -56,7 +56,7 @@ message TransactionReceipt {
 message MessageReceipt {
   int32 message_index = 1;
   oneof result {
-    ddex.v1beta2.NewReleaseMessageAck ern_ack = 2;
+    ddex.v1beta2.ElectronicReleaseNotificationAck ern_ack = 2;
     // MeadResult mead_result = 3;
     // PieResult pie_result = 4;
     // DsrResult dsr_result = 5;

@@ -380,5 +380,5 @@ message GetERNRequest {
 }
 
 message GetERNResponse {
-  ddex.v1beta2.NewReleaseMessage ern = 1;
+  ddex.v1beta2.ElectronicReleaseNotification ern = 1;
 }

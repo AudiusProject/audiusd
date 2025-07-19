@@ -54,20 +54,20 @@ func (s *CoreService) buildTxReceipt(ctx context.Context, incomingTx *v1beta1.Tr
 			}
 
 			// Build the NewReleaseMessageAck
-			ack := &v1beta2.NewReleaseMessageAck{
-				ReleaseAddress: &v1beta2.NewReleaseMessageAck_Address{
+			ack := &v1beta2.ElectronicReleaseNotificationAck{
+				ReleaseAddress: &v1beta2.ElectronicReleaseNotificationAck_Address{
 					Index:   0, // Main ERN address index
 					Address: ernAddress,
 				},
-				SoundRecordingAddresses: make([]*v1beta2.NewReleaseMessageAck_Address, len(soundRecordingAddresses)),
-				ImageAddresses:          []*v1beta2.NewReleaseMessageAck_Address{
+				SoundRecordingAddresses: make([]*v1beta2.ElectronicReleaseNotificationAck_Address, len(soundRecordingAddresses)),
+				ImageAddresses:          []*v1beta2.ElectronicReleaseNotificationAck_Address{
 					// TODO: Add image addresses if needed - for now empty
 				},
 			}
 
 			// Populate sound recording addresses
 			for j, addr := range soundRecordingAddresses {
-				ack.SoundRecordingAddresses[j] = &v1beta2.NewReleaseMessageAck_Address{
+				ack.SoundRecordingAddresses[j] = &v1beta2.ElectronicReleaseNotificationAck_Address{
 					Index:   uint32(j),
 					Address: addr,
 				}
@@ -75,7 +75,7 @@ func (s *CoreService) buildTxReceipt(ctx context.Context, incomingTx *v1beta1.Tr
 
 			// Add release addresses to party addresses for now (since releases are also addressable entities)
 			for j, addr := range releaseAddresses {
-				ack.PartyAddresses = append(ack.PartyAddresses, &v1beta2.NewReleaseMessageAck_Address{
+				ack.PartyAddresses = append(ack.PartyAddresses, &v1beta2.ElectronicReleaseNotificationAck_Address{
 					Index:   uint32(j),
 					Address: addr,
 				})
