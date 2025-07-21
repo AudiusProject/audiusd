@@ -285,3 +285,6 @@ select exists (
     from access_keys
     where track_id = $1 and pub_key = $2
 );
+
+-- name: GetRecordingsForTrack :many
+select * from sound_recordings where track_id = $1;

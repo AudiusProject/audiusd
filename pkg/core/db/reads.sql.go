@@ -1064,6 +1064,36 @@ func (q *Queries) GetRecentTxs(ctx context.Context, limit int32) ([]CoreTransact
 	return items, nil
 }
 
+const getRecordingsForTrack = `-- name: GetRecordingsForTrack :many
+select id, sound_recording_id, track_id, cid, encoding_details from sound_recordings where track_id = $1
+`
+
+func (q *Queries) GetRecordingsForTrack(ctx context.Context, trackID string) ([]SoundRecording, error) {
+	rows, err := q.db.Query(ctx, getRecordingsForTrack, trackID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []SoundRecording
+	for rows.Next() {
+		var i SoundRecording
+		if err := rows.Scan(
+			&i.ID,
+			&i.SoundRecordingID,
+			&i.TrackID,
+			&i.Cid,
+			&i.EncodingDetails,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getRegisteredNodeByCometAddress = `-- name: GetRegisteredNodeByCometAddress :one
 select rowid, pub_key, endpoint, eth_address, comet_address, eth_block, node_type, sp_id, comet_pub_key from core_validators where comet_address = $1
 `
