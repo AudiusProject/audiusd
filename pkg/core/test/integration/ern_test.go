@@ -41,14 +41,13 @@ func TestERNProcessing(t *testing.T) {
 		time.Sleep(2 * time.Second)
 	}
 
-	// Create DDEX v1beta2 message with fictional test data
+	// Create DDEX v1beta2 ERN message with correct field structure
 	testERN := &ddex.ElectronicReleaseNotification{
-		AvsVersionId:          "5",
-		LanguageAndScriptCode: "en",
-		MessageHeader: &ddex.MessageHeader{
-			MessageControlType: ddex.MessageControlType_MESSAGE_CONTROL_TYPE_NEW_RELEASE_MESSAGE,
-			SenderAddress:      "0x1234567890123456789012345678901234567890",
-			RecipientAddress:   "0x0987654321098765432109876543210987654321",
+		Header: &ddex.DDEXMessageHeader{
+			ControlType: ddex.DDEXMessageControlType_DDEX_MESSAGE_CONTROL_TYPE_NEW_MESSAGE,
+			From:        "0x1234567890123456789012345678901234567890",
+			To:          "0x0987654321098765432109876543210987654321",
+			Nonce:       1,
 		},
 		PartyList: []*ddex.Party{
 			{
@@ -197,45 +196,28 @@ func TestERNProcessing(t *testing.T) {
 
 	ernAck := ernReceipt.GetErnAck()
 
-	// Verify the main ERN address is present
-	assert.NotNil(t, ernAck.ReleaseAddress)
-	assert.NotEmpty(t, ernAck.ReleaseAddress.Address)
-	assert.Equal(t, uint32(0), ernAck.ReleaseAddress.Index)
+	// Verify the ERN address and other fields using the correct structure
+	assert.NotEmpty(t, ernAck.ErnAddress)
+	assert.Equal(t, uint64(1), ernAck.Nonce)
 
-	// Verify sound recording addresses are present (should have 2 tracks)
-	assert.Len(t, ernAck.SoundRecordingAddresses, 2)
-	for i, srAddr := range ernAck.SoundRecordingAddresses {
-		assert.NotEmpty(t, srAddr.Address)
-		assert.Equal(t, uint32(i), srAddr.Index)
-	}
-
-	// Verify release addresses are in party addresses
-	assert.Len(t, ernAck.PartyAddresses, 1) // Should have 1 release
-	assert.NotEmpty(t, ernAck.PartyAddresses[0].Address)
+	// Verify addresses arrays are present
+	assert.Len(t, ernAck.PartyAddresses, 3)    // Should have 3 parties
+	assert.Len(t, ernAck.ResourceAddresses, 2) // Should have 2 resources
+	assert.Len(t, ernAck.ReleaseAddresses, 1)  // Should have 1 release
+	assert.Len(t, ernAck.DealAddresses, 0)     // Should have 0 deals
 
 	t.Logf("Transaction receipt verified:")
-	t.Logf("- ERN address: %s", ernAck.ReleaseAddress.Address)
-	t.Logf("- Sound recording addresses: %v", func() []string {
-		addrs := make([]string, len(ernAck.SoundRecordingAddresses))
-		for i, addr := range ernAck.SoundRecordingAddresses {
-			addrs[i] = addr.Address
-		}
-		return addrs
-	}())
-	t.Logf("- Release addresses: %v", func() []string {
-		addrs := make([]string, len(ernAck.PartyAddresses))
-		for i, addr := range ernAck.PartyAddresses {
-			addrs[i] = addr.Address
-		}
-		return addrs
-	}())
+	t.Logf("- ERN address: %s", ernAck.ErnAddress)
+	t.Logf("- Party addresses: %v", ernAck.PartyAddresses)
+	t.Logf("- Resource addresses: %v", ernAck.ResourceAddresses)
+	t.Logf("- Release addresses: %v", ernAck.ReleaseAddresses)
 
 	// Wait a moment for transaction to be processed
 	time.Sleep(time.Second * 2)
 
 	// Test GetERN functionality using the main ERN address from the receipt
 	ernGetReq := &corev1.GetERNRequest{
-		Address: ernAck.ReleaseAddress.Address,
+		Address: ernAck.ErnAddress,
 	}
 
 	ernGetRes, err := sdk.Core.GetERN(ctx, connect.NewRequest(ernGetReq))
@@ -245,9 +227,9 @@ func TestERNProcessing(t *testing.T) {
 	retrievedERN := ernGetRes.Msg.Ern
 
 	// Verify the retrieved ERN matches our original test data
-	assert.Equal(t, testERN.MessageHeader.MessageControlType, retrievedERN.MessageHeader.MessageControlType)
-	assert.Equal(t, testERN.MessageHeader.SenderAddress, retrievedERN.MessageHeader.SenderAddress)
-	assert.Equal(t, testERN.MessageHeader.RecipientAddress, retrievedERN.MessageHeader.RecipientAddress)
+	assert.Equal(t, testERN.Header.ControlType, retrievedERN.Header.ControlType)
+	assert.Equal(t, testERN.Header.From, retrievedERN.Header.From)
+	assert.Equal(t, testERN.Header.To, retrievedERN.Header.To)
 
 	// Verify resource list
 	assert.Len(t, retrievedERN.ResourceList, 2)
@@ -268,8 +250,318 @@ func TestERNProcessing(t *testing.T) {
 	assert.Equal(t, testERN.PartyList[0].PartyReference, retrievedERN.PartyList[0].PartyReference)
 	assert.Equal(t, testERN.PartyList[0].PartyName[0].FullName, retrievedERN.PartyList[0].PartyName[0].FullName)
 
-	t.Logf("Successfully retrieved ERN message for address: %s", ernAck.ReleaseAddress.Address)
+	t.Logf("Successfully retrieved ERN message for address: %s", ernAck.ErnAddress)
 	t.Logf("Retrieved ERN contains same data as original:")
-	t.Logf("- Message Control Type: %v", retrievedERN.MessageHeader.MessageControlType)
+	t.Logf("- Message Control Type: %v", retrievedERN.Header.ControlType)
 	t.Logf("- Album: %s by %s", retrievedERN.ReleaseList[0].GetMainRelease().DisplayTitleText, retrievedERN.ReleaseList[0].GetMainRelease().DisplayArtistName)
+}
+
+func TestMEADProcessing(t *testing.T) {
+	ctx := context.Background()
+	sdk := utils.DiscoveryOne
+
+	nodeInfo, err := sdk.Core.GetNodeInfo(ctx, connect.NewRequest(&corev1.GetNodeInfoRequest{}))
+	assert.NoError(t, err)
+	chainId := nodeInfo.Msg.Chainid
+	recentBlock := nodeInfo.Msg.CurrentHeight
+
+	// Create DDEX v1beta2 MEAD message
+	testMEAD := &ddex.MediaEnrichmentDescription{
+		Header: &ddex.DDEXMessageHeader{
+			ControlType: ddex.DDEXMessageControlType_DDEX_MESSAGE_CONTROL_TYPE_NEW_MESSAGE,
+			From:        "0x1234567890123456789012345678901234567890",
+			To:          "0x0987654321098765432109876543210987654321",
+			Nonce:       1,
+		},
+		Metadata: []byte(`{"genre": "electronic", "bpm": 128, "key": "A minor"}`),
+		ResourceAddresses: []string{
+			"resource_addr_1",
+			"resource_addr_2",
+		},
+		ReleaseAddresses: []string{
+			"release_addr_1",
+		},
+		Mood: &ddex.Mood{
+			Mood:       "energetic",
+			Definition: "High energy, upbeat electronic track",
+		},
+	}
+
+	// Create envelope with the MEAD message
+	envelope := &corev1beta1.Envelope{
+		Header: &corev1beta1.EnvelopeHeader{
+			ChainId:    chainId,
+			Expiration: recentBlock + 100,
+			Nonce:      uuid.NewString(),
+		},
+		Messages: []*corev1beta1.Message{
+			{
+				Message: &corev1beta1.Message_Mead{
+					Mead: testMEAD,
+				},
+			},
+		},
+	}
+
+	// Create transaction
+	transaction := &corev1beta1.Transaction{
+		Signature: []byte("mock_signature_for_testing"),
+		Envelope:  envelope,
+	}
+
+	// Send the MEAD transaction
+	req := &corev1.SendTransactionRequest{
+		Transactionv2: transaction,
+	}
+
+	submitRes, err := sdk.Core.SendTransaction(ctx, connect.NewRequest(req))
+	assert.NoError(t, err)
+
+	// Test the transaction receipt
+	assert.NotNil(t, submitRes.Msg.TransactionReceipt)
+	receipt := submitRes.Msg.TransactionReceipt
+
+	// Verify MEAD acknowledgment
+	meadReceipt := receipt.MessageReceipts[0]
+	assert.Equal(t, int32(0), meadReceipt.MessageIndex)
+	assert.NotNil(t, meadReceipt.GetMeadAck())
+
+	meadAck := meadReceipt.GetMeadAck()
+	assert.NotEmpty(t, meadAck.MeadAddress)
+	assert.Equal(t, uint64(1), meadAck.Nonce)
+
+	t.Logf("MEAD transaction processed successfully:")
+	t.Logf("- MEAD address: %s", meadAck.MeadAddress)
+	t.Logf("- Nonce: %d", meadAck.Nonce)
+}
+
+func TestPIEProcessing(t *testing.T) {
+	ctx := context.Background()
+	sdk := utils.DiscoveryOne
+
+	nodeInfo, err := sdk.Core.GetNodeInfo(ctx, connect.NewRequest(&corev1.GetNodeInfoRequest{}))
+	assert.NoError(t, err)
+	chainId := nodeInfo.Msg.Chainid
+	recentBlock := nodeInfo.Msg.CurrentHeight
+
+	// Create DDEX v1beta2 PIE message
+	testPIE := &ddex.PartyIdentificationEnrichment{
+		Header: &ddex.DDEXMessageHeader{
+			ControlType: ddex.DDEXMessageControlType_DDEX_MESSAGE_CONTROL_TYPE_NEW_MESSAGE,
+			From:        "0x1234567890123456789012345678901234567890",
+			To:          "0x0987654321098765432109876543210987654321",
+			Nonce:       1,
+		},
+		Metadata: []byte(`{"artist_bio": "Independent electronic music producer", "location": "Berlin, Germany"}`),
+		PartyAddresses: []string{
+			"party_addr_1",
+			"party_addr_2",
+		},
+		HandleList: []*ddex.Handle{
+			{
+				HandleType:  "audius",
+				HandleValue: "cosmic_wanderers",
+			},
+			{
+				HandleType:  "spotify",
+				HandleValue: "thecosmicwanderers",
+			},
+			{
+				HandleType:  "soundcloud",
+				HandleValue: "cosmic-wanderers-official",
+			},
+		},
+		Verified: &ddex.Verified{
+			Verified: true,
+		},
+	}
+
+	// Create envelope with the PIE message
+	envelope := &corev1beta1.Envelope{
+		Header: &corev1beta1.EnvelopeHeader{
+			ChainId:    chainId,
+			Expiration: recentBlock + 100,
+			Nonce:      uuid.NewString(),
+		},
+		Messages: []*corev1beta1.Message{
+			{
+				Message: &corev1beta1.Message_Pie{
+					Pie: testPIE,
+				},
+			},
+		},
+	}
+
+	// Create transaction
+	transaction := &corev1beta1.Transaction{
+		Signature: []byte("mock_signature_for_testing"),
+		Envelope:  envelope,
+	}
+
+	// Send the PIE transaction
+	req := &corev1.SendTransactionRequest{
+		Transactionv2: transaction,
+	}
+
+	submitRes, err := sdk.Core.SendTransaction(ctx, connect.NewRequest(req))
+	assert.NoError(t, err)
+
+	// Test the transaction receipt
+	assert.NotNil(t, submitRes.Msg.TransactionReceipt)
+	receipt := submitRes.Msg.TransactionReceipt
+
+	// Verify PIE acknowledgment
+	pieReceipt := receipt.MessageReceipts[0]
+	assert.Equal(t, int32(0), pieReceipt.MessageIndex)
+	assert.NotNil(t, pieReceipt.GetPieAck())
+
+	pieAck := pieReceipt.GetPieAck()
+	assert.NotEmpty(t, pieAck.PieAddress)
+	assert.Equal(t, uint64(1), pieAck.Nonce)
+
+	t.Logf("PIE transaction processed successfully:")
+	t.Logf("- PIE address: %s", pieAck.PieAddress)
+	t.Logf("- Nonce: %d", pieAck.Nonce)
+}
+
+func TestMultiMessageTransaction(t *testing.T) {
+	ctx := context.Background()
+	sdk := utils.DiscoveryOne
+
+	nodeInfo, err := sdk.Core.GetNodeInfo(ctx, connect.NewRequest(&corev1.GetNodeInfoRequest{}))
+	assert.NoError(t, err)
+	chainId := nodeInfo.Msg.Chainid
+	recentBlock := nodeInfo.Msg.CurrentHeight
+
+	// Create a transaction with ERN, MEAD, and PIE messages
+	testERN := &ddex.ElectronicReleaseNotification{
+		Header: &ddex.DDEXMessageHeader{
+			ControlType: ddex.DDEXMessageControlType_DDEX_MESSAGE_CONTROL_TYPE_NEW_MESSAGE,
+			From:        "0x1234567890123456789012345678901234567890",
+			To:          "",
+			Nonce:       1,
+		},
+		PartyList: []*ddex.Party{
+			{
+				PartyReference: "P_ARTIST_TEST",
+				PartyName: []*ddex.Party_PartyName{
+					{
+						FullName: "Test Artist",
+					},
+				},
+			},
+		},
+		ResourceList: []*ddex.Resource{
+			{
+				Resource: &ddex.Resource_SoundRecording_{
+					SoundRecording: &ddex.Resource_SoundRecording{
+						ResourceReference: "A1",
+						Type:              "MusicalWorkSoundRecording",
+						ResourceId: &ddex.Resource_ResourceId{
+							Isrc: "TEST12345001",
+						},
+						DisplayTitleText:  "Test Track",
+						DisplayArtistName: "Test Artist",
+						Duration:          "PT0H3M30S",
+					},
+				},
+			},
+		},
+	}
+
+	testMEAD := &ddex.MediaEnrichmentDescription{
+		Header: &ddex.DDEXMessageHeader{
+			ControlType: ddex.DDEXMessageControlType_DDEX_MESSAGE_CONTROL_TYPE_NEW_MESSAGE,
+			From:        "0x1234567890123456789012345678901234567890",
+			To:          "",
+			Nonce:       2,
+		},
+		Metadata: []byte(`{"genre": "test"}`),
+		Mood: &ddex.Mood{
+			Mood:       "test",
+			Definition: "Test mood",
+		},
+	}
+
+	testPIE := &ddex.PartyIdentificationEnrichment{
+		Header: &ddex.DDEXMessageHeader{
+			ControlType: ddex.DDEXMessageControlType_DDEX_MESSAGE_CONTROL_TYPE_NEW_MESSAGE,
+			From:        "0x1234567890123456789012345678901234567890",
+			To:          "",
+			Nonce:       3,
+		},
+		Metadata: []byte(`{"test": "data"}`),
+		HandleList: []*ddex.Handle{
+			{
+				HandleType:  "audius",
+				HandleValue: "test_artist",
+			},
+		},
+	}
+
+	// Create envelope with all three message types
+	envelope := &corev1beta1.Envelope{
+		Header: &corev1beta1.EnvelopeHeader{
+			ChainId:    chainId,
+			Expiration: recentBlock + 100,
+			Nonce:      uuid.NewString(),
+		},
+		Messages: []*corev1beta1.Message{
+			{
+				Message: &corev1beta1.Message_Ern{
+					Ern: testERN,
+				},
+			},
+			{
+				Message: &corev1beta1.Message_Mead{
+					Mead: testMEAD,
+				},
+			},
+			{
+				Message: &corev1beta1.Message_Pie{
+					Pie: testPIE,
+				},
+			},
+		},
+	}
+
+	// Create transaction
+	transaction := &corev1beta1.Transaction{
+		Signature: []byte("mock_signature_for_testing"),
+		Envelope:  envelope,
+	}
+
+	// Send the multi-message transaction
+	req := &corev1.SendTransactionRequest{
+		Transactionv2: transaction,
+	}
+
+	submitRes, err := sdk.Core.SendTransaction(ctx, connect.NewRequest(req))
+	assert.NoError(t, err)
+
+	// Test the transaction receipt
+	assert.NotNil(t, submitRes.Msg.TransactionReceipt)
+	receipt := submitRes.Msg.TransactionReceipt
+
+	// Should have 3 message receipts
+	assert.Len(t, receipt.MessageReceipts, 3)
+	assert.Equal(t, int32(3), receipt.EnvelopeInfo.MessageCount)
+
+	// Check each message receipt
+	ernReceipt := receipt.MessageReceipts[0]
+	assert.Equal(t, int32(0), ernReceipt.MessageIndex)
+	assert.NotNil(t, ernReceipt.GetErnAck())
+
+	meadReceipt := receipt.MessageReceipts[1]
+	assert.Equal(t, int32(1), meadReceipt.MessageIndex)
+	assert.NotNil(t, meadReceipt.GetMeadAck())
+
+	pieReceipt := receipt.MessageReceipts[2]
+	assert.Equal(t, int32(2), pieReceipt.MessageIndex)
+	assert.NotNil(t, pieReceipt.GetPieAck())
+
+	t.Logf("Multi-message transaction processed successfully:")
+	t.Logf("- ERN address: %s", ernReceipt.GetErnAck().ErnAddress)
+	t.Logf("- MEAD address: %s", meadReceipt.GetMeadAck().MeadAddress)
+	t.Logf("- PIE address: %s", pieReceipt.GetPieAck().PieAddress)
 }
