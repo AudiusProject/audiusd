@@ -5,6 +5,8 @@ package core.v1;
 import "core/v1beta1/types.proto";
 import "ddex/v1beta1/release.proto";
 import "ddex/v1beta2/ern.proto";
+import "ddex/v1beta2/mead.proto";
+import "ddex/v1beta2/pie.proto";
 import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/AudiusProject/audiusd/pkg/api/core/v1";
@@ -381,4 +383,6 @@ message GetERNRequest {
 
 message GetERNResponse {
   ddex.v1beta2.ElectronicReleaseNotification ern = 1;
+  repeated ddex.v1beta2.MediaEnrichmentDescription meads = 2;
+  repeated ddex.v1beta2.PartyIdentificationEnrichment pies = 3;
 }

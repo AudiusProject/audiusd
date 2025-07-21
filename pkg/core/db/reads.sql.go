@@ -676,6 +676,29 @@ func (q *Queries) GetDecodedTxsByType(ctx context.Context, arg GetDecodedTxsByTy
 	return items, nil
 }
 
+const getERN = `-- name: GetERN :one
+select id, address, sender, nonce, message_control_type, party_addresses, resource_addresses, release_addresses, deal_addresses, raw_message, block_height from core_ern where address = $1 order by nonce desc limit 1
+`
+
+func (q *Queries) GetERN(ctx context.Context, address string) (CoreErn, error) {
+	row := q.db.QueryRow(ctx, getERN, address)
+	var i CoreErn
+	err := row.Scan(
+		&i.ID,
+		&i.Address,
+		&i.Sender,
+		&i.Nonce,
+		&i.MessageControlType,
+		&i.PartyAddresses,
+		&i.ResourceAddresses,
+		&i.ReleaseAddresses,
+		&i.DealAddresses,
+		&i.RawMessage,
+		&i.BlockHeight,
+	)
+	return i, err
+}
+
 const getInProgressRollupReports = `-- name: GetInProgressRollupReports :many
 select id, address, blocks_proposed, sla_rollup_id from sla_node_reports
 where sla_rollup_id is null 
@@ -796,6 +819,48 @@ func (q *Queries) GetLatestSlaRollup(ctx context.Context) (SlaRollup, error) {
 	return i, err
 }
 
+const getMEADsForERN = `-- name: GetMEADsForERN :many
+select m.id, m.address, m.sender, m.nonce, m.message_control_type, m.resource_addresses, m.release_addresses, m.raw_message, m.block_height from core_mead m, core_ern e 
+where e.address = $1 
+and (m.resource_addresses && e.resource_addresses 
+     or m.release_addresses && e.release_addresses)
+and m.nonce = (
+    select max(m2.nonce) 
+    from core_mead m2 
+    where m2.address = m.address
+)
+`
+
+func (q *Queries) GetMEADsForERN(ctx context.Context, address string) ([]CoreMead, error) {
+	rows, err := q.db.Query(ctx, getMEADsForERN, address)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CoreMead
+	for rows.Next() {
+		var i CoreMead
+		if err := rows.Scan(
+			&i.ID,
+			&i.Address,
+			&i.Sender,
+			&i.Nonce,
+			&i.MessageControlType,
+			&i.ResourceAddresses,
+			&i.ReleaseAddresses,
+			&i.RawMessage,
+			&i.BlockHeight,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getNodeByEndpoint = `-- name: GetNodeByEndpoint :one
 select rowid, pub_key, endpoint, eth_address, comet_address, eth_block, node_type, sp_id, comet_pub_key
 from core_validators
@@ -845,6 +910,46 @@ func (q *Queries) GetNodesByEndpoints(ctx context.Context, dollar_1 []string) ([
 			&i.NodeType,
 			&i.SpID,
 			&i.CometPubKey,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getPIEsForERN = `-- name: GetPIEsForERN :many
+select p.id, p.address, p.sender, p.nonce, p.message_control_type, p.party_addresses, p.raw_message, p.block_height from core_pie p, core_ern e 
+where e.address = $1 
+and p.party_addresses && e.party_addresses
+and p.nonce = (
+    select max(p2.nonce) 
+    from core_pie p2 
+    where p2.address = p.address
+)
+`
+
+func (q *Queries) GetPIEsForERN(ctx context.Context, address string) ([]CorePie, error) {
+	rows, err := q.db.Query(ctx, getPIEsForERN, address)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CorePie
+	for rows.Next() {
+		var i CorePie
+		if err := rows.Scan(
+			&i.ID,
+			&i.Address,
+			&i.Sender,
+			&i.Nonce,
+			&i.MessageControlType,
+			&i.PartyAddresses,
+			&i.RawMessage,
+			&i.BlockHeight,
 		); err != nil {
 			return nil, err
 		}

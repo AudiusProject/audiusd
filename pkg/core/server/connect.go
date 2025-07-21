@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	"dario.cat/mergo"
 	v1 "github.com/AudiusProject/audiusd/pkg/api/core/v1"
 	"github.com/AudiusProject/audiusd/pkg/api/core/v1/v1connect"
 	v1beta1 "github.com/AudiusProject/audiusd/pkg/api/core/v1beta1"
@@ -619,38 +618,54 @@ func (c *CoreService) GetRewards(context.Context, *connect.Request[v1.GetRewards
 
 // GetERN implements v1connect.CoreServiceHandler.
 func (c *CoreService) GetERN(ctx context.Context, req *connect.Request[v1.GetERNRequest]) (*connect.Response[v1.GetERNResponse], error) {
-	ernMessages, err := c.core.db.GetERNMessages(ctx, req.Msg.Address)
+	// get ERN from DB
+	dbERN, err := c.core.db.GetERN(ctx, req.Msg.Address)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(ernMessages) == 0 {
-		return nil, connect.NewError(connect.CodeNotFound, errors.New("ERN message not found"))
-	}
-
-	// TODO: make merging generic
-	// Unmarshal the first message as the base
-	baseERN := &v1beta2.ElectronicReleaseNotification{}
-	err = proto.Unmarshal(ernMessages[0].RawErnMessage, baseERN)
+	var ern v1beta2.ElectronicReleaseNotification
+	err = proto.Unmarshal(dbERN.RawMessage, &ern)
 	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal base ERN message: %w", err)
+		return nil, err
 	}
 
-	// Merge all subsequent ERN messages into the base using mergo
-	for i := 1; i < len(ernMessages); i++ {
-		currentERN := &v1beta2.ElectronicReleaseNotification{}
-		err = proto.Unmarshal(ernMessages[i].RawErnMessage, currentERN)
-		if err != nil {
-			return nil, fmt.Errorf("failed to unmarshal ERN message at index %d: %w", i, err)
-		}
-
-		// Merge current ERN into base ERN
-		// WithOverride ensures newer values take precedence
-		err = mergo.Merge(baseERN, currentERN, mergo.WithOverride)
-		if err != nil {
-			return nil, fmt.Errorf("failed to merge ERN message at index %d: %w", i, err)
-		}
+	// get associated PIE and MEAD messages
+	dbPies, err := c.core.db.GetPIEsForERN(ctx, req.Msg.Address)
+	if err != nil {
+		return nil, err
 	}
 
-	return connect.NewResponse(&v1.GetERNResponse{Ern: baseERN}), nil
+	dbMEADs, err := c.core.db.GetMEADsForERN(ctx, req.Msg.Address)
+	if err != nil {
+		return nil, err
+	}
+
+	// convert database PIE records to protobuf messages
+	pies := make([]*v1beta2.PartyIdentificationEnrichment, len(dbPies))
+	for i, dbPie := range dbPies {
+		var pie v1beta2.PartyIdentificationEnrichment
+		err = proto.Unmarshal(dbPie.RawMessage, &pie)
+		if err != nil {
+			return nil, err
+		}
+		pies[i] = &pie
+	}
+
+	// convert database MEAD records to protobuf messages
+	meads := make([]*v1beta2.MediaEnrichmentDescription, len(dbMEADs))
+	for i, dbMEAD := range dbMEADs {
+		var mead v1beta2.MediaEnrichmentDescription
+		err = proto.Unmarshal(dbMEAD.RawMessage, &mead)
+		if err != nil {
+			return nil, err
+		}
+		meads[i] = &mead
+	}
+
+	return connect.NewResponse(&v1.GetERNResponse{
+		Ern:   &ern,
+		Meads: meads,
+		Pies:  pies,
+	}), nil
 }

@@ -288,3 +288,27 @@ select exists (
 
 -- name: GetRecordingsForTrack :many
 select * from sound_recordings where track_id = $1;
+
+-- name: GetERN :one
+select * from core_ern where address = $1 order by nonce desc limit 1;
+
+-- name: GetPIEsForERN :many
+select p.* from core_pie p, core_ern e 
+where e.address = $1 
+and p.party_addresses && e.party_addresses
+and p.nonce = (
+    select max(p2.nonce) 
+    from core_pie p2 
+    where p2.address = p.address
+);
+
+-- name: GetMEADsForERN :many
+select m.* from core_mead m, core_ern e 
+where e.address = $1 
+and (m.resource_addresses && e.resource_addresses 
+     or m.release_addresses && e.release_addresses)
+and m.nonce = (
+    select max(m2.nonce) 
+    from core_mead m2 
+    where m2.address = m.address
+);
