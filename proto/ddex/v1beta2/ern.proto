@@ -2,35 +2,18 @@ syntax = "proto3";
 
 package ddex.v1beta2;
 
-option go_package = "github.com/AudiusProject/audiusd/pkg/api/ddex/v1beta2";
+import "ddex/v1beta2/common.proto";
 
-// Message control types for ERN operations
-enum MessageControlType {
-  MESSAGE_CONTROL_TYPE_UNSPECIFIED = 0;
-  MESSAGE_CONTROL_TYPE_NEW_RELEASE_MESSAGE = 1;
-  MESSAGE_CONTROL_TYPE_UPDATED_RELEASE_MESSAGE = 2;
-  MESSAGE_CONTROL_TYPE_TAKEDOWN_RELEASE_MESSAGE = 3;
-}
+option go_package = "github.com/AudiusProject/audiusd/pkg/api/ddex/v1beta2";
 
 // Root message for Electronic Release Notification
 message ElectronicReleaseNotification {
-  MessageHeader message_header = 1;
-  repeated Party party_list = 2;
-  repeated Resource resource_list = 3;
-  repeated Release release_list = 4;
-  repeated Deal deal_list = 5;
-}
-
-// Message header information
-message MessageHeader {
-  // type of message control, NEW_RELEASE_MESSAGE, UPDATED_RELEASE_MESSAGE, TAKEDOWN_RELEASE_MESSAGE
-  MessageControlType message_control_type = 1;
-  // address of the party sending the message, must match the recovered address from the signature
-  string sender_address = 2;
-  // address of the ERN receiving the update or deletion, must be empty for new release messages
-  string ern_address = 3;
-  // nonce of the ERN message. Used for replay protection, ordering, and race conditions
-  uint64 nonce = 4;
+  DDEXMessageHeader header = 1;
+  string address = 2;
+  repeated Party party_list = 3;
+  repeated Resource resource_list = 4;
+  repeated Release release_list = 5;
+  repeated Deal deal_list = 6;
 }
 
 // party information used to create and update a party individually or within an ERN message
@@ -46,10 +29,12 @@ message Party {
     string full_name = 2;
   }
 
+  // address of the party, must be empty for new party messages
+  string address = 1;
   // reference defined by the DDEX standard that can be used to reference a party
-  string party_reference = 1;
-  repeated PartyName party_name = 2;
-  PartyId party_id = 3;
+  string party_reference = 2;
+  repeated PartyName party_name = 3;
+  PartyId party_id = 4;
 }
 
 // resource information used to create and update a resource individually or within an ERN message
@@ -145,9 +130,12 @@ message Resource {
     ImageTechnicalDetails technical_details = 4;
   }
 
+  // address of the resource, must be empty for new resource messages
+  string address = 1;
+
   oneof resource {
-    SoundRecording sound_recording = 1;
-    Image image = 2;
+    SoundRecording sound_recording = 2;
+    Image image = 3;
   }
 }
 
@@ -222,9 +210,12 @@ message Release {
     repeated Genre genre = 6;
   }
 
+  // address of the release, must be empty for new release messages
+  string address = 1;
+
   oneof release {
-    MainRelease main_release = 1;
-    TrackRelease track_release = 2;
+    MainRelease main_release = 2;
+    TrackRelease track_release = 3;
   }
 }
 
@@ -249,15 +240,26 @@ message Deal {
     DealTerms deal_terms = 2;
   }
 
+  // address of the deal, must be empty for new deal messages
+  string address = 1;
+
   oneof deal {
-    ReleaseDeal release_deal = 1;
+    ReleaseDeal release_deal = 2;
   }
 }
 
 // Acknowledgment for processed NewReleaseMessage
 message ElectronicReleaseNotificationAck {
   // location of the ERN messsage in the protocol
-  string address = 1;
+  string ern_address = 1;
   // nonce of the ERN message, 1 after a new ERN message is created
   uint64 nonce = 2;
+  // addresses of the parties in the ERN message
+  repeated string party_addresses = 3;
+  // addresses of the resources in the ERN message
+  repeated string resource_addresses = 4;
+  // addresses of the releases in the ERN message
+  repeated string release_addresses = 5;
+  // addresses of the deals in the ERN message
+  repeated string deal_addresses = 6;
 }
