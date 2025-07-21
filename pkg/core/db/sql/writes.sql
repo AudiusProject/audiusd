@@ -226,26 +226,40 @@ insert into access_keys (track_id, pub_key) values ($1, $2);
 -- name: InsertManagementKey :exec
 insert into management_keys (track_id, address) values ($1, $2);
 
--- ERN insert queries - simplified for protobuf storage
--- name: InsertERNMessage :exec
-insert into ern_messages (
+-- ERN, MEAD, PIE insert queries - using protobuf storage with new schema
+-- name: InsertCoreERN :exec
+insert into core_ern (
     address,
-    tx_hash,
-    block_height,
-    sender_address,
-    raw_ern_message
-) values ($1, $2, $3, $4, $5);
+    sender,
+    nonce,
+    message_control_type,
+    party_addresses,
+    resource_addresses,
+    release_addresses,
+    deal_addresses,
+    raw_message,
+    block_height
+) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);
 
--- name: InsertERNReleaseAddresses :exec
-insert into ern_release_addresses (
+-- name: InsertCoreMEAD :exec
+insert into core_mead (
     address,
-    ern_address
-) 
-select unnest($1::text[]), $2;
+    sender,
+    nonce,
+    message_control_type,
+    resource_addresses,
+    release_addresses,
+    raw_message,
+    block_height
+) values ($1, $2, $3, $4, $5, $6, $7, $8);
 
--- name: InsertERNSoundRecordingAddresses :exec
-insert into ern_sound_recording_addresses (
+-- name: InsertCorePIE :exec
+insert into core_pie (
     address,
-    ern_address
-) 
-select unnest($1::text[]), $2;
+    sender,
+    nonce,
+    message_control_type,
+    party_addresses,
+    raw_message,
+    block_height
+) values ($1, $2, $3, $4, $5, $6, $7);

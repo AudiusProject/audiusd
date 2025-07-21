@@ -86,6 +86,124 @@ func (q *Queries) InsertAccessKey(ctx context.Context, arg InsertAccessKeyParams
 	return err
 }
 
+const insertCoreERN = `-- name: InsertCoreERN :exec
+insert into core_ern (
+    address,
+    sender,
+    nonce,
+    message_control_type,
+    party_addresses,
+    resource_addresses,
+    release_addresses,
+    deal_addresses,
+    raw_message,
+    block_height
+) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+`
+
+type InsertCoreERNParams struct {
+	Address            string
+	Sender             string
+	Nonce              int64
+	MessageControlType int16
+	PartyAddresses     []string
+	ResourceAddresses  []string
+	ReleaseAddresses   []string
+	DealAddresses      []string
+	RawMessage         []byte
+	BlockHeight        int64
+}
+
+// ERN, MEAD, PIE insert queries - using protobuf storage with new schema
+func (q *Queries) InsertCoreERN(ctx context.Context, arg InsertCoreERNParams) error {
+	_, err := q.db.Exec(ctx, insertCoreERN,
+		arg.Address,
+		arg.Sender,
+		arg.Nonce,
+		arg.MessageControlType,
+		arg.PartyAddresses,
+		arg.ResourceAddresses,
+		arg.ReleaseAddresses,
+		arg.DealAddresses,
+		arg.RawMessage,
+		arg.BlockHeight,
+	)
+	return err
+}
+
+const insertCoreMEAD = `-- name: InsertCoreMEAD :exec
+insert into core_mead (
+    address,
+    sender,
+    nonce,
+    message_control_type,
+    resource_addresses,
+    release_addresses,
+    raw_message,
+    block_height
+) values ($1, $2, $3, $4, $5, $6, $7, $8)
+`
+
+type InsertCoreMEADParams struct {
+	Address            string
+	Sender             string
+	Nonce              int64
+	MessageControlType int16
+	ResourceAddresses  []string
+	ReleaseAddresses   []string
+	RawMessage         []byte
+	BlockHeight        int64
+}
+
+func (q *Queries) InsertCoreMEAD(ctx context.Context, arg InsertCoreMEADParams) error {
+	_, err := q.db.Exec(ctx, insertCoreMEAD,
+		arg.Address,
+		arg.Sender,
+		arg.Nonce,
+		arg.MessageControlType,
+		arg.ResourceAddresses,
+		arg.ReleaseAddresses,
+		arg.RawMessage,
+		arg.BlockHeight,
+	)
+	return err
+}
+
+const insertCorePIE = `-- name: InsertCorePIE :exec
+insert into core_pie (
+    address,
+    sender,
+    nonce,
+    message_control_type,
+    party_addresses,
+    raw_message,
+    block_height
+) values ($1, $2, $3, $4, $5, $6, $7)
+`
+
+type InsertCorePIEParams struct {
+	Address            string
+	Sender             string
+	Nonce              int64
+	MessageControlType int16
+	PartyAddresses     []string
+	RawMessage         []byte
+	BlockHeight        int64
+}
+
+func (q *Queries) InsertCorePIE(ctx context.Context, arg InsertCorePIEParams) error {
+	_, err := q.db.Exec(ctx, insertCorePIE,
+		arg.Address,
+		arg.Sender,
+		arg.Nonce,
+		arg.MessageControlType,
+		arg.PartyAddresses,
+		arg.RawMessage,
+		arg.BlockHeight,
+	)
+	return err
+}
+
 const insertDecodedManageEntity = `-- name: InsertDecodedManageEntity :exec
 with duplicate_check as (
     insert into core_etl_tx_manage_entity (
@@ -388,72 +506,6 @@ func (q *Queries) InsertDecodedValidatorRegistration(ctx context.Context, arg In
 		arg.Power,
 		arg.CreatedAt,
 	)
-	return err
-}
-
-const insertERNMessage = `-- name: InsertERNMessage :exec
-insert into ern_messages (
-    address,
-    tx_hash,
-    block_height,
-    sender_address,
-    raw_ern_message
-) values ($1, $2, $3, $4, $5)
-`
-
-type InsertERNMessageParams struct {
-	Address       string
-	TxHash        string
-	BlockHeight   int64
-	SenderAddress string
-	RawErnMessage []byte
-}
-
-// ERN insert queries - simplified for protobuf storage
-func (q *Queries) InsertERNMessage(ctx context.Context, arg InsertERNMessageParams) error {
-	_, err := q.db.Exec(ctx, insertERNMessage,
-		arg.Address,
-		arg.TxHash,
-		arg.BlockHeight,
-		arg.SenderAddress,
-		arg.RawErnMessage,
-	)
-	return err
-}
-
-const insertERNReleaseAddresses = `-- name: InsertERNReleaseAddresses :exec
-insert into ern_release_addresses (
-    address,
-    ern_address
-) 
-select unnest($1::text[]), $2
-`
-
-type InsertERNReleaseAddressesParams struct {
-	Column1    []string
-	ErnAddress string
-}
-
-func (q *Queries) InsertERNReleaseAddresses(ctx context.Context, arg InsertERNReleaseAddressesParams) error {
-	_, err := q.db.Exec(ctx, insertERNReleaseAddresses, arg.Column1, arg.ErnAddress)
-	return err
-}
-
-const insertERNSoundRecordingAddresses = `-- name: InsertERNSoundRecordingAddresses :exec
-insert into ern_sound_recording_addresses (
-    address,
-    ern_address
-) 
-select unnest($1::text[]), $2
-`
-
-type InsertERNSoundRecordingAddressesParams struct {
-	Column1    []string
-	ErnAddress string
-}
-
-func (q *Queries) InsertERNSoundRecordingAddresses(ctx context.Context, arg InsertERNSoundRecordingAddressesParams) error {
-	_, err := q.db.Exec(ctx, insertERNSoundRecordingAddresses, arg.Column1, arg.ErnAddress)
 	return err
 }
 

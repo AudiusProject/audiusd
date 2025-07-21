@@ -299,17 +299,6 @@ func (q *Queries) GetBlockTransactions(ctx context.Context, blockID int64) ([]Co
 	return items, nil
 }
 
-const getDBSize = `-- name: GetDBSize :one
-select pg_database_size(current_database())::bigint as size
-`
-
-func (q *Queries) GetDBSize(ctx context.Context) (int64, error) {
-	row := q.db.QueryRow(ctx, getDBSize)
-	var size int64
-	err := row.Scan(&size)
-	return size, err
-}
-
 const getDecodedPlays = `-- name: GetDecodedPlays :many
 select tx_hash, user_id, track_id, played_at, signature, city, region, country, created_at
 from core_etl_tx_plays
@@ -676,114 +665,6 @@ func (q *Queries) GetDecodedTxsByType(ctx context.Context, arg GetDecodedTxsByTy
 			&i.TxType,
 			&i.TxData,
 			&i.CreatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getERNAddressByTxHash = `-- name: GetERNAddressByTxHash :one
-select address from ern_messages where tx_hash = $1 order by block_height asc limit 1
-`
-
-func (q *Queries) GetERNAddressByTxHash(ctx context.Context, txHash string) (string, error) {
-	row := q.db.QueryRow(ctx, getERNAddressByTxHash, txHash)
-	var address string
-	err := row.Scan(&address)
-	return address, err
-}
-
-const getERNMessages = `-- name: GetERNMessages :many
-select id, address, tx_hash, block_height, sender_address, raw_ern_message from ern_messages where address = $1 order by block_height asc
-`
-
-func (q *Queries) GetERNMessages(ctx context.Context, address string) ([]ErnMessage, error) {
-	rows, err := q.db.Query(ctx, getERNMessages, address)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []ErnMessage
-	for rows.Next() {
-		var i ErnMessage
-		if err := rows.Scan(
-			&i.ID,
-			&i.Address,
-			&i.TxHash,
-			&i.BlockHeight,
-			&i.SenderAddress,
-			&i.RawErnMessage,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getERNMessagesByReleaseAddress = `-- name: GetERNMessagesByReleaseAddress :many
-select ern_messages.id, ern_messages.address, ern_messages.tx_hash, ern_messages.block_height, ern_messages.sender_address, ern_messages.raw_ern_message from ern_messages
-join ern_release_addresses on ern_messages.address = ern_release_addresses.ern_address
-where ern_release_addresses.address = $1 order by ern_messages.block_height asc
-`
-
-func (q *Queries) GetERNMessagesByReleaseAddress(ctx context.Context, address string) ([]ErnMessage, error) {
-	rows, err := q.db.Query(ctx, getERNMessagesByReleaseAddress, address)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []ErnMessage
-	for rows.Next() {
-		var i ErnMessage
-		if err := rows.Scan(
-			&i.ID,
-			&i.Address,
-			&i.TxHash,
-			&i.BlockHeight,
-			&i.SenderAddress,
-			&i.RawErnMessage,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getERNMessagesBySoundRecordingAddress = `-- name: GetERNMessagesBySoundRecordingAddress :many
-select ern_messages.id, ern_messages.address, ern_messages.tx_hash, ern_messages.block_height, ern_messages.sender_address, ern_messages.raw_ern_message from ern_messages
-join ern_sound_recording_addresses on ern_messages.address = ern_sound_recording_addresses.ern_address
-where ern_sound_recording_addresses.address = $1 order by ern_messages.block_height asc
-`
-
-func (q *Queries) GetERNMessagesBySoundRecordingAddress(ctx context.Context, address string) ([]ErnMessage, error) {
-	rows, err := q.db.Query(ctx, getERNMessagesBySoundRecordingAddress, address)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []ErnMessage
-	for rows.Next() {
-		var i ErnMessage
-		if err := rows.Scan(
-			&i.ID,
-			&i.Address,
-			&i.TxHash,
-			&i.BlockHeight,
-			&i.SenderAddress,
-			&i.RawErnMessage,
 		); err != nil {
 			return nil, err
 		}
@@ -1183,36 +1064,6 @@ func (q *Queries) GetRecentTxs(ctx context.Context, limit int32) ([]CoreTransact
 	return items, nil
 }
 
-const getRecordingsForTrack = `-- name: GetRecordingsForTrack :many
-select id, sound_recording_id, track_id, cid, encoding_details from sound_recordings where track_id = $1
-`
-
-func (q *Queries) GetRecordingsForTrack(ctx context.Context, trackID string) ([]SoundRecording, error) {
-	rows, err := q.db.Query(ctx, getRecordingsForTrack, trackID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []SoundRecording
-	for rows.Next() {
-		var i SoundRecording
-		if err := rows.Scan(
-			&i.ID,
-			&i.SoundRecordingID,
-			&i.TrackID,
-			&i.Cid,
-			&i.EncodingDetails,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const getRegisteredNodeByCometAddress = `-- name: GetRegisteredNodeByCometAddress :one
 select rowid, pub_key, endpoint, eth_address, comet_address, eth_block, node_type, sp_id, comet_pub_key from core_validators where comet_address = $1
 `
@@ -1359,30 +1210,6 @@ func (q *Queries) GetRegisteredNodesByType(ctx context.Context, nodeType string)
 	return items, nil
 }
 
-const getReleaseAddressesByERNAddress = `-- name: GetReleaseAddressesByERNAddress :many
-select address from ern_release_addresses where ern_address = $1
-`
-
-func (q *Queries) GetReleaseAddressesByERNAddress(ctx context.Context, ernAddress string) ([]string, error) {
-	rows, err := q.db.Query(ctx, getReleaseAddressesByERNAddress, ernAddress)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []string
-	for rows.Next() {
-		var address string
-		if err := rows.Scan(&address); err != nil {
-			return nil, err
-		}
-		items = append(items, address)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const getRollupReportForNodeAndId = `-- name: GetRollupReportForNodeAndId :one
 select id, address, blocks_proposed, sla_rollup_id from sla_node_reports
 where address = $1 and sla_rollup_id = $2
@@ -1468,30 +1295,6 @@ func (q *Queries) GetSlaRollupWithTimestamp(ctx context.Context, time pgtype.Tim
 		&i.Time,
 	)
 	return i, err
-}
-
-const getSoundRecordingAddressesByERNAddress = `-- name: GetSoundRecordingAddressesByERNAddress :many
-select address from ern_sound_recording_addresses where ern_address = $1
-`
-
-func (q *Queries) GetSoundRecordingAddressesByERNAddress(ctx context.Context, ernAddress string) ([]string, error) {
-	rows, err := q.db.Query(ctx, getSoundRecordingAddressesByERNAddress, ernAddress)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []string
-	for rows.Next() {
-		var address string
-		if err := rows.Scan(&address); err != nil {
-			return nil, err
-		}
-		items = append(items, address)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
 }
 
 const getStorageProof = `-- name: GetStorageProof :one

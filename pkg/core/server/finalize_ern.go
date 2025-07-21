@@ -27,76 +27,115 @@ func (s *Server) finalizeV2Transaction(ctx context.Context, req *abcitypes.Final
 		switch msg.Message.(type) {
 		case *v1beta1.Message_Ern:
 			ern := msg.GetErn()
-
-			switch ern.MessageHeader.MessageControlType {
-			case v1beta2.MessageControlType_MESSAGE_CONTROL_TYPE_NEW_RELEASE_MESSAGE:
-				err = s.finalizeERNCreate(ctx, req, tx, ern)
-			case v1beta2.MessageControlType_MESSAGE_CONTROL_TYPE_UPDATED_RELEASE_MESSAGE:
-				err = s.finalizeERNUpdate()
-			case v1beta2.MessageControlType_MESSAGE_CONTROL_TYPE_TAKEDOWN_RELEASE_MESSAGE:
-				err = s.finalizeERNTakeDown()
-			}
+			err = s.finalizeERN(ctx, req, tx, ern)
+			// TODO: Add support for MEAD and PIE when they are enabled in the core API
+			// case *v1beta1.Message_Mead:
+			//     mead := msg.GetMead()
+			//     err = s.finalizeMEAD(ctx, req, tx, mead)
+			// case *v1beta1.Message_Pie:
+			//     pie := msg.GetPie()
+			//     err = s.finalizePIE(ctx, req, tx, pie)
 		}
 
 		if err != nil {
-			return fmt.Errorf("failed to finalize ERN: %w", err)
+			return fmt.Errorf("failed to finalize message: %w", err)
 		}
-	}
-
-	if err != nil {
-		return err
 	}
 
 	return nil
 }
 
-func (s *Server) finalizeERNCreate(ctx context.Context, req *abcitypes.FinalizeBlockRequest, tx *v1beta1.Transaction, ern *v1beta2.ElectronicReleaseNotification) error {
-	txHash := s.toTxHash(tx.Envelope)
-	ernAddress := common.CreateAddress(ern, s.config.GenesisFile.ChainID, req.Height, tx.Envelope.Header.Nonce)
+func (s *Server) finalizeERN(ctx context.Context, req *abcitypes.FinalizeBlockRequest, tx *v1beta1.Transaction, ern *v1beta2.ElectronicReleaseNotification) error {
+	// Use envelope nonce as string for address generation
+	envelopeNonce := tx.Envelope.Header.Nonce
+
+	ernAddress := common.CreateAddress(ern, s.config.GenesisFile.ChainID, req.Height, envelopeNonce)
+
+	// Collect all addresses
+	partyAddresses := make([]string, len(ern.PartyList))
+	for i, party := range ern.PartyList {
+		partyAddresses[i] = common.CreateAddress(party, s.config.GenesisFile.ChainID, req.Height, envelopeNonce)
+	}
+
+	resourceAddresses := make([]string, len(ern.ResourceList))
+	for i, resource := range ern.ResourceList {
+		resourceAddresses[i] = common.CreateAddress(resource, s.config.GenesisFile.ChainID, req.Height, envelopeNonce)
+	}
 
 	releaseAddresses := make([]string, len(ern.ReleaseList))
-	soundRecordingAddresses := make([]string, len(ern.ResourceList))
-
 	for i, release := range ern.ReleaseList {
-		releaseAddresses[i] = common.CreateAddress(release, s.config.GenesisFile.ChainID, req.Height, tx.Envelope.Header.Nonce)
+		releaseAddresses[i] = common.CreateAddress(release, s.config.GenesisFile.ChainID, req.Height, envelopeNonce)
 	}
 
-	for i, resource := range ern.ResourceList {
-		soundRecordingAddresses[i] = common.CreateAddress(resource, s.config.GenesisFile.ChainID, req.Height, tx.Envelope.Header.Nonce)
+	dealAddresses := make([]string, len(ern.DealList))
+	for i, deal := range ern.DealList {
+		dealAddresses[i] = common.CreateAddress(deal, s.config.GenesisFile.ChainID, req.Height, envelopeNonce)
 	}
 
-	rawErnMessage, err := proto.Marshal(ern)
+	// Marshal the entire ERN message
+	rawMessage, err := proto.Marshal(ern)
 	if err != nil {
 		return fmt.Errorf("failed to marshal ERN message: %w", err)
 	}
 
-	// TODO: recover sender address from tx
-	senderAddress := ""
+	// TODO: Recover sender address from transaction signature
+	senderAddress := ern.Header.From
 
-	qtx := s.getDb()
+	// Handle different message control types - use ERN header nonce for database storage
+	switch ern.Header.ControlType {
+	case v1beta2.DDEXMessageControlType_DDEX_MESSAGE_CONTROL_TYPE_NEW_MESSAGE:
+		err = s.finalizeERNCreate(ctx, req, ernAddress, senderAddress, ern.Header.Nonce, int16(ern.Header.ControlType), partyAddresses, resourceAddresses, releaseAddresses, dealAddresses, rawMessage, req.Height)
+	case v1beta2.DDEXMessageControlType_DDEX_MESSAGE_CONTROL_TYPE_UPDATED_MESSAGE:
+		err = s.finalizeERNUpdate(ctx, req, ernAddress, senderAddress, ern.Header.Nonce, int16(ern.Header.ControlType), partyAddresses, resourceAddresses, releaseAddresses, dealAddresses, rawMessage, req.Height)
+	case v1beta2.DDEXMessageControlType_DDEX_MESSAGE_CONTROL_TYPE_TAKEDOWN_MESSAGE:
+		err = s.finalizeERNTakedown(ctx, req, ernAddress, senderAddress, ern.Header.Nonce, int16(ern.Header.ControlType), partyAddresses, resourceAddresses, releaseAddresses, dealAddresses, rawMessage, req.Height)
+	default:
+		return fmt.Errorf("unsupported ERN message control type: %v", ern.Header.ControlType)
+	}
 
-	qtx.InsertERNMessage(ctx, db.InsertERNMessageParams{
-		Address:       ernAddress,
-		TxHash:        txHash,
-		BlockHeight:   req.Height,
-		SenderAddress: senderAddress,
-		RawErnMessage: rawErnMessage,
-	})
-
-	qtx.InsertERNReleaseAddresses(ctx, db.InsertERNReleaseAddressesParams{
-		Column1:    releaseAddresses,
-		ErnAddress: ernAddress,
-	})
-
-	qtx.InsertERNSoundRecordingAddresses(ctx, db.InsertERNSoundRecordingAddressesParams{
-		Column1:    soundRecordingAddresses,
-		ErnAddress: ernAddress,
-	})
-
-	// TODO: persist ERN to storage
-	return nil
+	return err
 }
 
-func (s *Server) finalizeERNUpdate() error { return nil }
+func (s *Server) finalizeERNCreate(ctx context.Context, req *abcitypes.FinalizeBlockRequest, address, sender string, nonce uint64, messageControlType int16, partyAddresses, resourceAddresses, releaseAddresses, dealAddresses []string, rawMessage []byte, blockHeight int64) error {
+	qtx := s.getDb()
 
-func (s *Server) finalizeERNTakeDown() error { return nil }
+	// Convert nonce to int64 for database storage
+	dbNonce := int64(nonce)
+
+	return qtx.InsertCoreERN(ctx, db.InsertCoreERNParams{
+		Address:            address,
+		Sender:             sender,
+		Nonce:              dbNonce,
+		MessageControlType: messageControlType,
+		PartyAddresses:     partyAddresses,
+		ResourceAddresses:  resourceAddresses,
+		ReleaseAddresses:   releaseAddresses,
+		DealAddresses:      dealAddresses,
+		RawMessage:         rawMessage,
+		BlockHeight:        blockHeight,
+	})
+}
+
+func (s *Server) finalizeERNUpdate(ctx context.Context, req *abcitypes.FinalizeBlockRequest, address, sender string, nonce uint64, messageControlType int16, partyAddresses, resourceAddresses, releaseAddresses, dealAddresses []string, rawMessage []byte, blockHeight int64) error {
+	// TODO: Implement ERN update logic
+	// For now, just insert the updated ERN (you may want to update existing records instead)
+	return s.finalizeERNCreate(ctx, req, address, sender, nonce, messageControlType, partyAddresses, resourceAddresses, releaseAddresses, dealAddresses, rawMessage, blockHeight)
+}
+
+func (s *Server) finalizeERNTakedown(ctx context.Context, req *abcitypes.FinalizeBlockRequest, address, sender string, nonce uint64, messageControlType int16, partyAddresses, resourceAddresses, releaseAddresses, dealAddresses []string, rawMessage []byte, blockHeight int64) error {
+	// TODO: Implement ERN takedown logic
+	// For now, just insert the takedown ERN (you may want to mark existing records as taken down)
+	return s.finalizeERNCreate(ctx, req, address, sender, nonce, messageControlType, partyAddresses, resourceAddresses, releaseAddresses, dealAddresses, rawMessage, blockHeight)
+}
+
+// TODO: Implement when MEAD support is added to core API
+// func (s *Server) finalizeMEAD(ctx context.Context, req *abcitypes.FinalizeBlockRequest, tx *v1beta1.Transaction, mead *v1beta2.MediaEnrichmentDescription) error {
+//     // Similar implementation for MEAD messages
+//     return nil
+// }
+
+// TODO: Implement when PIE support is added to core API
+// func (s *Server) finalizePIE(ctx context.Context, req *abcitypes.FinalizeBlockRequest, tx *v1beta1.Transaction, pie *v1beta2.PartyIdentificationEnrichment) error {
+//     // Similar implementation for PIE messages
+//     return nil
+// }

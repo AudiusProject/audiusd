@@ -75,10 +75,18 @@ type CoreBlock struct {
 	CreatedAt pgtype.Timestamp
 }
 
-type CoreDeal struct {
-	ID      int64
-	Address string
-	Message []byte
+type CoreErn struct {
+	ID                 int64
+	Address            string
+	Sender             string
+	Nonce              int64
+	MessageControlType int16
+	PartyAddresses     []string
+	ResourceAddresses  []string
+	ReleaseAddresses   []string
+	DealAddresses      []string
+	RawMessage         []byte
+	BlockHeight        int64
 }
 
 type CoreEtlTx struct {
@@ -175,22 +183,27 @@ type CoreEtlTxValidatorRegistration struct {
 	CreatedAt    pgtype.Timestamptz
 }
 
-type CoreParty struct {
-	ID      int64
-	Address string
-	Message []byte
+type CoreMead struct {
+	ID                 int64
+	Address            string
+	Sender             string
+	Nonce              int64
+	MessageControlType int16
+	ResourceAddresses  []string
+	ReleaseAddresses   []string
+	RawMessage         []byte
+	BlockHeight        int64
 }
 
-type CoreRelease struct {
-	ID      int64
-	Address string
-	Message []byte
-}
-
-type CoreResource struct {
-	ID      int64
-	Address string
-	Message []byte
+type CorePie struct {
+	ID                 int64
+	Address            string
+	Sender             string
+	Nonce              int64
+	MessageControlType int16
+	PartyAddresses     []string
+	RawMessage         []byte
+	BlockHeight        int64
 }
 
 type CoreTransaction struct {
@@ -220,27 +233,6 @@ type CoreValidator struct {
 	NodeType     string
 	SpID         string
 	CometPubKey  string
-}
-
-type ErnMessage struct {
-	ID            int64
-	Address       string
-	TxHash        string
-	BlockHeight   int64
-	SenderAddress string
-	RawErnMessage []byte
-}
-
-type ErnReleaseAddress struct {
-	ID         int64
-	Address    string
-	ErnAddress string
-}
-
-type ErnSoundRecordingAddress struct {
-	ID         int64
-	Address    string
-	ErnAddress string
 }
 
 type ManagementKey struct {

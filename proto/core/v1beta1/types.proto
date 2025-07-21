@@ -3,6 +3,8 @@ syntax = "proto3";
 package core.v1beta1;
 
 import "ddex/v1beta2/ern.proto";
+import "ddex/v1beta2/mead.proto";
+import "ddex/v1beta2/pie.proto";
 
 option go_package = "github.com/AudiusProject/audiusd/pkg/api/core/v1beta1";
 
@@ -28,8 +30,8 @@ message EnvelopeHeader {
 message Message {
   oneof message {
     ddex.v1beta2.ElectronicReleaseNotification ern = 1;
-    // MediaEnrichmentAndDescription mead = 2;
-    // PlaylistInformationExchange pie = 3;
+    ddex.v1beta2.MediaEnrichmentDescription mead = 2;
+    ddex.v1beta2.PartyIdentificationEnrichment pie = 3;
     // DigitalSalesReport dsr = 4;
     // ContentDistributionMessage cdm = 5;
   }
@@ -57,8 +59,8 @@ message MessageReceipt {
   int32 message_index = 1;
   oneof result {
     ddex.v1beta2.ElectronicReleaseNotificationAck ern_ack = 2;
-    // MeadResult mead_result = 3;
-    // PieResult pie_result = 4;
+    ddex.v1beta2.MediaEnrichmentDescriptionAck mead_ack = 3;
+    ddex.v1beta2.PartyIdentificationEnrichmentAck pie_ack = 4;
     // DsrResult dsr_result = 5;
     // CdmResult cdm_result = 6;
   }

@@ -169,6 +169,61 @@ func (x *Mood) GetDefinition() string {
 	return ""
 }
 
+type MediaEnrichmentDescriptionAck struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	MeadAddress string `protobuf:"bytes,1,opt,name=mead_address,json=meadAddress,proto3" json:"mead_address,omitempty"`
+	Nonce       uint64 `protobuf:"varint,2,opt,name=nonce,proto3" json:"nonce,omitempty"`
+}
+
+func (x *MediaEnrichmentDescriptionAck) Reset() {
+	*x = MediaEnrichmentDescriptionAck{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_ddex_v1beta2_mead_proto_msgTypes[2]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *MediaEnrichmentDescriptionAck) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MediaEnrichmentDescriptionAck) ProtoMessage() {}
+
+func (x *MediaEnrichmentDescriptionAck) ProtoReflect() protoreflect.Message {
+	mi := &file_ddex_v1beta2_mead_proto_msgTypes[2]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MediaEnrichmentDescriptionAck.ProtoReflect.Descriptor instead.
+func (*MediaEnrichmentDescriptionAck) Descriptor() ([]byte, []int) {
+	return file_ddex_v1beta2_mead_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *MediaEnrichmentDescriptionAck) GetMeadAddress() string {
+	if x != nil {
+		return x.MeadAddress
+	}
+	return ""
+}
+
+func (x *MediaEnrichmentDescriptionAck) GetNonce() uint64 {
+	if x != nil {
+		return x.Nonce
+	}
+	return 0
+}
+
 var File_ddex_v1beta2_mead_proto protoreflect.FileDescriptor
 
 var file_ddex_v1beta2_mead_proto_rawDesc = []byte{
@@ -197,11 +252,16 @@ var file_ddex_v1beta2_mead_proto_rawDesc = []byte{
 	0x6d, 0x6f, 0x6f, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x6d, 0x6f, 0x6f, 0x64,
 	0x12, 0x1e, 0x0a, 0x0a, 0x64, 0x65, 0x66, 0x69, 0x6e, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x18, 0x02,
 	0x20, 0x01, 0x28, 0x09, 0x52, 0x0a, 0x64, 0x65, 0x66, 0x69, 0x6e, 0x69, 0x74, 0x69, 0x6f, 0x6e,
-	0x42, 0x37, 0x5a, 0x35, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x41,
-	0x75, 0x64, 0x69, 0x75, 0x73, 0x50, 0x72, 0x6f, 0x6a, 0x65, 0x63, 0x74, 0x2f, 0x61, 0x75, 0x64,
-	0x69, 0x75, 0x73, 0x64, 0x2f, 0x70, 0x6b, 0x67, 0x2f, 0x61, 0x70, 0x69, 0x2f, 0x64, 0x64, 0x65,
-	0x78, 0x2f, 0x76, 0x31, 0x62, 0x65, 0x74, 0x61, 0x32, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f,
-	0x33,
+	0x22, 0x58, 0x0a, 0x1d, 0x4d, 0x65, 0x64, 0x69, 0x61, 0x45, 0x6e, 0x72, 0x69, 0x63, 0x68, 0x6d,
+	0x65, 0x6e, 0x74, 0x44, 0x65, 0x73, 0x63, 0x72, 0x69, 0x70, 0x74, 0x69, 0x6f, 0x6e, 0x41, 0x63,
+	0x6b, 0x12, 0x21, 0x0a, 0x0c, 0x6d, 0x65, 0x61, 0x64, 0x5f, 0x61, 0x64, 0x64, 0x72, 0x65, 0x73,
+	0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0b, 0x6d, 0x65, 0x61, 0x64, 0x41, 0x64, 0x64,
+	0x72, 0x65, 0x73, 0x73, 0x12, 0x14, 0x0a, 0x05, 0x6e, 0x6f, 0x6e, 0x63, 0x65, 0x18, 0x02, 0x20,
+	0x01, 0x28, 0x04, 0x52, 0x05, 0x6e, 0x6f, 0x6e, 0x63, 0x65, 0x42, 0x37, 0x5a, 0x35, 0x67, 0x69,
+	0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x41, 0x75, 0x64, 0x69, 0x75, 0x73, 0x50,
+	0x72, 0x6f, 0x6a, 0x65, 0x63, 0x74, 0x2f, 0x61, 0x75, 0x64, 0x69, 0x75, 0x73, 0x64, 0x2f, 0x70,
+	0x6b, 0x67, 0x2f, 0x61, 0x70, 0x69, 0x2f, 0x64, 0x64, 0x65, 0x78, 0x2f, 0x76, 0x31, 0x62, 0x65,
+	0x74, 0x61, 0x32, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -216,14 +276,15 @@ func file_ddex_v1beta2_mead_proto_rawDescGZIP() []byte {
 	return file_ddex_v1beta2_mead_proto_rawDescData
 }
 
-var file_ddex_v1beta2_mead_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_ddex_v1beta2_mead_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_ddex_v1beta2_mead_proto_goTypes = []interface{}{
-	(*MediaEnrichmentDescription)(nil), // 0: ddex.v1beta2.MediaEnrichmentDescription
-	(*Mood)(nil),                       // 1: ddex.v1beta2.Mood
-	(*DDEXMessageHeader)(nil),          // 2: ddex.v1beta2.DDEXMessageHeader
+	(*MediaEnrichmentDescription)(nil),    // 0: ddex.v1beta2.MediaEnrichmentDescription
+	(*Mood)(nil),                          // 1: ddex.v1beta2.Mood
+	(*MediaEnrichmentDescriptionAck)(nil), // 2: ddex.v1beta2.MediaEnrichmentDescriptionAck
+	(*DDEXMessageHeader)(nil),             // 3: ddex.v1beta2.DDEXMessageHeader
 }
 var file_ddex_v1beta2_mead_proto_depIdxs = []int32{
-	2, // 0: ddex.v1beta2.MediaEnrichmentDescription.header:type_name -> ddex.v1beta2.DDEXMessageHeader
+	3, // 0: ddex.v1beta2.MediaEnrichmentDescription.header:type_name -> ddex.v1beta2.DDEXMessageHeader
 	1, // 1: ddex.v1beta2.MediaEnrichmentDescription.mood:type_name -> ddex.v1beta2.Mood
 	2, // [2:2] is the sub-list for method output_type
 	2, // [2:2] is the sub-list for method input_type
@@ -263,6 +324,18 @@ func file_ddex_v1beta2_mead_proto_init() {
 				return nil
 			}
 		}
+		file_ddex_v1beta2_mead_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*MediaEnrichmentDescriptionAck); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -270,7 +343,7 @@ func file_ddex_v1beta2_mead_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_ddex_v1beta2_mead_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

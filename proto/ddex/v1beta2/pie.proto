@@ -33,3 +33,8 @@ message Handle {
 message Verified {
   bool verified = 1;
 }
+
+message PartyIdentificationEnrichmentAck {
+  string pie_address = 1;
+  uint64 nonce = 2;
+}

@@ -26,3 +26,8 @@ message Mood {
   // description of the mood
   string definition = 2;
 }
+
+message MediaEnrichmentDescriptionAck {
+  string mead_address = 1;
+  uint64 nonce = 2;
+}
