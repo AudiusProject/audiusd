@@ -285,33 +285,3 @@ select exists (
     from access_keys
     where track_id = $1 and pub_key = $2
 );
-
--- name: GetRecordingsForTrack :many
-select * from sound_recordings where track_id = $1;
-
--- name: GetDBSize :one
-select pg_database_size(current_database())::bigint as size;
-
--- name: GetERNMessages :many
-select * from ern_messages where address = $1 order by block_height asc;
-
--- name: GetERNAddressByTxHash :one
-select address from ern_messages where tx_hash = $1 order by block_height asc limit 1;
-
--- name: GetERNMessagesBySoundRecordingAddress :many
-select ern_messages.* from ern_messages
-join ern_sound_recording_addresses on ern_messages.address = ern_sound_recording_addresses.ern_address
-where ern_sound_recording_addresses.address = $1 order by ern_messages.block_height asc;
-
--- name: GetERNMessagesByReleaseAddress :many
-select ern_messages.* from ern_messages
-join ern_release_addresses on ern_messages.address = ern_release_addresses.ern_address
-where ern_release_addresses.address = $1 order by ern_messages.block_height asc;
-
--- name: GetSoundRecordingAddressesByERNAddress :many
-select address from ern_sound_recording_addresses where ern_address = $1;
-
--- name: GetReleaseAddressesByERNAddress :many
-select address from ern_release_addresses where ern_address = $1;
-
-
