@@ -386,3 +386,19 @@ message GetERNResponse {
   repeated ddex.v1beta2.MediaEnrichmentDescription meads = 2;
   repeated ddex.v1beta2.PartyIdentificationEnrichment pies = 3;
 }
+
+message GetPIERequest {
+  string address = 1;
+}
+
+message GetPIEResponse {
+  ddex.v1beta2.PartyIdentificationEnrichment pie = 1;
+}
+
+message GetMEADRequest {
+  string address = 1;
+}
+
+message GetMEADResponse {
+  ddex.v1beta2.MediaEnrichmentDescription mead = 1;
+}

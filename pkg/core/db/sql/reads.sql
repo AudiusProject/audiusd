@@ -315,3 +315,9 @@ and m.nonce = (
     from core_mead m2 
     where m2.address = m.address
 );
+
+-- name: GetPIE :one
+select * from core_pie where address = $1 order by nonce desc limit 1;
+
+-- name: GetMEAD :one
+select * from core_mead where address = $1 order by nonce desc limit 1;

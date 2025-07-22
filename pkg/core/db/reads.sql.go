@@ -831,6 +831,27 @@ func (q *Queries) GetLatestSlaRollup(ctx context.Context) (SlaRollup, error) {
 	return i, err
 }
 
+const getMEAD = `-- name: GetMEAD :one
+select id, address, sender, nonce, message_control_type, resource_addresses, release_addresses, raw_message, block_height from core_mead where address = $1 order by nonce desc limit 1
+`
+
+func (q *Queries) GetMEAD(ctx context.Context, address string) (CoreMead, error) {
+	row := q.db.QueryRow(ctx, getMEAD, address)
+	var i CoreMead
+	err := row.Scan(
+		&i.ID,
+		&i.Address,
+		&i.Sender,
+		&i.Nonce,
+		&i.MessageControlType,
+		&i.ResourceAddresses,
+		&i.ReleaseAddresses,
+		&i.RawMessage,
+		&i.BlockHeight,
+	)
+	return i, err
+}
+
 const getMEADsForERN = `-- name: GetMEADsForERN :many
 select m.id, m.address, m.sender, m.nonce, m.message_control_type, m.resource_addresses, m.release_addresses, m.raw_message, m.block_height from core_mead m, core_ern e 
 where e.address = $1 
@@ -931,6 +952,26 @@ func (q *Queries) GetNodesByEndpoints(ctx context.Context, dollar_1 []string) ([
 		return nil, err
 	}
 	return items, nil
+}
+
+const getPIE = `-- name: GetPIE :one
+select id, address, sender, nonce, message_control_type, party_addresses, raw_message, block_height from core_pie where address = $1 order by nonce desc limit 1
+`
+
+func (q *Queries) GetPIE(ctx context.Context, address string) (CorePie, error) {
+	row := q.db.QueryRow(ctx, getPIE, address)
+	var i CorePie
+	err := row.Scan(
+		&i.ID,
+		&i.Address,
+		&i.Sender,
+		&i.Nonce,
+		&i.MessageControlType,
+		&i.PartyAddresses,
+		&i.RawMessage,
+		&i.BlockHeight,
+	)
+	return i, err
 }
 
 const getPIEsForERN = `-- name: GetPIEsForERN :many

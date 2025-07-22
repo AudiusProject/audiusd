@@ -679,3 +679,39 @@ func (c *CoreService) GetERN(ctx context.Context, req *connect.Request[v1.GetERN
 		Pies:  pies,
 	}), nil
 }
+
+// GetMEAD implements v1connect.CoreServiceHandler.
+func (c *CoreService) GetMEAD(ctx context.Context, req *connect.Request[v1.GetMEADRequest]) (*connect.Response[v1.GetMEADResponse], error) {
+	dbMEAD, err := c.core.db.GetMEAD(ctx, req.Msg.Address)
+	if err != nil {
+		return nil, err
+	}
+
+	var mead v1beta2.MediaEnrichmentDescription
+	err = proto.Unmarshal(dbMEAD.RawMessage, &mead)
+	if err != nil {
+		return nil, err
+	}
+
+	return connect.NewResponse(&v1.GetMEADResponse{
+		Mead: &mead,
+	}), nil
+}
+
+// GetPIE implements v1connect.CoreServiceHandler.
+func (c *CoreService) GetPIE(ctx context.Context, req *connect.Request[v1.GetPIERequest]) (*connect.Response[v1.GetPIEResponse], error) {
+	dbPIE, err := c.core.db.GetPIE(ctx, req.Msg.Address)
+	if err != nil {
+		return nil, err
+	}
+
+	var pie v1beta2.PartyIdentificationEnrichment
+	err = proto.Unmarshal(dbPIE.RawMessage, &pie)
+	if err != nil {
+		return nil, err
+	}
+
+	return connect.NewResponse(&v1.GetPIEResponse{
+		Pie: &pie,
+	}), nil
+}
