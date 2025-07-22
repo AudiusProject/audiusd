@@ -23,6 +23,12 @@ var (
 	ErrMEADFromAddressEmpty  = errors.New("MEAD from address is empty")
 	ErrMEADToAddressNotEmpty = errors.New("MEAD to address is not empty")
 	ErrMEADNonceNotOne       = errors.New("MEAD nonce is not one")
+
+	// Update MEAD message validation errors
+	ErrMEADAddressEmpty   = errors.New("MEAD address is empty")
+	ErrMEADToAddressEmpty = errors.New("MEAD to address is empty")
+	ErrMEADAddressNotTo   = errors.New("MEAD address is not the target of the message")
+	ErrMEADNonceNotNext   = errors.New("MEAD nonce is not the next nonce")
 )
 
 func (s *Server) finalizeMEAD(ctx context.Context, req *abcitypes.FinalizeBlockRequest, txhash string, tx *v1beta1.Transaction, messageIndex int64) error {
@@ -138,11 +144,81 @@ func (s *Server) finalizeMEADNewMessage(ctx context.Context, req *abcitypes.Fina
 
 /** MEAD Update Message */
 
-func (s *Server) validateMEADUpdateMessage(_ context.Context, mead *v1beta2.MediaEnrichmentDescription) error {
+func (s *Server) validateMEADUpdateMessage(ctx context.Context, mead *v1beta2.MediaEnrichmentDescription) error {
+	if mead.Address == "" {
+		return ErrMEADAddressEmpty
+	}
+
+	if mead.Header.From == "" {
+		return ErrMEADFromAddressEmpty
+	}
+
+	if mead.Header.To == "" {
+		return ErrMEADToAddressEmpty
+	}
+
+	// address of the MEAD must also be the target of the message
+	if mead.Address != mead.Header.To {
+		return ErrMEADAddressNotTo
+	}
+
+	storedMEAD, err := s.getDb().GetMEAD(ctx, mead.Address)
+	if err != nil {
+		return fmt.Errorf("failed to get stored MEAD: %w", err)
+	}
+
+	if storedMEAD.Nonce != int64(mead.Header.Nonce-1) {
+		return ErrMEADNonceNotNext
+	}
+
+	// TODO: validate resource and release addresses and their contents
+
 	return nil
 }
 
 func (s *Server) finalizeMEADUpdateMessage(ctx context.Context, req *abcitypes.FinalizeBlockRequest, txhash string, messageIndex int64, mead *v1beta2.MediaEnrichmentDescription) error {
+	originalMEAD, err := s.getDb().GetMEADCreate(ctx, mead.Address)
+	if err != nil {
+		return fmt.Errorf("failed to get original MEAD: %w", err)
+	}
+
+	// TODO: concatenate the new resource and release addresses with the original addresses
+	resourceAddresses := originalMEAD.ResourceAddresses // plus the new resource addresses
+	releaseAddresses := originalMEAD.ReleaseAddresses   // plus the new release addresses
+
+	rawMessage, err := proto.Marshal(mead)
+	if err != nil {
+		return fmt.Errorf("failed to marshal MEAD message: %w", err)
+	}
+
+	ack := &v1beta2.MediaEnrichmentDescriptionAck{
+		MeadAddress: mead.Address,
+		Nonce:       mead.Header.Nonce,
+	}
+
+	rawAcknowledgment, err := proto.Marshal(ack)
+	if err != nil {
+		return fmt.Errorf("failed to marshal MEAD acknowledgment: %w", err)
+	}
+
+	qtx := s.getDb()
+	// same insert as a new MEAD, the nonce differentiates the update from the original MEAD
+	if err := qtx.InsertCoreMEAD(ctx, db.InsertCoreMEADParams{
+		TxHash:             txhash,
+		Index:              messageIndex,
+		Address:            mead.Address,
+		Sender:             mead.Header.From,
+		Nonce:              int64(mead.Header.Nonce),
+		MessageControlType: int16(mead.Header.ControlType),
+		ResourceAddresses:  resourceAddresses,
+		ReleaseAddresses:   releaseAddresses,
+		RawMessage:         rawMessage,
+		RawAcknowledgment:  rawAcknowledgment,
+		BlockHeight:        req.Height,
+	}); err != nil {
+		return fmt.Errorf("failed to insert MEAD: %w", err)
+	}
+
 	return nil
 }
 

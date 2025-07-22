@@ -23,6 +23,12 @@ var (
 	ErrPIEFromAddressEmpty  = errors.New("PIE from address is empty")
 	ErrPIEToAddressNotEmpty = errors.New("PIE to address is not empty")
 	ErrPIENonceNotOne       = errors.New("PIE nonce is not one")
+
+	// Update PIE message validation errors
+	ErrPIEAddressEmpty   = errors.New("PIE address is empty")
+	ErrPIEToAddressEmpty = errors.New("PIE to address is empty")
+	ErrPIEAddressNotTo   = errors.New("PIE address is not the target of the message")
+	ErrPIENonceNotNext   = errors.New("PIE nonce is not the next nonce")
 )
 
 func (s *Server) finalizePIE(ctx context.Context, req *abcitypes.FinalizeBlockRequest, txhash string, tx *v1beta1.Transaction, messageIndex int64) error {
@@ -137,11 +143,79 @@ func (s *Server) finalizePIENewMessage(ctx context.Context, req *abcitypes.Final
 
 /** PIE Update Message */
 
-func (s *Server) validatePIEUpdateMessage(_ context.Context, pie *v1beta2.PartyIdentificationEnrichment) error {
+func (s *Server) validatePIEUpdateMessage(ctx context.Context, pie *v1beta2.PartyIdentificationEnrichment) error {
+	if pie.Address == "" {
+		return ErrPIEAddressEmpty
+	}
+
+	if pie.Header.From == "" {
+		return ErrPIEFromAddressEmpty
+	}
+
+	if pie.Header.To == "" {
+		return ErrPIEToAddressEmpty
+	}
+
+	// address of the PIE must also be the target of the message
+	if pie.Address != pie.Header.To {
+		return ErrPIEAddressNotTo
+	}
+
+	storedPIE, err := s.getDb().GetPIE(ctx, pie.Address)
+	if err != nil {
+		return fmt.Errorf("failed to get stored PIE: %w", err)
+	}
+
+	if storedPIE.Nonce != int64(pie.Header.Nonce-1) {
+		return ErrPIENonceNotNext
+	}
+
+	// TODO: validate party addresses and their contents
+
 	return nil
 }
 
 func (s *Server) finalizePIEUpdateMessage(ctx context.Context, req *abcitypes.FinalizeBlockRequest, txhash string, messageIndex int64, pie *v1beta2.PartyIdentificationEnrichment) error {
+	originalPIE, err := s.getDb().GetPIECreate(ctx, pie.Address)
+	if err != nil {
+		return fmt.Errorf("failed to get original PIE: %w", err)
+	}
+
+	// TODO: concatenate the new party addresses with the original addresses
+	partyAddresses := originalPIE.PartyAddresses // plus the new party addresses
+
+	rawMessage, err := proto.Marshal(pie)
+	if err != nil {
+		return fmt.Errorf("failed to marshal PIE message: %w", err)
+	}
+
+	ack := &v1beta2.PartyIdentificationEnrichmentAck{
+		PieAddress: pie.Address,
+		Nonce:      pie.Header.Nonce,
+	}
+
+	rawAcknowledgment, err := proto.Marshal(ack)
+	if err != nil {
+		return fmt.Errorf("failed to marshal PIE acknowledgment: %w", err)
+	}
+
+	qtx := s.getDb()
+	// same insert as a new PIE, the nonce differentiates the update from the original PIE
+	if err := qtx.InsertCorePIE(ctx, db.InsertCorePIEParams{
+		TxHash:             txhash,
+		Index:              messageIndex,
+		Address:            pie.Address,
+		Sender:             pie.Header.From,
+		Nonce:              int64(pie.Header.Nonce),
+		MessageControlType: int16(pie.Header.ControlType),
+		PartyAddresses:     partyAddresses,
+		RawMessage:         rawMessage,
+		RawAcknowledgment:  rawAcknowledgment,
+		BlockHeight:        req.Height,
+	}); err != nil {
+		return fmt.Errorf("failed to insert PIE: %w", err)
+	}
+
 	return nil
 }
 
