@@ -46,7 +46,7 @@ func TestERNProcessing(t *testing.T) {
 		Header: &ddex.DDEXMessageHeader{
 			ControlType: ddex.DDEXMessageControlType_DDEX_MESSAGE_CONTROL_TYPE_NEW_MESSAGE,
 			From:        "0x1234567890123456789012345678901234567890",
-			To:          "0x0987654321098765432109876543210987654321",
+			To:          "",
 			Nonce:       1,
 		},
 		PartyList: []*ddex.Party{
@@ -272,7 +272,7 @@ func TestMEADProcessing(t *testing.T) {
 		Header: &ddex.DDEXMessageHeader{
 			ControlType: ddex.DDEXMessageControlType_DDEX_MESSAGE_CONTROL_TYPE_NEW_MESSAGE,
 			From:        "0x1234567890123456789012345678901234567890",
-			To:          "0x0987654321098765432109876543210987654321",
+			To:          "",
 			Nonce:       1,
 		},
 		Metadata: []byte(`{"genre": "electronic", "bpm": 128, "key": "A minor"}`),
@@ -351,7 +351,7 @@ func TestPIEProcessing(t *testing.T) {
 		Header: &ddex.DDEXMessageHeader{
 			ControlType: ddex.DDEXMessageControlType_DDEX_MESSAGE_CONTROL_TYPE_NEW_MESSAGE,
 			From:        "0x1234567890123456789012345678901234567890",
-			To:          "0x0987654321098765432109876543210987654321",
+			To:          "",
 			Nonce:       1,
 		},
 		Metadata: []byte(`{"artist_bio": "Independent electronic music producer", "location": "Berlin, Germany"}`),

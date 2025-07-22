@@ -339,6 +339,14 @@ func (c *CoreService) SendTransaction(ctx context.Context, req *connect.Request[
 	var err error
 	if req.Msg.Transactionv2 != nil {
 		txhash, err = common.ToTxHash(req.Msg.Transactionv2.Envelope)
+		if err != nil {
+			return nil, fmt.Errorf("could not get tx hash of signed tx: %v", err)
+		}
+
+		err = c.core.validateV2Transaction(ctx, c.core.cache.currentHeight.Load(), req.Msg.Transactionv2)
+		if err != nil {
+			return nil, fmt.Errorf("transactionv2 validation failed: %v", err)
+		}
 	} else {
 		txhash, err = common.ToTxHash(req.Msg.Transaction)
 	}
