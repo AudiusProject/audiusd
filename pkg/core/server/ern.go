@@ -23,6 +23,11 @@ var (
 	ErrERNFromAddressEmpty  = errors.New("ERN from address is empty")
 	ErrERNToAddressNotEmpty = errors.New("ERN to address is not empty")
 	ErrERNNonceNotOne       = errors.New("ERN nonce is not one")
+
+	// Update ERN message validation errors
+	ErrERNAddressEmpty = errors.New("ERN address is empty")
+	ErrERNAddressNotTo = errors.New("ERN address is not the target of the message")
+	ErrERNNonceNotNext = errors.New("ERN nonce is not the next nonce")
 )
 
 func (s *Server) finalizeERN(ctx context.Context, req *abcitypes.FinalizeBlockRequest, txhash string, tx *v1beta1.Transaction, messageIndex int64) error {
@@ -161,20 +166,115 @@ func (s *Server) finalizeERNNewMessage(ctx context.Context, req *abcitypes.Final
 
 /** ERN Update Message */
 
-func (s *Server) validateERNUpdateMessage(_ context.Context, ern *v1beta2.ElectronicReleaseNotification) error {
+// TODO: profile this function
+func (s *Server) validateERNUpdateMessage(ctx context.Context, ern *v1beta2.ElectronicReleaseNotification) error {
+	if ern.Address == "" {
+		return ErrERNAddressEmpty
+	}
+
+	if ern.Header.From == "" {
+		return ErrERNFromAddressEmpty
+	}
+
+	if ern.Header.To != "" {
+		return ErrERNToAddressNotEmpty
+	}
+
+	// address of the ERN must also be the target of the message
+	if ern.Address != ern.Header.To {
+		return ErrERNAddressNotTo
+	}
+
+	if ern.Header.Nonce != 1 {
+		return ErrERNNonceNotOne
+	}
+
+	storedERN, err := s.getDb().GetERN(ctx, ern.Address)
+	if err != nil {
+		return fmt.Errorf("failed to get stored ERN: %w", err)
+	}
+
+	if storedERN.Nonce != int64(ern.Header.Nonce-1) {
+		return ErrERNNonceNotNext
+	}
+
+	// TODO: validate party, resource, release, deal addresses and their contents
+
 	return nil
 }
 
 func (s *Server) finalizeERNUpdateMessage(ctx context.Context, req *abcitypes.FinalizeBlockRequest, txhash string, messageIndex int64, ern *v1beta2.ElectronicReleaseNotification) error {
+	if err := s.validateERNUpdateMessage(ctx, ern); err != nil {
+		return errors.Join(ErrERNMessageValidation, err)
+	}
+
+	originalERN, err := s.getDb().GetERNCreate(ctx, ern.Address)
+	if err != nil {
+		return fmt.Errorf("failed to get original ERN: %w", err)
+	}
+
+	// TODO: concatenate the new party, resource, release, deal addresses with the original addresses
+	partyAddresses := originalERN.PartyAddresses       // plus the new party addresses
+	resourceAddresses := originalERN.ResourceAddresses // plus the new resource addresses
+	releaseAddresses := originalERN.ReleaseAddresses   // plus the new release addresses
+	dealAddresses := originalERN.DealAddresses         // plus the new deal addresses
+
+	rawMessage, err := proto.Marshal(ern)
+	if err != nil {
+		return fmt.Errorf("failed to marshal ERN message: %w", err)
+	}
+
+	ack := &v1beta2.ElectronicReleaseNotificationAck{
+		ErnAddress:        ern.Address,
+		Nonce:             ern.Header.Nonce,
+		PartyAddresses:    partyAddresses,
+		ResourceAddresses: resourceAddresses,
+		ReleaseAddresses:  releaseAddresses,
+		DealAddresses:     dealAddresses,
+	}
+
+	rawAcknowledgment, err := proto.Marshal(ack)
+	if err != nil {
+		return fmt.Errorf("failed to marshal ERN acknowledgment: %w", err)
+	}
+
+	qtx := s.getDb()
+	// same insert as a new ERN, the nonce differentiates the update from the original ERN
+	if err := qtx.InsertCoreERN(ctx, db.InsertCoreERNParams{
+		TxHash:             txhash,
+		Index:              messageIndex,
+		Address:            ern.Address,
+		Sender:             ern.Header.From,
+		Nonce:              int64(ern.Header.Nonce),
+		MessageControlType: int16(ern.Header.ControlType),
+		PartyAddresses:     partyAddresses,
+		ResourceAddresses:  resourceAddresses,
+		ReleaseAddresses:   releaseAddresses,
+		DealAddresses:      dealAddresses,
+		RawMessage:         rawMessage,
+		RawAcknowledgment:  rawAcknowledgment,
+		BlockHeight:        req.Height,
+	}); err != nil {
+		return fmt.Errorf("failed to insert ERN: %w", err)
+	}
+
 	return nil
 }
 
 /** ERN Takedown Message */
 
-func (s *Server) validateERNTakedownMessage(_ context.Context, ern *v1beta2.ElectronicReleaseNotification) error {
+func (s *Server) validateERNTakedownMessage(_ context.Context, _ *v1beta2.ElectronicReleaseNotification) error {
 	return nil
 }
 
-func (s *Server) finalizeERNTakedownMessage(ctx context.Context, req *abcitypes.FinalizeBlockRequest, txhash string, messageIndex int64, ern *v1beta2.ElectronicReleaseNotification) error {
+func (s *Server) finalizeERNTakedownMessage(ctx context.Context, _ *abcitypes.FinalizeBlockRequest, _ string, _ int64, ern *v1beta2.ElectronicReleaseNotification) error {
+	if err := s.validateERNTakedownMessage(ctx, ern); err != nil {
+		return errors.Join(ErrERNMessageValidation, err)
+	}
+
+	_, err := s.getDb().GetERNCreate(ctx, ern.Address)
+	if err != nil {
+		return fmt.Errorf("failed to get original ERN: %w", err)
+	}
 	return nil
 }

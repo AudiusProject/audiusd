@@ -330,3 +330,12 @@ select raw_acknowledgment, index from core_mead where tx_hash = $1;
 
 -- name: GetPIEReceipts :many
 select raw_acknowledgment, index from core_pie where tx_hash = $1;
+
+-- name: GetERNCreate :one
+select * from core_ern where address = $1 order by nonce asc limit 1;
+
+-- name: GetMEADCreate :one
+select * from core_mead where address = $1 order by nonce asc limit 1;
+
+-- name: GetPIECreate :one
+select * from core_pie where address = $1 order by nonce asc limit 1;
