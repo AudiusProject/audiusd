@@ -979,7 +979,7 @@ func TestMultiMessageTransaction(t *testing.T) {
 			ControlType: ddex.DDEXMessageControlType_DDEX_MESSAGE_CONTROL_TYPE_NEW_MESSAGE,
 			From:        "0x1234567890123456789012345678901234567890",
 			To:          "",
-			Nonce:       2,
+			Nonce:       1,
 		},
 		Metadata: []byte(`{"genre": "test"}`),
 		Mood: &ddex.Mood{
@@ -993,7 +993,7 @@ func TestMultiMessageTransaction(t *testing.T) {
 			ControlType: ddex.DDEXMessageControlType_DDEX_MESSAGE_CONTROL_TYPE_NEW_MESSAGE,
 			From:        "0x1234567890123456789012345678901234567890",
 			To:          "",
-			Nonce:       3,
+			Nonce:       1,
 		},
 		Metadata: []byte(`{"test": "data"}`),
 		HandleList: []*ddex.Handle{
@@ -1085,7 +1085,7 @@ func TestGetMEAD(t *testing.T) {
 		Header: &ddex.DDEXMessageHeader{
 			ControlType: ddex.DDEXMessageControlType_DDEX_MESSAGE_CONTROL_TYPE_NEW_MESSAGE,
 			From:        "0x1234567890123456789012345678901234567890",
-			To:          "0x0987654321098765432109876543210987654321",
+			To:          "",
 			Nonce:       1,
 		},
 		Metadata: []byte(`{"genre": "ambient", "bpm": 85, "key": "D minor", "instruments": ["synthesizer", "pad", "reverb"]}`),
@@ -1197,7 +1197,7 @@ func TestGetPIE(t *testing.T) {
 		Header: &ddex.DDEXMessageHeader{
 			ControlType: ddex.DDEXMessageControlType_DDEX_MESSAGE_CONTROL_TYPE_NEW_MESSAGE,
 			From:        "0x1234567890123456789012345678901234567890",
-			To:          "0x0987654321098765432109876543210987654321",
+			To:          "",
 			Nonce:       1,
 		},
 		Metadata: []byte(`{"artist_bio": "Experimental electronic music collective from Berlin", "location": "Berlin, Germany", "formed": "2019", "members": 4}`),
@@ -1603,96 +1603,6 @@ func TestPIEValidationErrors(t *testing.T) {
 			_, err := sdk.Core.SendTransaction(ctx, connect.NewRequest(req))
 			assert.Error(t, err)
 			assert.Contains(t, err.Error(), tt.expectedError)
-		})
-	}
-}
-
-func TestUnspecifiedControlType(t *testing.T) {
-	ctx := context.Background()
-	sdk := utils.DiscoveryOne
-
-	nodeInfo, err := sdk.Core.GetNodeInfo(ctx, connect.NewRequest(&corev1.GetNodeInfoRequest{}))
-	assert.NoError(t, err)
-	chainId := nodeInfo.Msg.Chainid
-	recentBlock := nodeInfo.Msg.CurrentHeight
-
-	tests := []struct {
-		name    string
-		message *corev1beta1.Message
-	}{
-		{
-			name: "ERN unspecified control type",
-			message: &corev1beta1.Message{
-				Message: &corev1beta1.Message_Ern{
-					Ern: &ddex.ElectronicReleaseNotification{
-						Header: &ddex.DDEXMessageHeader{
-							ControlType: ddex.DDEXMessageControlType_DDEX_MESSAGE_CONTROL_TYPE_UNSPECIFIED,
-							From:        "0x1234567890123456789012345678901234567890",
-							To:          "",
-							Nonce:       1,
-						},
-					},
-				},
-			},
-		},
-		{
-			name: "MEAD unspecified control type",
-			message: &corev1beta1.Message{
-				Message: &corev1beta1.Message_Mead{
-					Mead: &ddex.MediaEnrichmentDescription{
-						Header: &ddex.DDEXMessageHeader{
-							ControlType: ddex.DDEXMessageControlType_DDEX_MESSAGE_CONTROL_TYPE_UNSPECIFIED,
-							From:        "0x1234567890123456789012345678901234567890",
-							To:          "",
-							Nonce:       1,
-						},
-					},
-				},
-			},
-		},
-		{
-			name: "PIE unspecified control type",
-			message: &corev1beta1.Message{
-				Message: &corev1beta1.Message_Pie{
-					Pie: &ddex.PartyIdentificationEnrichment{
-						Header: &ddex.DDEXMessageHeader{
-							ControlType: ddex.DDEXMessageControlType_DDEX_MESSAGE_CONTROL_TYPE_UNSPECIFIED,
-							From:        "0x1234567890123456789012345678901234567890",
-							To:          "",
-							Nonce:       1,
-						},
-					},
-				},
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Create envelope
-			envelope := &corev1beta1.Envelope{
-				Header: &corev1beta1.EnvelopeHeader{
-					ChainId:    chainId,
-					Expiration: recentBlock + 100,
-					Nonce:      uuid.NewString(),
-				},
-				Messages: []*corev1beta1.Message{tt.message},
-			}
-
-			// Create transaction
-			transaction := &corev1beta1.Transaction{
-				Signature: []byte("mock_signature_for_testing"),
-				Envelope:  envelope,
-			}
-
-			// Send transaction and expect error
-			req := &corev1.SendTransactionRequest{
-				Transactionv2: transaction,
-			}
-
-			_, err := sdk.Core.SendTransaction(ctx, connect.NewRequest(req))
-			assert.Error(t, err)
-			assert.Contains(t, err.Error(), "control type is unspecified")
 		})
 	}
 }

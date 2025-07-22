@@ -25,10 +25,11 @@ var (
 	ErrMEADNonceNotOne       = errors.New("MEAD nonce is not one")
 
 	// Update MEAD message validation errors
-	ErrMEADAddressEmpty   = errors.New("MEAD address is empty")
-	ErrMEADToAddressEmpty = errors.New("MEAD to address is empty")
-	ErrMEADAddressNotTo   = errors.New("MEAD address is not the target of the message")
-	ErrMEADNonceNotNext   = errors.New("MEAD nonce is not the next nonce")
+	ErrMEADAddressEmpty                     = errors.New("MEAD address is empty")
+	ErrMEADToAddressEmpty                   = errors.New("MEAD to address is empty")
+	ErrMEADAddressNotTo                     = errors.New("MEAD address is not the target of the message")
+	ErrMEADNonceNotNext                     = errors.New("MEAD nonce is not the next nonce")
+	ErrMEADResourceAndReleaseAddressesEmpty = errors.New("MEAD resource and release addresses are empty")
 )
 
 func (s *Server) finalizeMEAD(ctx context.Context, req *abcitypes.FinalizeBlockRequest, txhash string, tx *v1beta1.Transaction, messageIndex int64) error {

@@ -396,23 +396,23 @@ func (c *CoreService) SendTransaction(ctx context.Context, req *connect.Request[
 		}
 
 		// only build receipt for v2 transactions
-		receipt := &v1beta1.TransactionReceipt{
-			EnvelopeInfo: &v1beta1.EnvelopeReceiptInfo{
-				ChainId:      c.core.config.GenesisFile.ChainID,
-				Expiration:   req.Msg.Transactionv2.Envelope.Header.Expiration,
-				Nonce:        req.Msg.Transactionv2.Envelope.Header.Nonce,
-				MessageCount: int32(len(req.Msg.Transactionv2.Envelope.Messages)),
-			},
-			TxHash:          txhash,
-			Height:          block.Height,
-			Timestamp:       block.CreatedAt.Time.Unix(),
-			Sender:          "", // TODO: get sender from transaction signature
-			Responder:       c.core.config.ProposerAddress,
-			Proposer:        block.Proposer,
-			MessageReceipts: make([]*v1beta1.MessageReceipt, len(req.Msg.Transactionv2.Envelope.Messages)),
-		}
-
+		var receipt *v1beta1.TransactionReceipt
 		if req.Msg.Transactionv2 != nil {
+			receipt = &v1beta1.TransactionReceipt{
+				EnvelopeInfo: &v1beta1.EnvelopeReceiptInfo{
+					ChainId:      c.core.config.GenesisFile.ChainID,
+					Expiration:   req.Msg.Transactionv2.Envelope.Header.Expiration,
+					Nonce:        req.Msg.Transactionv2.Envelope.Header.Nonce,
+					MessageCount: int32(len(req.Msg.Transactionv2.Envelope.Messages)),
+				},
+				TxHash:          txhash,
+				Height:          block.Height,
+				Timestamp:       block.CreatedAt.Time.Unix(),
+				Sender:          "", // TODO: get sender from transaction signature
+				Responder:       c.core.config.ProposerAddress,
+				Proposer:        block.Proposer,
+				MessageReceipts: make([]*v1beta1.MessageReceipt, len(req.Msg.Transactionv2.Envelope.Messages)),
+			}
 			// get all receipts by tx hash and use index to map to the correct message
 
 			// get ERNs, MEADs, and PIES by tx hash and use index to map to the correct message
