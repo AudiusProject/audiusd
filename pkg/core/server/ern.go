@@ -26,9 +26,10 @@ var (
 	ErrERNNonceNotOne       = errors.New("ERN nonce is not one")
 
 	// Update ERN message validation errors
-	ErrERNAddressEmpty = errors.New("ERN address is empty")
-	ErrERNAddressNotTo = errors.New("ERN address is not the target of the message")
-	ErrERNNonceNotNext = errors.New("ERN nonce is not the next nonce")
+	ErrERNAddressEmpty   = errors.New("ERN address is empty")
+	ErrERNToAddressEmpty = errors.New("ERN to address is empty")
+	ErrERNAddressNotTo   = errors.New("ERN address is not the target of the message")
+	ErrERNNonceNotNext   = errors.New("ERN nonce is not the next nonce")
 )
 
 func (s *Server) finalizeERN(ctx context.Context, req *abcitypes.FinalizeBlockRequest, txhash string, tx *v1beta1.Transaction, messageIndex int64) error {
@@ -177,8 +178,8 @@ func (s *Server) validateERNUpdateMessage(ctx context.Context, ern *v1beta2.Elec
 		return ErrERNFromAddressEmpty
 	}
 
-	if ern.Header.To != "" {
-		return ErrERNToAddressNotEmpty
+	if ern.Header.To == "" {
+		return ErrERNToAddressEmpty
 	}
 
 	// address of the ERN must also be the target of the message
@@ -186,11 +187,7 @@ func (s *Server) validateERNUpdateMessage(ctx context.Context, ern *v1beta2.Elec
 		return ErrERNAddressNotTo
 	}
 
-	if ern.Header.Nonce != 1 {
-		return ErrERNNonceNotOne
-	}
-
-	storedERN, err := s.getDb().GetERN(ctx, ern.Address)
+	storedERN, err := s.db.GetERN(ctx, ern.Address)
 	if err != nil {
 		return fmt.Errorf("failed to get stored ERN: %w", err)
 	}

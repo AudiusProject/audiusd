@@ -161,7 +161,7 @@ func (s *Server) validatePIEUpdateMessage(ctx context.Context, pie *v1beta2.Part
 		return ErrPIEAddressNotTo
 	}
 
-	storedPIE, err := s.getDb().GetPIE(ctx, pie.Address)
+	storedPIE, err := s.db.GetPIE(ctx, pie.Address)
 	if err != nil {
 		return fmt.Errorf("failed to get stored PIE: %w", err)
 	}

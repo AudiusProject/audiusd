@@ -162,7 +162,7 @@ func (s *Server) validateMEADUpdateMessage(ctx context.Context, mead *v1beta2.Me
 		return ErrMEADAddressNotTo
 	}
 
-	storedMEAD, err := s.getDb().GetMEAD(ctx, mead.Address)
+	storedMEAD, err := s.db.GetMEAD(ctx, mead.Address)
 	if err != nil {
 		return fmt.Errorf("failed to get stored MEAD: %w", err)
 	}
