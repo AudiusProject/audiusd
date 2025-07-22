@@ -2,6 +2,8 @@
 create table if not exists core_ern (
     id bigserial primary key,
     address text not null,
+    index bigint not null,
+    tx_hash text not null,
     sender text not null,
     nonce bigint not null,
     message_control_type smallint not null,
@@ -10,6 +12,7 @@ create table if not exists core_ern (
     release_addresses text[] not null,
     deal_addresses text[] not null,
     raw_message bytea not null,
+    raw_acknowledgment bytea not null,
     block_height bigint not null
 );
 
@@ -27,12 +30,15 @@ create index if not exists idx_core_ern_deal_addresses_gin on core_ern using gin
 create table if not exists core_mead(
     id bigserial primary key,
     address text not null,
+    tx_hash text not null,
+    index bigint not null,
     sender text not null,
     nonce bigint not null,
     message_control_type smallint not null,
     resource_addresses text[] not null,
     release_addresses text[] not null,
     raw_message bytea not null,
+    raw_acknowledgment bytea not null,
     block_height bigint not null
 );
 
@@ -48,11 +54,14 @@ create index if not exists idx_core_mead_release_addresses_gin on core_mead usin
 create table if not exists core_pie(
     id bigserial primary key,
     address text not null,
+    tx_hash text not null,
+    index bigint not null,
     sender text not null,
     nonce bigint not null,
     message_control_type smallint not null,
     party_addresses text[] not null,
     raw_message bytea not null,
+    raw_acknowledgment bytea not null,
     block_height bigint not null
 );
 

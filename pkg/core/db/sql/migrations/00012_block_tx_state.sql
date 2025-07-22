@@ -22,7 +22,6 @@ create table if not exists core_transactions(
   index integer not null,
   tx_hash text not null,
   transaction bytea not null,
-  receipt_data bytea,
   created_at timestamp not null,
 
   unique (block_id, index)

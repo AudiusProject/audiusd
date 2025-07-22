@@ -302,7 +302,13 @@ func (s *Server) FinalizeBlock(ctx context.Context, req *abcitypes.FinalizeBlock
 				// Calculate hash from envelope only, to match connect.go
 				txhash := s.toTxHash(v2Tx.Envelope)
 
-				// finalize v2 transaction
+				// finalize v2 transaction and get receipt data
+				err := s.finalizeV2Transaction(ctx, req, v2Tx)
+				if err != nil {
+					s.logger.Errorf("failed to finalize v2 transaction %s: %v", txhash, err)
+					txs[i] = &abcitypes.ExecTxResult{Code: 2}
+				}
+
 				if err := s.getDb().StoreTransaction(ctx, db.StoreTransactionParams{
 					BlockID:     req.Height,
 					Index:       int32(i),
@@ -310,13 +316,7 @@ func (s *Server) FinalizeBlock(ctx context.Context, req *abcitypes.FinalizeBlock
 					Transaction: tx,
 					CreatedAt:   s.db.ToPgxTimestamp(req.Time),
 				}); err != nil {
-					s.logger.Errorf("failed to store transaction: %v", err)
-				}
-
-				// finalize v2 transaction
-				if err := s.finalizeV2Transaction(ctx, req, v2Tx); err != nil {
-					s.logger.Errorf("failed to finalize v2 transaction: %v", err)
-					txs[i] = &abcitypes.ExecTxResult{Code: 2}
+					s.logger.Errorf("failed to store transaction %s: %v", txhash, err)
 				}
 
 				state.finalizedTxs = append(state.finalizedTxs, txhash)

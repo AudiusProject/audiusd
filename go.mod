@@ -39,7 +39,6 @@ require (
 
 require (
 	connectrpc.com/connect v1.18.1
-	dario.cat/mergo v1.0.1
 	github.com/axiomhq/axiom-go v0.23.0
 	github.com/cockroachdb/pebble v1.1.2
 	github.com/cometbft/cometbft/api v1.0.0
@@ -65,6 +64,7 @@ require (
 	cloud.google.com/go/compute/metadata v0.5.2 // indirect
 	cloud.google.com/go/iam v1.1.13 // indirect
 	cloud.google.com/go/storage v1.43.0 // indirect
+	dario.cat/mergo v1.0.1 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.14.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.7.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/internal v1.10.0 // indirect

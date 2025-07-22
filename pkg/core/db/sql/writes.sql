@@ -44,8 +44,8 @@ insert into core_blocks (height, chain_id, hash, proposer, created_at)
 values ($1, $2, $3, $4, $5);
 
 -- name: StoreTransaction :exec
-insert into core_transactions (block_id, index, tx_hash, transaction, receipt_data, created_at)
-values ($1, $2, $3, $4, $5, $6);
+insert into core_transactions (block_id, index, tx_hash, transaction, created_at)
+values ($1, $2, $3, $4, $5);
 
 -- name: InsertStorageProofPeers :exec
 insert into storage_proof_peers (block_height, prover_addresses)
@@ -230,6 +230,8 @@ insert into management_keys (track_id, address) values ($1, $2);
 -- name: InsertCoreERN :exec
 insert into core_ern (
     address,
+    tx_hash,
+    index,
     sender,
     nonce,
     message_control_type,
@@ -238,28 +240,35 @@ insert into core_ern (
     release_addresses,
     deal_addresses,
     raw_message,
+    raw_acknowledgment,
     block_height
-) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);
+) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13);
 
 -- name: InsertCoreMEAD :exec
 insert into core_mead (
     address,
+    tx_hash,
+    index,
     sender,
     nonce,
     message_control_type,
     resource_addresses,
     release_addresses,
     raw_message,
+    raw_acknowledgment,
     block_height
-) values ($1, $2, $3, $4, $5, $6, $7, $8);
+) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11);
 
 -- name: InsertCorePIE :exec
 insert into core_pie (
     address,
+    tx_hash,
+    index,
     sender,
     nonce,
     message_control_type,
     party_addresses,
     raw_message,
+    raw_acknowledgment,
     block_height
-) values ($1, $2, $3, $4, $5, $6, $7);
+) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);

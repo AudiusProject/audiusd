@@ -183,6 +183,8 @@ func TestERNProcessing(t *testing.T) {
 	assert.NotNil(t, submitRes.Msg.TransactionReceipt)
 	receipt := submitRes.Msg.TransactionReceipt
 
+	t.Logf("Transaction receipt: %v", receipt)
+
 	// Verify basic receipt fields
 	assert.Equal(t, expectedTxHash, receipt.TxHash)
 	assert.Equal(t, chainId, receipt.EnvelopeInfo.ChainId)
@@ -564,4 +566,247 @@ func TestMultiMessageTransaction(t *testing.T) {
 	t.Logf("- ERN address: %s", ernReceipt.GetErnAck().ErnAddress)
 	t.Logf("- MEAD address: %s", meadReceipt.GetMeadAck().MeadAddress)
 	t.Logf("- PIE address: %s", pieReceipt.GetPieAck().PieAddress)
+}
+
+func TestGetMEAD(t *testing.T) {
+	ctx := context.Background()
+	sdk := utils.DiscoveryOne
+
+	nodeInfo, err := sdk.Core.GetNodeInfo(ctx, connect.NewRequest(&corev1.GetNodeInfoRequest{}))
+	assert.NoError(t, err)
+	chainId := nodeInfo.Msg.Chainid
+	recentBlock := nodeInfo.Msg.CurrentHeight
+
+	// Create DDEX v1beta2 MEAD message
+	testMEAD := &ddex.MediaEnrichmentDescription{
+		Header: &ddex.DDEXMessageHeader{
+			ControlType: ddex.DDEXMessageControlType_DDEX_MESSAGE_CONTROL_TYPE_NEW_MESSAGE,
+			From:        "0x1234567890123456789012345678901234567890",
+			To:          "0x0987654321098765432109876543210987654321",
+			Nonce:       1,
+		},
+		Metadata: []byte(`{"genre": "ambient", "bpm": 85, "key": "D minor", "instruments": ["synthesizer", "pad", "reverb"]}`),
+		ResourceAddresses: []string{
+			"resource_addr_ambient_1",
+			"resource_addr_ambient_2",
+		},
+		ReleaseAddresses: []string{
+			"release_addr_ambient_album",
+		},
+		Mood: &ddex.Mood{
+			Mood:       "contemplative",
+			Definition: "Thoughtful and introspective ambient soundscape",
+		},
+	}
+
+	// Create envelope with the MEAD message
+	envelope := &corev1beta1.Envelope{
+		Header: &corev1beta1.EnvelopeHeader{
+			ChainId:    chainId,
+			Expiration: recentBlock + 100,
+			Nonce:      uuid.NewString(),
+		},
+		Messages: []*corev1beta1.Message{
+			{
+				Message: &corev1beta1.Message_Mead{
+					Mead: testMEAD,
+				},
+			},
+		},
+	}
+
+	// Create transaction
+	transaction := &corev1beta1.Transaction{
+		Signature: []byte("mock_signature_for_testing"),
+		Envelope:  envelope,
+	}
+
+	// Send the MEAD transaction
+	req := &corev1.SendTransactionRequest{
+		Transactionv2: transaction,
+	}
+
+	submitRes, err := sdk.Core.SendTransaction(ctx, connect.NewRequest(req))
+	assert.NoError(t, err)
+
+	// Get MEAD address from receipt
+	assert.NotNil(t, submitRes.Msg.TransactionReceipt)
+	receipt := submitRes.Msg.TransactionReceipt
+	meadReceipt := receipt.MessageReceipts[0]
+	meadAck := meadReceipt.GetMeadAck()
+	assert.NotEmpty(t, meadAck.MeadAddress)
+
+	// Wait a moment for transaction to be processed
+	time.Sleep(time.Second * 2)
+
+	// Test GetMEAD functionality using the MEAD address from the receipt
+	meadGetReq := &corev1.GetMEADRequest{
+		Address: meadAck.MeadAddress,
+	}
+
+	meadGetRes, err := sdk.Core.GetMEAD(ctx, connect.NewRequest(meadGetReq))
+	assert.NoError(t, err)
+	assert.NotNil(t, meadGetRes.Msg.Mead)
+
+	retrievedMEAD := meadGetRes.Msg.Mead
+
+	// Verify the retrieved MEAD matches our original test data
+	assert.Equal(t, testMEAD.Header.ControlType, retrievedMEAD.Header.ControlType)
+	assert.Equal(t, testMEAD.Header.From, retrievedMEAD.Header.From)
+	assert.Equal(t, testMEAD.Header.To, retrievedMEAD.Header.To)
+	assert.Equal(t, testMEAD.Header.Nonce, retrievedMEAD.Header.Nonce)
+
+	// Verify metadata
+	assert.Equal(t, string(testMEAD.Metadata), string(retrievedMEAD.Metadata))
+
+	// Verify resource addresses
+	assert.Len(t, retrievedMEAD.ResourceAddresses, 2)
+	assert.Equal(t, testMEAD.ResourceAddresses[0], retrievedMEAD.ResourceAddresses[0])
+	assert.Equal(t, testMEAD.ResourceAddresses[1], retrievedMEAD.ResourceAddresses[1])
+
+	// Verify release addresses
+	assert.Len(t, retrievedMEAD.ReleaseAddresses, 1)
+	assert.Equal(t, testMEAD.ReleaseAddresses[0], retrievedMEAD.ReleaseAddresses[0])
+
+	// Verify mood
+	assert.NotNil(t, retrievedMEAD.Mood)
+	assert.Equal(t, testMEAD.Mood.Mood, retrievedMEAD.Mood.Mood)
+	assert.Equal(t, testMEAD.Mood.Definition, retrievedMEAD.Mood.Definition)
+
+	t.Logf("Successfully retrieved MEAD message for address: %s", meadAck.MeadAddress)
+	t.Logf("Retrieved MEAD contains same data as original:")
+	t.Logf("- Message Control Type: %v", retrievedMEAD.Header.ControlType)
+	t.Logf("- Mood: %s - %s", retrievedMEAD.Mood.Mood, retrievedMEAD.Mood.Definition)
+	t.Logf("- Metadata: %s", string(retrievedMEAD.Metadata))
+}
+
+func TestGetPIE(t *testing.T) {
+	ctx := context.Background()
+	sdk := utils.DiscoveryOne
+
+	nodeInfo, err := sdk.Core.GetNodeInfo(ctx, connect.NewRequest(&corev1.GetNodeInfoRequest{}))
+	assert.NoError(t, err)
+	chainId := nodeInfo.Msg.Chainid
+	recentBlock := nodeInfo.Msg.CurrentHeight
+
+	// Create DDEX v1beta2 PIE message
+	testPIE := &ddex.PartyIdentificationEnrichment{
+		Header: &ddex.DDEXMessageHeader{
+			ControlType: ddex.DDEXMessageControlType_DDEX_MESSAGE_CONTROL_TYPE_NEW_MESSAGE,
+			From:        "0x1234567890123456789012345678901234567890",
+			To:          "0x0987654321098765432109876543210987654321",
+			Nonce:       1,
+		},
+		Metadata: []byte(`{"artist_bio": "Experimental electronic music collective from Berlin", "location": "Berlin, Germany", "formed": "2019", "members": 4}`),
+		PartyAddresses: []string{
+			"party_addr_collective_1",
+			"party_addr_collective_2",
+			"party_addr_collective_3",
+		},
+		HandleList: []*ddex.Handle{
+			{
+				HandleType:  "audius",
+				HandleValue: "berlin_collective",
+			},
+			{
+				HandleType:  "spotify",
+				HandleValue: "berlin-electronic-collective",
+			},
+			{
+				HandleType:  "soundcloud",
+				HandleValue: "berlin-collective-official",
+			},
+			{
+				HandleType:  "bandcamp",
+				HandleValue: "berlinelectronic",
+			},
+		},
+		Verified: &ddex.Verified{
+			Verified: true,
+		},
+	}
+
+	// Create envelope with the PIE message
+	envelope := &corev1beta1.Envelope{
+		Header: &corev1beta1.EnvelopeHeader{
+			ChainId:    chainId,
+			Expiration: recentBlock + 100,
+			Nonce:      uuid.NewString(),
+		},
+		Messages: []*corev1beta1.Message{
+			{
+				Message: &corev1beta1.Message_Pie{
+					Pie: testPIE,
+				},
+			},
+		},
+	}
+
+	// Create transaction
+	transaction := &corev1beta1.Transaction{
+		Signature: []byte("mock_signature_for_testing"),
+		Envelope:  envelope,
+	}
+
+	// Send the PIE transaction
+	req := &corev1.SendTransactionRequest{
+		Transactionv2: transaction,
+	}
+
+	submitRes, err := sdk.Core.SendTransaction(ctx, connect.NewRequest(req))
+	assert.NoError(t, err)
+
+	// Get PIE address from receipt
+	assert.NotNil(t, submitRes.Msg.TransactionReceipt)
+	receipt := submitRes.Msg.TransactionReceipt
+	pieReceipt := receipt.MessageReceipts[0]
+	pieAck := pieReceipt.GetPieAck()
+	assert.NotEmpty(t, pieAck.PieAddress)
+
+	// Wait a moment for transaction to be processed
+	time.Sleep(time.Second * 2)
+
+	// Test GetPIE functionality using the PIE address from the receipt
+	pieGetReq := &corev1.GetPIERequest{
+		Address: pieAck.PieAddress,
+	}
+
+	pieGetRes, err := sdk.Core.GetPIE(ctx, connect.NewRequest(pieGetReq))
+	assert.NoError(t, err)
+	assert.NotNil(t, pieGetRes.Msg.Pie)
+
+	retrievedPIE := pieGetRes.Msg.Pie
+
+	// Verify the retrieved PIE matches our original test data
+	assert.Equal(t, testPIE.Header.ControlType, retrievedPIE.Header.ControlType)
+	assert.Equal(t, testPIE.Header.From, retrievedPIE.Header.From)
+	assert.Equal(t, testPIE.Header.To, retrievedPIE.Header.To)
+	assert.Equal(t, testPIE.Header.Nonce, retrievedPIE.Header.Nonce)
+
+	// Verify metadata
+	assert.Equal(t, string(testPIE.Metadata), string(retrievedPIE.Metadata))
+
+	// Verify party addresses
+	assert.Len(t, retrievedPIE.PartyAddresses, 3)
+	assert.Equal(t, testPIE.PartyAddresses[0], retrievedPIE.PartyAddresses[0])
+	assert.Equal(t, testPIE.PartyAddresses[1], retrievedPIE.PartyAddresses[1])
+	assert.Equal(t, testPIE.PartyAddresses[2], retrievedPIE.PartyAddresses[2])
+
+	// Verify handle list
+	assert.Len(t, retrievedPIE.HandleList, 4)
+	for i, handle := range testPIE.HandleList {
+		assert.Equal(t, handle.HandleType, retrievedPIE.HandleList[i].HandleType)
+		assert.Equal(t, handle.HandleValue, retrievedPIE.HandleList[i].HandleValue)
+	}
+
+	// Verify verified status
+	assert.NotNil(t, retrievedPIE.Verified)
+	assert.Equal(t, testPIE.Verified.Verified, retrievedPIE.Verified.Verified)
+
+	t.Logf("Successfully retrieved PIE message for address: %s", pieAck.PieAddress)
+	t.Logf("Retrieved PIE contains same data as original:")
+	t.Logf("- Message Control Type: %v", retrievedPIE.Header.ControlType)
+	t.Logf("- Verified: %v", retrievedPIE.Verified.Verified)
+	t.Logf("- Handles: %d platforms", len(retrievedPIE.HandleList))
+	t.Logf("- Metadata: %s", string(retrievedPIE.Metadata))
 }

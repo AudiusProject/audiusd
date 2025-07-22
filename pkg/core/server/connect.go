@@ -388,28 +388,93 @@ func (c *CoreService) SendTransaction(ctx context.Context, req *connect.Request[
 		}
 
 		// only build receipt for v2 transactions
-		var receipt *v1beta1.TransactionReceipt
+		receipt := &v1beta1.TransactionReceipt{
+			EnvelopeInfo: &v1beta1.EnvelopeReceiptInfo{
+				ChainId:      c.core.config.GenesisFile.ChainID,
+				Expiration:   req.Msg.Transactionv2.Envelope.Header.Expiration,
+				Nonce:        req.Msg.Transactionv2.Envelope.Header.Nonce,
+				MessageCount: int32(len(req.Msg.Transactionv2.Envelope.Messages)),
+			},
+			TxHash:          txhash,
+			Height:          block.Height,
+			Timestamp:       block.CreatedAt.Time.Unix(),
+			Sender:          "", // TODO: get sender from transaction signature
+			Responder:       c.core.config.ProposerAddress,
+			Proposer:        block.Proposer,
+			MessageReceipts: make([]*v1beta1.MessageReceipt, len(req.Msg.Transactionv2.Envelope.Messages)),
+		}
+
 		if req.Msg.Transactionv2 != nil {
-			storedTx, err := c.core.db.GetTx(ctx, txhash)
+			// get all receipts by tx hash and use index to map to the correct message
+
+			// get ERNs, MEADs, and PIES by tx hash and use index to map to the correct message
+			ernReceipts, err := c.core.db.GetERNReceipts(ctx, txhash)
 			if err != nil {
-				return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("could get finalized tx: %v", err))
+				c.core.logger.Errorf("error getting ERN receipts: %v", err)
+			} else {
+				for _, ernReceipt := range ernReceipts {
+					ernAck := &v1beta2.ElectronicReleaseNotificationAck{}
+					err = proto.Unmarshal(ernReceipt.RawAcknowledgment, ernAck)
+					if err != nil {
+						c.core.logger.Errorf("error unmarshalling ERN receipt: %v", err)
+					}
+					receipt.MessageReceipts[ernReceipt.Index] = &v1beta1.MessageReceipt{
+						MessageIndex: int32(ernReceipt.Index),
+						Result: &v1beta1.MessageReceipt_ErnAck{
+							ErnAck: ernAck,
+						},
+					}
+				}
 			}
-			if storedTx.ReceiptData != nil {
-				err = proto.Unmarshal(storedTx.ReceiptData, receipt)
-				if err != nil {
-					return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("could not unmarshal receipt: %v", err))
+
+			meadReceipts, err := c.core.db.GetMEADReceipts(ctx, txhash)
+			if err != nil {
+				c.core.logger.Errorf("error getting MEAD receipts: %v", err)
+			} else {
+				for _, meadReceipt := range meadReceipts {
+					meadAck := &v1beta2.MediaEnrichmentDescriptionAck{}
+					err = proto.Unmarshal(meadReceipt.RawAcknowledgment, meadAck)
+					if err != nil {
+						c.core.logger.Errorf("error unmarshalling MEAD receipt: %v", err)
+					}
+					receipt.MessageReceipts[meadReceipt.Index] = &v1beta1.MessageReceipt{
+						MessageIndex: int32(meadReceipt.Index),
+						Result: &v1beta1.MessageReceipt_MeadAck{
+							MeadAck: meadAck,
+						},
+					}
+				}
+			}
+
+			pieReceipts, err := c.core.db.GetPIEReceipts(ctx, txhash)
+			if err != nil {
+				c.core.logger.Errorf("error getting PIE receipts: %v", err)
+			} else {
+				for _, pieReceipt := range pieReceipts {
+					pieAck := &v1beta2.PartyIdentificationEnrichmentAck{}
+					err = proto.Unmarshal(pieReceipt.RawAcknowledgment, pieAck)
+					if err != nil {
+						c.core.logger.Errorf("error unmarshalling PIE receipt: %v", err)
+					}
+					receipt.MessageReceipts[pieReceipt.Index] = &v1beta1.MessageReceipt{
+						MessageIndex: int32(pieReceipt.Index),
+						Result: &v1beta1.MessageReceipt_PieAck{
+							PieAck: pieAck,
+						},
+					}
 				}
 			}
 		}
 
 		return connect.NewResponse(&v1.SendTransactionResponse{
 			Transaction: &v1.Transaction{
-				Hash:        txhash,
-				BlockHash:   block.Hash,
-				ChainId:     c.core.config.GenesisFile.ChainID,
-				Height:      block.Height,
-				Timestamp:   timestamppb.New(block.CreatedAt.Time),
-				Transaction: req.Msg.Transaction,
+				Hash:          txhash,
+				BlockHash:     block.Hash,
+				ChainId:       c.core.config.GenesisFile.ChainID,
+				Height:        block.Height,
+				Timestamp:     timestamppb.New(block.CreatedAt.Time),
+				Transaction:   req.Msg.Transaction,
+				Transactionv2: req.Msg.Transactionv2,
 			},
 			TransactionReceipt: receipt,
 		}), nil

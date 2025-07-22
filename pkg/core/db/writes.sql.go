@@ -89,6 +89,8 @@ func (q *Queries) InsertAccessKey(ctx context.Context, arg InsertAccessKeyParams
 const insertCoreERN = `-- name: InsertCoreERN :exec
 insert into core_ern (
     address,
+    tx_hash,
+    index,
     sender,
     nonce,
     message_control_type,
@@ -97,12 +99,15 @@ insert into core_ern (
     release_addresses,
     deal_addresses,
     raw_message,
+    raw_acknowledgment,
     block_height
-) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 `
 
 type InsertCoreERNParams struct {
 	Address            string
+	TxHash             string
+	Index              int64
 	Sender             string
 	Nonce              int64
 	MessageControlType int16
@@ -111,6 +116,7 @@ type InsertCoreERNParams struct {
 	ReleaseAddresses   []string
 	DealAddresses      []string
 	RawMessage         []byte
+	RawAcknowledgment  []byte
 	BlockHeight        int64
 }
 
@@ -118,6 +124,8 @@ type InsertCoreERNParams struct {
 func (q *Queries) InsertCoreERN(ctx context.Context, arg InsertCoreERNParams) error {
 	_, err := q.db.Exec(ctx, insertCoreERN,
 		arg.Address,
+		arg.TxHash,
+		arg.Index,
 		arg.Sender,
 		arg.Nonce,
 		arg.MessageControlType,
@@ -126,6 +134,7 @@ func (q *Queries) InsertCoreERN(ctx context.Context, arg InsertCoreERNParams) er
 		arg.ReleaseAddresses,
 		arg.DealAddresses,
 		arg.RawMessage,
+		arg.RawAcknowledgment,
 		arg.BlockHeight,
 	)
 	return err
@@ -134,36 +143,45 @@ func (q *Queries) InsertCoreERN(ctx context.Context, arg InsertCoreERNParams) er
 const insertCoreMEAD = `-- name: InsertCoreMEAD :exec
 insert into core_mead (
     address,
+    tx_hash,
+    index,
     sender,
     nonce,
     message_control_type,
     resource_addresses,
     release_addresses,
     raw_message,
+    raw_acknowledgment,
     block_height
-) values ($1, $2, $3, $4, $5, $6, $7, $8)
+) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 `
 
 type InsertCoreMEADParams struct {
 	Address            string
+	TxHash             string
+	Index              int64
 	Sender             string
 	Nonce              int64
 	MessageControlType int16
 	ResourceAddresses  []string
 	ReleaseAddresses   []string
 	RawMessage         []byte
+	RawAcknowledgment  []byte
 	BlockHeight        int64
 }
 
 func (q *Queries) InsertCoreMEAD(ctx context.Context, arg InsertCoreMEADParams) error {
 	_, err := q.db.Exec(ctx, insertCoreMEAD,
 		arg.Address,
+		arg.TxHash,
+		arg.Index,
 		arg.Sender,
 		arg.Nonce,
 		arg.MessageControlType,
 		arg.ResourceAddresses,
 		arg.ReleaseAddresses,
 		arg.RawMessage,
+		arg.RawAcknowledgment,
 		arg.BlockHeight,
 	)
 	return err
@@ -172,33 +190,42 @@ func (q *Queries) InsertCoreMEAD(ctx context.Context, arg InsertCoreMEADParams) 
 const insertCorePIE = `-- name: InsertCorePIE :exec
 insert into core_pie (
     address,
+    tx_hash,
+    index,
     sender,
     nonce,
     message_control_type,
     party_addresses,
     raw_message,
+    raw_acknowledgment,
     block_height
-) values ($1, $2, $3, $4, $5, $6, $7)
+) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 `
 
 type InsertCorePIEParams struct {
 	Address            string
+	TxHash             string
+	Index              int64
 	Sender             string
 	Nonce              int64
 	MessageControlType int16
 	PartyAddresses     []string
 	RawMessage         []byte
+	RawAcknowledgment  []byte
 	BlockHeight        int64
 }
 
 func (q *Queries) InsertCorePIE(ctx context.Context, arg InsertCorePIEParams) error {
 	_, err := q.db.Exec(ctx, insertCorePIE,
 		arg.Address,
+		arg.TxHash,
+		arg.Index,
 		arg.Sender,
 		arg.Nonce,
 		arg.MessageControlType,
 		arg.PartyAddresses,
 		arg.RawMessage,
+		arg.RawAcknowledgment,
 		arg.BlockHeight,
 	)
 	return err
@@ -730,8 +757,8 @@ func (q *Queries) StoreBlock(ctx context.Context, arg StoreBlockParams) error {
 }
 
 const storeTransaction = `-- name: StoreTransaction :exec
-insert into core_transactions (block_id, index, tx_hash, transaction, receipt_data, created_at)
-values ($1, $2, $3, $4, $5, $6)
+insert into core_transactions (block_id, index, tx_hash, transaction, created_at)
+values ($1, $2, $3, $4, $5)
 `
 
 type StoreTransactionParams struct {
@@ -739,7 +766,6 @@ type StoreTransactionParams struct {
 	Index       int32
 	TxHash      string
 	Transaction []byte
-	ReceiptData []byte
 	CreatedAt   pgtype.Timestamp
 }
 
@@ -749,7 +775,6 @@ func (q *Queries) StoreTransaction(ctx context.Context, arg StoreTransactionPara
 		arg.Index,
 		arg.TxHash,
 		arg.Transaction,
-		arg.ReceiptData,
 		arg.CreatedAt,
 	)
 	return err

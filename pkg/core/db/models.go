@@ -78,6 +78,8 @@ type CoreBlock struct {
 type CoreErn struct {
 	ID                 int64
 	Address            string
+	Index              int64
+	TxHash             string
 	Sender             string
 	Nonce              int64
 	MessageControlType int16
@@ -86,6 +88,7 @@ type CoreErn struct {
 	ReleaseAddresses   []string
 	DealAddresses      []string
 	RawMessage         []byte
+	RawAcknowledgment  []byte
 	BlockHeight        int64
 }
 
@@ -186,23 +189,29 @@ type CoreEtlTxValidatorRegistration struct {
 type CoreMead struct {
 	ID                 int64
 	Address            string
+	TxHash             string
+	Index              int64
 	Sender             string
 	Nonce              int64
 	MessageControlType int16
 	ResourceAddresses  []string
 	ReleaseAddresses   []string
 	RawMessage         []byte
+	RawAcknowledgment  []byte
 	BlockHeight        int64
 }
 
 type CorePie struct {
 	ID                 int64
 	Address            string
+	TxHash             string
+	Index              int64
 	Sender             string
 	Nonce              int64
 	MessageControlType int16
 	PartyAddresses     []string
 	RawMessage         []byte
+	RawAcknowledgment  []byte
 	BlockHeight        int64
 }
 
@@ -212,7 +221,6 @@ type CoreTransaction struct {
 	Index       int32
 	TxHash      string
 	Transaction []byte
-	ReceiptData []byte
 	CreatedAt   pgtype.Timestamp
 }
 
