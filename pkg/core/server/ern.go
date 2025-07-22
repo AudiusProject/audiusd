@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/AudiusProject/audiusd/pkg/api/core/v1beta1"
 	"github.com/AudiusProject/audiusd/pkg/api/ddex/v1beta2"
@@ -199,6 +200,39 @@ func (s *Server) validateERNUpdateMessage(ctx context.Context, ern *v1beta2.Elec
 	}
 
 	// TODO: validate party, resource, release, deal addresses and their contents
+	// ensure that entities with provided addresses exist in this ERN
+	for _, party := range ern.PartyList {
+		if party.Address != "" {
+			if !slices.Contains(storedERN.PartyAddresses, party.Address) {
+				return fmt.Errorf("party address %s not found in ERN", party.Address)
+			}
+		}
+	}
+
+	for _, resource := range ern.ResourceList {
+
+		if resource.Address != "" {
+			if !slices.Contains(storedERN.ResourceAddresses, resource.Address) {
+				return fmt.Errorf("resource address %s not found in ERN", resource.Address)
+			}
+		}
+	}
+
+	for _, release := range ern.ReleaseList {
+		if release.Address != "" {
+			if !slices.Contains(storedERN.ReleaseAddresses, release.Address) {
+				return fmt.Errorf("release address %s not found in ERN", release.Address)
+			}
+		}
+	}
+
+	for _, deal := range ern.DealList {
+		if deal.Address != "" {
+			if !slices.Contains(storedERN.DealAddresses, deal.Address) {
+				return fmt.Errorf("deal address %s not found in ERN", deal.Address)
+			}
+		}
+	}
 
 	return nil
 }
@@ -208,16 +242,44 @@ func (s *Server) finalizeERNUpdateMessage(ctx context.Context, req *abcitypes.Fi
 		return errors.Join(ErrERNMessageValidation, err)
 	}
 
-	originalERN, err := s.getDb().GetERNCreate(ctx, ern.Address)
-	if err != nil {
-		return fmt.Errorf("failed to get original ERN: %w", err)
+	nonce := fmt.Sprintf("%d", ern.Header.Nonce)
+
+	// create new addresses for new entities, otherwise they will be the same as the original addresses
+	partyAddresses := make([]string, len(ern.PartyList))
+	for i, party := range ern.PartyList {
+		if party.Address == "" {
+			partyAddresses[i] = common.CreateAddress(party, s.config.GenesisFile.ChainID, req.Height, nonce)
+		} else {
+			partyAddresses[i] = party.Address
+		}
 	}
 
-	// TODO: concatenate the new party, resource, release, deal addresses with the original addresses
-	partyAddresses := originalERN.PartyAddresses       // plus the new party addresses
-	resourceAddresses := originalERN.ResourceAddresses // plus the new resource addresses
-	releaseAddresses := originalERN.ReleaseAddresses   // plus the new release addresses
-	dealAddresses := originalERN.DealAddresses         // plus the new deal addresses
+	resourceAddresses := make([]string, len(ern.ResourceList))
+	for i, resource := range ern.ResourceList {
+		if resource.Address == "" {
+			resourceAddresses[i] = common.CreateAddress(resource, s.config.GenesisFile.ChainID, req.Height, nonce)
+		} else {
+			resourceAddresses[i] = resource.Address
+		}
+	}
+
+	releaseAddresses := make([]string, len(ern.ReleaseList))
+	for i, release := range ern.ReleaseList {
+		if release.Address == "" {
+			releaseAddresses[i] = common.CreateAddress(release, s.config.GenesisFile.ChainID, req.Height, nonce)
+		} else {
+			releaseAddresses[i] = release.Address
+		}
+	}
+
+	dealAddresses := make([]string, len(ern.DealList))
+	for i, deal := range ern.DealList {
+		if deal.Address == "" {
+			dealAddresses[i] = common.CreateAddress(deal, s.config.GenesisFile.ChainID, req.Height, nonce)
+		} else {
+			dealAddresses[i] = deal.Address
+		}
+	}
 
 	rawMessage, err := proto.Marshal(ern)
 	if err != nil {

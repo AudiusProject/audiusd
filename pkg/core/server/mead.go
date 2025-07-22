@@ -177,14 +177,9 @@ func (s *Server) validateMEADUpdateMessage(ctx context.Context, mead *v1beta2.Me
 }
 
 func (s *Server) finalizeMEADUpdateMessage(ctx context.Context, req *abcitypes.FinalizeBlockRequest, txhash string, messageIndex int64, mead *v1beta2.MediaEnrichmentDescription) error {
-	originalMEAD, err := s.getDb().GetMEADCreate(ctx, mead.Address)
-	if err != nil {
-		return fmt.Errorf("failed to get original MEAD: %w", err)
+	if err := s.validateMEADUpdateMessage(ctx, mead); err != nil {
+		return errors.Join(ErrMEADMessageValidation, err)
 	}
-
-	// TODO: concatenate the new resource and release addresses with the original addresses
-	resourceAddresses := originalMEAD.ResourceAddresses // plus the new resource addresses
-	releaseAddresses := originalMEAD.ReleaseAddresses   // plus the new release addresses
 
 	rawMessage, err := proto.Marshal(mead)
 	if err != nil {
@@ -210,8 +205,8 @@ func (s *Server) finalizeMEADUpdateMessage(ctx context.Context, req *abcitypes.F
 		Sender:             mead.Header.From,
 		Nonce:              int64(mead.Header.Nonce),
 		MessageControlType: int16(mead.Header.ControlType),
-		ResourceAddresses:  resourceAddresses,
-		ReleaseAddresses:   releaseAddresses,
+		ResourceAddresses:  mead.ResourceAddresses,
+		ReleaseAddresses:   mead.ReleaseAddresses,
 		RawMessage:         rawMessage,
 		RawAcknowledgment:  rawAcknowledgment,
 		BlockHeight:        req.Height,
@@ -224,10 +219,10 @@ func (s *Server) finalizeMEADUpdateMessage(ctx context.Context, req *abcitypes.F
 
 /** MEAD Takedown Message */
 
-func (s *Server) validateMEADTakedownMessage(_ context.Context, mead *v1beta2.MediaEnrichmentDescription) error {
+func (s *Server) validateMEADTakedownMessage(_ context.Context, _ *v1beta2.MediaEnrichmentDescription) error {
 	return nil
 }
 
-func (s *Server) finalizeMEADTakedownMessage(ctx context.Context, req *abcitypes.FinalizeBlockRequest, txhash string, messageIndex int64, mead *v1beta2.MediaEnrichmentDescription) error {
+func (s *Server) finalizeMEADTakedownMessage(_ context.Context, _ *abcitypes.FinalizeBlockRequest, _ string, _ int64, _ *v1beta2.MediaEnrichmentDescription) error {
 	return nil
 }

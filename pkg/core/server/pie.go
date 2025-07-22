@@ -176,13 +176,9 @@ func (s *Server) validatePIEUpdateMessage(ctx context.Context, pie *v1beta2.Part
 }
 
 func (s *Server) finalizePIEUpdateMessage(ctx context.Context, req *abcitypes.FinalizeBlockRequest, txhash string, messageIndex int64, pie *v1beta2.PartyIdentificationEnrichment) error {
-	originalPIE, err := s.getDb().GetPIECreate(ctx, pie.Address)
-	if err != nil {
-		return fmt.Errorf("failed to get original PIE: %w", err)
+	if err := s.validatePIEUpdateMessage(ctx, pie); err != nil {
+		return errors.Join(ErrPIEMessageValidation, err)
 	}
-
-	// TODO: concatenate the new party addresses with the original addresses
-	partyAddresses := originalPIE.PartyAddresses // plus the new party addresses
 
 	rawMessage, err := proto.Marshal(pie)
 	if err != nil {
@@ -208,7 +204,7 @@ func (s *Server) finalizePIEUpdateMessage(ctx context.Context, req *abcitypes.Fi
 		Sender:             pie.Header.From,
 		Nonce:              int64(pie.Header.Nonce),
 		MessageControlType: int16(pie.Header.ControlType),
-		PartyAddresses:     partyAddresses,
+		PartyAddresses:     pie.PartyAddresses,
 		RawMessage:         rawMessage,
 		RawAcknowledgment:  rawAcknowledgment,
 		BlockHeight:        req.Height,
@@ -221,10 +217,10 @@ func (s *Server) finalizePIEUpdateMessage(ctx context.Context, req *abcitypes.Fi
 
 /** PIE Takedown Message */
 
-func (s *Server) validatePIETakedownMessage(_ context.Context, pie *v1beta2.PartyIdentificationEnrichment) error {
+func (s *Server) validatePIETakedownMessage(_ context.Context, _ *v1beta2.PartyIdentificationEnrichment) error {
 	return nil
 }
 
-func (s *Server) finalizePIETakedownMessage(ctx context.Context, req *abcitypes.FinalizeBlockRequest, txhash string, messageIndex int64, pie *v1beta2.PartyIdentificationEnrichment) error {
+func (s *Server) finalizePIETakedownMessage(_ context.Context, _ *abcitypes.FinalizeBlockRequest, _ string, _ int64, _ *v1beta2.PartyIdentificationEnrichment) error {
 	return nil
 }

@@ -810,3 +810,386 @@ func TestGetPIE(t *testing.T) {
 	t.Logf("- Handles: %d platforms", len(retrievedPIE.HandleList))
 	t.Logf("- Metadata: %s", string(retrievedPIE.Metadata))
 }
+
+// Validation Tests
+
+func TestERNValidationErrors(t *testing.T) {
+	ctx := context.Background()
+	sdk := utils.DiscoveryOne
+
+	nodeInfo, err := sdk.Core.GetNodeInfo(ctx, connect.NewRequest(&corev1.GetNodeInfoRequest{}))
+	assert.NoError(t, err)
+	chainId := nodeInfo.Msg.Chainid
+	recentBlock := nodeInfo.Msg.CurrentHeight
+
+	tests := []struct {
+		name          string
+		ernModifier   func(*ddex.ElectronicReleaseNotification)
+		expectedError string
+	}{
+		{
+			name: "ERN address not empty",
+			ernModifier: func(ern *ddex.ElectronicReleaseNotification) {
+				ern.Address = "should_be_empty"
+			},
+			expectedError: "ERN address is not empty",
+		},
+		{
+			name: "ERN from address empty",
+			ernModifier: func(ern *ddex.ElectronicReleaseNotification) {
+				ern.Header.From = ""
+			},
+			expectedError: "ERN from address is empty",
+		},
+		{
+			name: "ERN to address not empty",
+			ernModifier: func(ern *ddex.ElectronicReleaseNotification) {
+				ern.Header.To = "should_be_empty"
+			},
+			expectedError: "ERN to address is not empty",
+		},
+		{
+			name: "ERN nonce not one",
+			ernModifier: func(ern *ddex.ElectronicReleaseNotification) {
+				ern.Header.Nonce = 2
+			},
+			expectedError: "ERN nonce is not one",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create base ERN message
+			testERN := &ddex.ElectronicReleaseNotification{
+				Header: &ddex.DDEXMessageHeader{
+					ControlType: ddex.DDEXMessageControlType_DDEX_MESSAGE_CONTROL_TYPE_NEW_MESSAGE,
+					From:        "0x1234567890123456789012345678901234567890",
+					To:          "",
+					Nonce:       1,
+				},
+				PartyList: []*ddex.Party{
+					{
+						PartyReference: "P_ARTIST_TEST",
+						PartyName: []*ddex.Party_PartyName{
+							{
+								FullName: "Test Artist",
+							},
+						},
+					},
+				},
+			}
+
+			// Apply the modification that should cause validation error
+			tt.ernModifier(testERN)
+
+			// Create envelope
+			envelope := &corev1beta1.Envelope{
+				Header: &corev1beta1.EnvelopeHeader{
+					ChainId:    chainId,
+					Expiration: recentBlock + 100,
+					Nonce:      uuid.NewString(),
+				},
+				Messages: []*corev1beta1.Message{
+					{
+						Message: &corev1beta1.Message_Ern{
+							Ern: testERN,
+						},
+					},
+				},
+			}
+
+			// Create transaction
+			transaction := &corev1beta1.Transaction{
+				Signature: []byte("mock_signature_for_testing"),
+				Envelope:  envelope,
+			}
+
+			// Send transaction and expect error
+			req := &corev1.SendTransactionRequest{
+				Transactionv2: transaction,
+			}
+
+			_, err := sdk.Core.SendTransaction(ctx, connect.NewRequest(req))
+			assert.Error(t, err)
+			assert.Contains(t, err.Error(), tt.expectedError)
+		})
+	}
+}
+
+func TestMEADValidationErrors(t *testing.T) {
+	ctx := context.Background()
+	sdk := utils.DiscoveryOne
+
+	nodeInfo, err := sdk.Core.GetNodeInfo(ctx, connect.NewRequest(&corev1.GetNodeInfoRequest{}))
+	assert.NoError(t, err)
+	chainId := nodeInfo.Msg.Chainid
+	recentBlock := nodeInfo.Msg.CurrentHeight
+
+	tests := []struct {
+		name          string
+		meadModifier  func(*ddex.MediaEnrichmentDescription)
+		expectedError string
+	}{
+		{
+			name: "MEAD address not empty",
+			meadModifier: func(mead *ddex.MediaEnrichmentDescription) {
+				mead.Address = "should_be_empty"
+			},
+			expectedError: "MEAD address is not empty",
+		},
+		{
+			name: "MEAD from address empty",
+			meadModifier: func(mead *ddex.MediaEnrichmentDescription) {
+				mead.Header.From = ""
+			},
+			expectedError: "MEAD from address is empty",
+		},
+		{
+			name: "MEAD to address not empty",
+			meadModifier: func(mead *ddex.MediaEnrichmentDescription) {
+				mead.Header.To = "should_be_empty"
+			},
+			expectedError: "MEAD to address is not empty",
+		},
+		{
+			name: "MEAD nonce not one",
+			meadModifier: func(mead *ddex.MediaEnrichmentDescription) {
+				mead.Header.Nonce = 2
+			},
+			expectedError: "MEAD nonce is not one",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create base MEAD message
+			testMEAD := &ddex.MediaEnrichmentDescription{
+				Header: &ddex.DDEXMessageHeader{
+					ControlType: ddex.DDEXMessageControlType_DDEX_MESSAGE_CONTROL_TYPE_NEW_MESSAGE,
+					From:        "0x1234567890123456789012345678901234567890",
+					To:          "",
+					Nonce:       1,
+				},
+				Metadata: []byte(`{"genre": "test"}`),
+			}
+
+			// Apply the modification that should cause validation error
+			tt.meadModifier(testMEAD)
+
+			// Create envelope
+			envelope := &corev1beta1.Envelope{
+				Header: &corev1beta1.EnvelopeHeader{
+					ChainId:    chainId,
+					Expiration: recentBlock + 100,
+					Nonce:      uuid.NewString(),
+				},
+				Messages: []*corev1beta1.Message{
+					{
+						Message: &corev1beta1.Message_Mead{
+							Mead: testMEAD,
+						},
+					},
+				},
+			}
+
+			// Create transaction
+			transaction := &corev1beta1.Transaction{
+				Signature: []byte("mock_signature_for_testing"),
+				Envelope:  envelope,
+			}
+
+			// Send transaction and expect error
+			req := &corev1.SendTransactionRequest{
+				Transactionv2: transaction,
+			}
+
+			_, err := sdk.Core.SendTransaction(ctx, connect.NewRequest(req))
+			assert.Error(t, err)
+			assert.Contains(t, err.Error(), tt.expectedError)
+		})
+	}
+}
+
+func TestPIEValidationErrors(t *testing.T) {
+	ctx := context.Background()
+	sdk := utils.DiscoveryOne
+
+	nodeInfo, err := sdk.Core.GetNodeInfo(ctx, connect.NewRequest(&corev1.GetNodeInfoRequest{}))
+	assert.NoError(t, err)
+	chainId := nodeInfo.Msg.Chainid
+	recentBlock := nodeInfo.Msg.CurrentHeight
+
+	tests := []struct {
+		name          string
+		pieModifier   func(*ddex.PartyIdentificationEnrichment)
+		expectedError string
+	}{
+		{
+			name: "PIE address not empty",
+			pieModifier: func(pie *ddex.PartyIdentificationEnrichment) {
+				pie.Address = "should_be_empty"
+			},
+			expectedError: "PIE address is not empty",
+		},
+		{
+			name: "PIE from address empty",
+			pieModifier: func(pie *ddex.PartyIdentificationEnrichment) {
+				pie.Header.From = ""
+			},
+			expectedError: "PIE from address is empty",
+		},
+		{
+			name: "PIE to address not empty",
+			pieModifier: func(pie *ddex.PartyIdentificationEnrichment) {
+				pie.Header.To = "should_be_empty"
+			},
+			expectedError: "PIE to address is not empty",
+		},
+		{
+			name: "PIE nonce not one",
+			pieModifier: func(pie *ddex.PartyIdentificationEnrichment) {
+				pie.Header.Nonce = 2
+			},
+			expectedError: "PIE nonce is not one",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create base PIE message
+			testPIE := &ddex.PartyIdentificationEnrichment{
+				Header: &ddex.DDEXMessageHeader{
+					ControlType: ddex.DDEXMessageControlType_DDEX_MESSAGE_CONTROL_TYPE_NEW_MESSAGE,
+					From:        "0x1234567890123456789012345678901234567890",
+					To:          "",
+					Nonce:       1,
+				},
+				Metadata: []byte(`{"test": "data"}`),
+			}
+
+			// Apply the modification that should cause validation error
+			tt.pieModifier(testPIE)
+
+			// Create envelope
+			envelope := &corev1beta1.Envelope{
+				Header: &corev1beta1.EnvelopeHeader{
+					ChainId:    chainId,
+					Expiration: recentBlock + 100,
+					Nonce:      uuid.NewString(),
+				},
+				Messages: []*corev1beta1.Message{
+					{
+						Message: &corev1beta1.Message_Pie{
+							Pie: testPIE,
+						},
+					},
+				},
+			}
+
+			// Create transaction
+			transaction := &corev1beta1.Transaction{
+				Signature: []byte("mock_signature_for_testing"),
+				Envelope:  envelope,
+			}
+
+			// Send transaction and expect error
+			req := &corev1.SendTransactionRequest{
+				Transactionv2: transaction,
+			}
+
+			_, err := sdk.Core.SendTransaction(ctx, connect.NewRequest(req))
+			assert.Error(t, err)
+			assert.Contains(t, err.Error(), tt.expectedError)
+		})
+	}
+}
+
+func TestUnspecifiedControlType(t *testing.T) {
+	ctx := context.Background()
+	sdk := utils.DiscoveryOne
+
+	nodeInfo, err := sdk.Core.GetNodeInfo(ctx, connect.NewRequest(&corev1.GetNodeInfoRequest{}))
+	assert.NoError(t, err)
+	chainId := nodeInfo.Msg.Chainid
+	recentBlock := nodeInfo.Msg.CurrentHeight
+
+	tests := []struct {
+		name    string
+		message *corev1beta1.Message
+	}{
+		{
+			name: "ERN unspecified control type",
+			message: &corev1beta1.Message{
+				Message: &corev1beta1.Message_Ern{
+					Ern: &ddex.ElectronicReleaseNotification{
+						Header: &ddex.DDEXMessageHeader{
+							ControlType: ddex.DDEXMessageControlType_DDEX_MESSAGE_CONTROL_TYPE_UNSPECIFIED,
+							From:        "0x1234567890123456789012345678901234567890",
+							To:          "",
+							Nonce:       1,
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "MEAD unspecified control type",
+			message: &corev1beta1.Message{
+				Message: &corev1beta1.Message_Mead{
+					Mead: &ddex.MediaEnrichmentDescription{
+						Header: &ddex.DDEXMessageHeader{
+							ControlType: ddex.DDEXMessageControlType_DDEX_MESSAGE_CONTROL_TYPE_UNSPECIFIED,
+							From:        "0x1234567890123456789012345678901234567890",
+							To:          "",
+							Nonce:       1,
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "PIE unspecified control type",
+			message: &corev1beta1.Message{
+				Message: &corev1beta1.Message_Pie{
+					Pie: &ddex.PartyIdentificationEnrichment{
+						Header: &ddex.DDEXMessageHeader{
+							ControlType: ddex.DDEXMessageControlType_DDEX_MESSAGE_CONTROL_TYPE_UNSPECIFIED,
+							From:        "0x1234567890123456789012345678901234567890",
+							To:          "",
+							Nonce:       1,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create envelope
+			envelope := &corev1beta1.Envelope{
+				Header: &corev1beta1.EnvelopeHeader{
+					ChainId:    chainId,
+					Expiration: recentBlock + 100,
+					Nonce:      uuid.NewString(),
+				},
+				Messages: []*corev1beta1.Message{tt.message},
+			}
+
+			// Create transaction
+			transaction := &corev1beta1.Transaction{
+				Signature: []byte("mock_signature_for_testing"),
+				Envelope:  envelope,
+			}
+
+			// Send transaction and expect error
+			req := &corev1.SendTransactionRequest{
+				Transactionv2: transaction,
+			}
+
+			_, err := sdk.Core.SendTransaction(ctx, connect.NewRequest(req))
+			assert.Error(t, err)
+			assert.Contains(t, err.Error(), "control type is unspecified")
+		})
+	}
+}
