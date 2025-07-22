@@ -44,8 +44,8 @@ insert into core_blocks (height, chain_id, hash, proposer, created_at)
 values ($1, $2, $3, $4, $5);
 
 -- name: StoreTransaction :exec
-insert into core_transactions (block_id, index, tx_hash, transaction, created_at)
-values ($1, $2, $3, $4, $5);
+insert into core_transactions (block_id, index, tx_hash, transaction, receipt_data, created_at)
+values ($1, $2, $3, $4, $5, $6);
 
 -- name: InsertStorageProofPeers :exec
 insert into storage_proof_peers (block_height, prover_addresses)

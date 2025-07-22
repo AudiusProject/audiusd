@@ -269,7 +269,7 @@ func (q *Queries) GetBlock(ctx context.Context, height int64) (CoreBlock, error)
 }
 
 const getBlockTransactions = `-- name: GetBlockTransactions :many
-select rowid, block_id, index, tx_hash, transaction, created_at from core_transactions where block_id = $1 order by created_at desc
+select rowid, block_id, index, tx_hash, transaction, receipt_data, created_at from core_transactions where block_id = $1 order by created_at desc
 `
 
 func (q *Queries) GetBlockTransactions(ctx context.Context, blockID int64) ([]CoreTransaction, error) {
@@ -287,6 +287,7 @@ func (q *Queries) GetBlockTransactions(ctx context.Context, blockID int64) ([]Co
 			&i.Index,
 			&i.TxHash,
 			&i.Transaction,
+			&i.ReceiptData,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -297,6 +298,17 @@ func (q *Queries) GetBlockTransactions(ctx context.Context, blockID int64) ([]Co
 		return nil, err
 	}
 	return items, nil
+}
+
+const getDBSize = `-- name: GetDBSize :one
+select pg_database_size(current_database())::bigint as size
+`
+
+func (q *Queries) GetDBSize(ctx context.Context) (int64, error) {
+	row := q.db.QueryRow(ctx, getDBSize)
+	var size int64
+	err := row.Scan(&size)
+	return size, err
 }
 
 const getDecodedPlays = `-- name: GetDecodedPlays :many
@@ -1139,7 +1151,7 @@ func (q *Queries) GetRecentRollupsForNode(ctx context.Context, address string) (
 }
 
 const getRecentTxs = `-- name: GetRecentTxs :many
-select rowid, block_id, index, tx_hash, transaction, created_at from core_transactions order by created_at desc limit $1
+select rowid, block_id, index, tx_hash, transaction, receipt_data, created_at from core_transactions order by created_at desc limit $1
 `
 
 func (q *Queries) GetRecentTxs(ctx context.Context, limit int32) ([]CoreTransaction, error) {
@@ -1157,6 +1169,7 @@ func (q *Queries) GetRecentTxs(ctx context.Context, limit int32) ([]CoreTransact
 			&i.Index,
 			&i.TxHash,
 			&i.Transaction,
+			&i.ReceiptData,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -1587,7 +1600,7 @@ func (q *Queries) GetStorageProofsForNodeInRange(ctx context.Context, arg GetSto
 }
 
 const getTx = `-- name: GetTx :one
-select rowid, block_id, index, tx_hash, transaction, created_at from core_transactions where lower(tx_hash) = lower($1) limit 1
+select rowid, block_id, index, tx_hash, transaction, receipt_data, created_at from core_transactions where lower(tx_hash) = lower($1) limit 1
 `
 
 func (q *Queries) GetTx(ctx context.Context, lower string) (CoreTransaction, error) {
@@ -1599,6 +1612,7 @@ func (q *Queries) GetTx(ctx context.Context, lower string) (CoreTransaction, err
 		&i.Index,
 		&i.TxHash,
 		&i.Transaction,
+		&i.ReceiptData,
 		&i.CreatedAt,
 	)
 	return i, err

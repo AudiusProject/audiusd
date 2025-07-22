@@ -289,6 +289,9 @@ select exists (
 -- name: GetRecordingsForTrack :many
 select * from sound_recordings where track_id = $1;
 
+-- name: GetDBSize :one
+select pg_database_size(current_database())::bigint as size;
+
 -- name: GetERN :one
 select * from core_ern where address = $1 order by nonce desc limit 1;
 

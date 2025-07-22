@@ -730,8 +730,8 @@ func (q *Queries) StoreBlock(ctx context.Context, arg StoreBlockParams) error {
 }
 
 const storeTransaction = `-- name: StoreTransaction :exec
-insert into core_transactions (block_id, index, tx_hash, transaction, created_at)
-values ($1, $2, $3, $4, $5)
+insert into core_transactions (block_id, index, tx_hash, transaction, receipt_data, created_at)
+values ($1, $2, $3, $4, $5, $6)
 `
 
 type StoreTransactionParams struct {
@@ -739,6 +739,7 @@ type StoreTransactionParams struct {
 	Index       int32
 	TxHash      string
 	Transaction []byte
+	ReceiptData []byte
 	CreatedAt   pgtype.Timestamp
 }
 
@@ -748,6 +749,7 @@ func (q *Queries) StoreTransaction(ctx context.Context, arg StoreTransactionPara
 		arg.Index,
 		arg.TxHash,
 		arg.Transaction,
+		arg.ReceiptData,
 		arg.CreatedAt,
 	)
 	return err

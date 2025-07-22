@@ -212,6 +212,7 @@ type CoreTransaction struct {
 	Index       int32
 	TxHash      string
 	Transaction []byte
+	ReceiptData []byte
 	CreatedAt   pgtype.Timestamp
 }
 

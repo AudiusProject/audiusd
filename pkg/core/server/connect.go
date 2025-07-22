@@ -387,9 +387,19 @@ func (c *CoreService) SendTransaction(ctx context.Context, req *connect.Request[
 			return nil, err
 		}
 
-		receipt, err := c.buildTxReceipt(ctx, req.Msg.Transactionv2, &block)
-		if err != nil {
-			return nil, err
+		// only build receipt for v2 transactions
+		var receipt *v1beta1.TransactionReceipt
+		if req.Msg.Transactionv2 != nil {
+			storedTx, err := c.core.db.GetTx(ctx, txhash)
+			if err != nil {
+				return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("could get finalized tx: %v", err))
+			}
+			if storedTx.ReceiptData != nil {
+				err = proto.Unmarshal(storedTx.ReceiptData, receipt)
+				if err != nil {
+					return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("could not unmarshal receipt: %v", err))
+				}
+			}
 		}
 
 		return connect.NewResponse(&v1.SendTransactionResponse{
