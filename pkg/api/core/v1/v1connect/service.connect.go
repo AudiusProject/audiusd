@@ -66,12 +66,6 @@ const (
 	// CoreServiceGetRewardAttestationProcedure is the fully-qualified name of the CoreService's
 	// GetRewardAttestation RPC.
 	CoreServiceGetRewardAttestationProcedure = "/core.v1.CoreService/GetRewardAttestation"
-	// CoreServiceGetERNProcedure is the fully-qualified name of the CoreService's GetERN RPC.
-	CoreServiceGetERNProcedure = "/core.v1.CoreService/GetERN"
-	// CoreServiceGetPIEProcedure is the fully-qualified name of the CoreService's GetPIE RPC.
-	CoreServiceGetPIEProcedure = "/core.v1.CoreService/GetPIE"
-	// CoreServiceGetMEADProcedure is the fully-qualified name of the CoreService's GetMEAD RPC.
-	CoreServiceGetMEADProcedure = "/core.v1.CoreService/GetMEAD"
 )
 
 // CoreServiceClient is a client for the core.v1.CoreService service.
@@ -89,9 +83,6 @@ type CoreServiceClient interface {
 	GetStoredSnapshots(context.Context, *connect.Request[v1.GetStoredSnapshotsRequest]) (*connect.Response[v1.GetStoredSnapshotsResponse], error)
 	GetRewards(context.Context, *connect.Request[v1.GetRewardsRequest]) (*connect.Response[v1.GetRewardsResponse], error)
 	GetRewardAttestation(context.Context, *connect.Request[v1.GetRewardAttestationRequest]) (*connect.Response[v1.GetRewardAttestationResponse], error)
-	GetERN(context.Context, *connect.Request[v1.GetERNRequest]) (*connect.Response[v1.GetERNResponse], error)
-	GetPIE(context.Context, *connect.Request[v1.GetPIERequest]) (*connect.Response[v1.GetPIEResponse], error)
-	GetMEAD(context.Context, *connect.Request[v1.GetMEADRequest]) (*connect.Response[v1.GetMEADResponse], error)
 }
 
 // NewCoreServiceClient constructs a client for the core.v1.CoreService service. By default, it uses
@@ -183,24 +174,6 @@ func NewCoreServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(coreServiceMethods.ByName("GetRewardAttestation")),
 			connect.WithClientOptions(opts...),
 		),
-		getERN: connect.NewClient[v1.GetERNRequest, v1.GetERNResponse](
-			httpClient,
-			baseURL+CoreServiceGetERNProcedure,
-			connect.WithSchema(coreServiceMethods.ByName("GetERN")),
-			connect.WithClientOptions(opts...),
-		),
-		getPIE: connect.NewClient[v1.GetPIERequest, v1.GetPIEResponse](
-			httpClient,
-			baseURL+CoreServiceGetPIEProcedure,
-			connect.WithSchema(coreServiceMethods.ByName("GetPIE")),
-			connect.WithClientOptions(opts...),
-		),
-		getMEAD: connect.NewClient[v1.GetMEADRequest, v1.GetMEADResponse](
-			httpClient,
-			baseURL+CoreServiceGetMEADProcedure,
-			connect.WithSchema(coreServiceMethods.ByName("GetMEAD")),
-			connect.WithClientOptions(opts...),
-		),
 	}
 }
 
@@ -219,9 +192,6 @@ type coreServiceClient struct {
 	getStoredSnapshots           *connect.Client[v1.GetStoredSnapshotsRequest, v1.GetStoredSnapshotsResponse]
 	getRewards                   *connect.Client[v1.GetRewardsRequest, v1.GetRewardsResponse]
 	getRewardAttestation         *connect.Client[v1.GetRewardAttestationRequest, v1.GetRewardAttestationResponse]
-	getERN                       *connect.Client[v1.GetERNRequest, v1.GetERNResponse]
-	getPIE                       *connect.Client[v1.GetPIERequest, v1.GetPIEResponse]
-	getMEAD                      *connect.Client[v1.GetMEADRequest, v1.GetMEADResponse]
 }
 
 // Ping calls core.v1.CoreService.Ping.
@@ -289,21 +259,6 @@ func (c *coreServiceClient) GetRewardAttestation(ctx context.Context, req *conne
 	return c.getRewardAttestation.CallUnary(ctx, req)
 }
 
-// GetERN calls core.v1.CoreService.GetERN.
-func (c *coreServiceClient) GetERN(ctx context.Context, req *connect.Request[v1.GetERNRequest]) (*connect.Response[v1.GetERNResponse], error) {
-	return c.getERN.CallUnary(ctx, req)
-}
-
-// GetPIE calls core.v1.CoreService.GetPIE.
-func (c *coreServiceClient) GetPIE(ctx context.Context, req *connect.Request[v1.GetPIERequest]) (*connect.Response[v1.GetPIEResponse], error) {
-	return c.getPIE.CallUnary(ctx, req)
-}
-
-// GetMEAD calls core.v1.CoreService.GetMEAD.
-func (c *coreServiceClient) GetMEAD(ctx context.Context, req *connect.Request[v1.GetMEADRequest]) (*connect.Response[v1.GetMEADResponse], error) {
-	return c.getMEAD.CallUnary(ctx, req)
-}
-
 // CoreServiceHandler is an implementation of the core.v1.CoreService service.
 type CoreServiceHandler interface {
 	Ping(context.Context, *connect.Request[v1.PingRequest]) (*connect.Response[v1.PingResponse], error)
@@ -319,9 +274,6 @@ type CoreServiceHandler interface {
 	GetStoredSnapshots(context.Context, *connect.Request[v1.GetStoredSnapshotsRequest]) (*connect.Response[v1.GetStoredSnapshotsResponse], error)
 	GetRewards(context.Context, *connect.Request[v1.GetRewardsRequest]) (*connect.Response[v1.GetRewardsResponse], error)
 	GetRewardAttestation(context.Context, *connect.Request[v1.GetRewardAttestationRequest]) (*connect.Response[v1.GetRewardAttestationResponse], error)
-	GetERN(context.Context, *connect.Request[v1.GetERNRequest]) (*connect.Response[v1.GetERNResponse], error)
-	GetPIE(context.Context, *connect.Request[v1.GetPIERequest]) (*connect.Response[v1.GetPIEResponse], error)
-	GetMEAD(context.Context, *connect.Request[v1.GetMEADRequest]) (*connect.Response[v1.GetMEADResponse], error)
 }
 
 // NewCoreServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -409,24 +361,6 @@ func NewCoreServiceHandler(svc CoreServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(coreServiceMethods.ByName("GetRewardAttestation")),
 		connect.WithHandlerOptions(opts...),
 	)
-	coreServiceGetERNHandler := connect.NewUnaryHandler(
-		CoreServiceGetERNProcedure,
-		svc.GetERN,
-		connect.WithSchema(coreServiceMethods.ByName("GetERN")),
-		connect.WithHandlerOptions(opts...),
-	)
-	coreServiceGetPIEHandler := connect.NewUnaryHandler(
-		CoreServiceGetPIEProcedure,
-		svc.GetPIE,
-		connect.WithSchema(coreServiceMethods.ByName("GetPIE")),
-		connect.WithHandlerOptions(opts...),
-	)
-	coreServiceGetMEADHandler := connect.NewUnaryHandler(
-		CoreServiceGetMEADProcedure,
-		svc.GetMEAD,
-		connect.WithSchema(coreServiceMethods.ByName("GetMEAD")),
-		connect.WithHandlerOptions(opts...),
-	)
 	return "/core.v1.CoreService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case CoreServicePingProcedure:
@@ -455,12 +389,6 @@ func NewCoreServiceHandler(svc CoreServiceHandler, opts ...connect.HandlerOption
 			coreServiceGetRewardsHandler.ServeHTTP(w, r)
 		case CoreServiceGetRewardAttestationProcedure:
 			coreServiceGetRewardAttestationHandler.ServeHTTP(w, r)
-		case CoreServiceGetERNProcedure:
-			coreServiceGetERNHandler.ServeHTTP(w, r)
-		case CoreServiceGetPIEProcedure:
-			coreServiceGetPIEHandler.ServeHTTP(w, r)
-		case CoreServiceGetMEADProcedure:
-			coreServiceGetMEADHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -520,16 +448,4 @@ func (UnimplementedCoreServiceHandler) GetRewards(context.Context, *connect.Requ
 
 func (UnimplementedCoreServiceHandler) GetRewardAttestation(context.Context, *connect.Request[v1.GetRewardAttestationRequest]) (*connect.Response[v1.GetRewardAttestationResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("core.v1.CoreService.GetRewardAttestation is not implemented"))
-}
-
-func (UnimplementedCoreServiceHandler) GetERN(context.Context, *connect.Request[v1.GetERNRequest]) (*connect.Response[v1.GetERNResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("core.v1.CoreService.GetERN is not implemented"))
-}
-
-func (UnimplementedCoreServiceHandler) GetPIE(context.Context, *connect.Request[v1.GetPIERequest]) (*connect.Response[v1.GetPIEResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("core.v1.CoreService.GetPIE is not implemented"))
-}
-
-func (UnimplementedCoreServiceHandler) GetMEAD(context.Context, *connect.Request[v1.GetMEADRequest]) (*connect.Response[v1.GetMEADResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("core.v1.CoreService.GetMEAD is not implemented"))
 }

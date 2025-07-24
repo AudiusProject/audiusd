@@ -3,10 +3,7 @@ syntax = "proto3";
 package core.v1;
 
 import "core/v1beta1/types.proto";
-import "ddex/v1beta1/release.proto";
-import "ddex/v1beta2/ern.proto";
-import "ddex/v1beta2/mead.proto";
-import "ddex/v1beta2/pie.proto";
+import "ddex/v1beta1/ern.proto";
 import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/AudiusProject/audiusd/pkg/api/core/v1";
@@ -375,30 +372,4 @@ message GetRewardAttestationRequest {
 message GetRewardAttestationResponse {
   string owner = 1;
   string attestation = 2;
-}
-
-message GetERNRequest {
-  string address = 1;
-}
-
-message GetERNResponse {
-  ddex.v1beta2.ElectronicReleaseNotification ern = 1;
-  repeated ddex.v1beta2.MediaEnrichmentDescription meads = 2;
-  repeated ddex.v1beta2.PartyIdentificationEnrichment pies = 3;
-}
-
-message GetPIERequest {
-  string address = 1;
-}
-
-message GetPIEResponse {
-  ddex.v1beta2.PartyIdentificationEnrichment pie = 1;
-}
-
-message GetMEADRequest {
-  string address = 1;
-}
-
-message GetMEADResponse {
-  ddex.v1beta2.MediaEnrichmentDescription mead = 1;
 }

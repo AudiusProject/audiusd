@@ -1,0 +1,162 @@
+syntax = "proto3";
+
+package ddex.v1beta1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/AudiusProject/audiusd/pkg/api/ddex/v1beta1";
+
+// Party Identification and Enrichment (PIE) message from the DDEX standard
+message PieMessage {
+  message MessageHeader {
+    message MessageSender {
+      string party_id = 1;
+      string party_name = 2;
+    }
+
+    message MessageRecipient {
+      string party_id = 1;
+      string party_name = 2;
+    }
+
+    enum MessageControlType {
+      MESSAGE_CONTROL_TYPE_UNSPECIFIED = 0;
+      MESSAGE_CONTROL_TYPE_LIVE_MESSAGE = 1;
+      MESSAGE_CONTROL_TYPE_TEST_MESSAGE = 2;
+    }
+
+    string message_id = 1;
+    MessageSender message_sender = 2;
+    MessageRecipient message_recipient = 3;
+    google.protobuf.Timestamp message_created_date_time = 4;
+    MessageControlType message_control_type = 5;
+  }
+
+  message MetadataSource {
+    string source_reference = 1;
+    string party_name = 2;
+    string party_id = 3;
+    string metadata_source_type = 4; // e.g. "VerifiedSource", "CommunitySource"
+  }
+
+  message PartyInfo {
+    message PartyId {
+      string isni = 1;
+      string dpid = 2;
+      string ipi_name_number = 3;
+      repeated ProprietaryId proprietary_id = 4;
+    }
+
+    message ProprietaryId {
+      string namespace = 1;
+      string identifier = 2;
+    }
+
+    message PartyName {
+      MetadataSourceReference metadata_source_reference = 1;
+      string full_name = 2;
+      string party_name_type = 3; // e.g. "LegalName", "ArtistName", "RegisteredName"
+      string name_id = 4;
+      Pronunciation pronunciation = 5;
+      string applicable_territory_code = 6;
+    }
+
+    message Pronunciation {
+      string encoding_type = 1; // e.g. "IPA"
+      string value = 2;
+    }
+
+    message Event {
+      MetadataSourceReference metadata_source_reference = 1;
+      string event_type = 2; // e.g. "Birth", "Formation"
+      string event_date = 3;
+      string event_place = 4;
+      string applicable_territory_code = 5;
+    }
+
+    message Nationality {
+      string nationality = 1;
+      string applicable_territory_code = 2;
+    }
+
+    message Biography {
+      MetadataSourceReference metadata_source_reference = 1;
+      string biography_text = 2;
+      string applicable_territory_code = 3;
+      string format = 4; // e.g. "text/plain"
+    }
+
+    message Image {
+      message File {
+        string uri = 1;
+        string mime_type = 2;
+        uint64 file_size = 3;
+      }
+
+      MetadataSourceReference metadata_source_reference = 1;
+      File file = 2;
+      string image_type = 3; // e.g. "FrontCoverImage"
+    }
+
+    message SocialMediaURL {
+      MetadataSourceReference metadata_source_reference = 1;
+      string url = 2;
+      string social_media_type = 3; // e.g. "MusicStreamingPlatform"
+      string applicable_territory_code = 4;
+    }
+
+    message RelatedParty {
+      message ValidityPeriod {
+        string start_date = 1;
+        string end_date = 2;
+      }
+
+      string party_reference = 1;
+      string relationship_type = 2; // e.g. "SignedArtist"
+      ValidityPeriod validity_period = 3;
+    }
+
+    message ArtisticInfluence {
+      message InfluencedParty {
+        string party_reference = 1;
+      }
+
+      InfluencedParty influenced_party = 1;
+      string influence_type = 2; // e.g. "Collaborator"
+    }
+
+    message Award {
+      MetadataSourceReference metadata_source_reference = 1;
+      string award_name = 2;
+      string awarding_institution = 3;
+      string award_date = 4;
+    }
+
+    message MetadataSourceReference {
+      string source_reference = 1;
+      google.protobuf.Timestamp assertion_date_time = 2;
+      string status = 3; // e.g. "Verified", "CommunityVerified"
+    }
+
+    string party_reference = 1;
+    PartyId party_id = 2;
+    repeated PartyName party_name = 3;
+    string party_type = 4; // e.g. "Person", "Corporation"
+    repeated Event event = 5;
+    string gender = 6; // e.g. "Male", "Female", "Non-Binary"
+    repeated Nationality nationality = 7;
+    string primary_role = 8; // e.g. "Artist", "Producer", "RecordLabel"
+    repeated string artist_type = 9; // e.g. "ElectronicMusicProducer", "DJ", "HipHopProducer"
+    repeated Biography biography = 10;
+    repeated Image image = 11;
+    repeated SocialMediaURL social_media_url = 12;
+    repeated RelatedParty related_party = 13;
+    repeated ArtisticInfluence artistic_influence = 14;
+    repeated Award award = 15;
+    string language_and_script_code = 16;
+  }
+
+  MessageHeader message_header = 1;
+  repeated MetadataSource metadata_source_list = 2;
+  repeated PartyInfo party_list = 3;
+}

@@ -1,0 +1,80 @@
+syntax = "proto3";
+
+package ddex.v1beta1;
+
+import "ddex/v1beta1/ern.proto";
+import "ddex/v1beta1/party.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/AudiusProject/audiusd/pkg/api/ddex/v1beta1";
+
+// Media Enrichment and Description (MEAD) message from the DDEX standard
+message MeadMessage {
+  message MessageHeader {
+    string message_id = 1;
+    MessageSender message_sender = 2;
+    MessageRecipient message_recipient = 3;
+    google.protobuf.Timestamp message_created_date_time = 4;
+  }
+
+  message MessageSender {
+    ddex.v1beta1.Party.PartyId party_id = 1;
+    ddex.v1beta1.Party.PartyName party_name = 2;
+  }
+
+  message MessageRecipient {
+    ddex.v1beta1.Party.PartyId party_id = 1;
+    ddex.v1beta1.Party.PartyName party_name = 2;
+  }
+
+  message ResourceInformationList {
+    repeated ResourceInformation resource_information = 1;
+  }
+
+  message ResourceInformation {
+    ResourceSummary resource_summary = 1;
+    repeated ResourceContributor resource_contributor = 2;
+  }
+
+  message ResourceSummary {
+    ResourceId resource_id = 1;
+    DisplayTitle display_title = 2;
+    DisplayArtist display_artist = 3;
+  }
+
+  message ResourceId {
+    string isrc = 1;
+  }
+
+  message DisplayTitle {
+    string title_text = 1;
+  }
+
+  message DisplayArtist {
+    ddex.v1beta1.Party.PartyId party_id = 1;
+    ddex.v1beta1.Party.PartyName party_name = 2;
+  }
+
+  message ResourceContributor {
+    ddex.v1beta1.Party.PartyId party_id = 1;
+    ddex.v1beta1.Party.PartyName party_name = 2;
+  }
+
+  message ReleaseSummary {
+    ReleaseId release_id = 1;
+    DisplayTitle display_title = 2;
+    DisplayArtist display_artist = 3;
+  }
+
+  message ReleaseInformationList {
+    repeated ReleaseInformation release_information = 1;
+  }
+
+  message ReleaseInformation {
+    ReleaseSummary release_summary = 1;
+  }
+
+  message ReleaseId {
+    string isrc = 1;
+  }
+}

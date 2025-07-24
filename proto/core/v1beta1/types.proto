@@ -2,9 +2,9 @@ syntax = "proto3";
 
 package core.v1beta1;
 
-import "ddex/v1beta2/ern.proto";
-import "ddex/v1beta2/mead.proto";
-import "ddex/v1beta2/pie.proto";
+// import "ddex/v1beta1/ern.proto";
+// import "ddex/v1beta1/mead.proto";
+// import "ddex/v1beta1/pie.proto";
 
 option go_package = "github.com/AudiusProject/audiusd/pkg/api/core/v1beta1";
 
@@ -28,13 +28,13 @@ message EnvelopeHeader {
 
 // DDEX-style messages (oneof schema)
 message Message {
-  oneof message {
-    ddex.v1beta2.ElectronicReleaseNotification ern = 1;
-    ddex.v1beta2.MediaEnrichmentDescription mead = 2;
-    ddex.v1beta2.PartyIdentificationEnrichment pie = 3;
-    // DigitalSalesReport dsr = 4;
-    // ContentDistributionMessage cdm = 5;
-  }
+  // oneof message {
+  //   ddex.v1beta2.ElectronicReleaseNotification ern = 1;
+  //   ddex.v1beta2.MediaEnrichmentDescription mead = 2;
+  //   ddex.v1beta2.PartyIdentificationEnrichment pie = 3;
+  //   // DigitalSalesReport dsr = 4;
+  //   // ContentDistributionMessage cdm = 5;
+  // }
 }
 
 message TransactionReceipt {
@@ -57,13 +57,13 @@ message TransactionReceipt {
 
 message MessageReceipt {
   int32 message_index = 1;
-  oneof result {
-    ddex.v1beta2.ElectronicReleaseNotificationAck ern_ack = 2;
-    ddex.v1beta2.MediaEnrichmentDescriptionAck mead_ack = 3;
-    ddex.v1beta2.PartyIdentificationEnrichmentAck pie_ack = 4;
-    // DsrResult dsr_result = 5;
-    // CdmResult cdm_result = 6;
-  }
+  // oneof result {
+  //   // ddex.v1beta2.ElectronicReleaseNotificationAck ern_ack = 2;
+  //   // ddex.v1beta2.MediaEnrichmentDescriptionAck mead_ack = 3;
+  //   // ddex.v1beta2.PartyIdentificationEnrichmentAck pie_ack = 4;
+  //   // DsrResult dsr_result = 5;
+  //   // CdmResult cdm_result = 6;
+  // }
 }
 
 message EnvelopeReceiptInfo {
