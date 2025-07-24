@@ -2,31 +2,15 @@ syntax = "proto3";
 
 package ddex.v1beta1;
 
-import "ddex/v1beta1/ern.proto";
+import "ddex/v1beta1/common.proto";
 import "ddex/v1beta1/party.proto";
-import "google/protobuf/timestamp.proto";
+import "ddex/v1beta1/release.proto";
+import "ddex/v1beta1/resource.proto";
 
 option go_package = "github.com/AudiusProject/audiusd/pkg/api/ddex/v1beta1";
 
 // Media Enrichment and Description (MEAD) message from the DDEX standard
 message MeadMessage {
-  message MessageHeader {
-    string message_id = 1;
-    MessageSender message_sender = 2;
-    MessageRecipient message_recipient = 3;
-    google.protobuf.Timestamp message_created_date_time = 4;
-  }
-
-  message MessageSender {
-    ddex.v1beta1.Party.PartyId party_id = 1;
-    ddex.v1beta1.Party.PartyName party_name = 2;
-  }
-
-  message MessageRecipient {
-    ddex.v1beta1.Party.PartyId party_id = 1;
-    ddex.v1beta1.Party.PartyName party_name = 2;
-  }
-
   message ResourceInformationList {
     repeated ResourceInformation resource_information = 1;
   }
@@ -37,22 +21,9 @@ message MeadMessage {
   }
 
   message ResourceSummary {
-    ResourceId resource_id = 1;
-    DisplayTitle display_title = 2;
-    DisplayArtist display_artist = 3;
-  }
-
-  message ResourceId {
-    string isrc = 1;
-  }
-
-  message DisplayTitle {
-    string title_text = 1;
-  }
-
-  message DisplayArtist {
-    ddex.v1beta1.Party.PartyId party_id = 1;
-    ddex.v1beta1.Party.PartyName party_name = 2;
+    ddex.v1beta1.Resource.ResourceId resource_id = 1;
+    ddex.v1beta1.Resource.DisplayTitle display_title = 2;
+    ddex.v1beta1.Resource.DisplayArtist display_artist = 3;
   }
 
   message ResourceContributor {
@@ -61,9 +32,9 @@ message MeadMessage {
   }
 
   message ReleaseSummary {
-    ReleaseId release_id = 1;
-    DisplayTitle display_title = 2;
-    DisplayArtist display_artist = 3;
+    ddex.v1beta1.Release.ReleaseId release_id = 1;
+    ddex.v1beta1.Release.DisplayTitle display_title = 2;
+    ddex.v1beta1.Release.DisplayArtist display_artist = 3;
   }
 
   message ReleaseInformationList {
@@ -72,9 +43,30 @@ message MeadMessage {
 
   message ReleaseInformation {
     ReleaseSummary release_summary = 1;
+    repeated Information information = 2;
   }
 
-  message ReleaseId {
-    string isrc = 1;
+  message Information {
+    oneof information {
+      Mood mood = 1;
+      BeatsPerMinute beats_per_minute = 2;
+    }
   }
+
+  message Mood {
+    string type = 1;
+    string description = 2;
+  }
+
+  message BeatsPerMinute {
+    float value = 1;
+  }
+
+  message Key {
+    string value = 1;
+  }
+
+  ddex.v1beta1.MessageHeader message_header = 1;
+  ResourceInformationList resource_information_list = 2;
+  ReleaseInformationList release_information_list = 3;
 }

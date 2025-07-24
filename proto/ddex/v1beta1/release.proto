@@ -17,16 +17,16 @@ message Release {
     string id = 2;
   }
 
+  message DisplayTitle {
+    string title_text = 1;
+  }
+
+  message DisplayArtist {
+    string artist_party_reference = 1;
+    string display_artist_role = 2;
+  }
+
   message Release {
-    message DisplayTitle {
-      string title_text = 1;
-    }
-
-    message DisplayArtist {
-      string artist_party_reference = 1;
-      string display_artist_role = 2;
-    }
-
     message PLine {
       string year = 1;
       string p_line_text = 2;

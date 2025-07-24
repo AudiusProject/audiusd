@@ -2,36 +2,13 @@ syntax = "proto3";
 
 package ddex.v1beta1;
 
+import "ddex/v1beta1/common.proto";
 import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/AudiusProject/audiusd/pkg/api/ddex/v1beta1";
 
 // Party Identification and Enrichment (PIE) message from the DDEX standard
 message PieMessage {
-  message MessageHeader {
-    message MessageSender {
-      string party_id = 1;
-      string party_name = 2;
-    }
-
-    message MessageRecipient {
-      string party_id = 1;
-      string party_name = 2;
-    }
-
-    enum MessageControlType {
-      MESSAGE_CONTROL_TYPE_UNSPECIFIED = 0;
-      MESSAGE_CONTROL_TYPE_LIVE_MESSAGE = 1;
-      MESSAGE_CONTROL_TYPE_TEST_MESSAGE = 2;
-    }
-
-    string message_id = 1;
-    MessageSender message_sender = 2;
-    MessageRecipient message_recipient = 3;
-    google.protobuf.Timestamp message_created_date_time = 4;
-    MessageControlType message_control_type = 5;
-  }
-
   message MetadataSource {
     string source_reference = 1;
     string party_name = 2;
@@ -156,7 +133,7 @@ message PieMessage {
     string language_and_script_code = 16;
   }
 
-  MessageHeader message_header = 1;
+  ddex.v1beta1.MessageHeader message_header = 1;
   repeated MetadataSource metadata_source_list = 2;
   repeated PartyInfo party_list = 3;
 }

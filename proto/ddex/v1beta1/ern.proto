@@ -2,48 +2,21 @@ syntax = "proto3";
 
 package ddex.v1beta1;
 
-import "google/protobuf/timestamp.proto";
-import "ddex/v1beta1/party.proto";
-import "ddex/v1beta1/resource.proto";
-import "ddex/v1beta1/release.proto";
+import "ddex/v1beta1/common.proto";
 import "ddex/v1beta1/deal.proto";
+import "ddex/v1beta1/party.proto";
+import "ddex/v1beta1/release.proto";
+import "ddex/v1beta1/resource.proto";
 
 option go_package = "github.com/AudiusProject/audiusd/pkg/api/ddex/v1beta1";
 
 // DDEX 4.3 Release Notification Message
 message NewReleaseMessage {
-  MessageHeader message_header = 1;
-  repeated Party party_list = 2;
-  repeated Resource resource_list = 3;
-  repeated Release release_list = 4;
-  repeated Deal deal_list = 5;
-}
-
-message MessageHeader {
-  string message_thread_id = 1;
-  string message_id = 2;
-  MessageSender message_sender = 3;
-  MessageRecipient message_recipient = 4;
-  google.protobuf.Timestamp message_created_date_time = 5;
-  MessageControlType message_control_type = 6;
-}
-
-message MessageSender {
-  Party.PartyId party_id = 1;
-  Party.PartyName party_name = 2;
-}
-
-message MessageRecipient {
-  Party.PartyId party_id = 1;
-  Party.PartyName party_name = 2;
-}
-
-enum MessageControlType {
-  MESSAGE_CONTROL_TYPE_UNSPECIFIED = 0;
-  MESSAGE_CONTROL_TYPE_NEW_MESSAGE = 1;
-  MESSAGE_CONTROL_TYPE_UPDATED_MESSAGE = 2;
-  MESSAGE_CONTROL_TYPE_TAKEDOWN_MESSAGE = 3;
-  MESSAGE_CONTROL_TYPE_TEST_MESSAGE = 4;
+  ddex.v1beta1.MessageHeader message_header = 1;
+  repeated ddex.v1beta1.Party party_list = 2;
+  repeated ddex.v1beta1.Resource resource_list = 3;
+  repeated ddex.v1beta1.Release release_list = 4;
+  repeated ddex.v1beta1.Deal deal_list = 5;
 }
 
 message NewReleaseMessageAck {

@@ -15,6 +15,16 @@ message Resource {
     string proprietary_id = 2;
   }
 
+  message DisplayTitle {
+    string title_text = 1;
+  }
+
+  message DisplayArtist {
+    string artist_party_reference = 1;
+    string display_artist_role = 2;
+    string artistic_role = 3;
+  }
+
   message SoundRecording {
     message SoundRecordingEdition {
       message PLine {
@@ -67,10 +77,6 @@ message Resource {
       PLine p_line = 3;
       TechnicalDetails technical_details = 4;
     }
-
-    message DisplayTitle {}
-
-    message DisplayArtist {}
 
     message Contributor {}
 
