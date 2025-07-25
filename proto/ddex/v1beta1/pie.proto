@@ -21,14 +21,11 @@ message PieMessage {
     ddex.v1beta1.Party.PartyId party_id = 2;
     ddex.v1beta1.Party.PartyName party_name = 3;
     PartyType party_type = 4;
-    repeated Enrichment enrichment = 5;
-  }
 
-  message Enrichment {
-    oneof enrichment {
-      Handle handle = 1;
-      Verified verified = 2;
-    }
+    // optional enrichment fields
+    repeated Handle handles = 5;
+    repeated Verified verified = 6;
+    repeated Award awards = 7;
   }
 
   message Handle {
@@ -43,6 +40,26 @@ message PieMessage {
     string type = 1;
     // true if the handle is verified, false otherwise
     bool verified = 2;
+  }
+
+  // Official DDEX Award structure based on PIE specification
+  message Award {
+    message AwardingBody {
+      ddex.v1beta1.Party.PartyName party_name = 1;
+      optional ddex.v1beta1.Party.PartyId party_id = 2;
+    }
+
+    message AwardedParty {
+      ddex.v1beta1.Party.PartyName party_name = 1;
+      optional ddex.v1beta1.Party.PartyId party_id = 2;
+    }
+
+    AwardingBody awarding_body = 1;
+    AwardedParty awarded_party = 2;
+    string award_name = 3;
+    string date = 4; // ISO 8601 format: YYYY-MM-DD
+    bool is_winner = 5;
+    optional string comment = 6;
   }
 
   ddex.v1beta1.MessageHeader message_header = 1;

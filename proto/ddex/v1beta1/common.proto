@@ -16,9 +16,11 @@ message MessageHeader {
   optional string message_thread_id = 1;
   string message_id = 2;
   MessageSender message_sender = 3;
-  MessageRecipient message_recipient = 4;
+  repeated MessageRecipient message_recipient = 4;
   google.protobuf.Timestamp message_created_date_time = 5;
   optional MessageControlType message_control_type = 6;
+  optional MessageSender sent_on_behalf_of = 7;
+  optional MessageRecipient sent_as_requested_by = 8;
 }
 
 message MessageSender {
