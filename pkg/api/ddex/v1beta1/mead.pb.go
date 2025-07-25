@@ -84,6 +84,54 @@ func (x *MeadMessage) GetReleaseInformationList() *MeadMessage_ReleaseInformatio
 	return nil
 }
 
+type MeadMessageAck struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	// address of the MEAD message
+	MeadAddress string `protobuf:"bytes,1,opt,name=mead_address,json=meadAddress,proto3" json:"mead_address,omitempty"`
+}
+
+func (x *MeadMessageAck) Reset() {
+	*x = MeadMessageAck{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_ddex_v1beta1_mead_proto_msgTypes[1]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *MeadMessageAck) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MeadMessageAck) ProtoMessage() {}
+
+func (x *MeadMessageAck) ProtoReflect() protoreflect.Message {
+	mi := &file_ddex_v1beta1_mead_proto_msgTypes[1]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MeadMessageAck.ProtoReflect.Descriptor instead.
+func (*MeadMessageAck) Descriptor() ([]byte, []int) {
+	return file_ddex_v1beta1_mead_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *MeadMessageAck) GetMeadAddress() string {
+	if x != nil {
+		return x.MeadAddress
+	}
+	return ""
+}
+
 type MeadMessage_ResourceInformationList struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -95,7 +143,7 @@ type MeadMessage_ResourceInformationList struct {
 func (x *MeadMessage_ResourceInformationList) Reset() {
 	*x = MeadMessage_ResourceInformationList{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_ddex_v1beta1_mead_proto_msgTypes[1]
+		mi := &file_ddex_v1beta1_mead_proto_msgTypes[2]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -108,7 +156,7 @@ func (x *MeadMessage_ResourceInformationList) String() string {
 func (*MeadMessage_ResourceInformationList) ProtoMessage() {}
 
 func (x *MeadMessage_ResourceInformationList) ProtoReflect() protoreflect.Message {
-	mi := &file_ddex_v1beta1_mead_proto_msgTypes[1]
+	mi := &file_ddex_v1beta1_mead_proto_msgTypes[2]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -143,7 +191,7 @@ type MeadMessage_ResourceInformation struct {
 func (x *MeadMessage_ResourceInformation) Reset() {
 	*x = MeadMessage_ResourceInformation{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_ddex_v1beta1_mead_proto_msgTypes[2]
+		mi := &file_ddex_v1beta1_mead_proto_msgTypes[3]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -156,7 +204,7 @@ func (x *MeadMessage_ResourceInformation) String() string {
 func (*MeadMessage_ResourceInformation) ProtoMessage() {}
 
 func (x *MeadMessage_ResourceInformation) ProtoReflect() protoreflect.Message {
-	mi := &file_ddex_v1beta1_mead_proto_msgTypes[2]
+	mi := &file_ddex_v1beta1_mead_proto_msgTypes[3]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -203,7 +251,7 @@ type MeadMessage_ResourceSummary struct {
 func (x *MeadMessage_ResourceSummary) Reset() {
 	*x = MeadMessage_ResourceSummary{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_ddex_v1beta1_mead_proto_msgTypes[3]
+		mi := &file_ddex_v1beta1_mead_proto_msgTypes[4]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -216,7 +264,7 @@ func (x *MeadMessage_ResourceSummary) String() string {
 func (*MeadMessage_ResourceSummary) ProtoMessage() {}
 
 func (x *MeadMessage_ResourceSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_ddex_v1beta1_mead_proto_msgTypes[3]
+	mi := &file_ddex_v1beta1_mead_proto_msgTypes[4]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -286,7 +334,7 @@ type MeadMessage_ResourceContributor struct {
 func (x *MeadMessage_ResourceContributor) Reset() {
 	*x = MeadMessage_ResourceContributor{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_ddex_v1beta1_mead_proto_msgTypes[4]
+		mi := &file_ddex_v1beta1_mead_proto_msgTypes[5]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -299,7 +347,7 @@ func (x *MeadMessage_ResourceContributor) String() string {
 func (*MeadMessage_ResourceContributor) ProtoMessage() {}
 
 func (x *MeadMessage_ResourceContributor) ProtoReflect() protoreflect.Message {
-	mi := &file_ddex_v1beta1_mead_proto_msgTypes[4]
+	mi := &file_ddex_v1beta1_mead_proto_msgTypes[5]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -342,7 +390,7 @@ type MeadMessage_ReleaseSummary struct {
 func (x *MeadMessage_ReleaseSummary) Reset() {
 	*x = MeadMessage_ReleaseSummary{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_ddex_v1beta1_mead_proto_msgTypes[5]
+		mi := &file_ddex_v1beta1_mead_proto_msgTypes[6]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -355,7 +403,7 @@ func (x *MeadMessage_ReleaseSummary) String() string {
 func (*MeadMessage_ReleaseSummary) ProtoMessage() {}
 
 func (x *MeadMessage_ReleaseSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_ddex_v1beta1_mead_proto_msgTypes[5]
+	mi := &file_ddex_v1beta1_mead_proto_msgTypes[6]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -403,7 +451,7 @@ type MeadMessage_ReleaseInformationList struct {
 func (x *MeadMessage_ReleaseInformationList) Reset() {
 	*x = MeadMessage_ReleaseInformationList{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_ddex_v1beta1_mead_proto_msgTypes[6]
+		mi := &file_ddex_v1beta1_mead_proto_msgTypes[7]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -416,7 +464,7 @@ func (x *MeadMessage_ReleaseInformationList) String() string {
 func (*MeadMessage_ReleaseInformationList) ProtoMessage() {}
 
 func (x *MeadMessage_ReleaseInformationList) ProtoReflect() protoreflect.Message {
-	mi := &file_ddex_v1beta1_mead_proto_msgTypes[6]
+	mi := &file_ddex_v1beta1_mead_proto_msgTypes[7]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -454,7 +502,7 @@ type MeadMessage_ReleaseInformation struct {
 func (x *MeadMessage_ReleaseInformation) Reset() {
 	*x = MeadMessage_ReleaseInformation{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_ddex_v1beta1_mead_proto_msgTypes[7]
+		mi := &file_ddex_v1beta1_mead_proto_msgTypes[8]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -467,7 +515,7 @@ func (x *MeadMessage_ReleaseInformation) String() string {
 func (*MeadMessage_ReleaseInformation) ProtoMessage() {}
 
 func (x *MeadMessage_ReleaseInformation) ProtoReflect() protoreflect.Message {
-	mi := &file_ddex_v1beta1_mead_proto_msgTypes[7]
+	mi := &file_ddex_v1beta1_mead_proto_msgTypes[8]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -523,7 +571,7 @@ type MeadMessage_Mood struct {
 func (x *MeadMessage_Mood) Reset() {
 	*x = MeadMessage_Mood{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_ddex_v1beta1_mead_proto_msgTypes[8]
+		mi := &file_ddex_v1beta1_mead_proto_msgTypes[9]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -536,7 +584,7 @@ func (x *MeadMessage_Mood) String() string {
 func (*MeadMessage_Mood) ProtoMessage() {}
 
 func (x *MeadMessage_Mood) ProtoReflect() protoreflect.Message {
-	mi := &file_ddex_v1beta1_mead_proto_msgTypes[8]
+	mi := &file_ddex_v1beta1_mead_proto_msgTypes[9]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -577,7 +625,7 @@ type MeadMessage_BeatsPerMinute struct {
 func (x *MeadMessage_BeatsPerMinute) Reset() {
 	*x = MeadMessage_BeatsPerMinute{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_ddex_v1beta1_mead_proto_msgTypes[9]
+		mi := &file_ddex_v1beta1_mead_proto_msgTypes[10]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -590,7 +638,7 @@ func (x *MeadMessage_BeatsPerMinute) String() string {
 func (*MeadMessage_BeatsPerMinute) ProtoMessage() {}
 
 func (x *MeadMessage_BeatsPerMinute) ProtoReflect() protoreflect.Message {
-	mi := &file_ddex_v1beta1_mead_proto_msgTypes[9]
+	mi := &file_ddex_v1beta1_mead_proto_msgTypes[10]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -624,7 +672,7 @@ type MeadMessage_Key struct {
 func (x *MeadMessage_Key) Reset() {
 	*x = MeadMessage_Key{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_ddex_v1beta1_mead_proto_msgTypes[10]
+		mi := &file_ddex_v1beta1_mead_proto_msgTypes[11]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -637,7 +685,7 @@ func (x *MeadMessage_Key) String() string {
 func (*MeadMessage_Key) ProtoMessage() {}
 
 func (x *MeadMessage_Key) ProtoReflect() protoreflect.Message {
-	mi := &file_ddex_v1beta1_mead_proto_msgTypes[10]
+	mi := &file_ddex_v1beta1_mead_proto_msgTypes[11]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -802,11 +850,14 @@ var file_ddex_v1beta1_mead_proto_rawDesc = []byte{
 	0x69, 0x6e, 0x75, 0x74, 0x65, 0x12, 0x14, 0x0a, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x01,
 	0x20, 0x01, 0x28, 0x02, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x1a, 0x1b, 0x0a, 0x03, 0x4b,
 	0x65, 0x79, 0x12, 0x14, 0x0a, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28,
-	0x09, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x42, 0x37, 0x5a, 0x35, 0x67, 0x69, 0x74, 0x68,
-	0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x41, 0x75, 0x64, 0x69, 0x75, 0x73, 0x50, 0x72, 0x6f,
-	0x6a, 0x65, 0x63, 0x74, 0x2f, 0x61, 0x75, 0x64, 0x69, 0x75, 0x73, 0x64, 0x2f, 0x70, 0x6b, 0x67,
-	0x2f, 0x61, 0x70, 0x69, 0x2f, 0x64, 0x64, 0x65, 0x78, 0x2f, 0x76, 0x31, 0x62, 0x65, 0x74, 0x61,
-	0x31, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x09, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x22, 0x33, 0x0a, 0x0e, 0x4d, 0x65, 0x61, 0x64,
+	0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x41, 0x63, 0x6b, 0x12, 0x21, 0x0a, 0x0c, 0x6d, 0x65,
+	0x61, 0x64, 0x5f, 0x61, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09,
+	0x52, 0x0b, 0x6d, 0x65, 0x61, 0x64, 0x41, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x42, 0x37, 0x5a,
+	0x35, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x41, 0x75, 0x64, 0x69,
+	0x75, 0x73, 0x50, 0x72, 0x6f, 0x6a, 0x65, 0x63, 0x74, 0x2f, 0x61, 0x75, 0x64, 0x69, 0x75, 0x73,
+	0x64, 0x2f, 0x70, 0x6b, 0x67, 0x2f, 0x61, 0x70, 0x69, 0x2f, 0x64, 0x64, 0x65, 0x78, 0x2f, 0x76,
+	0x31, 0x62, 0x65, 0x74, 0x61, 0x31, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -821,52 +872,53 @@ func file_ddex_v1beta1_mead_proto_rawDescGZIP() []byte {
 	return file_ddex_v1beta1_mead_proto_rawDescData
 }
 
-var file_ddex_v1beta1_mead_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_ddex_v1beta1_mead_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_ddex_v1beta1_mead_proto_goTypes = []interface{}{
 	(*MeadMessage)(nil),                         // 0: ddex.v1beta1.MeadMessage
-	(*MeadMessage_ResourceInformationList)(nil), // 1: ddex.v1beta1.MeadMessage.ResourceInformationList
-	(*MeadMessage_ResourceInformation)(nil),     // 2: ddex.v1beta1.MeadMessage.ResourceInformation
-	(*MeadMessage_ResourceSummary)(nil),         // 3: ddex.v1beta1.MeadMessage.ResourceSummary
-	(*MeadMessage_ResourceContributor)(nil),     // 4: ddex.v1beta1.MeadMessage.ResourceContributor
-	(*MeadMessage_ReleaseSummary)(nil),          // 5: ddex.v1beta1.MeadMessage.ReleaseSummary
-	(*MeadMessage_ReleaseInformationList)(nil),  // 6: ddex.v1beta1.MeadMessage.ReleaseInformationList
-	(*MeadMessage_ReleaseInformation)(nil),      // 7: ddex.v1beta1.MeadMessage.ReleaseInformation
-	(*MeadMessage_Mood)(nil),                    // 8: ddex.v1beta1.MeadMessage.Mood
-	(*MeadMessage_BeatsPerMinute)(nil),          // 9: ddex.v1beta1.MeadMessage.BeatsPerMinute
-	(*MeadMessage_Key)(nil),                     // 10: ddex.v1beta1.MeadMessage.Key
-	(*MessageHeader)(nil),                       // 11: ddex.v1beta1.MessageHeader
-	(*Resource_ResourceId)(nil),                 // 12: ddex.v1beta1.Resource.ResourceId
-	(*Resource_DisplayTitle)(nil),               // 13: ddex.v1beta1.Resource.DisplayTitle
-	(*Resource_DisplayArtist)(nil),              // 14: ddex.v1beta1.Resource.DisplayArtist
-	(*Party_PartyId)(nil),                       // 15: ddex.v1beta1.Party.PartyId
-	(*Party_PartyName)(nil),                     // 16: ddex.v1beta1.Party.PartyName
-	(*Release_ReleaseId)(nil),                   // 17: ddex.v1beta1.Release.ReleaseId
-	(*Release_DisplayTitle)(nil),                // 18: ddex.v1beta1.Release.DisplayTitle
-	(*Release_DisplayArtist)(nil),               // 19: ddex.v1beta1.Release.DisplayArtist
+	(*MeadMessageAck)(nil),                      // 1: ddex.v1beta1.MeadMessageAck
+	(*MeadMessage_ResourceInformationList)(nil), // 2: ddex.v1beta1.MeadMessage.ResourceInformationList
+	(*MeadMessage_ResourceInformation)(nil),     // 3: ddex.v1beta1.MeadMessage.ResourceInformation
+	(*MeadMessage_ResourceSummary)(nil),         // 4: ddex.v1beta1.MeadMessage.ResourceSummary
+	(*MeadMessage_ResourceContributor)(nil),     // 5: ddex.v1beta1.MeadMessage.ResourceContributor
+	(*MeadMessage_ReleaseSummary)(nil),          // 6: ddex.v1beta1.MeadMessage.ReleaseSummary
+	(*MeadMessage_ReleaseInformationList)(nil),  // 7: ddex.v1beta1.MeadMessage.ReleaseInformationList
+	(*MeadMessage_ReleaseInformation)(nil),      // 8: ddex.v1beta1.MeadMessage.ReleaseInformation
+	(*MeadMessage_Mood)(nil),                    // 9: ddex.v1beta1.MeadMessage.Mood
+	(*MeadMessage_BeatsPerMinute)(nil),          // 10: ddex.v1beta1.MeadMessage.BeatsPerMinute
+	(*MeadMessage_Key)(nil),                     // 11: ddex.v1beta1.MeadMessage.Key
+	(*MessageHeader)(nil),                       // 12: ddex.v1beta1.MessageHeader
+	(*Resource_ResourceId)(nil),                 // 13: ddex.v1beta1.Resource.ResourceId
+	(*Resource_DisplayTitle)(nil),               // 14: ddex.v1beta1.Resource.DisplayTitle
+	(*Resource_DisplayArtist)(nil),              // 15: ddex.v1beta1.Resource.DisplayArtist
+	(*Party_PartyId)(nil),                       // 16: ddex.v1beta1.Party.PartyId
+	(*Party_PartyName)(nil),                     // 17: ddex.v1beta1.Party.PartyName
+	(*Release_ReleaseId)(nil),                   // 18: ddex.v1beta1.Release.ReleaseId
+	(*Release_DisplayTitle)(nil),                // 19: ddex.v1beta1.Release.DisplayTitle
+	(*Release_DisplayArtist)(nil),               // 20: ddex.v1beta1.Release.DisplayArtist
 }
 var file_ddex_v1beta1_mead_proto_depIdxs = []int32{
-	11, // 0: ddex.v1beta1.MeadMessage.message_header:type_name -> ddex.v1beta1.MessageHeader
-	1,  // 1: ddex.v1beta1.MeadMessage.resource_information_list:type_name -> ddex.v1beta1.MeadMessage.ResourceInformationList
-	6,  // 2: ddex.v1beta1.MeadMessage.release_information_list:type_name -> ddex.v1beta1.MeadMessage.ReleaseInformationList
-	2,  // 3: ddex.v1beta1.MeadMessage.ResourceInformationList.resource_information:type_name -> ddex.v1beta1.MeadMessage.ResourceInformation
-	3,  // 4: ddex.v1beta1.MeadMessage.ResourceInformation.resource_summary:type_name -> ddex.v1beta1.MeadMessage.ResourceSummary
-	4,  // 5: ddex.v1beta1.MeadMessage.ResourceInformation.resource_contributor:type_name -> ddex.v1beta1.MeadMessage.ResourceContributor
-	12, // 6: ddex.v1beta1.MeadMessage.ResourceSummary.resource_id:type_name -> ddex.v1beta1.Resource.ResourceId
-	13, // 7: ddex.v1beta1.MeadMessage.ResourceSummary.display_title:type_name -> ddex.v1beta1.Resource.DisplayTitle
-	14, // 8: ddex.v1beta1.MeadMessage.ResourceSummary.display_artist:type_name -> ddex.v1beta1.Resource.DisplayArtist
-	8,  // 9: ddex.v1beta1.MeadMessage.ResourceSummary.mood:type_name -> ddex.v1beta1.MeadMessage.Mood
-	9,  // 10: ddex.v1beta1.MeadMessage.ResourceSummary.beats_per_minute:type_name -> ddex.v1beta1.MeadMessage.BeatsPerMinute
-	10, // 11: ddex.v1beta1.MeadMessage.ResourceSummary.key:type_name -> ddex.v1beta1.MeadMessage.Key
-	15, // 12: ddex.v1beta1.MeadMessage.ResourceContributor.party_id:type_name -> ddex.v1beta1.Party.PartyId
-	16, // 13: ddex.v1beta1.MeadMessage.ResourceContributor.party_name:type_name -> ddex.v1beta1.Party.PartyName
-	17, // 14: ddex.v1beta1.MeadMessage.ReleaseSummary.release_id:type_name -> ddex.v1beta1.Release.ReleaseId
-	18, // 15: ddex.v1beta1.MeadMessage.ReleaseSummary.display_title:type_name -> ddex.v1beta1.Release.DisplayTitle
-	19, // 16: ddex.v1beta1.MeadMessage.ReleaseSummary.display_artist:type_name -> ddex.v1beta1.Release.DisplayArtist
-	7,  // 17: ddex.v1beta1.MeadMessage.ReleaseInformationList.release_information:type_name -> ddex.v1beta1.MeadMessage.ReleaseInformation
-	5,  // 18: ddex.v1beta1.MeadMessage.ReleaseInformation.release_summary:type_name -> ddex.v1beta1.MeadMessage.ReleaseSummary
-	8,  // 19: ddex.v1beta1.MeadMessage.ReleaseInformation.mood:type_name -> ddex.v1beta1.MeadMessage.Mood
-	9,  // 20: ddex.v1beta1.MeadMessage.ReleaseInformation.beats_per_minute:type_name -> ddex.v1beta1.MeadMessage.BeatsPerMinute
-	10, // 21: ddex.v1beta1.MeadMessage.ReleaseInformation.key:type_name -> ddex.v1beta1.MeadMessage.Key
+	12, // 0: ddex.v1beta1.MeadMessage.message_header:type_name -> ddex.v1beta1.MessageHeader
+	2,  // 1: ddex.v1beta1.MeadMessage.resource_information_list:type_name -> ddex.v1beta1.MeadMessage.ResourceInformationList
+	7,  // 2: ddex.v1beta1.MeadMessage.release_information_list:type_name -> ddex.v1beta1.MeadMessage.ReleaseInformationList
+	3,  // 3: ddex.v1beta1.MeadMessage.ResourceInformationList.resource_information:type_name -> ddex.v1beta1.MeadMessage.ResourceInformation
+	4,  // 4: ddex.v1beta1.MeadMessage.ResourceInformation.resource_summary:type_name -> ddex.v1beta1.MeadMessage.ResourceSummary
+	5,  // 5: ddex.v1beta1.MeadMessage.ResourceInformation.resource_contributor:type_name -> ddex.v1beta1.MeadMessage.ResourceContributor
+	13, // 6: ddex.v1beta1.MeadMessage.ResourceSummary.resource_id:type_name -> ddex.v1beta1.Resource.ResourceId
+	14, // 7: ddex.v1beta1.MeadMessage.ResourceSummary.display_title:type_name -> ddex.v1beta1.Resource.DisplayTitle
+	15, // 8: ddex.v1beta1.MeadMessage.ResourceSummary.display_artist:type_name -> ddex.v1beta1.Resource.DisplayArtist
+	9,  // 9: ddex.v1beta1.MeadMessage.ResourceSummary.mood:type_name -> ddex.v1beta1.MeadMessage.Mood
+	10, // 10: ddex.v1beta1.MeadMessage.ResourceSummary.beats_per_minute:type_name -> ddex.v1beta1.MeadMessage.BeatsPerMinute
+	11, // 11: ddex.v1beta1.MeadMessage.ResourceSummary.key:type_name -> ddex.v1beta1.MeadMessage.Key
+	16, // 12: ddex.v1beta1.MeadMessage.ResourceContributor.party_id:type_name -> ddex.v1beta1.Party.PartyId
+	17, // 13: ddex.v1beta1.MeadMessage.ResourceContributor.party_name:type_name -> ddex.v1beta1.Party.PartyName
+	18, // 14: ddex.v1beta1.MeadMessage.ReleaseSummary.release_id:type_name -> ddex.v1beta1.Release.ReleaseId
+	19, // 15: ddex.v1beta1.MeadMessage.ReleaseSummary.display_title:type_name -> ddex.v1beta1.Release.DisplayTitle
+	20, // 16: ddex.v1beta1.MeadMessage.ReleaseSummary.display_artist:type_name -> ddex.v1beta1.Release.DisplayArtist
+	8,  // 17: ddex.v1beta1.MeadMessage.ReleaseInformationList.release_information:type_name -> ddex.v1beta1.MeadMessage.ReleaseInformation
+	6,  // 18: ddex.v1beta1.MeadMessage.ReleaseInformation.release_summary:type_name -> ddex.v1beta1.MeadMessage.ReleaseSummary
+	9,  // 19: ddex.v1beta1.MeadMessage.ReleaseInformation.mood:type_name -> ddex.v1beta1.MeadMessage.Mood
+	10, // 20: ddex.v1beta1.MeadMessage.ReleaseInformation.beats_per_minute:type_name -> ddex.v1beta1.MeadMessage.BeatsPerMinute
+	11, // 21: ddex.v1beta1.MeadMessage.ReleaseInformation.key:type_name -> ddex.v1beta1.MeadMessage.Key
 	22, // [22:22] is the sub-list for method output_type
 	22, // [22:22] is the sub-list for method input_type
 	22, // [22:22] is the sub-list for extension type_name
@@ -897,7 +949,7 @@ func file_ddex_v1beta1_mead_proto_init() {
 			}
 		}
 		file_ddex_v1beta1_mead_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*MeadMessage_ResourceInformationList); i {
+			switch v := v.(*MeadMessageAck); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -909,7 +961,7 @@ func file_ddex_v1beta1_mead_proto_init() {
 			}
 		}
 		file_ddex_v1beta1_mead_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*MeadMessage_ResourceInformation); i {
+			switch v := v.(*MeadMessage_ResourceInformationList); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -921,7 +973,7 @@ func file_ddex_v1beta1_mead_proto_init() {
 			}
 		}
 		file_ddex_v1beta1_mead_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*MeadMessage_ResourceSummary); i {
+			switch v := v.(*MeadMessage_ResourceInformation); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -933,7 +985,7 @@ func file_ddex_v1beta1_mead_proto_init() {
 			}
 		}
 		file_ddex_v1beta1_mead_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*MeadMessage_ResourceContributor); i {
+			switch v := v.(*MeadMessage_ResourceSummary); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -945,7 +997,7 @@ func file_ddex_v1beta1_mead_proto_init() {
 			}
 		}
 		file_ddex_v1beta1_mead_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*MeadMessage_ReleaseSummary); i {
+			switch v := v.(*MeadMessage_ResourceContributor); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -957,7 +1009,7 @@ func file_ddex_v1beta1_mead_proto_init() {
 			}
 		}
 		file_ddex_v1beta1_mead_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*MeadMessage_ReleaseInformationList); i {
+			switch v := v.(*MeadMessage_ReleaseSummary); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -969,7 +1021,7 @@ func file_ddex_v1beta1_mead_proto_init() {
 			}
 		}
 		file_ddex_v1beta1_mead_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*MeadMessage_ReleaseInformation); i {
+			switch v := v.(*MeadMessage_ReleaseInformationList); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -981,7 +1033,7 @@ func file_ddex_v1beta1_mead_proto_init() {
 			}
 		}
 		file_ddex_v1beta1_mead_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*MeadMessage_Mood); i {
+			switch v := v.(*MeadMessage_ReleaseInformation); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -993,7 +1045,7 @@ func file_ddex_v1beta1_mead_proto_init() {
 			}
 		}
 		file_ddex_v1beta1_mead_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*MeadMessage_BeatsPerMinute); i {
+			switch v := v.(*MeadMessage_Mood); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1005,6 +1057,18 @@ func file_ddex_v1beta1_mead_proto_init() {
 			}
 		}
 		file_ddex_v1beta1_mead_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*MeadMessage_BeatsPerMinute); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_ddex_v1beta1_mead_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*MeadMessage_Key); i {
 			case 0:
 				return &v.state
@@ -1017,15 +1081,15 @@ func file_ddex_v1beta1_mead_proto_init() {
 			}
 		}
 	}
-	file_ddex_v1beta1_mead_proto_msgTypes[3].OneofWrappers = []interface{}{}
-	file_ddex_v1beta1_mead_proto_msgTypes[7].OneofWrappers = []interface{}{}
+	file_ddex_v1beta1_mead_proto_msgTypes[4].OneofWrappers = []interface{}{}
+	file_ddex_v1beta1_mead_proto_msgTypes[8].OneofWrappers = []interface{}{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_ddex_v1beta1_mead_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   11,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

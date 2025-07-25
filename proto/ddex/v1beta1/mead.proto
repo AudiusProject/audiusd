@@ -72,3 +72,8 @@ message MeadMessage {
   ResourceInformationList resource_information_list = 2;
   ReleaseInformationList release_information_list = 3;
 }
+
+message MeadMessageAck {
+  // address of the MEAD message
+  string mead_address = 1;
+}

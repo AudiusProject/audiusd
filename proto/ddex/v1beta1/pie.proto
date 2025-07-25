@@ -65,3 +65,8 @@ message PieMessage {
   ddex.v1beta1.MessageHeader message_header = 1;
   PartyList party_list = 2;
 }
+
+message PieMessageAck {
+  // address of the PIE message
+  string pie_address = 1;
+}

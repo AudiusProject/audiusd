@@ -76,6 +76,54 @@ func (x *PieMessage) GetPartyList() *PieMessage_PartyList {
 	return nil
 }
 
+type PieMessageAck struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	// address of the PIE message
+	PieAddress string `protobuf:"bytes,1,opt,name=pie_address,json=pieAddress,proto3" json:"pie_address,omitempty"`
+}
+
+func (x *PieMessageAck) Reset() {
+	*x = PieMessageAck{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_ddex_v1beta1_pie_proto_msgTypes[1]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *PieMessageAck) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PieMessageAck) ProtoMessage() {}
+
+func (x *PieMessageAck) ProtoReflect() protoreflect.Message {
+	mi := &file_ddex_v1beta1_pie_proto_msgTypes[1]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PieMessageAck.ProtoReflect.Descriptor instead.
+func (*PieMessageAck) Descriptor() ([]byte, []int) {
+	return file_ddex_v1beta1_pie_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *PieMessageAck) GetPieAddress() string {
+	if x != nil {
+		return x.PieAddress
+	}
+	return ""
+}
+
 type PieMessage_PartyList struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -87,7 +135,7 @@ type PieMessage_PartyList struct {
 func (x *PieMessage_PartyList) Reset() {
 	*x = PieMessage_PartyList{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_ddex_v1beta1_pie_proto_msgTypes[1]
+		mi := &file_ddex_v1beta1_pie_proto_msgTypes[2]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -100,7 +148,7 @@ func (x *PieMessage_PartyList) String() string {
 func (*PieMessage_PartyList) ProtoMessage() {}
 
 func (x *PieMessage_PartyList) ProtoReflect() protoreflect.Message {
-	mi := &file_ddex_v1beta1_pie_proto_msgTypes[1]
+	mi := &file_ddex_v1beta1_pie_proto_msgTypes[2]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -141,7 +189,7 @@ type PieMessage_Party struct {
 func (x *PieMessage_Party) Reset() {
 	*x = PieMessage_Party{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_ddex_v1beta1_pie_proto_msgTypes[2]
+		mi := &file_ddex_v1beta1_pie_proto_msgTypes[3]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -154,7 +202,7 @@ func (x *PieMessage_Party) String() string {
 func (*PieMessage_Party) ProtoMessage() {}
 
 func (x *PieMessage_Party) ProtoReflect() protoreflect.Message {
-	mi := &file_ddex_v1beta1_pie_proto_msgTypes[2]
+	mi := &file_ddex_v1beta1_pie_proto_msgTypes[3]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -233,7 +281,7 @@ type PieMessage_Handle struct {
 func (x *PieMessage_Handle) Reset() {
 	*x = PieMessage_Handle{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_ddex_v1beta1_pie_proto_msgTypes[3]
+		mi := &file_ddex_v1beta1_pie_proto_msgTypes[4]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -246,7 +294,7 @@ func (x *PieMessage_Handle) String() string {
 func (*PieMessage_Handle) ProtoMessage() {}
 
 func (x *PieMessage_Handle) ProtoReflect() protoreflect.Message {
-	mi := &file_ddex_v1beta1_pie_proto_msgTypes[3]
+	mi := &file_ddex_v1beta1_pie_proto_msgTypes[4]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -290,7 +338,7 @@ type PieMessage_Verified struct {
 func (x *PieMessage_Verified) Reset() {
 	*x = PieMessage_Verified{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_ddex_v1beta1_pie_proto_msgTypes[4]
+		mi := &file_ddex_v1beta1_pie_proto_msgTypes[5]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -303,7 +351,7 @@ func (x *PieMessage_Verified) String() string {
 func (*PieMessage_Verified) ProtoMessage() {}
 
 func (x *PieMessage_Verified) ProtoReflect() protoreflect.Message {
-	mi := &file_ddex_v1beta1_pie_proto_msgTypes[4]
+	mi := &file_ddex_v1beta1_pie_proto_msgTypes[5]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -350,7 +398,7 @@ type PieMessage_Award struct {
 func (x *PieMessage_Award) Reset() {
 	*x = PieMessage_Award{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_ddex_v1beta1_pie_proto_msgTypes[5]
+		mi := &file_ddex_v1beta1_pie_proto_msgTypes[6]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -363,7 +411,7 @@ func (x *PieMessage_Award) String() string {
 func (*PieMessage_Award) ProtoMessage() {}
 
 func (x *PieMessage_Award) ProtoReflect() protoreflect.Message {
-	mi := &file_ddex_v1beta1_pie_proto_msgTypes[5]
+	mi := &file_ddex_v1beta1_pie_proto_msgTypes[6]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -432,7 +480,7 @@ type PieMessage_Party_PartyType struct {
 func (x *PieMessage_Party_PartyType) Reset() {
 	*x = PieMessage_Party_PartyType{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_ddex_v1beta1_pie_proto_msgTypes[6]
+		mi := &file_ddex_v1beta1_pie_proto_msgTypes[7]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -445,7 +493,7 @@ func (x *PieMessage_Party_PartyType) String() string {
 func (*PieMessage_Party_PartyType) ProtoMessage() {}
 
 func (x *PieMessage_Party_PartyType) ProtoReflect() protoreflect.Message {
-	mi := &file_ddex_v1beta1_pie_proto_msgTypes[6]
+	mi := &file_ddex_v1beta1_pie_proto_msgTypes[7]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -480,7 +528,7 @@ type PieMessage_Award_AwardingBody struct {
 func (x *PieMessage_Award_AwardingBody) Reset() {
 	*x = PieMessage_Award_AwardingBody{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_ddex_v1beta1_pie_proto_msgTypes[7]
+		mi := &file_ddex_v1beta1_pie_proto_msgTypes[8]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -493,7 +541,7 @@ func (x *PieMessage_Award_AwardingBody) String() string {
 func (*PieMessage_Award_AwardingBody) ProtoMessage() {}
 
 func (x *PieMessage_Award_AwardingBody) ProtoReflect() protoreflect.Message {
-	mi := &file_ddex_v1beta1_pie_proto_msgTypes[7]
+	mi := &file_ddex_v1beta1_pie_proto_msgTypes[8]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -535,7 +583,7 @@ type PieMessage_Award_AwardedParty struct {
 func (x *PieMessage_Award_AwardedParty) Reset() {
 	*x = PieMessage_Award_AwardedParty{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_ddex_v1beta1_pie_proto_msgTypes[8]
+		mi := &file_ddex_v1beta1_pie_proto_msgTypes[9]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -548,7 +596,7 @@ func (x *PieMessage_Award_AwardedParty) String() string {
 func (*PieMessage_Award_AwardedParty) ProtoMessage() {}
 
 func (x *PieMessage_Award_AwardedParty) ProtoReflect() protoreflect.Message {
-	mi := &file_ddex_v1beta1_pie_proto_msgTypes[8]
+	mi := &file_ddex_v1beta1_pie_proto_msgTypes[9]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -673,11 +721,14 @@ var file_ddex_v1beta1_pie_proto_rawDesc = []byte{
 	0x31, 0x2e, 0x50, 0x61, 0x72, 0x74, 0x79, 0x2e, 0x50, 0x61, 0x72, 0x74, 0x79, 0x49, 0x64, 0x48,
 	0x00, 0x52, 0x07, 0x70, 0x61, 0x72, 0x74, 0x79, 0x49, 0x64, 0x88, 0x01, 0x01, 0x42, 0x0b, 0x0a,
 	0x09, 0x5f, 0x70, 0x61, 0x72, 0x74, 0x79, 0x5f, 0x69, 0x64, 0x42, 0x0a, 0x0a, 0x08, 0x5f, 0x63,
-	0x6f, 0x6d, 0x6d, 0x65, 0x6e, 0x74, 0x42, 0x37, 0x5a, 0x35, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62,
-	0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x41, 0x75, 0x64, 0x69, 0x75, 0x73, 0x50, 0x72, 0x6f, 0x6a, 0x65,
-	0x63, 0x74, 0x2f, 0x61, 0x75, 0x64, 0x69, 0x75, 0x73, 0x64, 0x2f, 0x70, 0x6b, 0x67, 0x2f, 0x61,
-	0x70, 0x69, 0x2f, 0x64, 0x64, 0x65, 0x78, 0x2f, 0x76, 0x31, 0x62, 0x65, 0x74, 0x61, 0x31, 0x62,
-	0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x6f, 0x6d, 0x6d, 0x65, 0x6e, 0x74, 0x22, 0x30, 0x0a, 0x0d, 0x50, 0x69, 0x65, 0x4d, 0x65, 0x73,
+	0x73, 0x61, 0x67, 0x65, 0x41, 0x63, 0x6b, 0x12, 0x1f, 0x0a, 0x0b, 0x70, 0x69, 0x65, 0x5f, 0x61,
+	0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0a, 0x70, 0x69,
+	0x65, 0x41, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x42, 0x37, 0x5a, 0x35, 0x67, 0x69, 0x74, 0x68,
+	0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x41, 0x75, 0x64, 0x69, 0x75, 0x73, 0x50, 0x72, 0x6f,
+	0x6a, 0x65, 0x63, 0x74, 0x2f, 0x61, 0x75, 0x64, 0x69, 0x75, 0x73, 0x64, 0x2f, 0x70, 0x6b, 0x67,
+	0x2f, 0x61, 0x70, 0x69, 0x2f, 0x64, 0x64, 0x65, 0x78, 0x2f, 0x76, 0x31, 0x62, 0x65, 0x74, 0x61,
+	0x31, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -692,37 +743,38 @@ func file_ddex_v1beta1_pie_proto_rawDescGZIP() []byte {
 	return file_ddex_v1beta1_pie_proto_rawDescData
 }
 
-var file_ddex_v1beta1_pie_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_ddex_v1beta1_pie_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_ddex_v1beta1_pie_proto_goTypes = []interface{}{
 	(*PieMessage)(nil),                    // 0: ddex.v1beta1.PieMessage
-	(*PieMessage_PartyList)(nil),          // 1: ddex.v1beta1.PieMessage.PartyList
-	(*PieMessage_Party)(nil),              // 2: ddex.v1beta1.PieMessage.Party
-	(*PieMessage_Handle)(nil),             // 3: ddex.v1beta1.PieMessage.Handle
-	(*PieMessage_Verified)(nil),           // 4: ddex.v1beta1.PieMessage.Verified
-	(*PieMessage_Award)(nil),              // 5: ddex.v1beta1.PieMessage.Award
-	(*PieMessage_Party_PartyType)(nil),    // 6: ddex.v1beta1.PieMessage.Party.PartyType
-	(*PieMessage_Award_AwardingBody)(nil), // 7: ddex.v1beta1.PieMessage.Award.AwardingBody
-	(*PieMessage_Award_AwardedParty)(nil), // 8: ddex.v1beta1.PieMessage.Award.AwardedParty
-	(*MessageHeader)(nil),                 // 9: ddex.v1beta1.MessageHeader
-	(*Party_PartyId)(nil),                 // 10: ddex.v1beta1.Party.PartyId
-	(*Party_PartyName)(nil),               // 11: ddex.v1beta1.Party.PartyName
+	(*PieMessageAck)(nil),                 // 1: ddex.v1beta1.PieMessageAck
+	(*PieMessage_PartyList)(nil),          // 2: ddex.v1beta1.PieMessage.PartyList
+	(*PieMessage_Party)(nil),              // 3: ddex.v1beta1.PieMessage.Party
+	(*PieMessage_Handle)(nil),             // 4: ddex.v1beta1.PieMessage.Handle
+	(*PieMessage_Verified)(nil),           // 5: ddex.v1beta1.PieMessage.Verified
+	(*PieMessage_Award)(nil),              // 6: ddex.v1beta1.PieMessage.Award
+	(*PieMessage_Party_PartyType)(nil),    // 7: ddex.v1beta1.PieMessage.Party.PartyType
+	(*PieMessage_Award_AwardingBody)(nil), // 8: ddex.v1beta1.PieMessage.Award.AwardingBody
+	(*PieMessage_Award_AwardedParty)(nil), // 9: ddex.v1beta1.PieMessage.Award.AwardedParty
+	(*MessageHeader)(nil),                 // 10: ddex.v1beta1.MessageHeader
+	(*Party_PartyId)(nil),                 // 11: ddex.v1beta1.Party.PartyId
+	(*Party_PartyName)(nil),               // 12: ddex.v1beta1.Party.PartyName
 }
 var file_ddex_v1beta1_pie_proto_depIdxs = []int32{
-	9,  // 0: ddex.v1beta1.PieMessage.message_header:type_name -> ddex.v1beta1.MessageHeader
-	1,  // 1: ddex.v1beta1.PieMessage.party_list:type_name -> ddex.v1beta1.PieMessage.PartyList
-	2,  // 2: ddex.v1beta1.PieMessage.PartyList.party:type_name -> ddex.v1beta1.PieMessage.Party
-	10, // 3: ddex.v1beta1.PieMessage.Party.party_id:type_name -> ddex.v1beta1.Party.PartyId
-	11, // 4: ddex.v1beta1.PieMessage.Party.party_name:type_name -> ddex.v1beta1.Party.PartyName
-	6,  // 5: ddex.v1beta1.PieMessage.Party.party_type:type_name -> ddex.v1beta1.PieMessage.Party.PartyType
-	3,  // 6: ddex.v1beta1.PieMessage.Party.handles:type_name -> ddex.v1beta1.PieMessage.Handle
-	4,  // 7: ddex.v1beta1.PieMessage.Party.verified:type_name -> ddex.v1beta1.PieMessage.Verified
-	5,  // 8: ddex.v1beta1.PieMessage.Party.awards:type_name -> ddex.v1beta1.PieMessage.Award
-	7,  // 9: ddex.v1beta1.PieMessage.Award.awarding_body:type_name -> ddex.v1beta1.PieMessage.Award.AwardingBody
-	8,  // 10: ddex.v1beta1.PieMessage.Award.awarded_party:type_name -> ddex.v1beta1.PieMessage.Award.AwardedParty
-	11, // 11: ddex.v1beta1.PieMessage.Award.AwardingBody.party_name:type_name -> ddex.v1beta1.Party.PartyName
-	10, // 12: ddex.v1beta1.PieMessage.Award.AwardingBody.party_id:type_name -> ddex.v1beta1.Party.PartyId
-	11, // 13: ddex.v1beta1.PieMessage.Award.AwardedParty.party_name:type_name -> ddex.v1beta1.Party.PartyName
-	10, // 14: ddex.v1beta1.PieMessage.Award.AwardedParty.party_id:type_name -> ddex.v1beta1.Party.PartyId
+	10, // 0: ddex.v1beta1.PieMessage.message_header:type_name -> ddex.v1beta1.MessageHeader
+	2,  // 1: ddex.v1beta1.PieMessage.party_list:type_name -> ddex.v1beta1.PieMessage.PartyList
+	3,  // 2: ddex.v1beta1.PieMessage.PartyList.party:type_name -> ddex.v1beta1.PieMessage.Party
+	11, // 3: ddex.v1beta1.PieMessage.Party.party_id:type_name -> ddex.v1beta1.Party.PartyId
+	12, // 4: ddex.v1beta1.PieMessage.Party.party_name:type_name -> ddex.v1beta1.Party.PartyName
+	7,  // 5: ddex.v1beta1.PieMessage.Party.party_type:type_name -> ddex.v1beta1.PieMessage.Party.PartyType
+	4,  // 6: ddex.v1beta1.PieMessage.Party.handles:type_name -> ddex.v1beta1.PieMessage.Handle
+	5,  // 7: ddex.v1beta1.PieMessage.Party.verified:type_name -> ddex.v1beta1.PieMessage.Verified
+	6,  // 8: ddex.v1beta1.PieMessage.Party.awards:type_name -> ddex.v1beta1.PieMessage.Award
+	8,  // 9: ddex.v1beta1.PieMessage.Award.awarding_body:type_name -> ddex.v1beta1.PieMessage.Award.AwardingBody
+	9,  // 10: ddex.v1beta1.PieMessage.Award.awarded_party:type_name -> ddex.v1beta1.PieMessage.Award.AwardedParty
+	12, // 11: ddex.v1beta1.PieMessage.Award.AwardingBody.party_name:type_name -> ddex.v1beta1.Party.PartyName
+	11, // 12: ddex.v1beta1.PieMessage.Award.AwardingBody.party_id:type_name -> ddex.v1beta1.Party.PartyId
+	12, // 13: ddex.v1beta1.PieMessage.Award.AwardedParty.party_name:type_name -> ddex.v1beta1.Party.PartyName
+	11, // 14: ddex.v1beta1.PieMessage.Award.AwardedParty.party_id:type_name -> ddex.v1beta1.Party.PartyId
 	15, // [15:15] is the sub-list for method output_type
 	15, // [15:15] is the sub-list for method input_type
 	15, // [15:15] is the sub-list for extension type_name
@@ -751,7 +803,7 @@ func file_ddex_v1beta1_pie_proto_init() {
 			}
 		}
 		file_ddex_v1beta1_pie_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*PieMessage_PartyList); i {
+			switch v := v.(*PieMessageAck); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -763,7 +815,7 @@ func file_ddex_v1beta1_pie_proto_init() {
 			}
 		}
 		file_ddex_v1beta1_pie_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*PieMessage_Party); i {
+			switch v := v.(*PieMessage_PartyList); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -775,7 +827,7 @@ func file_ddex_v1beta1_pie_proto_init() {
 			}
 		}
 		file_ddex_v1beta1_pie_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*PieMessage_Handle); i {
+			switch v := v.(*PieMessage_Party); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -787,7 +839,7 @@ func file_ddex_v1beta1_pie_proto_init() {
 			}
 		}
 		file_ddex_v1beta1_pie_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*PieMessage_Verified); i {
+			switch v := v.(*PieMessage_Handle); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -799,7 +851,7 @@ func file_ddex_v1beta1_pie_proto_init() {
 			}
 		}
 		file_ddex_v1beta1_pie_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*PieMessage_Award); i {
+			switch v := v.(*PieMessage_Verified); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -811,7 +863,7 @@ func file_ddex_v1beta1_pie_proto_init() {
 			}
 		}
 		file_ddex_v1beta1_pie_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*PieMessage_Party_PartyType); i {
+			switch v := v.(*PieMessage_Award); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -823,7 +875,7 @@ func file_ddex_v1beta1_pie_proto_init() {
 			}
 		}
 		file_ddex_v1beta1_pie_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*PieMessage_Award_AwardingBody); i {
+			switch v := v.(*PieMessage_Party_PartyType); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -835,6 +887,18 @@ func file_ddex_v1beta1_pie_proto_init() {
 			}
 		}
 		file_ddex_v1beta1_pie_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*PieMessage_Award_AwardingBody); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_ddex_v1beta1_pie_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*PieMessage_Award_AwardedParty); i {
 			case 0:
 				return &v.state
@@ -847,16 +911,16 @@ func file_ddex_v1beta1_pie_proto_init() {
 			}
 		}
 	}
-	file_ddex_v1beta1_pie_proto_msgTypes[5].OneofWrappers = []interface{}{}
-	file_ddex_v1beta1_pie_proto_msgTypes[7].OneofWrappers = []interface{}{}
+	file_ddex_v1beta1_pie_proto_msgTypes[6].OneofWrappers = []interface{}{}
 	file_ddex_v1beta1_pie_proto_msgTypes[8].OneofWrappers = []interface{}{}
+	file_ddex_v1beta1_pie_proto_msgTypes[9].OneofWrappers = []interface{}{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_ddex_v1beta1_pie_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   9,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
