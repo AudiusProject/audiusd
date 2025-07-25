@@ -92,12 +92,13 @@ func TestLifecycleTimesOut(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func doAThing(ctx context.Context) {
+func doAThing(ctx context.Context) error {
 	<-ctx.Done()
 	time.Sleep(time.Duration(rand.Intn(3)) * time.Second)
+	return nil
 }
 
-func doAThingForever(ctx context.Context) {
+func doAThingForever(ctx context.Context) error {
 	ticker := time.NewTicker(1 * time.Minute)
 	for {
 		select {
@@ -105,4 +106,5 @@ func doAThingForever(ctx context.Context) {
 			time.Sleep(2 * time.Second)
 		}
 	}
+	return nil
 }
