@@ -687,6 +687,87 @@ func (q *Queries) GetDecodedTxsByType(ctx context.Context, arg GetDecodedTxsByTy
 	return items, nil
 }
 
+const getERN = `-- name: GetERN :one
+select id, address, index, tx_hash, sender, nonce, message_control_type, party_addresses, resource_addresses, release_addresses, deal_addresses, raw_message, raw_acknowledgment, block_height from core_ern where address = $1 order by nonce desc limit 1
+`
+
+func (q *Queries) GetERN(ctx context.Context, address string) (CoreErn, error) {
+	row := q.db.QueryRow(ctx, getERN, address)
+	var i CoreErn
+	err := row.Scan(
+		&i.ID,
+		&i.Address,
+		&i.Index,
+		&i.TxHash,
+		&i.Sender,
+		&i.Nonce,
+		&i.MessageControlType,
+		&i.PartyAddresses,
+		&i.ResourceAddresses,
+		&i.ReleaseAddresses,
+		&i.DealAddresses,
+		&i.RawMessage,
+		&i.RawAcknowledgment,
+		&i.BlockHeight,
+	)
+	return i, err
+}
+
+const getERNCreate = `-- name: GetERNCreate :one
+select id, address, index, tx_hash, sender, nonce, message_control_type, party_addresses, resource_addresses, release_addresses, deal_addresses, raw_message, raw_acknowledgment, block_height from core_ern where address = $1 order by nonce asc limit 1
+`
+
+func (q *Queries) GetERNCreate(ctx context.Context, address string) (CoreErn, error) {
+	row := q.db.QueryRow(ctx, getERNCreate, address)
+	var i CoreErn
+	err := row.Scan(
+		&i.ID,
+		&i.Address,
+		&i.Index,
+		&i.TxHash,
+		&i.Sender,
+		&i.Nonce,
+		&i.MessageControlType,
+		&i.PartyAddresses,
+		&i.ResourceAddresses,
+		&i.ReleaseAddresses,
+		&i.DealAddresses,
+		&i.RawMessage,
+		&i.RawAcknowledgment,
+		&i.BlockHeight,
+	)
+	return i, err
+}
+
+const getERNReceipts = `-- name: GetERNReceipts :many
+select raw_acknowledgment, index from core_ern where tx_hash = $1
+`
+
+type GetERNReceiptsRow struct {
+	RawAcknowledgment []byte
+	Index             int64
+}
+
+func (q *Queries) GetERNReceipts(ctx context.Context, txHash string) ([]GetERNReceiptsRow, error) {
+	rows, err := q.db.Query(ctx, getERNReceipts, txHash)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetERNReceiptsRow
+	for rows.Next() {
+		var i GetERNReceiptsRow
+		if err := rows.Scan(&i.RawAcknowledgment, &i.Index); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getInProgressRollupReports = `-- name: GetInProgressRollupReports :many
 select id, address, blocks_proposed, sla_rollup_id from sla_node_reports
 where sla_rollup_id is null 
@@ -807,6 +888,128 @@ func (q *Queries) GetLatestSlaRollup(ctx context.Context) (SlaRollup, error) {
 	return i, err
 }
 
+const getMEAD = `-- name: GetMEAD :one
+select id, address, tx_hash, index, sender, nonce, message_control_type, resource_addresses, release_addresses, raw_message, raw_acknowledgment, block_height from core_mead where address = $1 order by nonce desc limit 1
+`
+
+func (q *Queries) GetMEAD(ctx context.Context, address string) (CoreMead, error) {
+	row := q.db.QueryRow(ctx, getMEAD, address)
+	var i CoreMead
+	err := row.Scan(
+		&i.ID,
+		&i.Address,
+		&i.TxHash,
+		&i.Index,
+		&i.Sender,
+		&i.Nonce,
+		&i.MessageControlType,
+		&i.ResourceAddresses,
+		&i.ReleaseAddresses,
+		&i.RawMessage,
+		&i.RawAcknowledgment,
+		&i.BlockHeight,
+	)
+	return i, err
+}
+
+const getMEADCreate = `-- name: GetMEADCreate :one
+select id, address, tx_hash, index, sender, nonce, message_control_type, resource_addresses, release_addresses, raw_message, raw_acknowledgment, block_height from core_mead where address = $1 order by nonce asc limit 1
+`
+
+func (q *Queries) GetMEADCreate(ctx context.Context, address string) (CoreMead, error) {
+	row := q.db.QueryRow(ctx, getMEADCreate, address)
+	var i CoreMead
+	err := row.Scan(
+		&i.ID,
+		&i.Address,
+		&i.TxHash,
+		&i.Index,
+		&i.Sender,
+		&i.Nonce,
+		&i.MessageControlType,
+		&i.ResourceAddresses,
+		&i.ReleaseAddresses,
+		&i.RawMessage,
+		&i.RawAcknowledgment,
+		&i.BlockHeight,
+	)
+	return i, err
+}
+
+const getMEADReceipts = `-- name: GetMEADReceipts :many
+select raw_acknowledgment, index from core_mead where tx_hash = $1
+`
+
+type GetMEADReceiptsRow struct {
+	RawAcknowledgment []byte
+	Index             int64
+}
+
+func (q *Queries) GetMEADReceipts(ctx context.Context, txHash string) ([]GetMEADReceiptsRow, error) {
+	rows, err := q.db.Query(ctx, getMEADReceipts, txHash)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetMEADReceiptsRow
+	for rows.Next() {
+		var i GetMEADReceiptsRow
+		if err := rows.Scan(&i.RawAcknowledgment, &i.Index); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getMEADsForERN = `-- name: GetMEADsForERN :many
+select m.id, m.address, m.tx_hash, m.index, m.sender, m.nonce, m.message_control_type, m.resource_addresses, m.release_addresses, m.raw_message, m.raw_acknowledgment, m.block_height from core_mead m, core_ern e 
+where e.address = $1 
+and (m.resource_addresses && e.resource_addresses 
+     or m.release_addresses && e.release_addresses)
+and m.nonce = (
+    select max(m2.nonce) 
+    from core_mead m2 
+    where m2.address = m.address
+)
+`
+
+func (q *Queries) GetMEADsForERN(ctx context.Context, address string) ([]CoreMead, error) {
+	rows, err := q.db.Query(ctx, getMEADsForERN, address)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CoreMead
+	for rows.Next() {
+		var i CoreMead
+		if err := rows.Scan(
+			&i.ID,
+			&i.Address,
+			&i.TxHash,
+			&i.Index,
+			&i.Sender,
+			&i.Nonce,
+			&i.MessageControlType,
+			&i.ResourceAddresses,
+			&i.ReleaseAddresses,
+			&i.RawMessage,
+			&i.RawAcknowledgment,
+			&i.BlockHeight,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getNodeByEndpoint = `-- name: GetNodeByEndpoint :one
 select rowid, pub_key, endpoint, eth_address, comet_address, eth_block, node_type, sp_id, comet_pub_key
 from core_validators
@@ -856,6 +1059,124 @@ func (q *Queries) GetNodesByEndpoints(ctx context.Context, dollar_1 []string) ([
 			&i.NodeType,
 			&i.SpID,
 			&i.CometPubKey,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getPIE = `-- name: GetPIE :one
+select id, address, tx_hash, index, sender, nonce, message_control_type, party_addresses, raw_message, raw_acknowledgment, block_height from core_pie where address = $1 order by nonce desc limit 1
+`
+
+func (q *Queries) GetPIE(ctx context.Context, address string) (CorePie, error) {
+	row := q.db.QueryRow(ctx, getPIE, address)
+	var i CorePie
+	err := row.Scan(
+		&i.ID,
+		&i.Address,
+		&i.TxHash,
+		&i.Index,
+		&i.Sender,
+		&i.Nonce,
+		&i.MessageControlType,
+		&i.PartyAddresses,
+		&i.RawMessage,
+		&i.RawAcknowledgment,
+		&i.BlockHeight,
+	)
+	return i, err
+}
+
+const getPIECreate = `-- name: GetPIECreate :one
+select id, address, tx_hash, index, sender, nonce, message_control_type, party_addresses, raw_message, raw_acknowledgment, block_height from core_pie where address = $1 order by nonce asc limit 1
+`
+
+func (q *Queries) GetPIECreate(ctx context.Context, address string) (CorePie, error) {
+	row := q.db.QueryRow(ctx, getPIECreate, address)
+	var i CorePie
+	err := row.Scan(
+		&i.ID,
+		&i.Address,
+		&i.TxHash,
+		&i.Index,
+		&i.Sender,
+		&i.Nonce,
+		&i.MessageControlType,
+		&i.PartyAddresses,
+		&i.RawMessage,
+		&i.RawAcknowledgment,
+		&i.BlockHeight,
+	)
+	return i, err
+}
+
+const getPIEReceipts = `-- name: GetPIEReceipts :many
+select raw_acknowledgment, index from core_pie where tx_hash = $1
+`
+
+type GetPIEReceiptsRow struct {
+	RawAcknowledgment []byte
+	Index             int64
+}
+
+func (q *Queries) GetPIEReceipts(ctx context.Context, txHash string) ([]GetPIEReceiptsRow, error) {
+	rows, err := q.db.Query(ctx, getPIEReceipts, txHash)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetPIEReceiptsRow
+	for rows.Next() {
+		var i GetPIEReceiptsRow
+		if err := rows.Scan(&i.RawAcknowledgment, &i.Index); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getPIEsForERN = `-- name: GetPIEsForERN :many
+select p.id, p.address, p.tx_hash, p.index, p.sender, p.nonce, p.message_control_type, p.party_addresses, p.raw_message, p.raw_acknowledgment, p.block_height from core_pie p, core_ern e 
+where e.address = $1 
+and p.party_addresses && e.party_addresses
+and p.nonce = (
+    select max(p2.nonce) 
+    from core_pie p2 
+    where p2.address = p.address
+)
+`
+
+func (q *Queries) GetPIEsForERN(ctx context.Context, address string) ([]CorePie, error) {
+	rows, err := q.db.Query(ctx, getPIEsForERN, address)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CorePie
+	for rows.Next() {
+		var i CorePie
+		if err := rows.Scan(
+			&i.ID,
+			&i.Address,
+			&i.TxHash,
+			&i.Index,
+			&i.Sender,
+			&i.Nonce,
+			&i.MessageControlType,
+			&i.PartyAddresses,
+			&i.RawMessage,
+			&i.RawAcknowledgment,
+			&i.BlockHeight,
 		); err != nil {
 			return nil, err
 		}

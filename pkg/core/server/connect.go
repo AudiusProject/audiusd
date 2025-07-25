@@ -12,6 +12,8 @@ import (
 	"connectrpc.com/connect"
 	v1 "github.com/AudiusProject/audiusd/pkg/api/core/v1"
 	"github.com/AudiusProject/audiusd/pkg/api/core/v1/v1connect"
+	v1beta1 "github.com/AudiusProject/audiusd/pkg/api/core/v1beta1"
+	"github.com/AudiusProject/audiusd/pkg/api/ddex/v1beta2"
 	"github.com/AudiusProject/audiusd/pkg/common"
 	"github.com/AudiusProject/audiusd/pkg/rewards"
 	"github.com/jackc/pgx/v5"
@@ -57,12 +59,22 @@ func (c *CoreService) ForwardTransaction(ctx context.Context, req *connect.Reque
 
 	// TODO: validate transaction in same way as send transaction
 
-	mempoolKey, err := common.ToTxHash(req.Msg.Transaction)
+	var mempoolKey common.TxHash
+	var err error
+	if req.Msg.Transactionv2 != nil {
+		mempoolKey, err = common.ToTxHash(req.Msg.Transactionv2.Envelope)
+	} else {
+		mempoolKey, err = common.ToTxHash(req.Msg.Transaction)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("could not get tx hash of signed tx: %v", err)
 	}
 
-	c.core.logger.Debugf("received forwarded tx: %v", req.Msg.Transaction)
+	if req.Msg.Transactionv2 != nil {
+		c.core.logger.Debugf("received forwarded v2 tx: %v", req.Msg.Transactionv2)
+	} else {
+		c.core.logger.Debugf("received forwarded tx: %v", req.Msg.Transaction)
+	}
 
 	// TODO: intake block deadline from request
 	status, err := c.core.rpc.Status(ctx)
@@ -71,9 +83,19 @@ func (c *CoreService) ForwardTransaction(ctx context.Context, req *connect.Reque
 	}
 
 	deadline := status.SyncInfo.LatestBlockHeight + 10
-	mempoolTx := &MempoolTransaction{
-		Tx:       req.Msg.Transaction,
-		Deadline: deadline,
+	var mempoolTx *MempoolTransaction
+	if req.Msg.Transaction != nil {
+		mempoolTx = &MempoolTransaction{
+			Tx:       req.Msg.Transaction,
+			Deadline: deadline,
+		}
+	} else if req.Msg.Transactionv2 != nil {
+		mempoolTx = &MempoolTransaction{
+			Txv2:     req.Msg.Transactionv2,
+			Deadline: deadline,
+		}
+	} else {
+		return nil, fmt.Errorf("no transaction provided")
 	}
 
 	err = c.core.addMempoolTransaction(mempoolKey, mempoolTx, false)
@@ -259,27 +281,50 @@ func (c *CoreService) GetTransaction(ctx context.Context, req *connect.Request[v
 		return nil, err
 	}
 
-	var transaction v1.SignedTransaction
-	err = proto.Unmarshal(tx.Transaction, &transaction)
-	if err != nil {
-		return nil, err
-	}
-
 	block, err := c.core.db.GetBlock(ctx, tx.BlockID)
 	if err != nil {
 		return nil, err
 	}
 
-	return connect.NewResponse(&v1.GetTransactionResponse{
-		Transaction: &v1.Transaction{
-			Hash:        txhash,
-			BlockHash:   block.Hash,
-			ChainId:     c.core.config.GenesisFile.ChainID,
-			Height:      block.Height,
-			Timestamp:   timestamppb.New(block.CreatedAt.Time),
-			Transaction: &transaction,
-		},
-	}), nil
+	// Try to unmarshal as v1 transaction first
+	var v1Transaction v1.SignedTransaction
+	err = proto.Unmarshal(tx.Transaction, &v1Transaction)
+	if err == nil {
+		// Successfully unmarshaled as v1 transaction
+		return connect.NewResponse(&v1.GetTransactionResponse{
+			Transaction: &v1.Transaction{
+				Hash:        txhash,
+				BlockHash:   block.Hash,
+				ChainId:     c.core.config.GenesisFile.ChainID,
+				Height:      block.Height,
+				Timestamp:   timestamppb.New(block.CreatedAt.Time),
+				Transaction: &v1Transaction,
+			},
+		}), nil
+	}
+
+	// Try to unmarshal as v2 transaction
+	var v2Transaction v1beta1.Transaction
+	err = proto.Unmarshal(tx.Transaction, &v2Transaction)
+	if err == nil {
+		// Successfully unmarshaled as v2 transaction
+		// For now, return the v2 transaction in the response - the API might need to be extended
+		// to properly handle v2 transactions, but this allows retrieval without error
+		return connect.NewResponse(&v1.GetTransactionResponse{
+			Transaction: &v1.Transaction{
+				Hash:          txhash,
+				BlockHash:     block.Hash,
+				ChainId:       c.core.config.GenesisFile.ChainID,
+				Height:        block.Height,
+				Timestamp:     timestamppb.New(block.CreatedAt.Time),
+				Transaction:   &v1Transaction,
+				Transactionv2: &v2Transaction,
+			},
+		}), nil
+	}
+
+	// If neither worked, return the original error
+	return nil, fmt.Errorf("could not unmarshal transaction as v1 or v2: %v", err)
 }
 
 // Ping implements v1connect.CoreServiceHandler.
@@ -290,21 +335,38 @@ func (c *CoreService) Ping(context.Context, *connect.Request[v1.PingRequest]) (*
 // SendTransaction implements v1connect.CoreServiceHandler.
 func (c *CoreService) SendTransaction(ctx context.Context, req *connect.Request[v1.SendTransactionRequest]) (*connect.Response[v1.SendTransactionResponse], error) {
 	// TODO: do validation check
-	txhash, err := common.ToTxHash(req.Msg.Transaction)
+	var txhash common.TxHash
+	var err error
+	if req.Msg.Transactionv2 != nil {
+		txhash, err = common.ToTxHash(req.Msg.Transactionv2.Envelope)
+		if err != nil {
+			return nil, fmt.Errorf("could not get tx hash of signed tx: %v", err)
+		}
+
+		err = c.core.validateV2Transaction(ctx, c.core.cache.currentHeight.Load(), req.Msg.Transactionv2)
+		if err != nil {
+			return nil, fmt.Errorf("transactionv2 validation failed: %v", err)
+		}
+	} else {
+		txhash, err = common.ToTxHash(req.Msg.Transaction)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("could not get tx hash of signed tx: %v", err)
 	}
 
-	// TODO: use data companion to keep this value up to date via channel
-	status, err := c.core.rpc.Status(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("chain not healthy: %v", err)
-	}
-
-	deadline := status.SyncInfo.LatestBlockHeight + 10
-	mempoolTx := &MempoolTransaction{
-		Tx:       req.Msg.Transaction,
-		Deadline: deadline,
+	// create mempool transaction for both v1 and v2
+	var mempoolTx *MempoolTransaction
+	deadline := c.core.cache.currentHeight.Load() + 10
+	if req.Msg.Transaction != nil {
+		mempoolTx = &MempoolTransaction{
+			Tx:       req.Msg.Transaction,
+			Deadline: deadline,
+		}
+	} else if req.Msg.Transactionv2 != nil {
+		mempoolTx = &MempoolTransaction{
+			Txv2:     req.Msg.Transactionv2,
+			Deadline: deadline,
+		}
 	}
 
 	ps := c.core.txPubsub
@@ -312,13 +374,13 @@ func (c *CoreService) SendTransaction(ctx context.Context, req *connect.Request[
 	txHashCh := ps.Subscribe(txhash)
 	defer ps.Unsubscribe(txhash, txHashCh)
 
-	c.core.logger.Infof("adding tx: %v", req.Msg.Transaction)
-
 	// add transaction to mempool with broadcast set to true
-	err = c.core.addMempoolTransaction(txhash, mempoolTx, true)
-	if err != nil {
-		c.core.logger.Errorf("tx could not be included in mempool %s: %v", txhash, err)
-		return nil, fmt.Errorf("could not add tx to mempool %v", err)
+	if mempoolTx != nil {
+		err = c.core.addMempoolTransaction(txhash, mempoolTx, true)
+		if err != nil {
+			c.core.logger.Errorf("tx could not be included in mempool %s: %v", txhash, err)
+			return nil, fmt.Errorf("could not add tx to mempool %v", err)
+		}
 	}
 
 	select {
@@ -333,15 +395,96 @@ func (c *CoreService) SendTransaction(ctx context.Context, req *connect.Request[
 			return nil, err
 		}
 
+		// only build receipt for v2 transactions
+		var receipt *v1beta1.TransactionReceipt
+		if req.Msg.Transactionv2 != nil {
+			receipt = &v1beta1.TransactionReceipt{
+				EnvelopeInfo: &v1beta1.EnvelopeReceiptInfo{
+					ChainId:      c.core.config.GenesisFile.ChainID,
+					Expiration:   req.Msg.Transactionv2.Envelope.Header.Expiration,
+					Nonce:        req.Msg.Transactionv2.Envelope.Header.Nonce,
+					MessageCount: int32(len(req.Msg.Transactionv2.Envelope.Messages)),
+				},
+				TxHash:          txhash,
+				Height:          block.Height,
+				Timestamp:       block.CreatedAt.Time.Unix(),
+				Sender:          "", // TODO: get sender from transaction signature
+				Responder:       c.core.config.ProposerAddress,
+				Proposer:        block.Proposer,
+				MessageReceipts: make([]*v1beta1.MessageReceipt, len(req.Msg.Transactionv2.Envelope.Messages)),
+			}
+			// get all receipts by tx hash and use index to map to the correct message
+
+			// get ERNs, MEADs, and PIES by tx hash and use index to map to the correct message
+			ernReceipts, err := c.core.db.GetERNReceipts(ctx, txhash)
+			if err != nil {
+				c.core.logger.Errorf("error getting ERN receipts: %v", err)
+			} else {
+				for _, ernReceipt := range ernReceipts {
+					ernAck := &v1beta2.ElectronicReleaseNotificationAck{}
+					err = proto.Unmarshal(ernReceipt.RawAcknowledgment, ernAck)
+					if err != nil {
+						c.core.logger.Errorf("error unmarshalling ERN receipt: %v", err)
+					}
+					receipt.MessageReceipts[ernReceipt.Index] = &v1beta1.MessageReceipt{
+						MessageIndex: int32(ernReceipt.Index),
+						Result: &v1beta1.MessageReceipt_ErnAck{
+							ErnAck: ernAck,
+						},
+					}
+				}
+			}
+
+			meadReceipts, err := c.core.db.GetMEADReceipts(ctx, txhash)
+			if err != nil {
+				c.core.logger.Errorf("error getting MEAD receipts: %v", err)
+			} else {
+				for _, meadReceipt := range meadReceipts {
+					meadAck := &v1beta2.MediaEnrichmentDescriptionAck{}
+					err = proto.Unmarshal(meadReceipt.RawAcknowledgment, meadAck)
+					if err != nil {
+						c.core.logger.Errorf("error unmarshalling MEAD receipt: %v", err)
+					}
+					receipt.MessageReceipts[meadReceipt.Index] = &v1beta1.MessageReceipt{
+						MessageIndex: int32(meadReceipt.Index),
+						Result: &v1beta1.MessageReceipt_MeadAck{
+							MeadAck: meadAck,
+						},
+					}
+				}
+			}
+
+			pieReceipts, err := c.core.db.GetPIEReceipts(ctx, txhash)
+			if err != nil {
+				c.core.logger.Errorf("error getting PIE receipts: %v", err)
+			} else {
+				for _, pieReceipt := range pieReceipts {
+					pieAck := &v1beta2.PartyIdentificationEnrichmentAck{}
+					err = proto.Unmarshal(pieReceipt.RawAcknowledgment, pieAck)
+					if err != nil {
+						c.core.logger.Errorf("error unmarshalling PIE receipt: %v", err)
+					}
+					receipt.MessageReceipts[pieReceipt.Index] = &v1beta1.MessageReceipt{
+						MessageIndex: int32(pieReceipt.Index),
+						Result: &v1beta1.MessageReceipt_PieAck{
+							PieAck: pieAck,
+						},
+					}
+				}
+			}
+		}
+
 		return connect.NewResponse(&v1.SendTransactionResponse{
 			Transaction: &v1.Transaction{
-				Hash:        txhash,
-				BlockHash:   block.Hash,
-				ChainId:     c.core.config.GenesisFile.ChainID,
-				Height:      block.Height,
-				Timestamp:   timestamppb.New(block.CreatedAt.Time),
-				Transaction: req.Msg.Transaction,
+				Hash:          txhash,
+				BlockHash:     block.Hash,
+				ChainId:       c.core.config.GenesisFile.ChainID,
+				Height:        block.Height,
+				Timestamp:     timestamppb.New(block.CreatedAt.Time),
+				Transaction:   req.Msg.Transaction,
+				Transactionv2: req.Msg.Transactionv2,
 			},
+			TransactionReceipt: receipt,
 		}), nil
 	case <-time.After(30 * time.Second):
 		c.core.logger.Errorf("tx timeout waiting to be included %s", txhash)

@@ -292,3 +292,50 @@ select * from sound_recordings where track_id = $1;
 -- name: GetDBSize :one
 select pg_database_size(current_database())::bigint as size;
 
+-- name: GetERN :one
+select * from core_ern where address = $1 order by nonce desc limit 1;
+
+-- name: GetPIEsForERN :many
+select p.* from core_pie p, core_ern e 
+where e.address = $1 
+and p.party_addresses && e.party_addresses
+and p.nonce = (
+    select max(p2.nonce) 
+    from core_pie p2 
+    where p2.address = p.address
+);
+
+-- name: GetMEADsForERN :many
+select m.* from core_mead m, core_ern e 
+where e.address = $1 
+and (m.resource_addresses && e.resource_addresses 
+     or m.release_addresses && e.release_addresses)
+and m.nonce = (
+    select max(m2.nonce) 
+    from core_mead m2 
+    where m2.address = m.address
+);
+
+-- name: GetPIE :one
+select * from core_pie where address = $1 order by nonce desc limit 1;
+
+-- name: GetMEAD :one
+select * from core_mead where address = $1 order by nonce desc limit 1;
+
+-- name: GetERNReceipts :many
+select raw_acknowledgment, index from core_ern where tx_hash = $1;
+
+-- name: GetMEADReceipts :many
+select raw_acknowledgment, index from core_mead where tx_hash = $1;
+
+-- name: GetPIEReceipts :many
+select raw_acknowledgment, index from core_pie where tx_hash = $1;
+
+-- name: GetERNCreate :one
+select * from core_ern where address = $1 order by nonce asc limit 1;
+
+-- name: GetMEADCreate :one
+select * from core_mead where address = $1 order by nonce asc limit 1;
+
+-- name: GetPIECreate :one
+select * from core_pie where address = $1 order by nonce asc limit 1;
