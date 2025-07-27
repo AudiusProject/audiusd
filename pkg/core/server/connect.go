@@ -13,7 +13,7 @@ import (
 	v1 "github.com/AudiusProject/audiusd/pkg/api/core/v1"
 	"github.com/AudiusProject/audiusd/pkg/api/core/v1/v1connect"
 	v1beta1 "github.com/AudiusProject/audiusd/pkg/api/core/v1beta1"
-	"github.com/AudiusProject/audiusd/pkg/api/ddex/v1beta2"
+	ddexv1beta1 "github.com/AudiusProject/audiusd/pkg/api/ddex/v1beta1"
 	"github.com/AudiusProject/audiusd/pkg/common"
 	"github.com/AudiusProject/audiusd/pkg/rewards"
 	"github.com/jackc/pgx/v5"
@@ -421,7 +421,7 @@ func (c *CoreService) SendTransaction(ctx context.Context, req *connect.Request[
 				c.core.logger.Errorf("error getting ERN receipts: %v", err)
 			} else {
 				for _, ernReceipt := range ernReceipts {
-					ernAck := &v1beta2.ElectronicReleaseNotificationAck{}
+					ernAck := &ddexv1beta1.NewReleaseMessageAck{}
 					err = proto.Unmarshal(ernReceipt.RawAcknowledgment, ernAck)
 					if err != nil {
 						c.core.logger.Errorf("error unmarshalling ERN receipt: %v", err)
@@ -440,7 +440,7 @@ func (c *CoreService) SendTransaction(ctx context.Context, req *connect.Request[
 				c.core.logger.Errorf("error getting MEAD receipts: %v", err)
 			} else {
 				for _, meadReceipt := range meadReceipts {
-					meadAck := &v1beta2.MediaEnrichmentDescriptionAck{}
+					meadAck := &ddexv1beta1.MeadMessageAck{}
 					err = proto.Unmarshal(meadReceipt.RawAcknowledgment, meadAck)
 					if err != nil {
 						c.core.logger.Errorf("error unmarshalling MEAD receipt: %v", err)
@@ -459,7 +459,7 @@ func (c *CoreService) SendTransaction(ctx context.Context, req *connect.Request[
 				c.core.logger.Errorf("error getting PIE receipts: %v", err)
 			} else {
 				for _, pieReceipt := range pieReceipts {
-					pieAck := &v1beta2.PartyIdentificationEnrichmentAck{}
+					pieAck := &ddexv1beta1.PieMessageAck{}
 					err = proto.Unmarshal(pieReceipt.RawAcknowledgment, pieAck)
 					if err != nil {
 						c.core.logger.Errorf("error unmarshalling PIE receipt: %v", err)

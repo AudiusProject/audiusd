@@ -92,7 +92,6 @@ insert into core_ern (
     tx_hash,
     index,
     sender,
-    nonce,
     message_control_type,
     party_addresses,
     resource_addresses,
@@ -101,7 +100,7 @@ insert into core_ern (
     raw_message,
     raw_acknowledgment,
     block_height
-) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 `
 
 type InsertCoreERNParams struct {
@@ -109,7 +108,6 @@ type InsertCoreERNParams struct {
 	TxHash             string
 	Index              int64
 	Sender             string
-	Nonce              int64
 	MessageControlType int16
 	PartyAddresses     []string
 	ResourceAddresses  []string
@@ -127,7 +125,6 @@ func (q *Queries) InsertCoreERN(ctx context.Context, arg InsertCoreERNParams) er
 		arg.TxHash,
 		arg.Index,
 		arg.Sender,
-		arg.Nonce,
 		arg.MessageControlType,
 		arg.PartyAddresses,
 		arg.ResourceAddresses,
@@ -146,14 +143,13 @@ insert into core_mead (
     tx_hash,
     index,
     sender,
-    nonce,
     message_control_type,
     resource_addresses,
     release_addresses,
     raw_message,
     raw_acknowledgment,
     block_height
-) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 `
 
 type InsertCoreMEADParams struct {
@@ -161,7 +157,6 @@ type InsertCoreMEADParams struct {
 	TxHash             string
 	Index              int64
 	Sender             string
-	Nonce              int64
 	MessageControlType int16
 	ResourceAddresses  []string
 	ReleaseAddresses   []string
@@ -176,7 +171,6 @@ func (q *Queries) InsertCoreMEAD(ctx context.Context, arg InsertCoreMEADParams) 
 		arg.TxHash,
 		arg.Index,
 		arg.Sender,
-		arg.Nonce,
 		arg.MessageControlType,
 		arg.ResourceAddresses,
 		arg.ReleaseAddresses,
@@ -193,13 +187,12 @@ insert into core_pie (
     tx_hash,
     index,
     sender,
-    nonce,
     message_control_type,
     party_addresses,
     raw_message,
     raw_acknowledgment,
     block_height
-) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+) values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 `
 
 type InsertCorePIEParams struct {
@@ -207,7 +200,6 @@ type InsertCorePIEParams struct {
 	TxHash             string
 	Index              int64
 	Sender             string
-	Nonce              int64
 	MessageControlType int16
 	PartyAddresses     []string
 	RawMessage         []byte
@@ -221,7 +213,6 @@ func (q *Queries) InsertCorePIE(ctx context.Context, arg InsertCorePIEParams) er
 		arg.TxHash,
 		arg.Index,
 		arg.Sender,
-		arg.Nonce,
 		arg.MessageControlType,
 		arg.PartyAddresses,
 		arg.RawMessage,

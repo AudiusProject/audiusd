@@ -5,7 +5,6 @@ create table if not exists core_ern (
     index bigint not null,
     tx_hash text not null,
     sender text not null,
-    nonce bigint not null,
     message_control_type smallint not null,
     party_addresses text[] default '{}',
     resource_addresses text[] default '{}',
@@ -17,7 +16,6 @@ create table if not exists core_ern (
 );
 
 create index if not exists idx_core_ern_address on core_ern (address);
-create index if not exists idx_core_ern_nonce on core_ern (nonce);
 create index if not exists idx_core_ern_block_height on core_ern (block_height);
 create index if not exists idx_core_ern_message_control_type on core_ern (message_control_type);
 create index if not exists idx_core_ern_sender on core_ern (sender);
@@ -33,7 +31,6 @@ create table if not exists core_mead(
     tx_hash text not null,
     index bigint not null,
     sender text not null,
-    nonce bigint not null,
     message_control_type smallint not null,
     resource_addresses text[] default '{}',
     release_addresses text[] default '{}',
@@ -43,7 +40,6 @@ create table if not exists core_mead(
 );
 
 create index if not exists idx_core_mead_address on core_mead (address);
-create index if not exists idx_core_mead_nonce on core_mead (nonce);
 create index if not exists idx_core_mead_block_height on core_mead (block_height);
 create index if not exists idx_core_mead_message_control_type on core_mead (message_control_type);
 create index if not exists idx_core_mead_sender on core_mead (sender);
@@ -57,7 +53,6 @@ create table if not exists core_pie(
     tx_hash text not null,
     index bigint not null,
     sender text not null,
-    nonce bigint not null,
     message_control_type smallint not null,
     party_addresses text[] default '{}',
     raw_message bytea not null,
@@ -75,7 +70,6 @@ create index if not exists idx_core_pie_party_addresses_gin on core_pie using gi
 
 -- +migrate Down
 drop index if exists idx_core_mead_address;
-drop index if exists idx_core_mead_nonce;
 drop index if exists idx_core_mead_block_height;
 drop index if exists idx_core_mead_message_control_type;
 drop index if exists idx_core_mead_sender;
@@ -94,7 +88,6 @@ drop index if exists idx_core_pie_party_addresses_gin;
 drop table if exists core_pie;
 
 drop index if exists idx_core_ern_address;
-drop index if exists idx_core_ern_nonce;
 drop index if exists idx_core_ern_block_height;
 drop index if exists idx_core_ern_message_control_type;
 drop index if exists idx_core_ern_sender;

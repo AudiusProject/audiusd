@@ -81,7 +81,6 @@ type CoreErn struct {
 	Index              int64
 	TxHash             string
 	Sender             string
-	Nonce              int64
 	MessageControlType int16
 	PartyAddresses     []string
 	ResourceAddresses  []string
@@ -192,7 +191,6 @@ type CoreMead struct {
 	TxHash             string
 	Index              int64
 	Sender             string
-	Nonce              int64
 	MessageControlType int16
 	ResourceAddresses  []string
 	ReleaseAddresses   []string
@@ -207,7 +205,6 @@ type CorePie struct {
 	TxHash             string
 	Index              int64
 	Sender             string
-	Nonce              int64
 	MessageControlType int16
 	PartyAddresses     []string
 	RawMessage         []byte

@@ -688,7 +688,7 @@ func (q *Queries) GetDecodedTxsByType(ctx context.Context, arg GetDecodedTxsByTy
 }
 
 const getERN = `-- name: GetERN :one
-select id, address, index, tx_hash, sender, nonce, message_control_type, party_addresses, resource_addresses, release_addresses, deal_addresses, raw_message, raw_acknowledgment, block_height from core_ern where address = $1 order by nonce desc limit 1
+select id, address, index, tx_hash, sender, message_control_type, party_addresses, resource_addresses, release_addresses, deal_addresses, raw_message, raw_acknowledgment, block_height from core_ern where address = $1 order by block_height desc limit 1
 `
 
 func (q *Queries) GetERN(ctx context.Context, address string) (CoreErn, error) {
@@ -700,7 +700,6 @@ func (q *Queries) GetERN(ctx context.Context, address string) (CoreErn, error) {
 		&i.Index,
 		&i.TxHash,
 		&i.Sender,
-		&i.Nonce,
 		&i.MessageControlType,
 		&i.PartyAddresses,
 		&i.ResourceAddresses,
@@ -714,7 +713,7 @@ func (q *Queries) GetERN(ctx context.Context, address string) (CoreErn, error) {
 }
 
 const getERNCreate = `-- name: GetERNCreate :one
-select id, address, index, tx_hash, sender, nonce, message_control_type, party_addresses, resource_addresses, release_addresses, deal_addresses, raw_message, raw_acknowledgment, block_height from core_ern where address = $1 order by nonce asc limit 1
+select id, address, index, tx_hash, sender, message_control_type, party_addresses, resource_addresses, release_addresses, deal_addresses, raw_message, raw_acknowledgment, block_height from core_ern where address = $1 order by block_height asc limit 1
 `
 
 func (q *Queries) GetERNCreate(ctx context.Context, address string) (CoreErn, error) {
@@ -726,7 +725,6 @@ func (q *Queries) GetERNCreate(ctx context.Context, address string) (CoreErn, er
 		&i.Index,
 		&i.TxHash,
 		&i.Sender,
-		&i.Nonce,
 		&i.MessageControlType,
 		&i.PartyAddresses,
 		&i.ResourceAddresses,
@@ -889,7 +887,7 @@ func (q *Queries) GetLatestSlaRollup(ctx context.Context) (SlaRollup, error) {
 }
 
 const getMEAD = `-- name: GetMEAD :one
-select id, address, tx_hash, index, sender, nonce, message_control_type, resource_addresses, release_addresses, raw_message, raw_acknowledgment, block_height from core_mead where address = $1 order by nonce desc limit 1
+select id, address, tx_hash, index, sender, message_control_type, resource_addresses, release_addresses, raw_message, raw_acknowledgment, block_height from core_mead where address = $1 order by block_height desc limit 1
 `
 
 func (q *Queries) GetMEAD(ctx context.Context, address string) (CoreMead, error) {
@@ -901,7 +899,6 @@ func (q *Queries) GetMEAD(ctx context.Context, address string) (CoreMead, error)
 		&i.TxHash,
 		&i.Index,
 		&i.Sender,
-		&i.Nonce,
 		&i.MessageControlType,
 		&i.ResourceAddresses,
 		&i.ReleaseAddresses,
@@ -913,7 +910,7 @@ func (q *Queries) GetMEAD(ctx context.Context, address string) (CoreMead, error)
 }
 
 const getMEADCreate = `-- name: GetMEADCreate :one
-select id, address, tx_hash, index, sender, nonce, message_control_type, resource_addresses, release_addresses, raw_message, raw_acknowledgment, block_height from core_mead where address = $1 order by nonce asc limit 1
+select id, address, tx_hash, index, sender, message_control_type, resource_addresses, release_addresses, raw_message, raw_acknowledgment, block_height from core_mead where address = $1 order by block_height asc limit 1
 `
 
 func (q *Queries) GetMEADCreate(ctx context.Context, address string) (CoreMead, error) {
@@ -925,7 +922,6 @@ func (q *Queries) GetMEADCreate(ctx context.Context, address string) (CoreMead, 
 		&i.TxHash,
 		&i.Index,
 		&i.Sender,
-		&i.Nonce,
 		&i.MessageControlType,
 		&i.ResourceAddresses,
 		&i.ReleaseAddresses,
@@ -966,12 +962,12 @@ func (q *Queries) GetMEADReceipts(ctx context.Context, txHash string) ([]GetMEAD
 }
 
 const getMEADsForERN = `-- name: GetMEADsForERN :many
-select m.id, m.address, m.tx_hash, m.index, m.sender, m.nonce, m.message_control_type, m.resource_addresses, m.release_addresses, m.raw_message, m.raw_acknowledgment, m.block_height from core_mead m, core_ern e 
+select m.id, m.address, m.tx_hash, m.index, m.sender, m.message_control_type, m.resource_addresses, m.release_addresses, m.raw_message, m.raw_acknowledgment, m.block_height from core_mead m, core_ern e 
 where e.address = $1 
 and (m.resource_addresses && e.resource_addresses 
      or m.release_addresses && e.release_addresses)
-and m.nonce = (
-    select max(m2.nonce) 
+and m.block_height = (
+    select max(m2.block_height) 
     from core_mead m2 
     where m2.address = m.address
 )
@@ -992,7 +988,6 @@ func (q *Queries) GetMEADsForERN(ctx context.Context, address string) ([]CoreMea
 			&i.TxHash,
 			&i.Index,
 			&i.Sender,
-			&i.Nonce,
 			&i.MessageControlType,
 			&i.ResourceAddresses,
 			&i.ReleaseAddresses,
@@ -1071,7 +1066,7 @@ func (q *Queries) GetNodesByEndpoints(ctx context.Context, dollar_1 []string) ([
 }
 
 const getPIE = `-- name: GetPIE :one
-select id, address, tx_hash, index, sender, nonce, message_control_type, party_addresses, raw_message, raw_acknowledgment, block_height from core_pie where address = $1 order by nonce desc limit 1
+select id, address, tx_hash, index, sender, message_control_type, party_addresses, raw_message, raw_acknowledgment, block_height from core_pie where address = $1 order by block_height desc limit 1
 `
 
 func (q *Queries) GetPIE(ctx context.Context, address string) (CorePie, error) {
@@ -1083,7 +1078,6 @@ func (q *Queries) GetPIE(ctx context.Context, address string) (CorePie, error) {
 		&i.TxHash,
 		&i.Index,
 		&i.Sender,
-		&i.Nonce,
 		&i.MessageControlType,
 		&i.PartyAddresses,
 		&i.RawMessage,
@@ -1094,7 +1088,7 @@ func (q *Queries) GetPIE(ctx context.Context, address string) (CorePie, error) {
 }
 
 const getPIECreate = `-- name: GetPIECreate :one
-select id, address, tx_hash, index, sender, nonce, message_control_type, party_addresses, raw_message, raw_acknowledgment, block_height from core_pie where address = $1 order by nonce asc limit 1
+select id, address, tx_hash, index, sender, message_control_type, party_addresses, raw_message, raw_acknowledgment, block_height from core_pie where address = $1 order by block_height asc limit 1
 `
 
 func (q *Queries) GetPIECreate(ctx context.Context, address string) (CorePie, error) {
@@ -1106,7 +1100,6 @@ func (q *Queries) GetPIECreate(ctx context.Context, address string) (CorePie, er
 		&i.TxHash,
 		&i.Index,
 		&i.Sender,
-		&i.Nonce,
 		&i.MessageControlType,
 		&i.PartyAddresses,
 		&i.RawMessage,
@@ -1146,11 +1139,11 @@ func (q *Queries) GetPIEReceipts(ctx context.Context, txHash string) ([]GetPIERe
 }
 
 const getPIEsForERN = `-- name: GetPIEsForERN :many
-select p.id, p.address, p.tx_hash, p.index, p.sender, p.nonce, p.message_control_type, p.party_addresses, p.raw_message, p.raw_acknowledgment, p.block_height from core_pie p, core_ern e 
+select p.id, p.address, p.tx_hash, p.index, p.sender, p.message_control_type, p.party_addresses, p.raw_message, p.raw_acknowledgment, p.block_height from core_pie p, core_ern e 
 where e.address = $1 
 and p.party_addresses && e.party_addresses
-and p.nonce = (
-    select max(p2.nonce) 
+and p.block_height = (
+    select max(p2.block_height) 
     from core_pie p2 
     where p2.address = p.address
 )
@@ -1171,7 +1164,6 @@ func (q *Queries) GetPIEsForERN(ctx context.Context, address string) ([]CorePie,
 			&i.TxHash,
 			&i.Index,
 			&i.Sender,
-			&i.Nonce,
 			&i.MessageControlType,
 			&i.PartyAddresses,
 			&i.RawMessage,
