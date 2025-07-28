@@ -58,7 +58,6 @@ create table if not exists core_pie(
 );
 
 create index if not exists idx_core_pie_address on core_pie (address);
-create index if not exists idx_core_pie_nonce on core_pie (nonce);
 create index if not exists idx_core_pie_block_height on core_pie (block_height);
 create index if not exists idx_core_pie_sender on core_pie (sender);
 
@@ -75,7 +74,6 @@ drop index if exists idx_core_mead_release_addresses_gin;
 drop table if exists core_mead;
 
 drop index if exists idx_core_pie_address;
-drop index if exists idx_core_pie_nonce;
 drop index if exists idx_core_pie_block_height;
 drop index if exists idx_core_pie_sender;
 drop index if exists idx_core_pie_party_addresses_gin;
