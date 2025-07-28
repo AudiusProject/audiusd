@@ -31,7 +31,6 @@ create table if not exists core_mead(
     tx_hash text not null,
     index bigint not null,
     sender text not null,
-    message_control_type smallint not null,
     resource_addresses text[] default '{}',
     release_addresses text[] default '{}',
     raw_message bytea not null,
@@ -41,7 +40,6 @@ create table if not exists core_mead(
 
 create index if not exists idx_core_mead_address on core_mead (address);
 create index if not exists idx_core_mead_block_height on core_mead (block_height);
-create index if not exists idx_core_mead_message_control_type on core_mead (message_control_type);
 create index if not exists idx_core_mead_sender on core_mead (sender);
 
 create index if not exists idx_core_mead_resource_addresses_gin on core_mead using gin (resource_addresses);
@@ -53,7 +51,6 @@ create table if not exists core_pie(
     tx_hash text not null,
     index bigint not null,
     sender text not null,
-    message_control_type smallint not null,
     party_addresses text[] default '{}',
     raw_message bytea not null,
     raw_acknowledgment bytea not null,
@@ -63,7 +60,6 @@ create table if not exists core_pie(
 create index if not exists idx_core_pie_address on core_pie (address);
 create index if not exists idx_core_pie_nonce on core_pie (nonce);
 create index if not exists idx_core_pie_block_height on core_pie (block_height);
-create index if not exists idx_core_pie_message_control_type on core_pie (message_control_type);
 create index if not exists idx_core_pie_sender on core_pie (sender);
 
 create index if not exists idx_core_pie_party_addresses_gin on core_pie using gin (party_addresses);
@@ -81,7 +77,6 @@ drop table if exists core_mead;
 drop index if exists idx_core_pie_address;
 drop index if exists idx_core_pie_nonce;
 drop index if exists idx_core_pie_block_height;
-drop index if exists idx_core_pie_message_control_type;
 drop index if exists idx_core_pie_sender;
 drop index if exists idx_core_pie_party_addresses_gin;
 

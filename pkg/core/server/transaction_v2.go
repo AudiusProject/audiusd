@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/AudiusProject/audiusd/pkg/api/core/v1beta1"
-	"github.com/AudiusProject/audiusd/pkg/api/ddex/v1beta2"
+	ddexv1beta1 "github.com/AudiusProject/audiusd/pkg/api/ddex/v1beta1"
 	abcitypes "github.com/cometbft/cometbft/abci/types"
 	"golang.org/x/sync/errgroup"
 )
@@ -28,36 +28,27 @@ func (s *Server) validateV2Transaction(ctx context.Context, currentHeight int64,
 
 	// TODO: check signature
 
+	to := tx.Envelope.Header.To
+	from := tx.Envelope.Header.From
+
 	// use errgroup to validate all messages
 	eg := errgroup.Group{}
 	for _, msg := range tx.Envelope.Messages {
 		eg.Go(func() error {
 			switch msg.Message.(type) {
 			case *v1beta1.Message_Ern:
-				switch msg.GetErn().Header.ControlType {
-				case v1beta2.DDEXMessageControlType_DDEX_MESSAGE_CONTROL_TYPE_NEW_MESSAGE:
+				switch msg.GetErn().MessageHeader.MessageControlType {
+				case ddexv1beta1.MessageControlType_MESSAGE_CONTROL_TYPE_NEW_MESSAGE.Enum():
 					return s.validateERNNewMessage(ctx, msg.GetErn())
-				case v1beta2.DDEXMessageControlType_DDEX_MESSAGE_CONTROL_TYPE_UPDATED_MESSAGE:
-					return s.validateERNUpdateMessage(ctx, msg.GetErn())
-				case v1beta2.DDEXMessageControlType_DDEX_MESSAGE_CONTROL_TYPE_TAKEDOWN_MESSAGE:
+				case ddexv1beta1.MessageControlType_MESSAGE_CONTROL_TYPE_UPDATED_MESSAGE.Enum():
+					return s.validateERNUpdateMessage(ctx, to, from, msg.GetErn())
+				case ddexv1beta1.MessageControlType_MESSAGE_CONTROL_TYPE_TAKEDOWN_MESSAGE.Enum():
 					return s.validateERNTakedownMessage(ctx, msg.GetErn())
 				}
 			case *v1beta1.Message_Mead:
-				switch msg.GetMead().Header.ControlType {
-				case v1beta2.DDEXMessageControlType_DDEX_MESSAGE_CONTROL_TYPE_NEW_MESSAGE:
-					return s.validateMEADNewMessage(ctx, msg.GetMead())
-				case v1beta2.DDEXMessageControlType_DDEX_MESSAGE_CONTROL_TYPE_UPDATED_MESSAGE:
-					return s.validateMEADUpdateMessage(ctx, msg.GetMead())
-				case v1beta2.DDEXMessageControlType_DDEX_MESSAGE_CONTROL_TYPE_TAKEDOWN_MESSAGE:
-					return s.validateMEADTakedownMessage(ctx, msg.GetMead())
-				}
+				return s.validateMEADNewMessage(ctx, msg.GetMead())
 			case *v1beta1.Message_Pie:
-				switch msg.GetPie().Header.ControlType {
-				case v1beta2.DDEXMessageControlType_DDEX_MESSAGE_CONTROL_TYPE_NEW_MESSAGE:
-					return s.validatePIENewMessage(ctx, msg.GetPie())
-				case v1beta2.DDEXMessageControlType_DDEX_MESSAGE_CONTROL_TYPE_UPDATED_MESSAGE:
-					return s.validatePIEUpdateMessage(ctx, msg.GetPie())
-				}
+				return s.validatePIENewMessage(ctx, msg.GetPie())
 			}
 			return nil
 		})

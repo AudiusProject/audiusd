@@ -186,30 +186,28 @@ type CoreEtlTxValidatorRegistration struct {
 }
 
 type CoreMead struct {
-	ID                 int64
-	Address            string
-	TxHash             string
-	Index              int64
-	Sender             string
-	MessageControlType int16
-	ResourceAddresses  []string
-	ReleaseAddresses   []string
-	RawMessage         []byte
-	RawAcknowledgment  []byte
-	BlockHeight        int64
+	ID                int64
+	Address           string
+	TxHash            string
+	Index             int64
+	Sender            string
+	ResourceAddresses []string
+	ReleaseAddresses  []string
+	RawMessage        []byte
+	RawAcknowledgment []byte
+	BlockHeight       int64
 }
 
 type CorePie struct {
-	ID                 int64
-	Address            string
-	TxHash             string
-	Index              int64
-	Sender             string
-	MessageControlType int16
-	PartyAddresses     []string
-	RawMessage         []byte
-	RawAcknowledgment  []byte
-	BlockHeight        int64
+	ID                int64
+	Address           string
+	TxHash            string
+	Index             int64
+	Sender            string
+	PartyAddresses    []string
+	RawMessage        []byte
+	RawAcknowledgment []byte
+	BlockHeight       int64
 }
 
 type CoreTransaction struct {

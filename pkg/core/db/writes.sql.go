@@ -143,26 +143,24 @@ insert into core_mead (
     tx_hash,
     index,
     sender,
-    message_control_type,
     resource_addresses,
     release_addresses,
     raw_message,
     raw_acknowledgment,
     block_height
-) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+) values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 `
 
 type InsertCoreMEADParams struct {
-	Address            string
-	TxHash             string
-	Index              int64
-	Sender             string
-	MessageControlType int16
-	ResourceAddresses  []string
-	ReleaseAddresses   []string
-	RawMessage         []byte
-	RawAcknowledgment  []byte
-	BlockHeight        int64
+	Address           string
+	TxHash            string
+	Index             int64
+	Sender            string
+	ResourceAddresses []string
+	ReleaseAddresses  []string
+	RawMessage        []byte
+	RawAcknowledgment []byte
+	BlockHeight       int64
 }
 
 func (q *Queries) InsertCoreMEAD(ctx context.Context, arg InsertCoreMEADParams) error {
@@ -171,7 +169,6 @@ func (q *Queries) InsertCoreMEAD(ctx context.Context, arg InsertCoreMEADParams) 
 		arg.TxHash,
 		arg.Index,
 		arg.Sender,
-		arg.MessageControlType,
 		arg.ResourceAddresses,
 		arg.ReleaseAddresses,
 		arg.RawMessage,
@@ -187,24 +184,22 @@ insert into core_pie (
     tx_hash,
     index,
     sender,
-    message_control_type,
     party_addresses,
     raw_message,
     raw_acknowledgment,
     block_height
-) values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+) values ($1, $2, $3, $4, $5, $6, $7, $8)
 `
 
 type InsertCorePIEParams struct {
-	Address            string
-	TxHash             string
-	Index              int64
-	Sender             string
-	MessageControlType int16
-	PartyAddresses     []string
-	RawMessage         []byte
-	RawAcknowledgment  []byte
-	BlockHeight        int64
+	Address           string
+	TxHash            string
+	Index             int64
+	Sender            string
+	PartyAddresses    []string
+	RawMessage        []byte
+	RawAcknowledgment []byte
+	BlockHeight       int64
 }
 
 func (q *Queries) InsertCorePIE(ctx context.Context, arg InsertCorePIEParams) error {
@@ -213,7 +208,6 @@ func (q *Queries) InsertCorePIE(ctx context.Context, arg InsertCorePIEParams) er
 		arg.TxHash,
 		arg.Index,
 		arg.Sender,
-		arg.MessageControlType,
 		arg.PartyAddresses,
 		arg.RawMessage,
 		arg.RawAcknowledgment,

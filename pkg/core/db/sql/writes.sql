@@ -249,13 +249,12 @@ insert into core_mead (
     tx_hash,
     index,
     sender,
-    message_control_type,
     resource_addresses,
     release_addresses,
     raw_message,
     raw_acknowledgment,
     block_height
-) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);
+) values ($1, $2, $3, $4, $5, $6, $7, $8, $9);
 
 -- name: InsertCorePIE :exec
 insert into core_pie (
@@ -263,9 +262,8 @@ insert into core_pie (
     tx_hash,
     index,
     sender,
-    message_control_type,
     party_addresses,
     raw_message,
     raw_acknowledgment,
     block_height
-) values ($1, $2, $3, $4, $5, $6, $7, $8, $9);
+) values ($1, $2, $3, $4, $5, $6, $7, $8);

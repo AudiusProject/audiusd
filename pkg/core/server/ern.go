@@ -36,6 +36,9 @@ func (s *Server) finalizeERN(ctx context.Context, req *abcitypes.FinalizeBlockRe
 		return fmt.Errorf("message index out of range")
 	}
 
+	sender := tx.Envelope.Header.From
+	receiver := tx.Envelope.Header.To
+
 	ern := tx.Envelope.Messages[messageIndex].GetErn()
 	if ern == nil {
 		return fmt.Errorf("tx: %s, message index: %d, ERN message not found", txhash, messageIndex)
@@ -50,16 +53,16 @@ func (s *Server) finalizeERN(ctx context.Context, req *abcitypes.FinalizeBlockRe
 		if err := s.validateERNNewMessage(ctx, ern); err != nil {
 			return errors.Join(ErrERNMessageValidation, err)
 		}
-		if err := s.finalizeERNNewMessage(ctx, req, txhash, messageIndex, ern); err != nil {
+		if err := s.finalizeERNNewMessage(ctx, req, txhash, messageIndex, ern, sender); err != nil {
 			return errors.Join(ErrERNMessageFinalization, err)
 		}
 		return nil
 
 	case ddexv1beta1.MessageControlType_MESSAGE_CONTROL_TYPE_UPDATED_MESSAGE:
-		if err := s.validateERNUpdateMessage(ctx, ern); err != nil {
+		if err := s.validateERNUpdateMessage(ctx, receiver, sender, ern); err != nil {
 			return errors.Join(ErrERNMessageValidation, err)
 		}
-		if err := s.finalizeERNUpdateMessage(ctx, req, txhash, messageIndex, ern); err != nil {
+		if err := s.finalizeERNUpdateMessage(ctx, req, txhash, messageIndex, receiver, sender, ern); err != nil {
 			return errors.Join(ErrERNMessageFinalization, err)
 		}
 		return nil
@@ -166,101 +169,18 @@ func (s *Server) finalizeERNUpdateMessage(ctx context.Context, req *abcitypes.Fi
 	if err := s.validateERNUpdateMessage(ctx, to, from, ern); err != nil {
 		return errors.Join(ErrERNMessageValidation, err)
 	}
-
-	nonce := txhash
-
-	// create new addresses for new entities, otherwise they will be the same as the original addresses
-	// TODO: pull latest ERN and get addrs, only create new addresses if they don't exist
-	// partyAddresses := make([]string, len(ern.PartyList))
-	// for i, party := range ern.PartyList {
-	// 	if party.Address == "" {
-	// 		partyAddresses[i] = common.CreateAddress(party, s.config.GenesisFile.ChainID, req.Height, nonce)
-	// 	} else {
-	// 		partyAddresses[i] = party.Address
-	// 	}
-	// }
-
-	// resourceAddresses := make([]string, len(ern.ResourceList))
-	// for i, resource := range ern.ResourceList {
-	// 	if resource.Address == "" {
-	// 		resourceAddresses[i] = common.CreateAddress(resource, s.config.GenesisFile.ChainID, req.Height, nonce)
-	// 	} else {
-	// 		resourceAddresses[i] = resource.Address
-	// 	}
-	// }
-
-	// releaseAddresses := make([]string, len(ern.ReleaseList))
-	// for i, release := range ern.ReleaseList {
-	// 	if release.Address == "" {
-	// 		releaseAddresses[i] = common.CreateAddress(release, s.config.GenesisFile.ChainID, req.Height, nonce)
-	// 	} else {
-	// 		releaseAddresses[i] = release.Address
-	// 	}
-	// }
-
-	// dealAddresses := make([]string, len(ern.DealList))
-	// for i, deal := range ern.DealList {
-	// 	if deal.Address == "" {
-	// 		dealAddresses[i] = common.CreateAddress(deal, s.config.GenesisFile.ChainID, req.Height, nonce)
-	// 	} else {
-	// 		dealAddresses[i] = deal.Address
-	// 	}
-	// }
-
-	rawMessage, err := proto.Marshal(ern)
-	if err != nil {
-		return fmt.Errorf("failed to marshal ERN message: %w", err)
-	}
-
-	ack := &ddexv1beta1.NewReleaseMessageAck{
-		ErnAddress: to,
-		// PartyAddresses:    partyAddresses,
-		// ResourceAddresses: resourceAddresses,
-		// ReleaseAddresses:  releaseAddresses,
-		// DealAddresses:     dealAddresses,
-	}
-
-	rawAcknowledgment, err := proto.Marshal(ack)
-	if err != nil {
-		return fmt.Errorf("failed to marshal ERN acknowledgment: %w", err)
-	}
-
-	qtx := s.getDb()
-	// same insert as a new ERN, the nonce differentiates the update from the original ERN
-	if err := qtx.InsertCoreERN(ctx, db.InsertCoreERNParams{
-		TxHash:             txhash,
-		Index:              messageIndex,
-		Address:            to,
-		Sender:             from,
-		MessageControlType: int16(*ern.MessageHeader.MessageControlType),
-		PartyAddresses:     partyAddresses,
-		ResourceAddresses:  resourceAddresses,
-		ReleaseAddresses:   releaseAddresses,
-		DealAddresses:      dealAddresses,
-		RawMessage:         rawMessage,
-		RawAcknowledgment:  rawAcknowledgment,
-		BlockHeight:        req.Height,
-	}); err != nil {
-		return fmt.Errorf("failed to insert ERN: %w", err)
-	}
-
 	return nil
 }
 
 /** ERN Takedown Message */
 
-func (s *Server) validateERNTakedownMessage(_ context.Context, _ *v1beta2.ElectronicReleaseNotification) error {
+func (s *Server) validateERNTakedownMessage(_ context.Context, _ *ddexv1beta1.NewReleaseMessage) error {
 	return nil
 }
 
-func (s *Server) finalizeERNTakedownMessage(ctx context.Context, _ *abcitypes.FinalizeBlockRequest, _ string, _ int64, ern *v1beta2.ElectronicReleaseNotification) error {
+func (s *Server) finalizeERNTakedownMessage(ctx context.Context, _ *abcitypes.FinalizeBlockRequest, _ string, _ int64, ern *ddexv1beta1.NewReleaseMessage) error {
 	if err := s.validateERNTakedownMessage(ctx, ern); err != nil {
 		return errors.Join(ErrERNMessageValidation, err)
-	}
-
-	_, err := s.getDb().GetERNCreate(ctx, ern.Address)
-	if err != nil {
-		return fmt.Errorf("failed to get original ERN: %w", err)
 	}
 	return nil
 }
