@@ -36,14 +36,14 @@ func TestERNNewMessage(t *testing.T) {
 		time.Sleep(2 * time.Second)
 	}
 
-	// Create ERN NewReleaseMessage based on Highwaymen SME XML data
-	ernMessage := createHighwaymenERNMessage()
+	// Create ERN NewReleaseMessage based on fake band data
+	ernMessage := createFakeBandERNMessage()
 
 	// Create transaction envelope
 	envelope := &corev1beta1.Envelope{
 		Header: &corev1beta1.EnvelopeHeader{
 			ChainId:    "audiusd-1",          // Default chain ID
-			From:       "PADPIDA2007040502I", // Sony Music Entertainment from XML
+			From:       "PADPIDA2024010501X", // Fake Records Entertainment from XML
 			To:         "PADPIDA202401120D9", // Audius from XML
 			Nonce:      "1",
 			Expiration: time.Now().Add(time.Hour).Unix(),
@@ -91,7 +91,7 @@ func TestERNNewMessage(t *testing.T) {
 			t.Logf("ERN transaction %s successfully submitted and retrieved", txhash)
 		}
 
-		t.Logf("ERN transaction %s successfully processed with %d parties, %d resources, %d releases, %d deals - representing 'Live - American Outlaws' album (2h43m of live music)",
+		t.Logf("ERN transaction %s successfully processed with %d parties, %d resources, %d releases, %d deals - representing 'Live - Electric Nights' album (2h43m of live music)",
 			txhash, len(ernMessage.PartyList), len(ernMessage.ResourceList), len(ernMessage.ReleaseList), len(ernMessage.DealList))
 	} else if submitRes.Msg.Transaction != nil {
 		// Fallback for v1 transactions
@@ -104,18 +104,18 @@ func TestERNNewMessage(t *testing.T) {
 	}
 }
 
-// createHighwaymenERNMessage creates an ERN message based on the Highwaymen SME XML data
-func createHighwaymenERNMessage() *ddexv1beta1.NewReleaseMessage {
-	// Create message header based on XML MessageHeader
+// createFakeBandERNMessage creates an ERN message based on fake band data
+func createFakeBandERNMessage() *ddexv1beta1.NewReleaseMessage {
+	// Create message header based on fake XML MessageHeader
 	messageHeader := &ddexv1beta1.MessageHeader{
-		MessageThreadId: stringPtr("G0100035091829_ADS"),
-		MessageId:       "358280160",
+		MessageThreadId: stringPtr("F0100045091829_ADS"),
+		MessageId:       "458380160",
 		MessageSender: &ddexv1beta1.MessageSender{
 			PartyId: &ddexv1beta1.Party_PartyId{
-				Dpid: "PADPIDA2007040502I",
+				Dpid: "PADPIDA2024010501X",
 			},
 			PartyName: &ddexv1beta1.Party_PartyName{
-				FullName: "Sony Music Entertainment",
+				FullName: "Melodic Records Entertainment",
 			},
 		},
 		MessageRecipient: []*ddexv1beta1.MessageRecipient{
@@ -132,204 +132,204 @@ func createHighwaymenERNMessage() *ddexv1beta1.NewReleaseMessage {
 		MessageControlType:     ddexv1beta1.MessageControlType_MESSAGE_CONTROL_TYPE_TEST_MESSAGE.Enum(),
 	}
 
-	// Create ALL parties from the XML PartyList (comprehensive list)
+	// Create ALL parties from fake band data (comprehensive list)
 	parties := []*ddexv1beta1.Party{
 		{
-			PartyReference: "P_SME_SENDER",
+			PartyReference: "P_MRE_SENDER",
 			PartyName: &ddexv1beta1.Party_PartyName{
-				FullName: "Sony Music Entertainment",
+				FullName: "Melodic Records Entertainment",
 			},
 			PartyId: &ddexv1beta1.Party_PartyId{
-				Dpid: "PADPIDA2007040502I",
+				Dpid: "PADPIDA2024010501X",
 			},
 		},
 		// Main Artists
 		{
 			PartyReference: "P_ARTIST_1199281",
 			PartyName: &ddexv1beta1.Party_PartyName{
-				FullName: "The Highwaymen",
+				FullName: "The Electric Riders",
 			},
 		},
 		{
 			PartyReference: "P_ARTIST_4729799",
 			PartyName: &ddexv1beta1.Party_PartyName{
-				FullName: "Willie Nelson",
+				FullName: "Marcus Stone",
 			},
 		},
 		{
 			PartyReference: "P_ARTIST_2729598",
 			PartyName: &ddexv1beta1.Party_PartyName{
-				FullName: "Johnny Cash",
+				FullName: "Jake Rivers",
 			},
 		},
 		{
 			PartyReference: "P_ARTIST_33801",
 			PartyName: &ddexv1beta1.Party_PartyName{
-				FullName: "Waylon Jennings",
+				FullName: "Alex Thunder",
 			},
 		},
 		{
 			PartyReference: "P_ARTIST_753696",
 			PartyName: &ddexv1beta1.Party_PartyName{
-				FullName: "Kris Kristofferson",
+				FullName: "Leo Midnight",
 			},
 		},
 		// Composers and Songwriters
 		{
 			PartyReference: "P_ARTIST_5105",
 			PartyName: &ddexv1beta1.Party_PartyName{
-				FullName: "Bob McDill",
+				FullName: "Sam Melody",
 			},
 		},
 		{
 			PartyReference: "P_ARTIST_5188",
 			PartyName: &ddexv1beta1.Party_PartyName{
-				FullName: "June Carter",
+				FullName: "Luna Hayes",
 			},
 		},
 		{
 			PartyReference: "P_ARTIST_5189",
 			PartyName: &ddexv1beta1.Party_PartyName{
-				FullName: "Merle Kilgore",
+				FullName: "Ray Lightning",
 			},
 		},
 		{
 			PartyReference: "P_ARTIST_7775",
 			PartyName: &ddexv1beta1.Party_PartyName{
-				FullName: "Chips Moman",
+				FullName: "Chris Voltage",
 			},
 		},
 		{
 			PartyReference: "P_ARTIST_11122",
 			PartyName: &ddexv1beta1.Party_PartyName{
-				FullName: "Tony Joe White",
+				FullName: "Tony Storm",
 			},
 		},
 		{
 			PartyReference: "P_ARTIST_16163",
 			PartyName: &ddexv1beta1.Party_PartyName{
-				FullName: "Herman Parker, Jr.",
+				FullName: "Felix Harmony",
 			},
 		},
 		{
 			PartyReference: "P_ARTIST_16164",
 			PartyName: &ddexv1beta1.Party_PartyName{
-				FullName: "Sam C. Phillips",
+				FullName: "Dave Echo",
 			},
 		},
 		{
 			PartyReference: "P_ARTIST_21383",
 			PartyName: &ddexv1beta1.Party_PartyName{
-				FullName: "Fred Rose",
+				FullName: "Nick Reverb",
 			},
 		},
 		{
 			PartyReference: "P_ARTIST_21387",
 			PartyName: &ddexv1beta1.Party_PartyName{
-				FullName: "Ed Bruce",
+				FullName: "Max Chorus",
 			},
 		},
 		{
 			PartyReference: "P_ARTIST_21467",
 			PartyName: &ddexv1beta1.Party_PartyName{
-				FullName: "Mickey Raphael",
+				FullName: "Ryan Beat",
 			},
 		},
 		// Musicians
 		{
 			PartyReference: "P_ARTIST_23050",
 			PartyName: &ddexv1beta1.Party_PartyName{
-				FullName: "Reggie Young",
+				FullName: "Oliver Bass",
 			},
 		},
 		{
 			PartyReference: "P_ARTIST_23052",
 			PartyName: &ddexv1beta1.Party_PartyName{
-				FullName: "Gene Chrisman",
+				FullName: "Noah Drums",
 			},
 		},
 		{
 			PartyReference: "P_ARTIST_23053",
 			PartyName: &ddexv1beta1.Party_PartyName{
-				FullName: "Bobby Emmons",
+				FullName: "Ethan Keys",
 			},
 		},
 		{
 			PartyReference: "P_ARTIST_23054",
 			PartyName: &ddexv1beta1.Party_PartyName{
-				FullName: "Mike Leech",
+				FullName: "Liam Guitar",
 			},
 		},
 		{
 			PartyReference: "P_ARTIST_39619",
 			PartyName: &ddexv1beta1.Party_PartyName{
-				FullName: "John R. Cash",
+				FullName: "Jake R. Rivers",
 			},
 		},
 		{
 			PartyReference: "P_ARTIST_41932",
 			PartyName: &ddexv1beta1.Party_PartyName{
-				FullName: "Robby Turner",
+				FullName: "Tyler Sonic",
 			},
 		},
 		{
 			PartyReference: "P_ARTIST_65552",
 			PartyName: &ddexv1beta1.Party_PartyName{
-				FullName: "Guy Clark",
+				FullName: "Blake Phoenix",
 			},
 		},
 		{
 			PartyReference: "P_ARTIST_73668",
 			PartyName: &ddexv1beta1.Party_PartyName{
-				FullName: "Shel Silverstein",
+				FullName: "River Sterling",
 			},
 		},
 		{
 			PartyReference: "P_ARTIST_74124",
 			PartyName: &ddexv1beta1.Party_PartyName{
-				FullName: "Steve Goodman",
+				FullName: "Cole Rhythm",
 			},
 		},
 		{
 			PartyReference: "P_ARTIST_87653",
 			PartyName: &ddexv1beta1.Party_PartyName{
-				FullName: "Patsy Bruce",
+				FullName: "Quinn Melody",
 			},
 		},
 		{
 			PartyReference: "P_ARTIST_109713",
 			PartyName: &ddexv1beta1.Party_PartyName{
-				FullName: "Paul Buskirk",
+				FullName: "Drew Harmony",
 			},
 		},
 		{
 			PartyReference: "P_ARTIST_109714",
 			PartyName: &ddexv1beta1.Party_PartyName{
-				FullName: "Walt Breeland",
+				FullName: "Sage Notes",
 			},
 		},
 		{
 			PartyReference: "P_ARTIST_109768",
 			PartyName: &ddexv1beta1.Party_PartyName{
-				FullName: "Lee Clayton",
+				FullName: "Kai Tempo",
 			},
 		},
 		{
 			PartyReference: "P_ARTIST_110895",
 			PartyName: &ddexv1beta1.Party_PartyName{
-				FullName: "Bobby Wood",
+				FullName: "Zane Chord",
 			},
 		},
 		{
 			PartyReference: "P_ARTIST_2729177",
 			PartyName: &ddexv1beta1.Party_PartyName{
-				FullName: "Bob Dylan",
+				FullName: "Atlas Lyric",
 			},
 		},
 		{
 			PartyReference: "P_ARTIST_2732982",
 			PartyName: &ddexv1beta1.Party_PartyName{
-				FullName: "Stan Jones",
+				FullName: "Phoenix Tune",
 			},
 		},
 		{
@@ -341,55 +341,157 @@ func createHighwaymenERNMessage() *ddexv1beta1.NewReleaseMessage {
 		{
 			PartyReference: "P_ARTIST_3949457",
 			PartyName: &ddexv1beta1.Party_PartyName{
-				FullName: "Mark James",
+				FullName: "Orion Sound",
 			},
 		},
 		{
 			PartyReference: "P_ARTIST_3992112",
 			PartyName: &ddexv1beta1.Party_PartyName{
-				FullName: "Wayne Carson",
+				FullName: "Nova Wave",
 			},
 		},
 		{
 			PartyReference: "P_ARTIST_3992113",
 			PartyName: &ddexv1beta1.Party_PartyName{
-				FullName: "Johnny Christopher",
+				FullName: "Ryder Beat",
 			},
 		},
 		{
 			PartyReference: "P_ARTIST_7896981",
 			PartyName: &ddexv1beta1.Party_PartyName{
-				FullName: "Jimmy Webb",
+				FullName: "Echo Pulse",
 			},
 		},
 		{
 			PartyReference: "P_ARTIST_2543992",
 			PartyName: &ddexv1beta1.Party_PartyName{
-				FullName: "The Highwaymen, Willie Nelson, Johnny Cash, Waylon Jennings, Kris Kristofferson",
+				FullName: "The Electric Riders, Marcus Stone, Jake Rivers, Alex Thunder, Leo Midnight",
 			},
 		},
 		// Label
 		{
-			PartyReference: "P_LABEL_COLUMBIA_NASHVILLE_LEGACY",
+			PartyReference: "P_LABEL_HARMONY_RECORDS",
 			PartyName: &ddexv1beta1.Party_PartyName{
-				FullName: "Columbia Nashville Legacy",
+				FullName: "Harmony Records Legacy",
 			},
 		},
 	}
 
-	// MASSIVE Resource collection from XML (46+ tracks + cover art!)
-	// Live concert tracks (A1-A11): Mystery Train, Highwayman, Mammas Don't Let Your Babies...
-	// Studio recordings (A12+): Help Me Make It Through the Night, Living Legend, etc.
-	// Bob Dylan covers: One Too Many Mornings (A46)
-	// Cover art: FrontCoverImage (A47) - 1400x1400 JPEG
-	// Technical details: FLAC files, ISRC codes, MD5 hashes, durations, P-line info
-	// TODO: Add proper Resource protobuf structure once oneof syntax is resolved
-	resources := []*ddexv1beta1.Resource{}
+	// Create fake sound recording resources
+	resources := []*ddexv1beta1.Resource{
+		{
+			Resource: &ddexv1beta1.Resource_SoundRecording_{
+				SoundRecording: &ddexv1beta1.Resource_SoundRecording{
+					ResourceReference:     "A1",
+					Type:                  "MusicalWorkSoundRecording",
+					DisplayTitleText:      "Midnight Express (Live at Thunder Arena, Electric City, TX - March 2023)",
+					VersionType:           "LiveVersion",
+					DisplayArtistName:     "The Electric Riders, Marcus Stone, Jake Rivers, Alex Thunder, Leo Midnight",
+					Duration:              "PT0H1M32S",
+					FirstPublicationDate:  "2023-05-20",
+					ParentalWarningType:   "ExplicitContentEdited",
+					LanguageOfPerformance: "en",
+				},
+			},
+		},
+		{
+			Resource: &ddexv1beta1.Resource_SoundRecording_{
+				SoundRecording: &ddexv1beta1.Resource_SoundRecording{
+					ResourceReference:     "A2",
+					Type:                  "MusicalWorkSoundRecording",
+					DisplayTitleText:      "Electric Storm (Live at Thunder Arena, Electric City, TX - March 2023)",
+					VersionType:           "LiveVersion",
+					DisplayArtistName:     "The Electric Riders, Marcus Stone, Jake Rivers, Alex Thunder, Leo Midnight",
+					Duration:              "PT0H2M54S",
+					FirstPublicationDate:  "2023-05-20",
+					ParentalWarningType:   "ExplicitContentEdited",
+					LanguageOfPerformance: "en",
+				},
+			},
+		},
+		{
+			Resource: &ddexv1beta1.Resource_SoundRecording_{
+				SoundRecording: &ddexv1beta1.Resource_SoundRecording{
+					ResourceReference:     "A3",
+					Type:                  "MusicalWorkSoundRecording",
+					DisplayTitleText:      "Thunder Roads (Live at Thunder Arena, Electric City, TX - March 2023)",
+					VersionType:           "LiveVersion",
+					DisplayArtistName:     "The Electric Riders, Marcus Stone, Jake Rivers, Alex Thunder, Leo Midnight",
+					Duration:              "PT0H2M27S",
+					FirstPublicationDate:  "2023-05-20",
+					ParentalWarningType:   "ExplicitContentEdited",
+					LanguageOfPerformance: "en",
+				},
+			},
+		},
+		{
+			Resource: &ddexv1beta1.Resource_SoundRecording_{
+				SoundRecording: &ddexv1beta1.Resource_SoundRecording{
+					ResourceReference:     "A8",
+					Type:                  "MusicalWorkSoundRecording",
+					DisplayTitleText:      "Lightning Flash (Live at Thunder Arena, Electric City, TX - March 2023)",
+					VersionType:           "LiveVersion",
+					DisplayArtistName:     "The Electric Riders, Marcus Stone, Jake Rivers, Alex Thunder, Leo Midnight",
+					Duration:              "PT0H3M3S",
+					FirstPublicationDate:  "2023-05-20",
+					ParentalWarningType:   "ExplicitContentEdited",
+					LanguageOfPerformance: "en",
+				},
+			},
+		},
+		{
+			Resource: &ddexv1beta1.Resource_SoundRecording_{
+				SoundRecording: &ddexv1beta1.Resource_SoundRecording{
+					ResourceReference:     "A9",
+					Type:                  "MusicalWorkSoundRecording",
+					DisplayTitleText:      "Voltage Blues (Live at Thunder Arena, Electric City, TX - March 2023)",
+					VersionType:           "LiveVersion",
+					DisplayArtistName:     "The Electric Riders, Marcus Stone, Jake Rivers, Alex Thunder, Leo Midnight",
+					Duration:              "PT0H3M39S",
+					FirstPublicationDate:  "2023-05-20",
+					ParentalWarningType:   "ExplicitContentEdited",
+					LanguageOfPerformance: "en",
+				},
+			},
+		},
+		{
+			Resource: &ddexv1beta1.Resource_Image_{
+				Image: &ddexv1beta1.Resource_Image{
+					ResourceReference: "A47",
+					Type:              "FrontCoverImage",
+					ResourceId: &ddexv1beta1.Resource_ResourceId{
+						Isrc: "ISRC123456789012",
+						ProprietaryId: []*ddexv1beta1.Resource_ProprietaryId{
+							{
+								Namespace:     "AUDIUS",
+								ProprietaryId: "123456789012",
+							},
+						},
+					},
+					TechnicalDetails: &ddexv1beta1.Resource_Image_TechnicalDetails{
+						ImageCodecType:  "JPEG",
+						ImageHeight:     1000,
+						ImageWidth:      1000,
+						ImageResolution: "72dpi",
+						File: &ddexv1beta1.Resource_Image_TechnicalDetails_File{
+							FileSize: 1000,
+							Uri:      "CID:123456789012",
+							HashSum: &ddexv1beta1.Resource_Image_TechnicalDetails_File_HashSum{
+								Algorithm:    "IPFS",
+								HashSumValue: "Qm123456789012",
+							},
+						},
+						IsProvidedInDelivery: true,
+					},
+				},
+			},
+		},
+	}
 
-	// Release information from XML - comprehensive album + individual track releases
-	// Main Album: "Live - American Outlaws" (R0) - 2h43m total, Country genre
+	// Release information - fake album data
+	// Main Album: "Live - Electric Nights" (R0) - 2h43m total, Rock genre
 	// Individual track releases: R1-R44+ (each track as separate release)
-	// UPC: 886445803518, Catalog: G0100035091829, Columbia Nashville Legacy
+	// UPC: 123456789012, Catalog: F0100045091829, Harmony Records Legacy
 	// TODO: Add complete Release structure (currently simplified to main album only)
 	releases := []*ddexv1beta1.Release{
 		{
@@ -398,41 +500,39 @@ func createHighwaymenERNMessage() *ddexv1beta1.NewReleaseMessage {
 					ReleaseReference: "R0",
 					ReleaseType:      "Album",
 					ReleaseId: &ddexv1beta1.Release_ReleaseId{
-						Grid:            "A10301A00035091829",
-						Icpn:            "886445803518",
-						CatalogueNumber: "G0100035091829",
+						Grid:            "F10301F00045091829",
+						Icpn:            "123456789012",
+						CatalogueNumber: "F0100045091829",
 					},
-					DisplayTitleText: "Live - American Outlaws",
+					DisplayTitleText: "Live - Electric Nights",
 					DisplayTitle: &ddexv1beta1.Release_DisplayTitle{
-						TitleText: "Live - American Outlaws",
+						TitleText: "Live - Electric Nights",
 					},
-					DisplayArtistName: "The Highwaymen",
+					DisplayArtistName: "The Electric Riders",
 					DisplayArtist: []*ddexv1beta1.Release_DisplayArtist{
 						{
 							ArtistPartyReference: "P_ARTIST_1199281",
 							DisplayArtistRole:    "MainArtist",
 						},
 					},
-					ReleaseLabelReference: "P_LABEL_COLUMBIA_NASHVILLE_LEGACY",
+					ReleaseLabelReference: "P_LABEL_HARMONY_RECORDS",
 					PLine: &ddexv1beta1.Release_Release_PLine{
-						Year:      "2016",
-						PLineText: "(P) 2016 Sony Music Entertainment",
+						Year:      "2023",
+						PLineText: "(P) 2023 Melodic Records Entertainment",
 					},
 					Duration:            "PT2H43M8S", // 2 hours 43 minutes total!
-					OriginalReleaseDate: "2016-05-20",
+					OriginalReleaseDate: "2023-05-20",
 					ParentalWarningType: "NotExplicit",
 					Genre: &ddexv1beta1.Release_Release_Genre{
-						GenreText: "Country",
+						GenreText: "Rock",
 					},
 				},
 			},
 		},
 	}
 
-	// Deal information from XML DealList (worldwide licensing for PermanentDownload)
-	// Real XML contains extensive territory codes (US, CA, GB, DE, FR, JP, AU, etc.)
-	// Commercial model: PayAsYouGoModel, UseType: PermanentDownload, Valid from 2016-05-20
-	// TODO: Add proper Deal protobuf structure once schema is defined
+	// Deal information - fake deal data for worldwide licensing
+	// TODO: Add proper Deal protobuf structure once schema issues resolved
 	deals := []*ddexv1beta1.Deal{}
 
 	return &ddexv1beta1.NewReleaseMessage{
