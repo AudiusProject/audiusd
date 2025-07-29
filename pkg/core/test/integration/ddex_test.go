@@ -550,10 +550,611 @@ func stringPtr(s string) *string {
 }
 
 func TestMEADNewMessage(t *testing.T) {
+	ctx := context.Background()
+	sdk := utils.DiscoveryOne
+
+	// Wait for the node to be ready
+	timeout := time.After(30 * time.Second)
+	for {
+		select {
+		case <-timeout:
+			assert.Fail(t, "timed out waiting for discovery node to be ready")
+		default:
+		}
+		status, err := sdk.Core.GetStatus(ctx, connect.NewRequest(&corev1.GetStatusRequest{}))
+		assert.NoError(t, err)
+		if status.Msg.Ready {
+			break
+		}
+		time.Sleep(2 * time.Second)
+	}
+
+	// Create MEAD message based on fake band data
+	meadMessage := createFakeBandMEADMessage()
+
+	// Create transaction envelope
+	envelope := &corev1beta1.Envelope{
+		Header: &corev1beta1.EnvelopeHeader{
+			ChainId:    "audius-devnet",
+			From:       "PADPIDA2024010501X",
+			To:         "PADPIDA202401120D9",
+			Nonce:      "2",
+			Expiration: time.Now().Add(time.Hour).Unix(),
+		},
+		Messages: []*corev1beta1.Message{
+			{
+				Message: &corev1beta1.Message_Mead{
+					Mead: meadMessage,
+				},
+			},
+		},
+	}
+
+	transaction := &corev1beta1.Transaction{
+		Envelope: envelope,
+	}
+
+	// Calculate expected transaction hash
+	expectedTxHash, err := common.ToTxHash(transaction)
+	require.NoError(t, err)
+
+	// Submit the transaction
+	req := &corev1.SendTransactionRequest{
+		Transactionv2: transaction,
+	}
+
+	submitRes, err := sdk.Core.SendTransaction(ctx, connect.NewRequest(req))
+	require.NoError(t, err)
+
+	// Check if we have a transaction receipt (v2 transactions)
+	if submitRes.Msg.TransactionReceipt != nil {
+		txhash := submitRes.Msg.TransactionReceipt.TxHash
+		assert.Equal(t, expectedTxHash, txhash)
+
+		// Wait for transaction to be processed
+		time.Sleep(time.Second * 2)
+
+		// Retrieve and validate the transaction
+		txRes, err := sdk.Core.GetTransaction(ctx, connect.NewRequest(&corev1.GetTransactionRequest{TxHash: txhash}))
+		require.NoError(t, err)
+
+		// For v2 transactions, check if we got the transaction back
+		if txRes.Msg.Transaction != nil {
+			t.Logf("MEAD transaction %s successfully submitted and retrieved", txhash)
+		}
+
+		t.Logf("MEAD transaction %s successfully processed with %d resource enrichments and %d release enrichments",
+			txhash, len(meadMessage.ResourceInformationList.ResourceInformation), len(meadMessage.ReleaseInformationList.ReleaseInformation))
+	} else if submitRes.Msg.Transaction != nil {
+		// Fallback for v1 transactions
+		txhash := submitRes.Msg.Transaction.Hash
+		assert.Equal(t, expectedTxHash, txhash)
+
+		t.Logf("MEAD transaction %s successfully processed (v1 response)", txhash)
+	} else {
+		t.Fatal("No transaction receipt or transaction returned from submission")
+	}
 }
 
 func TestPIENewMessage(t *testing.T) {
+	ctx := context.Background()
+	sdk := utils.DiscoveryOne
+
+	// Wait for the node to be ready
+	timeout := time.After(30 * time.Second)
+	for {
+		select {
+		case <-timeout:
+			assert.Fail(t, "timed out waiting for discovery node to be ready")
+		default:
+		}
+		status, err := sdk.Core.GetStatus(ctx, connect.NewRequest(&corev1.GetStatusRequest{}))
+		assert.NoError(t, err)
+		if status.Msg.Ready {
+			break
+		}
+		time.Sleep(2 * time.Second)
+	}
+
+	// Create PIE message based on fake band data
+	pieMessage := createFakeBandPIEMessage()
+
+	// Create transaction envelope
+	envelope := &corev1beta1.Envelope{
+		Header: &corev1beta1.EnvelopeHeader{
+			ChainId:    "audius-devnet",
+			From:       "PADPIDA2024010501X",
+			To:         "PADPIDA202401120D9",
+			Nonce:      "3",
+			Expiration: time.Now().Add(time.Hour).Unix(),
+		},
+		Messages: []*corev1beta1.Message{
+			{
+				Message: &corev1beta1.Message_Pie{
+					Pie: pieMessage,
+				},
+			},
+		},
+	}
+
+	transaction := &corev1beta1.Transaction{
+		Envelope: envelope,
+	}
+
+	// Calculate expected transaction hash
+	expectedTxHash, err := common.ToTxHash(transaction)
+	require.NoError(t, err)
+
+	// Submit the transaction
+	req := &corev1.SendTransactionRequest{
+		Transactionv2: transaction,
+	}
+
+	submitRes, err := sdk.Core.SendTransaction(ctx, connect.NewRequest(req))
+	require.NoError(t, err)
+
+	// Check if we have a transaction receipt (v2 transactions)
+	if submitRes.Msg.TransactionReceipt != nil {
+		txhash := submitRes.Msg.TransactionReceipt.TxHash
+		assert.Equal(t, expectedTxHash, txhash)
+
+		// Wait for transaction to be processed
+		time.Sleep(time.Second * 2)
+
+		// Retrieve and validate the transaction
+		txRes, err := sdk.Core.GetTransaction(ctx, connect.NewRequest(&corev1.GetTransactionRequest{TxHash: txhash}))
+		require.NoError(t, err)
+
+		// For v2 transactions, check if we got the transaction back
+		if txRes.Msg.Transaction != nil {
+			t.Logf("PIE transaction %s successfully submitted and retrieved", txhash)
+		}
+
+		t.Logf("PIE transaction %s successfully processed with %d party enrichments including verified handles and awards",
+			txhash, len(pieMessage.PartyList.Party))
+	} else if submitRes.Msg.Transaction != nil {
+		// Fallback for v1 transactions
+		txhash := submitRes.Msg.Transaction.Hash
+		assert.Equal(t, expectedTxHash, txhash)
+
+		t.Logf("PIE transaction %s successfully processed (v1 response)", txhash)
+	} else {
+		t.Fatal("No transaction receipt or transaction returned from submission")
+	}
 }
 
 func TestMultiMessageTransaction(t *testing.T) {
+	ctx := context.Background()
+	sdk := utils.DiscoveryOne
+
+	// Wait for the node to be ready
+	timeout := time.After(30 * time.Second)
+	for {
+		select {
+		case <-timeout:
+			assert.Fail(t, "timed out waiting for discovery node to be ready")
+		default:
+		}
+		status, err := sdk.Core.GetStatus(ctx, connect.NewRequest(&corev1.GetStatusRequest{}))
+		assert.NoError(t, err)
+		if status.Msg.Ready {
+			break
+		}
+		time.Sleep(2 * time.Second)
+	}
+
+	// Create all three message types
+	ernMessage := createFakeBandERNMessage()
+	meadMessage := createFakeBandMEADMessage()
+	pieMessage := createFakeBandPIEMessage()
+
+	// Create transaction envelope with multiple messages
+	envelope := &corev1beta1.Envelope{
+		Header: &corev1beta1.EnvelopeHeader{
+			ChainId:    "audius-devnet",
+			From:       "PADPIDA2024010501X",
+			To:         "PADPIDA202401120D9",
+			Nonce:      "4",
+			Expiration: time.Now().Add(time.Hour).Unix(),
+		},
+		Messages: []*corev1beta1.Message{
+			{
+				Message: &corev1beta1.Message_Ern{
+					Ern: ernMessage,
+				},
+			},
+			{
+				Message: &corev1beta1.Message_Mead{
+					Mead: meadMessage,
+				},
+			},
+			{
+				Message: &corev1beta1.Message_Pie{
+					Pie: pieMessage,
+				},
+			},
+		},
+	}
+
+	transaction := &corev1beta1.Transaction{
+		Envelope: envelope,
+	}
+
+	// Calculate expected transaction hash
+	expectedTxHash, err := common.ToTxHash(transaction)
+	require.NoError(t, err)
+
+	// Submit the transaction
+	req := &corev1.SendTransactionRequest{
+		Transactionv2: transaction,
+	}
+
+	submitRes, err := sdk.Core.SendTransaction(ctx, connect.NewRequest(req))
+	require.NoError(t, err)
+
+	// Check if we have a transaction receipt (v2 transactions)
+	if submitRes.Msg.TransactionReceipt != nil {
+		txhash := submitRes.Msg.TransactionReceipt.TxHash
+		assert.Equal(t, expectedTxHash, txhash)
+
+		// Wait for transaction to be processed
+		time.Sleep(time.Second * 3)
+
+		// Retrieve and validate the transaction
+		txRes, err := sdk.Core.GetTransaction(ctx, connect.NewRequest(&corev1.GetTransactionRequest{TxHash: txhash}))
+		require.NoError(t, err)
+
+		// For v2 transactions, check if we got the transaction back
+		if txRes.Msg.Transaction != nil {
+			t.Logf("Multi-message transaction %s successfully submitted and retrieved", txhash)
+		}
+
+		t.Logf("Multi-message transaction %s successfully processed with ERN (%d parties, %d resources, %d releases), MEAD (%d resource enrichments, %d release enrichments), and PIE (%d party enrichments)",
+			txhash,
+			len(ernMessage.PartyList), len(ernMessage.ResourceList), len(ernMessage.ReleaseList),
+			len(meadMessage.ResourceInformationList.ResourceInformation), len(meadMessage.ReleaseInformationList.ReleaseInformation),
+			len(pieMessage.PartyList.Party))
+	} else if submitRes.Msg.Transaction != nil {
+		// Fallback for v1 transactions
+		txhash := submitRes.Msg.Transaction.Hash
+		assert.Equal(t, expectedTxHash, txhash)
+
+		t.Logf("Multi-message transaction %s successfully processed (v1 response)", txhash)
+	} else {
+		t.Fatal("No transaction receipt or transaction returned from submission")
+	}
+}
+
+// createFakeBandMEADMessage creates a MEAD message with enrichment data for fake band resources and releases
+func createFakeBandMEADMessage() *ddexv1beta1.MeadMessage {
+	// Create message header
+	messageHeader := &ddexv1beta1.MessageHeader{
+		MessageThreadId: stringPtr("F0100045091829_MEAD"),
+		MessageId:       "458380161",
+		MessageSender: &ddexv1beta1.MessageSender{
+			PartyId: &ddexv1beta1.Party_PartyId{
+				Dpid: "PADPIDA2024010501X",
+			},
+			PartyName: &ddexv1beta1.Party_PartyName{
+				FullName: "Melodic Records Entertainment",
+			},
+		},
+		MessageRecipient: []*ddexv1beta1.MessageRecipient{
+			{
+				PartyId: &ddexv1beta1.Party_PartyId{
+					Dpid: "PADPIDA202401120D9",
+				},
+				PartyName: &ddexv1beta1.Party_PartyName{
+					FullName: "Audius",
+				},
+			},
+		},
+		MessageCreatedDateTime: timestamppb.New(time.Date(2025, 6, 4, 17, 10, 19, 141000000, time.UTC)),
+		MessageControlType:     ddexv1beta1.MessageControlType_MESSAGE_CONTROL_TYPE_TEST_MESSAGE.Enum(),
+	}
+
+	// Create resource enrichment information
+	resourceInformationList := &ddexv1beta1.MeadMessage_ResourceInformationList{
+		ResourceInformation: []*ddexv1beta1.MeadMessage_ResourceInformation{
+			{
+				ResourceSummary: &ddexv1beta1.MeadMessage_ResourceSummary{
+					ResourceId: &ddexv1beta1.Resource_ResourceId{
+						Isrc: "USRC17607839",
+						ProprietaryId: []*ddexv1beta1.Resource_ProprietaryId{
+							{
+								Namespace:     "AUDIUS",
+								ProprietaryId: "res_midnight_express",
+							},
+						},
+					},
+					DisplayTitle: &ddexv1beta1.Resource_DisplayTitle{
+						TitleText: "Midnight Express (Live at Thunder Arena)",
+					},
+					DisplayArtist: &ddexv1beta1.Resource_DisplayArtist{
+						ArtistPartyReference: "P_ARTIST_1199281",
+					},
+					Mood: &ddexv1beta1.MeadMessage_Mood{
+						Type:        "Energetic",
+						Description: "High-energy live rock performance with electric guitar solos",
+					},
+					BeatsPerMinute: &ddexv1beta1.MeadMessage_BeatsPerMinute{
+						Value: 128.5,
+					},
+					Key: &ddexv1beta1.MeadMessage_Key{
+						Value: "A Minor",
+					},
+				},
+				ResourceContributor: []*ddexv1beta1.MeadMessage_ResourceContributor{
+					{
+						PartyId: &ddexv1beta1.Party_PartyId{
+							Dpid: "CONTRIB001",
+						},
+						PartyName: &ddexv1beta1.Party_PartyName{
+							FullName: "Thunder Arena Live Sound Engineers",
+						},
+					},
+				},
+			},
+			{
+				ResourceSummary: &ddexv1beta1.MeadMessage_ResourceSummary{
+					ResourceId: &ddexv1beta1.Resource_ResourceId{
+						Isrc: "USRC17607840",
+						ProprietaryId: []*ddexv1beta1.Resource_ProprietaryId{
+							{
+								Namespace:     "AUDIUS",
+								ProprietaryId: "res_electric_storm",
+							},
+						},
+					},
+					DisplayTitle: &ddexv1beta1.Resource_DisplayTitle{
+						TitleText: "Electric Storm (Live at Thunder Arena)",
+					},
+					DisplayArtist: &ddexv1beta1.Resource_DisplayArtist{
+						ArtistPartyReference: "P_ARTIST_1199281",
+					},
+					Mood: &ddexv1beta1.MeadMessage_Mood{
+						Type:        "Intense",
+						Description: "Thunderous drums and lightning-fast guitar riffs",
+					},
+					BeatsPerMinute: &ddexv1beta1.MeadMessage_BeatsPerMinute{
+						Value: 140.0,
+					},
+					Key: &ddexv1beta1.MeadMessage_Key{
+						Value: "E Major",
+					},
+				},
+			},
+		},
+	}
+
+	// Create release enrichment information
+	releaseInformationList := &ddexv1beta1.MeadMessage_ReleaseInformationList{
+		ReleaseInformation: []*ddexv1beta1.MeadMessage_ReleaseInformation{
+			{
+				ReleaseSummary: &ddexv1beta1.MeadMessage_ReleaseSummary{
+					ReleaseId: &ddexv1beta1.Release_ReleaseId{
+						Grid:            "F10301F00045091829",
+						Icpn:            "123456789012",
+						CatalogueNumber: "F0100045091829",
+					},
+					DisplayTitle: &ddexv1beta1.Release_DisplayTitle{
+						TitleText: "Live - Electric Nights",
+					},
+					DisplayArtist: &ddexv1beta1.Release_DisplayArtist{
+						ArtistPartyReference: "P_ARTIST_1199281",
+					},
+				},
+				Mood: &ddexv1beta1.MeadMessage_Mood{
+					Type:        "Live Concert",
+					Description: "Electrifying live performance capturing the raw energy of rock music",
+				},
+				BeatsPerMinute: &ddexv1beta1.MeadMessage_BeatsPerMinute{
+					Value: 132.0, // Average BPM across the album
+				},
+				Key: &ddexv1beta1.MeadMessage_Key{
+					Value: "Various Keys",
+				},
+			},
+		},
+	}
+
+	return &ddexv1beta1.MeadMessage{
+		MessageHeader:           messageHeader,
+		ResourceInformationList: resourceInformationList,
+		ReleaseInformationList:  releaseInformationList,
+	}
+}
+
+// createFakeBandPIEMessage creates a PIE message with party enrichment data for fake band members
+func createFakeBandPIEMessage() *ddexv1beta1.PieMessage {
+	// Create message header
+	messageHeader := &ddexv1beta1.MessageHeader{
+		MessageThreadId: stringPtr("F0100045091829_PIE"),
+		MessageId:       "458380162",
+		MessageSender: &ddexv1beta1.MessageSender{
+			PartyId: &ddexv1beta1.Party_PartyId{
+				Dpid: "PADPIDA2024010501X",
+			},
+			PartyName: &ddexv1beta1.Party_PartyName{
+				FullName: "Melodic Records Entertainment",
+			},
+		},
+		MessageRecipient: []*ddexv1beta1.MessageRecipient{
+			{
+				PartyId: &ddexv1beta1.Party_PartyId{
+					Dpid: "PADPIDA202401120D9",
+				},
+				PartyName: &ddexv1beta1.Party_PartyName{
+					FullName: "Audius",
+				},
+			},
+		},
+		MessageCreatedDateTime: timestamppb.New(time.Date(2025, 6, 4, 17, 11, 19, 141000000, time.UTC)),
+		MessageControlType:     ddexv1beta1.MessageControlType_MESSAGE_CONTROL_TYPE_TEST_MESSAGE.Enum(),
+	}
+
+	// Create party enrichment list with social media handles, verification, and awards
+	partyList := &ddexv1beta1.PieMessage_PartyList{
+		Party: []*ddexv1beta1.PieMessage_Party{
+			{
+				PartyReference: "P_ARTIST_1199281",
+				PartyId: &ddexv1beta1.Party_PartyId{
+					Dpid: "BAND_ELECTRIC_RIDERS_001",
+				},
+				PartyName: &ddexv1beta1.Party_PartyName{
+					FullName: "The Electric Riders",
+				},
+				PartyType: &ddexv1beta1.PieMessage_Party_PartyType{
+					Value: "Artist",
+				},
+				Handles: []*ddexv1beta1.PieMessage_Handle{
+					{
+						Type:  "audius",
+						Value: "electric_riders_official",
+					},
+					{
+						Type:  "twitter",
+						Value: "@ElectricRidersOfficial",
+					},
+					{
+						Type:  "instagram",
+						Value: "@electric.riders.band",
+					},
+				},
+				Verified: []*ddexv1beta1.PieMessage_Verified{
+					{
+						Type:     "audius",
+						Verified: true,
+					},
+					{
+						Type:     "twitter",
+						Verified: true,
+					},
+				},
+				Awards: []*ddexv1beta1.PieMessage_Award{
+					{
+						AwardingBody: &ddexv1beta1.PieMessage_Award_AwardingBody{
+							PartyName: &ddexv1beta1.Party_PartyName{
+								FullName: "Rock Music Awards Foundation",
+							},
+						},
+						AwardedParty: &ddexv1beta1.PieMessage_Award_AwardedParty{
+							PartyName: &ddexv1beta1.Party_PartyName{
+								FullName: "The Electric Riders",
+							},
+						},
+						AwardName: "Best Live Performance 2023",
+						Date:      "2023-12-15",
+						IsWinner:  true,
+						Comment:   stringPtr("Outstanding live performance at Thunder Arena"),
+					},
+				},
+			},
+			{
+				PartyReference: "P_ARTIST_4729799",
+				PartyId: &ddexv1beta1.Party_PartyId{
+					Dpid: "ARTIST_MARCUS_STONE_001",
+				},
+				PartyName: &ddexv1beta1.Party_PartyName{
+					FullName: "Marcus Stone",
+				},
+				PartyType: &ddexv1beta1.PieMessage_Party_PartyType{
+					Value: "Individual",
+				},
+				Handles: []*ddexv1beta1.PieMessage_Handle{
+					{
+						Type:  "audius",
+						Value: "marcus_stone_music",
+					},
+					{
+						Type:  "twitter",
+						Value: "@MarcusStoneMusic",
+					},
+				},
+				Verified: []*ddexv1beta1.PieMessage_Verified{
+					{
+						Type:     "audius",
+						Verified: true,
+					},
+					{
+						Type:     "twitter",
+						Verified: false,
+					},
+				},
+				Awards: []*ddexv1beta1.PieMessage_Award{
+					{
+						AwardingBody: &ddexv1beta1.PieMessage_Award_AwardingBody{
+							PartyName: &ddexv1beta1.Party_PartyName{
+								FullName: "Guitar Player Magazine",
+							},
+						},
+						AwardedParty: &ddexv1beta1.PieMessage_Award_AwardedParty{
+							PartyName: &ddexv1beta1.Party_PartyName{
+								FullName: "Marcus Stone",
+							},
+						},
+						AwardName: "Guitar Solo of the Year 2023",
+						Date:      "2023-11-20",
+						IsWinner:  true,
+						Comment:   stringPtr("Exceptional guitar work on 'Lightning Flash'"),
+					},
+				},
+			},
+			{
+				PartyReference: "P_LABEL_HARMONY_RECORDS",
+				PartyId: &ddexv1beta1.Party_PartyId{
+					Dpid: "LABEL_HARMONY_001",
+				},
+				PartyName: &ddexv1beta1.Party_PartyName{
+					FullName: "Harmony Records Legacy",
+				},
+				PartyType: &ddexv1beta1.PieMessage_Party_PartyType{
+					Value: "Label",
+				},
+				Handles: []*ddexv1beta1.PieMessage_Handle{
+					{
+						Type:  "audius",
+						Value: "harmony_records_legacy",
+					},
+					{
+						Type:  "twitter",
+						Value: "@HarmonyRecordsLegacy",
+					},
+				},
+				Verified: []*ddexv1beta1.PieMessage_Verified{
+					{
+						Type:     "audius",
+						Verified: true,
+					},
+					{
+						Type:     "twitter",
+						Verified: true,
+					},
+				},
+				Awards: []*ddexv1beta1.PieMessage_Award{
+					{
+						AwardingBody: &ddexv1beta1.PieMessage_Award_AwardingBody{
+							PartyName: &ddexv1beta1.Party_PartyName{
+								FullName: "Independent Music Awards",
+							},
+						},
+						AwardedParty: &ddexv1beta1.PieMessage_Award_AwardedParty{
+							PartyName: &ddexv1beta1.Party_PartyName{
+								FullName: "Harmony Records Legacy",
+							},
+						},
+						AwardName: "Independent Label of the Year 2023",
+						Date:      "2023-10-10",
+						IsWinner:  true,
+						Comment:   stringPtr("Excellence in promoting emerging rock artists"),
+					},
+				},
+			},
+		},
+	}
+
+	return &ddexv1beta1.PieMessage{
+		MessageHeader: messageHeader,
+		PartyList:     partyList,
+	}
 }
