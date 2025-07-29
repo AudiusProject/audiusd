@@ -49,7 +49,7 @@ func (s *Server) finalizeERN(ctx context.Context, req *abcitypes.FinalizeBlockRe
 	}
 
 	switch *ern.MessageHeader.MessageControlType {
-	case ddexv1beta1.MessageControlType_MESSAGE_CONTROL_TYPE_NEW_MESSAGE:
+	case ddexv1beta1.MessageControlType_MESSAGE_CONTROL_TYPE_NEW_MESSAGE, ddexv1beta1.MessageControlType_MESSAGE_CONTROL_TYPE_TEST_MESSAGE:
 		if err := s.validateERNNewMessage(ctx, ern); err != nil {
 			return errors.Join(ErrERNMessageValidation, err)
 		}
@@ -84,7 +84,7 @@ func (s *Server) finalizeERN(ctx context.Context, req *abcitypes.FinalizeBlockRe
 /** ERN New Message */
 
 // Validate an ERN message that's expected to be a NEW_MESSAGE, expects that the transaction header is valid
-func (s *Server) validateERNNewMessage(_ context.Context, ern *ddexv1beta1.NewReleaseMessage) error {
+func (s *Server) validateERNNewMessage(_ context.Context, _ *ddexv1beta1.NewReleaseMessage) error {
 	// TODO: add ERN level validation for conflicts and duplicates
 	return nil
 }

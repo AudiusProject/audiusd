@@ -62,7 +62,7 @@ func (c *CoreService) ForwardTransaction(ctx context.Context, req *connect.Reque
 	var mempoolKey common.TxHash
 	var err error
 	if req.Msg.Transactionv2 != nil {
-		mempoolKey, err = common.ToTxHash(req.Msg.Transactionv2.Envelope)
+		mempoolKey, err = common.ToTxHash(req.Msg.Transactionv2)
 	} else {
 		mempoolKey, err = common.ToTxHash(req.Msg.Transaction)
 	}
@@ -338,7 +338,7 @@ func (c *CoreService) SendTransaction(ctx context.Context, req *connect.Request[
 	var txhash common.TxHash
 	var err error
 	if req.Msg.Transactionv2 != nil {
-		txhash, err = common.ToTxHash(req.Msg.Transactionv2.Envelope)
+		txhash, err = common.ToTxHash(req.Msg.Transactionv2)
 		if err != nil {
 			return nil, fmt.Errorf("could not get tx hash of signed tx: %v", err)
 		}

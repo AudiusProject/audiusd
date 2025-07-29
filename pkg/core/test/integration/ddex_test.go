@@ -42,9 +42,9 @@ func TestERNNewMessage(t *testing.T) {
 	// Create transaction envelope
 	envelope := &corev1beta1.Envelope{
 		Header: &corev1beta1.EnvelopeHeader{
-			ChainId:    "audiusd-1",          // Default chain ID
-			From:       "PADPIDA2024010501X", // Fake Records Entertainment from XML
-			To:         "PADPIDA202401120D9", // Audius from XML
+			ChainId:    "audius-devnet",
+			From:       "PADPIDA2024010501X",
+			To:         "PADPIDA202401120D9",
 			Nonce:      "1",
 			Expiration: time.Now().Add(time.Hour).Unix(),
 		},

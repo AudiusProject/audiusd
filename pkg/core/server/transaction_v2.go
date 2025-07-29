@@ -7,6 +7,7 @@ import (
 
 	"github.com/AudiusProject/audiusd/pkg/api/core/v1beta1"
 	ddexv1beta1 "github.com/AudiusProject/audiusd/pkg/api/ddex/v1beta1"
+	"github.com/AudiusProject/audiusd/pkg/common"
 	abcitypes "github.com/cometbft/cometbft/abci/types"
 	"golang.org/x/sync/errgroup"
 )
@@ -67,11 +68,13 @@ func (s *Server) finalizeV2Transaction(ctx context.Context, req *abcitypes.Final
 	}
 
 	// Calculate transaction hash for receipt
-	txhash := s.toTxHash(tx.Envelope)
+	txhash, err := common.ToTxHash(tx)
+	if err != nil {
+		return fmt.Errorf("failed to get tx hash: %w", err)
+	}
 
 	s.logger.Debugf("finalizing v2 transaction %s with %d messages", txhash, len(tx.Envelope.Messages))
 
-	var err error
 	for i, msg := range tx.Envelope.Messages {
 		switch msg.Message.(type) {
 		case *v1beta1.Message_Ern:
