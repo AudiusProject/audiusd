@@ -162,6 +162,30 @@ func (ss *MediorumServer) serveBlob(c echo.Context) error {
 		ss.logTrackListen(c)
 		setTimingHeader(c)
 
+		if id3, _ := strconv.ParseBool(c.QueryParam("id3")); id3 {
+			title := c.QueryParam("id3_title")
+			artist := c.QueryParam("id3_artist")
+
+			tag := buildID3v2Tag(title, artist)
+
+			tagged := &taggedStream{
+				tag:  tag,
+				blob: blob,
+			}
+
+			// Rewind blob to start
+			if _, err := blob.Seek(0, io.SeekStart); err != nil {
+				return err
+			}
+
+			http.ServeContent(c.Response(), c.Request(), cid, blob.ModTime(), &struct {
+				io.ReadSeeker
+			}{
+				ReadSeeker: tagged,
+			})
+			return nil
+		}
+
 		// stream audio
 		http.ServeContent(c.Response(), c.Request(), cid, blob.ModTime(), blob)
 		return nil

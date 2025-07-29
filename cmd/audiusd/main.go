@@ -35,6 +35,7 @@ import (
 	coreServer "github.com/AudiusProject/audiusd/pkg/core/server"
 	"github.com/AudiusProject/audiusd/pkg/eth"
 	"github.com/AudiusProject/audiusd/pkg/etl"
+	"github.com/AudiusProject/audiusd/pkg/lifecycle"
 	"github.com/AudiusProject/audiusd/pkg/mediorum"
 	"github.com/AudiusProject/audiusd/pkg/mediorum/server"
 	"github.com/AudiusProject/audiusd/pkg/pos"
@@ -46,6 +47,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	corev1connect "github.com/AudiusProject/audiusd/pkg/api/core/v1/v1connect"
+	ethv1connect "github.com/AudiusProject/audiusd/pkg/api/eth/v1/v1connect"
 	etlv1connect "github.com/AudiusProject/audiusd/pkg/api/etl/v1/v1connect"
 	storagev1connect "github.com/AudiusProject/audiusd/pkg/api/storage/v1/v1connect"
 	systemv1connect "github.com/AudiusProject/audiusd/pkg/api/system/v1/v1connect"
@@ -98,6 +100,8 @@ func main() {
 	posChannel := make(chan pos.PoSRequest)
 	dbUrl := config.GetDbURL()
 
+	rootLifecycle := lifecycle.NewLifecycle(ctx, "root lifecycle", logger)
+
 	ethService := eth.NewEthService(dbUrl, config.GetEthRPC(), config.GetRegistryAddress(), logger, config.GetRuntimeEnvironment())
 	coreService := coreServer.NewCoreService()
 	storageService := server.NewStorageService()
@@ -112,18 +116,18 @@ func main() {
 		{
 			"audiusd-echo-server",
 			func() error {
-				return startEchoProxy(hostUrl, logger, coreService, storageService, etlService, systemService)
+				return startEchoProxy(hostUrl, logger, coreService, storageService, etlService, systemService, ethService)
 			},
 			true,
 		},
 		{
 			"core",
-			func() error { return core.Run(ctx, logger, posChannel, coreService, ethService) },
+			func() error { return core.Run(ctx, rootLifecycle, logger, posChannel, coreService, ethService) },
 			true,
 		},
 		{
 			"mediorum",
-			func() error { return mediorum.Run(ctx, logger, posChannel, storageService, coreService) },
+			func() error { return mediorum.Run(rootLifecycle, posChannel, storageService, coreService) },
 			isStorageEnabled(),
 		},
 		{
@@ -366,7 +370,7 @@ func connectGET[Req any, Res any](
 	}
 }
 
-func startEchoProxy(hostUrl *url.URL, logger *common.Logger, coreService *coreServer.CoreService, storageService *server.StorageService, etlService *etl.ETLService, systemService *system.SystemService) error {
+func startEchoProxy(hostUrl *url.URL, logger *common.Logger, coreService *coreServer.CoreService, storageService *server.StorageService, etlService *etl.ETLService, systemService *system.SystemService, ethService *eth.EthService) error {
 	e := echo.New()
 	e.HideBanner = true
 	e.Use(middleware.Logger(), middleware.Recover(), common.InjectRealIP())
@@ -384,6 +388,9 @@ func startEchoProxy(hostUrl *url.URL, logger *common.Logger, coreService *coreSe
 	systemPath, systemHandler := systemv1connect.NewSystemServiceHandler(systemService, connectJSONOpt)
 	rpcGroup.POST(systemPath+"*", echo.WrapHandler(systemHandler))
 
+	ethPath, ethHandler := ethv1connect.NewEthServiceHandler(ethService, connectJSONOpt)
+	rpcGroup.POST(ethPath+"*", echo.WrapHandler(ethHandler))
+
 	// register GET routes
 	rpcGroup.GET(corev1connect.CoreServiceGetStatusProcedure, connectGET(coreService.GetStatus))
 	rpcGroup.GET(corev1connect.CoreServiceGetNodeInfoProcedure, connectGET(coreService.GetNodeInfo))
@@ -400,6 +407,7 @@ func startEchoProxy(hostUrl *url.URL, logger *common.Logger, coreService *coreSe
 		grpcServerGroup.Any(storagePath+"*", echo.WrapHandler(storageHandler))
 		grpcServerGroup.Any(etlPath+"*", echo.WrapHandler(etlHandler))
 		grpcServerGroup.Any(systemPath+"*", echo.WrapHandler(systemHandler))
+		grpcServerGroup.Any(ethPath+"*", echo.WrapHandler(ethHandler))
 
 		// Create h2c-compatible server
 		h2cServer := &http.Server{

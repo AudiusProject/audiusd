@@ -49,8 +49,12 @@ var _ abcitypes.Application = (*Server)(nil)
 
 // initializes the cometbft node and the abci application which is the server itself
 // connects the local rpc instance to the abci application once successfully created
-func (s *Server) startABCI() error {
-	<-s.awaitEthReady
+func (s *Server) startABCI(ctx context.Context) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-s.awaitEthReady:
+	}
 	s.logger.Info("starting abci")
 
 	cometConfig := s.cometbftConfig
@@ -70,7 +74,7 @@ func (s *Server) startABCI() error {
 	}
 
 	node, err := nm.NewNode(
-		context.Background(),
+		ctx,
 		cometConfig,
 		pv,
 		nodeKey,
@@ -87,9 +91,6 @@ func (s *Server) startABCI() error {
 	}
 
 	s.node = node
-
-	s.logger.Info("said node was ready")
-
 	s.rpc = local.New(s.node)
 	close(s.awaitRpcReady)
 
@@ -99,7 +100,13 @@ func (s *Server) startABCI() error {
 		s.logger.Errorf("cometbft failed to start: %v", err)
 		return err
 	}
-	return nil
+
+	<-ctx.Done()
+	err = s.node.Stop()
+	if err != nil {
+		return err
+	}
+	return ctx.Err()
 }
 
 func (s *Server) Info(ctx context.Context, info *abcitypes.InfoRequest) (*abcitypes.InfoResponse, error) {

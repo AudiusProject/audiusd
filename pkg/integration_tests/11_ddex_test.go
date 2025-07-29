@@ -1,4 +1,4 @@
-package integration_test
+package integration_tests
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 	corev1beta1 "github.com/AudiusProject/audiusd/pkg/api/core/v1beta1"
 	ddexv1beta1 "github.com/AudiusProject/audiusd/pkg/api/ddex/v1beta1"
 	"github.com/AudiusProject/audiusd/pkg/common"
-	"github.com/AudiusProject/audiusd/pkg/core/test/integration/utils"
+	"github.com/AudiusProject/audiusd/pkg/integration_tests/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -377,19 +377,15 @@ func TestDDEX(t *testing.T) {
 		// Wait for transaction to be processed
 		time.Sleep(time.Second * 5)
 
-		// Test addresses to try
-		senderAddress := "PADPIDA2024010501X"
-		recipientAddress := "PADPIDA202401120D9"
+		// get individual message receipts
+		ernReceipt := submitRes.Msg.TransactionReceipt.MessageReceipts[0].GetErnAck()
+		meadReceipt := submitRes.Msg.TransactionReceipt.MessageReceipts[1].GetMeadAck()
+		pieReceipt := submitRes.Msg.TransactionReceipt.MessageReceipts[2].GetPieAck()
 
 		// Test GetERN
 		t.Run("GetERN", func(t *testing.T) {
-			ernReq := &corev1.GetERNRequest{Address: senderAddress}
+			ernReq := &corev1.GetERNRequest{Address: ernReceipt.ErnAddress}
 			ernRes, err := sdk.Core.GetERN(ctx, connect.NewRequest(ernReq))
-			if err != nil {
-				// Try recipient address if sender doesn't work
-				ernReq.Address = recipientAddress
-				ernRes, err = sdk.Core.GetERN(ctx, connect.NewRequest(ernReq))
-			}
 			if err == nil {
 				assert.NotNil(t, ernRes.Msg.Ern)
 				assert.Equal(t, ernMessage.MessageHeader.MessageId, ernRes.Msg.Ern.MessageHeader.MessageId)
@@ -398,19 +394,14 @@ func TestDDEX(t *testing.T) {
 				assert.Equal(t, len(ernMessage.ReleaseList), len(ernRes.Msg.Ern.ReleaseList))
 				t.Logf("✓ GetERN successful for address: %s", ernReq.Address)
 			} else {
-				t.Logf("✗ GetERN failed for both addresses: %v", err)
+				t.Fatalf("✗ GetERN failed for address: %s", ernReq.Address)
 			}
 		})
 
 		// Test GetMEAD
 		t.Run("GetMEAD", func(t *testing.T) {
-			meadReq := &corev1.GetMEADRequest{Address: senderAddress}
+			meadReq := &corev1.GetMEADRequest{Address: meadReceipt.MeadAddress}
 			meadRes, err := sdk.Core.GetMEAD(ctx, connect.NewRequest(meadReq))
-			if err != nil {
-				// Try recipient address if sender doesn't work
-				meadReq.Address = recipientAddress
-				meadRes, err = sdk.Core.GetMEAD(ctx, connect.NewRequest(meadReq))
-			}
 			if err == nil {
 				assert.NotNil(t, meadRes.Msg.Mead)
 				assert.Equal(t, meadMessage.MessageHeader.MessageId, meadRes.Msg.Mead.MessageHeader.MessageId)
@@ -418,26 +409,21 @@ func TestDDEX(t *testing.T) {
 				assert.Equal(t, len(meadMessage.ReleaseInformationList.ReleaseInformation), len(meadRes.Msg.Mead.ReleaseInformationList.ReleaseInformation))
 				t.Logf("✓ GetMEAD successful for address: %s", meadReq.Address)
 			} else {
-				t.Logf("✗ GetMEAD failed for both addresses: %v", err)
+				t.Fatalf("✗ GetMEAD failed for address: %s", meadReq.Address)
 			}
 		})
 
 		// Test GetPIE
 		t.Run("GetPIE", func(t *testing.T) {
-			pieReq := &corev1.GetPIERequest{Address: senderAddress}
+			pieReq := &corev1.GetPIERequest{Address: pieReceipt.PieAddress}
 			pieRes, err := sdk.Core.GetPIE(ctx, connect.NewRequest(pieReq))
-			if err != nil {
-				// Try recipient address if sender doesn't work
-				pieReq.Address = recipientAddress
-				pieRes, err = sdk.Core.GetPIE(ctx, connect.NewRequest(pieReq))
-			}
 			if err == nil {
 				assert.NotNil(t, pieRes.Msg.Pie)
 				assert.Equal(t, pieMessage.MessageHeader.MessageId, pieRes.Msg.Pie.MessageHeader.MessageId)
 				assert.Equal(t, len(pieMessage.PartyList.Party), len(pieRes.Msg.Pie.PartyList.Party))
 				t.Logf("✓ GetPIE successful for address: %s", pieReq.Address)
 			} else {
-				t.Logf("✗ GetPIE failed for both addresses: %v", err)
+				t.Fatalf("✗ GetPIE failed for address: %s", pieReq.Address)
 			}
 		})
 	})

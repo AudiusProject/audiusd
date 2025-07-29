@@ -3,6 +3,7 @@ package server
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
@@ -26,8 +27,7 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-func (s *Server) startRegistryBridge() error {
-	ctx := context.Background()
+func (s *Server) startRegistryBridge(ctx context.Context) error {
 	ticker := time.NewTicker(5 * time.Second)
 
 ethstatus:
@@ -44,7 +44,7 @@ ethstatus:
 				break ethstatus
 			}
 		case <-ctx.Done():
-			return errors.New("context canceled")
+			return ctx.Err()
 		}
 	}
 
@@ -57,16 +57,20 @@ ethstatus:
 	}
 
 	close(s.awaitEthReady)
-	<-s.awaitRpcReady
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-s.awaitRpcReady:
+	}
 	s.logger.Info("starting registry bridge")
 
 	// check comet status
-	if _, err := s.rpc.Status(context.Background()); err != nil {
+	if _, err := s.rpc.Status(ctx); err != nil {
 		s.logger.Errorf("init registry bridge failed comet rpc status: %v", err)
 		return err
 	}
 
-	if err := s.awaitNodeCatchup(context.Background()); err != nil {
+	if err := s.awaitNodeCatchup(ctx); err != nil {
 		s.logger.Errorf("error awaiting node catchup: %v", err)
 		return err
 	}
@@ -83,34 +87,75 @@ ethstatus:
 				s.logger.Infof("Retrying registration in %s", delay)
 				ticker.Reset(delay)
 			} else {
-				s.listenForEthContractEvents(context.Background())
+				s.lc.AddManagedRoutine("eth contract event listener", s.listenForEthContractEvents)
+				s.lc.AddManagedRoutine("validator warden", s.startValidatorWarden)
 				return nil
 			}
 		case <-timeout:
 			s.logger.Warn("exhausted registration retries, continuing unregistered")
 			return nil
 		case <-ctx.Done():
-			return errors.New("context canceled")
+			return ctx.Err()
 		}
 	}
-	return nil
 }
 
-func (s *Server) listenForEthContractEvents(ctx context.Context) {
+func (s *Server) listenForEthContractEvents(ctx context.Context) error {
 	deregChan := s.eth.SubscribeToDeregistrationEvents()
 	for {
 		select {
 		case <-ctx.Done():
 			s.logger.Info("context canceled, stopping subscription to eth events")
-			return
+			s.eth.UnsubscribeFromDeregistrationEvents(deregChan)
+			return ctx.Err()
 		case dereg := <-deregChan:
 			s.logger.Info("received deregistration event")
 			// brief, randomized pause to allow deregistration event to propogate
 			// to all nodes and prevent thundering herd of deregistration attestations and txs
 			rand.Seed(time.Now().UnixNano())
-			randInterval := rand.Intn(10) + 10
+			randInterval := rand.Intn(10)
 			time.Sleep(time.Duration(randInterval) * time.Second)
 			s.deregisterMissingNode(ctx, dereg.DelegateWallet)
+		}
+	}
+	return nil
+}
+
+func (s *Server) startValidatorWarden(ctx context.Context) error {
+	ticker := time.NewTicker(3 * time.Hour)
+	for {
+		select {
+		case <-ticker.C:
+			allValidatorEthAddresses, err := s.db.GetAllEthAddressesOfRegisteredNodes(ctx)
+			if err != nil {
+				s.logger.Error("could not get all validator eth addresses", "error", err)
+				continue
+			}
+
+			allRegisteredEndpointsResp, err := s.eth.GetRegisteredEndpoints(ctx, connect.NewRequest(&ethv1.GetRegisteredEndpointsRequest{}))
+			if err != nil {
+				s.logger.Error("could not get all registered endpoints", "error", err)
+				continue
+			}
+
+			eps := allRegisteredEndpointsResp.Msg.GetEndpoints()
+			if eps == nil {
+				s.logger.Error("got nil endpoints from eth service")
+				continue
+			}
+			allEthAddrsMap := make(map[string]bool, len(eps))
+			for _, endpoint := range eps {
+				// TODO: check valid staking bounds
+				allEthAddrsMap[endpoint.DelegateWallet] = true
+			}
+
+			for _, validatorEthAddress := range allValidatorEthAddresses {
+				if _, ok := allEthAddrsMap[validatorEthAddress]; !ok {
+					s.deregisterMissingNode(ctx, validatorEthAddress)
+				}
+			}
+		case <-ctx.Done():
+			return ctx.Err()
 		}
 	}
 }
@@ -286,17 +331,15 @@ func (s *Server) awaitNodeCatchup(ctx context.Context) error {
 		res, err := s.rpc.Status(ctx)
 		if err != nil {
 			s.logger.Errorf("error getting comet health: %v", err)
-			time.Sleep(10 * time.Second)
-			continue
+		} else if !res.SyncInfo.CatchingUp {
+			return nil
 		}
 
-		if res.SyncInfo.CatchingUp {
-			time.Sleep(10 * time.Second)
-			continue
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(10 * time.Second):
 		}
-
-		// no health error nor catching up
-		return nil
 	}
 	return errors.New("timeout waiting for comet to catch up")
 }
@@ -393,24 +436,47 @@ func (s *Server) deregisterMissingNode(ctx context.Context, ethAddress string) {
 		s.logger.Error("could not deregister node: failed to get currently registered nodes", "address", ethAddress, "error", err)
 		return
 	}
-	pubKey := ed25519.PubKey(node.CometPubKey)
-	rendezvous := common.GetAttestorRendezvous(addrs, pubKey.Bytes(), s.config.AttDeregistrationRSize)
+
+	// don't attempt to get attestation from deregistration subject node
+	filteredAddrs := addrs[:]
+	for i, addr := range addrs {
+		if addr == ethAddress { // delete (in-place) excluded address
+			filteredAddrs[i] = filteredAddrs[len(filteredAddrs)-1]
+			filteredAddrs = filteredAddrs[:len(filteredAddrs)-1]
+			break
+		}
+	}
+
+	pubkeyBytes, err := base64.StdEncoding.DecodeString(node.CometPubKey)
+	if err != nil {
+		s.logger.Error("could not deregister node: could not decode public key", "address", ethAddress, "public key", node.CometPubKey, "error", err)
+		return
+	}
+	pubKey := ed25519.PubKey(pubkeyBytes)
+	rendezvous := common.GetAttestorRendezvous(filteredAddrs, pubKey.Bytes(), s.config.AttDeregistrationRSize)
 	attestations := make([]string, 0, s.config.AttRegistrationRSize)
-	dereg := &corev1.ValidatorDeregistration{
-		CometAddress: s.config.ProposerAddress,
-		PubKey:       s.config.CometKey.PubKey().Bytes(),
+	dereg := corev1.ValidatorDeregistration{
+		CometAddress: node.CometAddress,
+		PubKey:       pubKey.Bytes(),
 		Deadline:     s.cache.currentHeight.Load() + 120,
 	}
 
 	peers := s.GetPeers()
 	for addr := range rendezvous {
-		if peer, ok := peers[addr]; ok {
+		if addr == s.config.WalletAddress {
+			deregCopy := dereg
+			resp, err := s.self.GetDeregistrationAttestation(ctx, connect.NewRequest(&corev1.GetDeregistrationAttestationRequest{
+				Deregistration: &deregCopy,
+			}))
+			if err != nil {
+				s.logger.Error("failed to get deregistration attestation from %s: %v", addr, err)
+				continue
+			}
+			attestations = append(attestations, resp.Msg.Signature)
+		} else if peer, ok := peers[addr]; ok {
+			deregCopy := dereg
 			resp, err := peer.GetDeregistrationAttestation(ctx, connect.NewRequest(&corev1.GetDeregistrationAttestationRequest{
-				Deregistration: &corev1.ValidatorDeregistration{
-					CometAddress: s.config.ProposerAddress,
-					PubKey:       s.config.CometKey.PubKey().Bytes(),
-					Deadline:     s.cache.currentHeight.Load() + 120,
-				},
+				Deregistration: &deregCopy,
 			}))
 			if err != nil {
 				s.logger.Error("failed to get deregistration attestation from %s: %v", addr, err)
@@ -422,7 +488,7 @@ func (s *Server) deregisterMissingNode(ctx context.Context, ethAddress string) {
 
 	deregistrationAtt := &corev1.Attestation{
 		Signatures: attestations,
-		Body:       &corev1.Attestation_ValidatorDeregistration{ValidatorDeregistration: dereg},
+		Body:       &corev1.Attestation_ValidatorDeregistration{ValidatorDeregistration: &dereg},
 	}
 
 	txBytes, err := proto.Marshal(deregistrationAtt)
