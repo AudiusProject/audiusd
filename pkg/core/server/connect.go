@@ -698,3 +698,78 @@ func (c *CoreService) GetRewards(context.Context, *connect.Request[v1.GetRewards
 
 	return connect.NewResponse(res), nil
 }
+
+// GetERN implements v1connect.CoreServiceHandler.
+func (c *CoreService) GetERN(ctx context.Context, req *connect.Request[v1.GetERNRequest]) (*connect.Response[v1.GetERNResponse], error) {
+	address := req.Msg.Address
+	if address == "" {
+		return nil, fmt.Errorf("address is required")
+	}
+
+	dbErn, err := c.core.db.GetERN(ctx, address)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, fmt.Errorf("ERN not found for address: %s", address)
+		}
+		return nil, fmt.Errorf("failed to get ERN: %w", err)
+	}
+
+	var ern ddexv1beta1.NewReleaseMessage
+	if err := proto.Unmarshal(dbErn.RawMessage, &ern); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal ERN message: %w", err)
+	}
+
+	return connect.NewResponse(&v1.GetERNResponse{
+		Ern: &ern,
+	}), nil
+}
+
+// GetMEAD implements v1connect.CoreServiceHandler.
+func (c *CoreService) GetMEAD(ctx context.Context, req *connect.Request[v1.GetMEADRequest]) (*connect.Response[v1.GetMEADResponse], error) {
+	address := req.Msg.Address
+	if address == "" {
+		return nil, fmt.Errorf("address is required")
+	}
+
+	dbMead, err := c.core.db.GetMEAD(ctx, address)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, fmt.Errorf("MEAD not found for address: %s", address)
+		}
+		return nil, fmt.Errorf("failed to get MEAD: %w", err)
+	}
+
+	var mead ddexv1beta1.MeadMessage
+	if err := proto.Unmarshal(dbMead.RawMessage, &mead); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal MEAD message: %w", err)
+	}
+
+	return connect.NewResponse(&v1.GetMEADResponse{
+		Mead: &mead,
+	}), nil
+}
+
+// GetPIE implements v1connect.CoreServiceHandler.
+func (c *CoreService) GetPIE(ctx context.Context, req *connect.Request[v1.GetPIERequest]) (*connect.Response[v1.GetPIEResponse], error) {
+	address := req.Msg.Address
+	if address == "" {
+		return nil, fmt.Errorf("address is required")
+	}
+
+	dbPie, err := c.core.db.GetPIE(ctx, address)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, fmt.Errorf("PIE not found for address: %s", address)
+		}
+		return nil, fmt.Errorf("failed to get PIE: %w", err)
+	}
+
+	var pie ddexv1beta1.PieMessage
+	if err := proto.Unmarshal(dbPie.RawMessage, &pie); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal PIE message: %w", err)
+	}
+
+	return connect.NewResponse(&v1.GetPIEResponse{
+		Pie: &pie,
+	}), nil
+}
