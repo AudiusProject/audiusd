@@ -72,6 +72,9 @@ func (c *CoreService) ForwardTransaction(ctx context.Context, req *connect.Reque
 
 	if req.Msg.Transactionv2 != nil {
 		c.core.logger.Debugf("received forwarded v2 tx: %v", req.Msg.Transactionv2)
+		if c.core.config.Environment != "dev" {
+			return nil, connect.NewError(connect.CodePermissionDenied, errors.New("received forwarded v2 tx outside of dev"))
+		}
 	} else {
 		c.core.logger.Debugf("received forwarded tx: %v", req.Msg.Transaction)
 	}
@@ -338,6 +341,11 @@ func (c *CoreService) SendTransaction(ctx context.Context, req *connect.Request[
 	var txhash common.TxHash
 	var err error
 	if req.Msg.Transactionv2 != nil {
+		// add gate just for dev
+		if c.core.config.Environment != "dev" {
+			return nil, connect.NewError(connect.CodeUnimplemented, errors.New("tx v2 in development"))
+		}
+
 		txhash, err = common.ToTxHash(req.Msg.Transactionv2)
 		if err != nil {
 			return nil, fmt.Errorf("could not get tx hash of signed tx: %v", err)
