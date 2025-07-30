@@ -5,15 +5,9 @@ import (
 	"encoding/hex"
 	"strings"
 
-	"golang.org/x/crypto/sha3"
+	gcrypto "github.com/ethereum/go-ethereum/crypto"
 	"google.golang.org/protobuf/proto"
 )
-
-func keccak256(data []byte) []byte {
-	hash := sha3.NewLegacyKeccak256()
-	hash.Write(data)
-	return hash.Sum(nil)
-}
 
 // CreateAddress deterministically generates a content address for a Protobuf message.
 // The returned address is the last 20 bytes of keccak256 hash, Ethereum-style.
@@ -25,7 +19,7 @@ func CreateAddress(msg proto.Message, chainId string, blockHeight int64, salt st
 	}
 
 	// Compute inner content hash (analogous to init_code hash in CREATE2)
-	contentHash := keccak256(msgBytes)
+	contentHash := gcrypto.Keccak256(msgBytes)
 
 	// Derive a deterministic salt from the provided salt and blockHeight (optional)
 	saltInput := []byte(salt + ":" + chainId + ":" + string(rune(blockHeight)))
@@ -37,7 +31,7 @@ func CreateAddress(msg proto.Message, chainId string, blockHeight int64, salt st
 	preimage = append(preimage, contentHash...)
 
 	// Final address hash
-	addressBytes := keccak256(preimage)
+	addressBytes := gcrypto.Keccak256(preimage)
 
 	// Return last 20 bytes as hex-encoded Ethereum-style address
 	return "0x" + hex.EncodeToString(addressBytes[12:])
