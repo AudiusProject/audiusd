@@ -14,6 +14,7 @@ type UptimePageView struct {
 
 type NodeUptime struct {
 	Endpoint        string
+	Owner           string
     Address         string
     IsValidator     bool
     ActiveReport    SlaReport
@@ -315,7 +316,7 @@ templ (c *Pages) UptimePageHTML(props *UptimePageView) {
 templ validatorRowReport(up *NodeUptime) {
     <tr>
         <td class={ getOverallSlaClass(up.ActiveReport) }>
-            <a href={ templ.URL(fmt.Sprintf("%s/console/uptime/%d", up.Endpoint, up.ActiveReport.SlaRollupId)) }>
+            <a href={ templ.URL(fmt.Sprintf("/console/adjudicate/%s", up.Owner)) }>
                 { strippedEndpoint(up.Endpoint) }
             </a>
         </td>
@@ -342,6 +343,6 @@ templ validatorRowReport(up *NodeUptime) {
 
 templ validatorMiniHistory(report SlaReport, endpoint string) {
     <li class={ uptimeBarMini(report) }>
-        <a class="reportLink" href={ templ.URL(fmt.Sprintf("%s/console/uptime/%d", endpoint, report.SlaRollupId)) }></a>
+        <a class="reportLink" href={ templ.URL(fmt.Sprintf("%s/console/uptime/%d", endpoint, report.BlockEnd)) }></a>
     </li>
 }

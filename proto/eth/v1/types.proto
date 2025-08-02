@@ -18,6 +18,14 @@ message GetRegisteredEndpointsResponse {
   repeated ServiceEndpoint endpoints = 1;
 }
 
+message GetRegisteredEndpointsForServiceProviderRequest {
+  string owner = 1;
+}
+
+message GetRegisteredEndpointsForServiceProviderResponse {
+  repeated ServiceEndpoint endpoints = 1;
+}
+
 message GetRegisteredEndpointInfoRequest {
   string endpoint = 1;
 }
@@ -32,6 +40,14 @@ message ServiceEndpoint {
   string endpoint = 3;
   int64 block_number = 4;
   string delegate_wallet = 5;
+}
+
+message GetServiceProviderRequest {
+  string address = 1;
+}
+
+message GetServiceProviderResponse {
+  ServiceProvider serviceProvider = 1;
 }
 
 message GetServiceProvidersRequest {}

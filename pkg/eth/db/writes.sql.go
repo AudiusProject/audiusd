@@ -18,6 +18,15 @@ func (q *Queries) ClearRegisteredEndpoints(ctx context.Context) error {
 	return err
 }
 
+const clearServiceProviders = `-- name: ClearServiceProviders :exec
+delete from eth_service_providers
+`
+
+func (q *Queries) ClearServiceProviders(ctx context.Context) error {
+	_, err := q.db.Exec(ctx, clearServiceProviders)
+	return err
+}
+
 const deleteRegisteredEndpoint = `-- name: DeleteRegisteredEndpoint :exec
 delete from eth_registered_endpoints
 where id = $1 and endpoint = $2 and owner = $3 and service_type = $4
@@ -62,6 +71,70 @@ func (q *Queries) InsertRegisteredEndpoint(ctx context.Context, arg InsertRegist
 		arg.DelegateWallet,
 		arg.Endpoint,
 		arg.Blocknumber,
+	)
+	return err
+}
+
+const insertServiceProvider = `-- name: InsertServiceProvider :exec
+insert into eth_service_providers (address, deployer_stake, deployer_cut, valid_bounds, number_of_endpoints, min_account_stake, max_account_stake)
+values ($1, $2, $3, $4, $5, $6, $7)
+`
+
+type InsertServiceProviderParams struct {
+	Address           string `json:"address"`
+	DeployerStake     int64  `json:"deployer_stake"`
+	DeployerCut       int64  `json:"deployer_cut"`
+	ValidBounds       bool   `json:"valid_bounds"`
+	NumberOfEndpoints int32  `json:"number_of_endpoints"`
+	MinAccountStake   int64  `json:"min_account_stake"`
+	MaxAccountStake   int64  `json:"max_account_stake"`
+}
+
+func (q *Queries) InsertServiceProvider(ctx context.Context, arg InsertServiceProviderParams) error {
+	_, err := q.db.Exec(ctx, insertServiceProvider,
+		arg.Address,
+		arg.DeployerStake,
+		arg.DeployerCut,
+		arg.ValidBounds,
+		arg.NumberOfEndpoints,
+		arg.MinAccountStake,
+		arg.MaxAccountStake,
+	)
+	return err
+}
+
+const upsertServiceProvider = `-- name: UpsertServiceProvider :exec
+insert into eth_service_providers (address, deployer_stake, deployer_cut, valid_bounds, number_of_endpoints, min_account_stake, max_account_stake)
+values ($1, $2, $3, $4, $5, $6, $7)
+on conflict (address) do update
+set 
+    deployer_stake = $2,
+    deployer_cut = $3,
+    valid_bounds = $4,
+    number_of_endpoints = $5,
+    min_account_stake = $6,
+    max_account_stake = $7
+`
+
+type UpsertServiceProviderParams struct {
+	Address           string `json:"address"`
+	DeployerStake     int64  `json:"deployer_stake"`
+	DeployerCut       int64  `json:"deployer_cut"`
+	ValidBounds       bool   `json:"valid_bounds"`
+	NumberOfEndpoints int32  `json:"number_of_endpoints"`
+	MinAccountStake   int64  `json:"min_account_stake"`
+	MaxAccountStake   int64  `json:"max_account_stake"`
+}
+
+func (q *Queries) UpsertServiceProvider(ctx context.Context, arg UpsertServiceProviderParams) error {
+	_, err := q.db.Exec(ctx, upsertServiceProvider,
+		arg.Address,
+		arg.DeployerStake,
+		arg.DeployerCut,
+		arg.ValidBounds,
+		arg.NumberOfEndpoints,
+		arg.MinAccountStake,
+		arg.MaxAccountStake,
 	)
 	return err
 }
