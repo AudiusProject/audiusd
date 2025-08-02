@@ -5,6 +5,15 @@ select * from eth_registered_endpoints;
 select * from eth_registered_endpoints
 where endpoint = $1;
 
+-- name: GetRegisteredEndpointsForServiceProvider :many
+select * from eth_registered_endpoints
+where owner = $1;
+
+
+-- name: GetServiceProvider :one
+select * from eth_service_providers
+where address = $1;
+
 -- name: GetServiceProviders :many
 select * from eth_service_providers;
 

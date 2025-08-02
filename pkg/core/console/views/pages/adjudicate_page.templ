@@ -1,0 +1,100 @@
+package pages
+
+import (
+    "fmt"
+    "time"
+)
+
+type SlaStatus = int
+
+const (
+	SlaDead SlaStatus = iota
+	SlaPartial
+    SlaMet
+)
+
+type AdjudicatePageView struct {
+    ServiceProvider *ServiceProvider
+    StartTime       time.Time
+    EndTime         time.Time
+}
+
+type ServiceProvider struct {
+    Address   string
+    Endpoints []*Endpoint
+}
+
+type Endpoint struct {
+    EthAddress   string
+    CometAddress string
+    Endpoint     string
+    SlaReports   []*AdjudicateSlaReport
+}
+
+type AdjudicateSlaReport struct {
+	TxHash     string
+    Status     SlaStatus
+	BlockStart int64
+	BlockEnd   int64
+	Time       time.Time
+}
+
+func getSlaBarColor(status SlaStatus) string {
+    if status == SlaDead {
+        return slaDead
+    } else if status == SlaPartial {
+        return slaRed
+    } else {
+        return slaGreen
+    }
+}
+
+css slaBar(status SlaStatus) {
+    width: 5px;
+    height: 18px;
+    display: inline-block;
+    margin: 1px;
+    border-radius: 0.5rem;
+    background-color: { templ.SafeCSSProperty(getSlaBarColor(status)) };
+    vertical-align: middle;
+}
+
+templ (c *Pages) AdjudicatePageHTML(props *AdjudicatePageView) {
+	@c.layout.SiteFrame() {
+        @staticStyles()
+        <h1 class="text-xl">
+            SLA Performance Summary for { props.ServiceProvider.Address } From { fmt.Sprintf("%v - %v", props.StartTime, props.EndTime) }
+        </h1>
+
+        <table class="bg-slate-50 p-2 rounded validatorReports text-left m-4">
+            <tr>
+                <th>Endpoint</th>
+                <th>SLA History</th>
+            </tr>
+            for _, ep := range props.ServiceProvider.Endpoints {
+                @endpointRowReport(ep)
+            }
+        </table>
+	}
+}
+
+templ endpointRowReport(endpoint *Endpoint) {
+    <tr>
+        <td>
+            <a href={ templ.URL(fmt.Sprintf("%s/console/uptime", endpoint.Endpoint)) }>
+                { strippedEndpoint(endpoint.Endpoint) }
+            </a>
+        </td>
+        <td class="bg-white">
+            for _, r := range endpoint.SlaReports {
+                @endpointSlaHistory(r)
+            }
+        </td>
+    </tr>
+}
+
+templ endpointSlaHistory(report *AdjudicateSlaReport) {
+    <li class={ slaBar(report.Status) }>
+        <a class="reportLink" href={ templ.URL(fmt.Sprintf("/console/uptime/%d", report.BlockEnd)) }></a>
+    </li>
+}

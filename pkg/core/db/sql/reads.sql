@@ -95,6 +95,18 @@ from recent_rollups rr
     left join sla_node_reports nr on rr.id = nr.sla_rollup_id
 order by rr.time;
 
+-- name: GetRollupReportsForNodeInTimeRange :many
+select 
+    sr.*,
+    nr.*
+from 
+    sla_rollups sr
+left join
+    sla_node_reports nr
+    on nr.sla_rollup_id = sr.id and nr.address = $1
+where sr.time >= $2 and sr.time < $3
+order by sr.time;
+
 -- name: GetSlaRollupWithTimestamp :one
 select *
 from sla_rollups
@@ -104,6 +116,11 @@ where time = $1;
 select *
 from sla_rollups
 where id = $1;
+
+-- name: GetSlaRollupWithBlockEnd :one
+select *
+from sla_rollups
+where block_end = $1;
 
 -- name: GetPreviousSlaRollupFromId :one
 select *

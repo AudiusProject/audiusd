@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/big"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -15,6 +16,7 @@ import (
 	"github.com/AudiusProject/audiusd/pkg/eth/db"
 	"github.com/AudiusProject/audiusd/pkg/pubsub"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -99,22 +101,22 @@ func (eth *EthService) Run(ctx context.Context) error {
 
 	eth.logger.Infof("starting eth service")
 
-	if err := eth.startEthEndpointManager(ctx); err != nil {
+	if err := eth.startEthDataManager(ctx); err != nil {
 		return fmt.Errorf("Error running endpoint manager: %w", err)
 	}
 
 	return nil
 }
 
-func (eth *EthService) startEthEndpointManager(ctx context.Context) error {
-	// query all endpoints at startup
+func (eth *EthService) startEthDataManager(ctx context.Context) error {
+	// hydrate eth data at startup
 	delay := 2 * time.Second
 	ticker := time.NewTicker(delay)
 initial:
 	for {
 		select {
 		case <-ticker.C:
-			if err := eth.refreshEndpoints(ctx); err != nil {
+			if err := eth.hydrateEthData(ctx); err != nil {
 				eth.logger.Errorf("error gathering registered eth endpoints: %v", err)
 				delay *= 2
 				eth.logger.Infof("retrying in %s seconds", delay)
@@ -167,65 +169,38 @@ initial:
 		case err := <-updateSub.Err():
 			return fmt.Errorf("update event subscription error: %v", err)
 		case reg := <-registerChan:
-			st, err := contracts.ServiceTypeToString(reg.ServiceType)
-			if err != nil {
+			if err := eth.addRegisteredEndpoint(ctx, reg.SpID, reg.ServiceType, reg.Endpoint, reg.Owner); err != nil {
 				eth.logger.Error("could not handle registration event: %v", err)
 				continue
 			}
-			node, err := eth.c.GetRegisteredNode(ctx, reg.SpID, reg.ServiceType)
-			if err != nil {
-				eth.logger.Error("could not handle registration event: %v", err)
-				continue
-			}
-			if err := eth.db.InsertRegisteredEndpoint(
-				ctx,
-				db.InsertRegisteredEndpointParams{
-					ID:             int32(reg.SpID.Int64()),
-					ServiceType:    st,
-					Owner:          reg.Owner.Hex(),
-					DelegateWallet: node.DelegateOwnerWallet.Hex(),
-					Endpoint:       reg.Endpoint,
-					Blocknumber:    node.BlockNumber.Int64(),
-				},
-			); err != nil {
-				eth.logger.Error("could not handle registration event: %v", err)
+			if err := eth.updateServiceProvider(ctx, reg.Owner); err != nil {
+				eth.logger.Error("could not update service provider from registration event: %v", err)
 				continue
 			}
 		case dereg := <-deregisterChan:
-			st, err := contracts.ServiceTypeToString(dereg.ServiceType)
-			if err != nil {
+			if err := eth.deleteAndDeregisterEndpoint(ctx, dereg.SpID, dereg.ServiceType, dereg.Endpoint, dereg.Owner); err != nil {
 				eth.logger.Error("could not handle deregistration event: %v", err)
 				continue
 			}
-			ep, err := eth.db.GetRegisteredEndpoint(ctx, dereg.Endpoint)
-			if err != nil {
-				eth.logger.Error("could not fetch endpoint %s from db: %v", dereg.Endpoint, err)
+			if err := eth.updateServiceProvider(ctx, dereg.Owner); err != nil {
+				eth.logger.Error("could not update service provider from deregistration event: %v", err)
 				continue
 			}
-			if err := eth.db.DeleteRegisteredEndpoint(
-				ctx,
-				db.DeleteRegisteredEndpointParams{
-					ID:          int32(dereg.SpID.Int64()),
-					Endpoint:    dereg.Endpoint,
-					Owner:       dereg.Owner.Hex(),
-					ServiceType: st,
-				},
-			); err != nil {
-				eth.logger.Error("could not handle deregistration event: %v", err)
+		case update := <-updateChan:
+			if err := eth.deleteAndDeregisterEndpoint(ctx, update.SpID, update.ServiceType, update.OldEndpoint, update.Owner); err != nil {
+				eth.logger.Error("could not handle deregistration phase of update event: %v", err)
 				continue
 			}
-			eth.deregPubsub.Publish(
-				ctx,
-				DeregistrationTopic,
-				&v1.ServiceEndpoint{
-					Id:             dereg.SpID.Int64(),
-					Owner:          dereg.Owner.Hex(),
-					Endpoint:       dereg.Endpoint,
-					DelegateWallet: ep.DelegateWallet,
-				},
-			)
+			if err := eth.addRegisteredEndpoint(ctx, update.SpID, update.ServiceType, update.NewEndpoint, update.Owner); err != nil {
+				eth.logger.Error("could not handle registration phase of update event: %v", err)
+				continue
+			}
+			if err := eth.updateServiceProvider(ctx, update.Owner); err != nil {
+				eth.logger.Error("could not update service provider from update event: %v", err)
+				continue
+			}
 		case <-ticker.C:
-			if err := eth.refreshEndpoints(ctx); err != nil {
+			if err := eth.hydrateEthData(ctx); err != nil {
 				// crash if periodic updates fail - it may be necessary to reestablish connections
 				return fmt.Errorf("error gathering eth endpoints: %v", err)
 			}
@@ -245,8 +220,91 @@ func (eth *EthService) UnsubscribeFromDeregistrationEvents(ch chan *v1.ServiceEn
 	eth.deregPubsub.Unsubscribe(DeregistrationTopic, ch)
 }
 
-func (eth *EthService) refreshEndpoints(ctx context.Context) error {
-	eth.logger.Info("refreshing registered endpoints")
+func (eth *EthService) deleteAndDeregisterEndpoint(ctx context.Context, spID *big.Int, serviceType [32]byte, endpoint string, owner ethcommon.Address) error {
+	st, err := contracts.ServiceTypeToString(serviceType)
+	if err != nil {
+		return err
+	}
+	ep, err := eth.db.GetRegisteredEndpoint(ctx, endpoint)
+	if err != nil {
+		return fmt.Errorf("could not fetch endpoint %s from db: %v", endpoint, err)
+	}
+	if err := eth.db.DeleteRegisteredEndpoint(
+		ctx,
+		db.DeleteRegisteredEndpointParams{
+			ID:          int32(spID.Int64()),
+			Endpoint:    endpoint,
+			Owner:       owner.Hex(),
+			ServiceType: st,
+		},
+	); err != nil {
+		return err
+	}
+	eth.deregPubsub.Publish(
+		ctx,
+		DeregistrationTopic,
+		&v1.ServiceEndpoint{
+			Id:             spID.Int64(),
+			Owner:          owner.Hex(),
+			Endpoint:       endpoint,
+			DelegateWallet: ep.DelegateWallet,
+		},
+	)
+	return nil
+}
+
+func (eth *EthService) addRegisteredEndpoint(ctx context.Context, spID *big.Int, serviceType [32]byte, endpoint string, owner ethcommon.Address) error {
+	st, err := contracts.ServiceTypeToString(serviceType)
+	if err != nil {
+		return err
+	}
+	node, err := eth.c.GetRegisteredNode(ctx, spID, serviceType)
+	if err != nil {
+		return err
+	}
+	return eth.db.InsertRegisteredEndpoint(
+		ctx,
+		db.InsertRegisteredEndpointParams{
+			ID:             int32(spID.Int64()),
+			ServiceType:    st,
+			Owner:          owner.Hex(),
+			DelegateWallet: node.DelegateOwnerWallet.Hex(),
+			Endpoint:       endpoint,
+			Blocknumber:    node.BlockNumber.Int64(),
+		},
+	)
+}
+
+func (eth *EthService) updateServiceProvider(ctx context.Context, serviceProviderAddress ethcommon.Address) error {
+	serviceProviderFactory, err := eth.c.GetServiceProviderFactoryContract()
+	if err != nil {
+		return fmt.Errorf("failed to bind service provider factory contract while updating service provider: %v", err)
+	}
+	opts := &bind.CallOpts{Context: ctx}
+
+	spDetails, err := serviceProviderFactory.GetServiceProviderDetails(opts, serviceProviderAddress)
+	if err != nil {
+		return fmt.Errorf("failed get service provider details for address %s: %v", serviceProviderAddress.Hex(), err)
+	}
+	if err := eth.db.InsertServiceProvider(
+		ctx,
+		db.InsertServiceProviderParams{
+			Address:           serviceProviderAddress.Hex(),
+			DeployerStake:     spDetails.DeployerStake.Int64(),
+			DeployerCut:       spDetails.DeployerCut.Int64(),
+			ValidBounds:       spDetails.ValidBounds,
+			NumberOfEndpoints: int32(spDetails.NumberOfEndpoints.Int64()),
+			MinAccountStake:   spDetails.MinAccountStake.Int64(),
+			MaxAccountStake:   spDetails.MaxAccountStake.Int64(),
+		},
+	); err != nil {
+		return fmt.Errorf("could not upsert service provider into eth service db: %v", err)
+	}
+	return nil
+}
+
+func (eth *EthService) hydrateEthData(ctx context.Context) error {
+	eth.logger.Info("refreshing eth data")
 
 	nodes, err := eth.c.GetAllRegisteredNodes(ctx)
 	if err != nil {
@@ -264,6 +322,14 @@ func (eth *EthService) refreshEndpoints(ctx context.Context) error {
 	if err := txq.ClearRegisteredEndpoints(ctx); err != nil {
 		return fmt.Errorf("could not clear registered endpoints: %w", err)
 	}
+
+	allServiceProviders := make(map[string]*db.EthServiceProvider, len(nodes))
+	serviceProviderFactory, err := eth.c.GetServiceProviderFactoryContract()
+	if err != nil {
+		return fmt.Errorf("failed to bind service provider factory contract: %v", err)
+	}
+	opts := &bind.CallOpts{Context: ctx}
+
 	for _, node := range nodes {
 		st, err := contracts.ServiceTypeToString(node.Type)
 		if err != nil {
@@ -281,6 +347,40 @@ func (eth *EthService) refreshEndpoints(ctx context.Context) error {
 			},
 		); err != nil {
 			return fmt.Errorf("could not insert registered endpoint into eth indexer db: %w", err)
+		}
+
+		if _, ok := allServiceProviders[node.Owner.Hex()]; !ok {
+			spDetails, err := serviceProviderFactory.GetServiceProviderDetails(opts, node.Owner)
+			if err != nil {
+				return fmt.Errorf("failed get service provider details for address %s: %v", node.Owner.Hex(), err)
+			}
+			allServiceProviders[node.Owner.Hex()] = &db.EthServiceProvider{
+				Address:           node.Owner.Hex(),
+				DeployerStake:     spDetails.DeployerStake.Int64(),
+				DeployerCut:       spDetails.DeployerCut.Int64(),
+				ValidBounds:       spDetails.ValidBounds,
+				NumberOfEndpoints: int32(spDetails.NumberOfEndpoints.Int64()),
+				MinAccountStake:   spDetails.MinAccountStake.Int64(),
+				MaxAccountStake:   spDetails.MaxAccountStake.Int64(),
+			}
+		}
+	}
+
+	eth.logger.Info("***** DELETEME Gonna insert sps", "sps", allServiceProviders)
+	for _, sp := range allServiceProviders {
+		if err := txq.InsertServiceProvider(
+			ctx,
+			db.InsertServiceProviderParams{
+				Address:           sp.Address,
+				DeployerStake:     sp.DeployerStake,
+				DeployerCut:       sp.DeployerCut,
+				ValidBounds:       sp.ValidBounds,
+				NumberOfEndpoints: sp.NumberOfEndpoints,
+				MinAccountStake:   sp.MinAccountStake,
+				MaxAccountStake:   sp.MaxAccountStake,
+			},
+		); err != nil {
+			return fmt.Errorf("could not insert service provider into eth indexer db: %w", err)
 		}
 	}
 

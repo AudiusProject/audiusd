@@ -1588,6 +1588,86 @@ func (q *Queries) GetRollupReportsForId(ctx context.Context, slaRollupID pgtype.
 	return items, nil
 }
 
+const getRollupReportsForNodeInTimeRange = `-- name: GetRollupReportsForNodeInTimeRange :many
+select 
+    sr.id, sr.tx_hash, sr.block_start, sr.block_end, sr.time,
+    nr.id, nr.address, nr.blocks_proposed, nr.sla_rollup_id
+from 
+    sla_rollups sr
+left join
+    sla_node_reports nr
+    on nr.sla_rollup_id = sr.id and nr.address = $1
+where sr.time >= $2 and sr.time < $3
+order by sr.time
+`
+
+type GetRollupReportsForNodeInTimeRangeParams struct {
+	Address string
+	Time    pgtype.Timestamp
+	Time_2  pgtype.Timestamp
+}
+
+type GetRollupReportsForNodeInTimeRangeRow struct {
+	ID             int32
+	TxHash         string
+	BlockStart     int64
+	BlockEnd       int64
+	Time           pgtype.Timestamp
+	ID_2           pgtype.Int4
+	Address        pgtype.Text
+	BlocksProposed pgtype.Int4
+	SlaRollupID    pgtype.Int4
+}
+
+func (q *Queries) GetRollupReportsForNodeInTimeRange(ctx context.Context, arg GetRollupReportsForNodeInTimeRangeParams) ([]GetRollupReportsForNodeInTimeRangeRow, error) {
+	rows, err := q.db.Query(ctx, getRollupReportsForNodeInTimeRange, arg.Address, arg.Time, arg.Time_2)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetRollupReportsForNodeInTimeRangeRow
+	for rows.Next() {
+		var i GetRollupReportsForNodeInTimeRangeRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.TxHash,
+			&i.BlockStart,
+			&i.BlockEnd,
+			&i.Time,
+			&i.ID_2,
+			&i.Address,
+			&i.BlocksProposed,
+			&i.SlaRollupID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getSlaRollupWithBlockEnd = `-- name: GetSlaRollupWithBlockEnd :one
+select id, tx_hash, block_start, block_end, time
+from sla_rollups
+where block_end = $1
+`
+
+func (q *Queries) GetSlaRollupWithBlockEnd(ctx context.Context, blockEnd int64) (SlaRollup, error) {
+	row := q.db.QueryRow(ctx, getSlaRollupWithBlockEnd, blockEnd)
+	var i SlaRollup
+	err := row.Scan(
+		&i.ID,
+		&i.TxHash,
+		&i.BlockStart,
+		&i.BlockEnd,
+		&i.Time,
+	)
+	return i, err
+}
+
 const getSlaRollupWithId = `-- name: GetSlaRollupWithId :one
 select id, tx_hash, block_start, block_end, time
 from sla_rollups

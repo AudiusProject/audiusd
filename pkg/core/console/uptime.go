@@ -21,10 +21,10 @@ const (
 
 func (cs *Console) uptimeFragment(c echo.Context) error {
 	ctx := c.Request().Context()
-	rollupId := c.Param("rollup")
+	rollupBlockEnd := c.Param("rollup")
 
 	// Get active report
-	activeReport, err := cs.getActiveSlaReport(ctx, rollupId)
+	activeReport, err := cs.getActiveSlaReport(ctx, rollupBlockEnd)
 	if err != nil {
 		cs.logger.Error("Falled to get active Proof Of Work report", "error", err)
 		return err
@@ -54,6 +54,7 @@ func (cs *Console) uptimeFragment(c echo.Context) error {
 	for _, v := range validators {
 		validatorMap[v.CometAddress] = &pages.NodeUptime{
 			Endpoint:      v.Endpoint,
+			Owner:         v.EthAddress,
 			Address:       v.CometAddress,
 			IsValidator:   true,
 			ReportHistory: make([]pages.SlaReport, 0, validatorReportHistoryLength),
@@ -157,7 +158,10 @@ func (cs *Console) uptimeFragment(c echo.Context) error {
 		sortedValidators = append(sortedValidators, v)
 	}
 	sort.Slice(sortedValidators, func(i, j int) bool {
-		return sortedValidators[i].Address < sortedValidators[j].Address
+		if sortedValidators[i].ActiveReport.BlocksProposed != sortedValidators[j].ActiveReport.BlocksProposed {
+			return sortedValidators[i].ActiveReport.BlocksProposed < sortedValidators[j].ActiveReport.BlocksProposed
+		}
+		return sortedValidators[i].Endpoint < sortedValidators[j].Endpoint
 	})
 
 	return cs.views.RenderUptimeView(c, &pages.UptimePageView{
@@ -167,17 +171,17 @@ func (cs *Console) uptimeFragment(c echo.Context) error {
 	})
 }
 
-func (cs *Console) getActiveSlaReport(ctx context.Context, rollupId string) (pages.SlaReport, error) {
+func (cs *Console) getActiveSlaReport(ctx context.Context, rollupBlockEnd string) (pages.SlaReport, error) {
 	var report pages.SlaReport
 
 	var rollup db.SlaRollup
 	var err error
-	if rollupId == "" || rollupId == "latest" {
+	if rollupBlockEnd == "" || rollupBlockEnd == "latest" {
 		rollup, err = cs.db.GetLatestSlaRollup(ctx)
-	} else if i, err := strconv.Atoi(rollupId); err == nil {
-		rollup, err = cs.db.GetSlaRollupWithId(ctx, int32(i))
+	} else if i, err := strconv.Atoi(rollupBlockEnd); err == nil {
+		rollup, err = cs.db.GetSlaRollupWithBlockEnd(ctx, int64(i))
 	} else {
-		err = fmt.Errorf("Sla page called with invalid rollup id %s", rollupId)
+		err = fmt.Errorf("Sla page called with invalid rollup block end %s", rollupBlockEnd)
 	}
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		err = fmt.Errorf("Failed to retrieve SlaRollup from db: %v", err)

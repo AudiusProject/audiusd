@@ -38,9 +38,15 @@ const (
 	// EthServiceGetRegisteredEndpointsProcedure is the fully-qualified name of the EthService's
 	// GetRegisteredEndpoints RPC.
 	EthServiceGetRegisteredEndpointsProcedure = "/eth.v1.EthService/GetRegisteredEndpoints"
+	// EthServiceGetRegisteredEndpointsForServiceProviderProcedure is the fully-qualified name of the
+	// EthService's GetRegisteredEndpointsForServiceProvider RPC.
+	EthServiceGetRegisteredEndpointsForServiceProviderProcedure = "/eth.v1.EthService/GetRegisteredEndpointsForServiceProvider"
 	// EthServiceGetRegisteredEndpointInfoProcedure is the fully-qualified name of the EthService's
 	// GetRegisteredEndpointInfo RPC.
 	EthServiceGetRegisteredEndpointInfoProcedure = "/eth.v1.EthService/GetRegisteredEndpointInfo"
+	// EthServiceGetServiceProviderProcedure is the fully-qualified name of the EthService's
+	// GetServiceProvider RPC.
+	EthServiceGetServiceProviderProcedure = "/eth.v1.EthService/GetServiceProvider"
 	// EthServiceGetServiceProvidersProcedure is the fully-qualified name of the EthService's
 	// GetServiceProviders RPC.
 	EthServiceGetServiceProvidersProcedure = "/eth.v1.EthService/GetServiceProviders"
@@ -60,7 +66,9 @@ const (
 type EthServiceClient interface {
 	GetStatus(context.Context, *connect.Request[v1.GetStatusRequest]) (*connect.Response[v1.GetStatusResponse], error)
 	GetRegisteredEndpoints(context.Context, *connect.Request[v1.GetRegisteredEndpointsRequest]) (*connect.Response[v1.GetRegisteredEndpointsResponse], error)
+	GetRegisteredEndpointsForServiceProvider(context.Context, *connect.Request[v1.GetRegisteredEndpointsForServiceProviderRequest]) (*connect.Response[v1.GetRegisteredEndpointsForServiceProviderResponse], error)
 	GetRegisteredEndpointInfo(context.Context, *connect.Request[v1.GetRegisteredEndpointInfoRequest]) (*connect.Response[v1.GetRegisteredEndpointInfoResponse], error)
+	GetServiceProvider(context.Context, *connect.Request[v1.GetServiceProviderRequest]) (*connect.Response[v1.GetServiceProviderResponse], error)
 	GetServiceProviders(context.Context, *connect.Request[v1.GetServiceProvidersRequest]) (*connect.Response[v1.GetServiceProvidersResponse], error)
 	GetLatestFundingRound(context.Context, *connect.Request[v1.GetLatestFundingRoundRequest]) (*connect.Response[v1.GetLatestFundingRoundResponse], error)
 	IsDuplicateDelegateWallet(context.Context, *connect.Request[v1.IsDuplicateDelegateWalletRequest]) (*connect.Response[v1.IsDuplicateDelegateWalletResponse], error)
@@ -91,10 +99,22 @@ func NewEthServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			connect.WithSchema(ethServiceMethods.ByName("GetRegisteredEndpoints")),
 			connect.WithClientOptions(opts...),
 		),
+		getRegisteredEndpointsForServiceProvider: connect.NewClient[v1.GetRegisteredEndpointsForServiceProviderRequest, v1.GetRegisteredEndpointsForServiceProviderResponse](
+			httpClient,
+			baseURL+EthServiceGetRegisteredEndpointsForServiceProviderProcedure,
+			connect.WithSchema(ethServiceMethods.ByName("GetRegisteredEndpointsForServiceProvider")),
+			connect.WithClientOptions(opts...),
+		),
 		getRegisteredEndpointInfo: connect.NewClient[v1.GetRegisteredEndpointInfoRequest, v1.GetRegisteredEndpointInfoResponse](
 			httpClient,
 			baseURL+EthServiceGetRegisteredEndpointInfoProcedure,
 			connect.WithSchema(ethServiceMethods.ByName("GetRegisteredEndpointInfo")),
+			connect.WithClientOptions(opts...),
+		),
+		getServiceProvider: connect.NewClient[v1.GetServiceProviderRequest, v1.GetServiceProviderResponse](
+			httpClient,
+			baseURL+EthServiceGetServiceProviderProcedure,
+			connect.WithSchema(ethServiceMethods.ByName("GetServiceProvider")),
 			connect.WithClientOptions(opts...),
 		),
 		getServiceProviders: connect.NewClient[v1.GetServiceProvidersRequest, v1.GetServiceProvidersResponse](
@@ -132,14 +152,16 @@ func NewEthServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 
 // ethServiceClient implements EthServiceClient.
 type ethServiceClient struct {
-	getStatus                 *connect.Client[v1.GetStatusRequest, v1.GetStatusResponse]
-	getRegisteredEndpoints    *connect.Client[v1.GetRegisteredEndpointsRequest, v1.GetRegisteredEndpointsResponse]
-	getRegisteredEndpointInfo *connect.Client[v1.GetRegisteredEndpointInfoRequest, v1.GetRegisteredEndpointInfoResponse]
-	getServiceProviders       *connect.Client[v1.GetServiceProvidersRequest, v1.GetServiceProvidersResponse]
-	getLatestFundingRound     *connect.Client[v1.GetLatestFundingRoundRequest, v1.GetLatestFundingRoundResponse]
-	isDuplicateDelegateWallet *connect.Client[v1.IsDuplicateDelegateWalletRequest, v1.IsDuplicateDelegateWalletResponse]
-	register                  *connect.Client[v1.RegisterRequest, v1.RegisterResponse]
-	subscribe                 *connect.Client[v1.SubscriptionRequest, v1.SubscriptionResponse]
+	getStatus                                *connect.Client[v1.GetStatusRequest, v1.GetStatusResponse]
+	getRegisteredEndpoints                   *connect.Client[v1.GetRegisteredEndpointsRequest, v1.GetRegisteredEndpointsResponse]
+	getRegisteredEndpointsForServiceProvider *connect.Client[v1.GetRegisteredEndpointsForServiceProviderRequest, v1.GetRegisteredEndpointsForServiceProviderResponse]
+	getRegisteredEndpointInfo                *connect.Client[v1.GetRegisteredEndpointInfoRequest, v1.GetRegisteredEndpointInfoResponse]
+	getServiceProvider                       *connect.Client[v1.GetServiceProviderRequest, v1.GetServiceProviderResponse]
+	getServiceProviders                      *connect.Client[v1.GetServiceProvidersRequest, v1.GetServiceProvidersResponse]
+	getLatestFundingRound                    *connect.Client[v1.GetLatestFundingRoundRequest, v1.GetLatestFundingRoundResponse]
+	isDuplicateDelegateWallet                *connect.Client[v1.IsDuplicateDelegateWalletRequest, v1.IsDuplicateDelegateWalletResponse]
+	register                                 *connect.Client[v1.RegisterRequest, v1.RegisterResponse]
+	subscribe                                *connect.Client[v1.SubscriptionRequest, v1.SubscriptionResponse]
 }
 
 // GetStatus calls eth.v1.EthService.GetStatus.
@@ -152,9 +174,20 @@ func (c *ethServiceClient) GetRegisteredEndpoints(ctx context.Context, req *conn
 	return c.getRegisteredEndpoints.CallUnary(ctx, req)
 }
 
+// GetRegisteredEndpointsForServiceProvider calls
+// eth.v1.EthService.GetRegisteredEndpointsForServiceProvider.
+func (c *ethServiceClient) GetRegisteredEndpointsForServiceProvider(ctx context.Context, req *connect.Request[v1.GetRegisteredEndpointsForServiceProviderRequest]) (*connect.Response[v1.GetRegisteredEndpointsForServiceProviderResponse], error) {
+	return c.getRegisteredEndpointsForServiceProvider.CallUnary(ctx, req)
+}
+
 // GetRegisteredEndpointInfo calls eth.v1.EthService.GetRegisteredEndpointInfo.
 func (c *ethServiceClient) GetRegisteredEndpointInfo(ctx context.Context, req *connect.Request[v1.GetRegisteredEndpointInfoRequest]) (*connect.Response[v1.GetRegisteredEndpointInfoResponse], error) {
 	return c.getRegisteredEndpointInfo.CallUnary(ctx, req)
+}
+
+// GetServiceProvider calls eth.v1.EthService.GetServiceProvider.
+func (c *ethServiceClient) GetServiceProvider(ctx context.Context, req *connect.Request[v1.GetServiceProviderRequest]) (*connect.Response[v1.GetServiceProviderResponse], error) {
+	return c.getServiceProvider.CallUnary(ctx, req)
 }
 
 // GetServiceProviders calls eth.v1.EthService.GetServiceProviders.
@@ -186,7 +219,9 @@ func (c *ethServiceClient) Subscribe(ctx context.Context, req *connect.Request[v
 type EthServiceHandler interface {
 	GetStatus(context.Context, *connect.Request[v1.GetStatusRequest]) (*connect.Response[v1.GetStatusResponse], error)
 	GetRegisteredEndpoints(context.Context, *connect.Request[v1.GetRegisteredEndpointsRequest]) (*connect.Response[v1.GetRegisteredEndpointsResponse], error)
+	GetRegisteredEndpointsForServiceProvider(context.Context, *connect.Request[v1.GetRegisteredEndpointsForServiceProviderRequest]) (*connect.Response[v1.GetRegisteredEndpointsForServiceProviderResponse], error)
 	GetRegisteredEndpointInfo(context.Context, *connect.Request[v1.GetRegisteredEndpointInfoRequest]) (*connect.Response[v1.GetRegisteredEndpointInfoResponse], error)
+	GetServiceProvider(context.Context, *connect.Request[v1.GetServiceProviderRequest]) (*connect.Response[v1.GetServiceProviderResponse], error)
 	GetServiceProviders(context.Context, *connect.Request[v1.GetServiceProvidersRequest]) (*connect.Response[v1.GetServiceProvidersResponse], error)
 	GetLatestFundingRound(context.Context, *connect.Request[v1.GetLatestFundingRoundRequest]) (*connect.Response[v1.GetLatestFundingRoundResponse], error)
 	IsDuplicateDelegateWallet(context.Context, *connect.Request[v1.IsDuplicateDelegateWalletRequest]) (*connect.Response[v1.IsDuplicateDelegateWalletResponse], error)
@@ -213,10 +248,22 @@ func NewEthServiceHandler(svc EthServiceHandler, opts ...connect.HandlerOption) 
 		connect.WithSchema(ethServiceMethods.ByName("GetRegisteredEndpoints")),
 		connect.WithHandlerOptions(opts...),
 	)
+	ethServiceGetRegisteredEndpointsForServiceProviderHandler := connect.NewUnaryHandler(
+		EthServiceGetRegisteredEndpointsForServiceProviderProcedure,
+		svc.GetRegisteredEndpointsForServiceProvider,
+		connect.WithSchema(ethServiceMethods.ByName("GetRegisteredEndpointsForServiceProvider")),
+		connect.WithHandlerOptions(opts...),
+	)
 	ethServiceGetRegisteredEndpointInfoHandler := connect.NewUnaryHandler(
 		EthServiceGetRegisteredEndpointInfoProcedure,
 		svc.GetRegisteredEndpointInfo,
 		connect.WithSchema(ethServiceMethods.ByName("GetRegisteredEndpointInfo")),
+		connect.WithHandlerOptions(opts...),
+	)
+	ethServiceGetServiceProviderHandler := connect.NewUnaryHandler(
+		EthServiceGetServiceProviderProcedure,
+		svc.GetServiceProvider,
+		connect.WithSchema(ethServiceMethods.ByName("GetServiceProvider")),
 		connect.WithHandlerOptions(opts...),
 	)
 	ethServiceGetServiceProvidersHandler := connect.NewUnaryHandler(
@@ -255,8 +302,12 @@ func NewEthServiceHandler(svc EthServiceHandler, opts ...connect.HandlerOption) 
 			ethServiceGetStatusHandler.ServeHTTP(w, r)
 		case EthServiceGetRegisteredEndpointsProcedure:
 			ethServiceGetRegisteredEndpointsHandler.ServeHTTP(w, r)
+		case EthServiceGetRegisteredEndpointsForServiceProviderProcedure:
+			ethServiceGetRegisteredEndpointsForServiceProviderHandler.ServeHTTP(w, r)
 		case EthServiceGetRegisteredEndpointInfoProcedure:
 			ethServiceGetRegisteredEndpointInfoHandler.ServeHTTP(w, r)
+		case EthServiceGetServiceProviderProcedure:
+			ethServiceGetServiceProviderHandler.ServeHTTP(w, r)
 		case EthServiceGetServiceProvidersProcedure:
 			ethServiceGetServiceProvidersHandler.ServeHTTP(w, r)
 		case EthServiceGetLatestFundingRoundProcedure:
@@ -284,8 +335,16 @@ func (UnimplementedEthServiceHandler) GetRegisteredEndpoints(context.Context, *c
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("eth.v1.EthService.GetRegisteredEndpoints is not implemented"))
 }
 
+func (UnimplementedEthServiceHandler) GetRegisteredEndpointsForServiceProvider(context.Context, *connect.Request[v1.GetRegisteredEndpointsForServiceProviderRequest]) (*connect.Response[v1.GetRegisteredEndpointsForServiceProviderResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("eth.v1.EthService.GetRegisteredEndpointsForServiceProvider is not implemented"))
+}
+
 func (UnimplementedEthServiceHandler) GetRegisteredEndpointInfo(context.Context, *connect.Request[v1.GetRegisteredEndpointInfoRequest]) (*connect.Response[v1.GetRegisteredEndpointInfoResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("eth.v1.EthService.GetRegisteredEndpointInfo is not implemented"))
+}
+
+func (UnimplementedEthServiceHandler) GetServiceProvider(context.Context, *connect.Request[v1.GetServiceProviderRequest]) (*connect.Response[v1.GetServiceProviderResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("eth.v1.EthService.GetServiceProvider is not implemented"))
 }
 
 func (UnimplementedEthServiceHandler) GetServiceProviders(context.Context, *connect.Request[v1.GetServiceProvidersRequest]) (*connect.Response[v1.GetServiceProvidersResponse], error) {
