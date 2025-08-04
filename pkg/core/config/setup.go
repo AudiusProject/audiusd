@@ -244,37 +244,56 @@ func moduloPersistentPeers(nodeAddress string, persistentPeers string, groupSize
 }
 
 func stateSyncLatestBlock(logger *common.Logger, rpcServers []string) (trustHeight int64, trustHash string, err error) {
+	const trustBuffer = 10 // blocks to step back from snapshot height
+	var snapshotHeight int64
+
+	// Step 1: Find latest snapshot height from any node
 	for _, rpcServer := range rpcServers {
 		audsRpc := strings.TrimSuffix(rpcServer, "/core/crpc")
 		auds := sdk.NewAudiusdSDK(audsRpc)
-		snapshots, err := auds.Core.GetStoredSnapshots(context.Background(), connect.NewRequest(&v1.GetStoredSnapshotsRequest{}))
-		if err != nil {
-			logger.Error("error getting stored snapshots", "rpcServer", rpcServer, "err", err)
+
+		snapshotsResp, snapErr := auds.Core.GetStoredSnapshots(context.Background(),
+			connect.NewRequest(&v1.GetStoredSnapshotsRequest{}))
+		if snapErr != nil {
+			logger.Warn("error getting stored snapshots", "rpcServer", rpcServer, "err", snapErr)
+			continue
+		}
+		if len(snapshotsResp.Msg.Snapshots) == 0 {
 			continue
 		}
 
-		// get last snapshot in list, this is the latest snapshot
-		lastSnapshot := snapshots.Msg.Snapshots[len(snapshots.Msg.Snapshots)-1]
-		trustBuffer := 10 // number of blocks to step back
-		safeHeight := lastSnapshot.Height - int64(trustBuffer)
+		lastSnapshot := snapshotsResp.Msg.Snapshots[len(snapshotsResp.Msg.Snapshots)-1]
+		if lastSnapshot.Height > snapshotHeight {
+			snapshotHeight = lastSnapshot.Height
+		}
+	}
 
-		client, err := http.New(rpcServer)
-		if err != nil {
-			logger.Error("error creating rpc client", "rpcServer", rpcServer, "err", err)
+	if snapshotHeight == 0 {
+		return 0, "", fmt.Errorf("no snapshots found on any node")
+	}
+
+	trustHeight = snapshotHeight - int64(trustBuffer)
+	if trustHeight <= 0 {
+		return 0, "", fmt.Errorf("invalid trust height: %d", trustHeight)
+	}
+
+	// Step 2: Find a node that has the trusted block
+	for _, rpcServer := range rpcServers {
+		client, cliErr := http.New(rpcServer)
+		if cliErr != nil {
+			logger.Warn("error creating rpc client", "rpcServer", rpcServer, "err", cliErr)
 			continue
 		}
 
-		block, err := client.Block(context.Background(), &safeHeight)
-		if err != nil {
-			logger.Error("error getting latest block", "rpcServer", rpcServer, "err", err)
+		block, blkErr := client.Block(context.Background(), &trustHeight)
+		if blkErr != nil {
+			logger.Warn("error getting block at trust height", "rpcServer", rpcServer, "height", trustHeight, "err", blkErr)
 			continue
 		}
 
-		trustHeight = block.Block.Height
 		trustHash = block.Block.Hash().String()
-
 		return trustHeight, trustHash, nil
 	}
 
-	return 0, "", fmt.Errorf("no usable block found for state sync")
+	return 0, "", fmt.Errorf("no node had block at trust height %d", trustHeight)
 }
