@@ -30,19 +30,24 @@ import (
 	"connectrpc.com/connect"
 	"github.com/AudiusProject/audiusd/pkg/common"
 	"github.com/AudiusProject/audiusd/pkg/core"
+	"github.com/AudiusProject/audiusd/pkg/core/config"
 	"github.com/AudiusProject/audiusd/pkg/core/console"
 	coreServer "github.com/AudiusProject/audiusd/pkg/core/server"
+	"github.com/AudiusProject/audiusd/pkg/eth"
 	"github.com/AudiusProject/audiusd/pkg/etl"
+	"github.com/AudiusProject/audiusd/pkg/lifecycle"
 	"github.com/AudiusProject/audiusd/pkg/mediorum"
 	"github.com/AudiusProject/audiusd/pkg/mediorum/server"
 	"github.com/AudiusProject/audiusd/pkg/pos"
 	"github.com/AudiusProject/audiusd/pkg/system"
 	"github.com/AudiusProject/audiusd/pkg/uptime"
+	"github.com/AudiusProject/audiusd/pkg/version"
 	"go.akshayshah.org/connectproto"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 
 	corev1connect "github.com/AudiusProject/audiusd/pkg/api/core/v1/v1connect"
+	ethv1connect "github.com/AudiusProject/audiusd/pkg/api/eth/v1/v1connect"
 	etlv1connect "github.com/AudiusProject/audiusd/pkg/api/etl/v1/v1connect"
 	storagev1connect "github.com/AudiusProject/audiusd/pkg/api/storage/v1/v1connect"
 	systemv1connect "github.com/AudiusProject/audiusd/pkg/api/system/v1/v1connect"
@@ -94,7 +99,11 @@ func main() {
 	hostUrl := setupHostUrl()
 	setupDelegateKeyPair(logger)
 	posChannel := make(chan pos.PoSRequest)
+	dbUrl := config.GetDbURL()
 
+	rootLifecycle := lifecycle.NewLifecycle(ctx, "root lifecycle", logger)
+
+	ethService := eth.NewEthService(dbUrl, config.GetEthRPC(), config.GetRegistryAddress(), logger, config.GetRuntimeEnvironment())
 	coreService := coreServer.NewCoreService()
 	storageService := server.NewStorageService()
 	etlService := etl.NewETLService(coreService, logger)
@@ -108,18 +117,18 @@ func main() {
 		{
 			"audiusd-echo-server",
 			func() error {
-				return startEchoProxy(hostUrl, logger, coreService, storageService, etlService, systemService)
+				return startEchoProxy(hostUrl, logger, coreService, storageService, etlService, systemService, ethService)
 			},
 			true,
 		},
 		{
 			"core",
-			func() error { return core.Run(ctx, logger, posChannel, coreService) },
+			func() error { return core.Run(ctx, rootLifecycle, logger, posChannel, coreService, ethService) },
 			true,
 		},
 		{
 			"mediorum",
-			func() error { return mediorum.Run(ctx, logger, posChannel, storageService, coreService) },
+			func() error { return mediorum.Run(rootLifecycle, posChannel, storageService, coreService) },
 			isStorageEnabled(),
 		},
 		{
@@ -130,11 +139,16 @@ func main() {
 		{
 			"etl",
 			func() error {
-				etlService.SetDBURL(os.Getenv("dbUrl"))
+				etlService.SetDBURL(dbUrl)
 				etlService.SetRunDownMigrations(os.Getenv("AUDIUSD_ETL_RUN_DOWN_MIGRATIONS") == "true")
 				return etlService.Run()
 			},
 			os.Getenv("AUDIUSD_ETL_ENABLED") == "true",
+		},
+		{
+			"eth",
+			func() error { return ethService.Run(ctx) },
+			true,
 		},
 	}
 
@@ -357,7 +371,7 @@ func connectGET[Req any, Res any](
 	}
 }
 
-func startEchoProxy(hostUrl *url.URL, logger *common.Logger, coreService *coreServer.CoreService, storageService *server.StorageService, etlService *etl.ETLService, systemService *system.SystemService) error {
+func startEchoProxy(hostUrl *url.URL, logger *common.Logger, coreService *coreServer.CoreService, storageService *server.StorageService, etlService *etl.ETLService, systemService *system.SystemService, ethService *eth.EthService) error {
 	// console requires etl to be enabled
 	consoleEnabled := os.Getenv("AUDIUSD_CONSOLE_ENABLED") == "true" && os.Getenv("AUDIUSD_ETL_ENABLED") == "true"
 	network := os.Getenv("NETWORK")
@@ -379,12 +393,17 @@ func startEchoProxy(hostUrl *url.URL, logger *common.Logger, coreService *coreSe
 	systemPath, systemHandler := systemv1connect.NewSystemServiceHandler(systemService, connectJSONOpt)
 	rpcGroup.POST(systemPath+"*", echo.WrapHandler(systemHandler))
 
+	ethPath, ethHandler := ethv1connect.NewEthServiceHandler(ethService, connectJSONOpt)
+	rpcGroup.POST(ethPath+"*", echo.WrapHandler(ethHandler))
+
 	// register GET routes
 	rpcGroup.GET(corev1connect.CoreServiceGetStatusProcedure, connectGET(coreService.GetStatus))
 	rpcGroup.GET(corev1connect.CoreServiceGetNodeInfoProcedure, connectGET(coreService.GetNodeInfo))
 	rpcGroup.GET(corev1connect.CoreServiceGetBlockProcedure, connectGET(coreService.GetBlock))
 	rpcGroup.GET(corev1connect.CoreServiceGetTransactionProcedure, connectGET(coreService.GetTransaction))
 	rpcGroup.GET(corev1connect.CoreServiceGetStoredSnapshotsProcedure, connectGET(coreService.GetStoredSnapshots))
+	rpcGroup.GET(corev1connect.CoreServiceGetRewardAttestationProcedure, connectGET(coreService.GetRewardAttestation))
+	rpcGroup.GET(corev1connect.CoreServiceGetRewardsProcedure, connectGET(coreService.GetRewards))
 
 	if consoleEnabled {
 		// start indexing immediately
@@ -400,6 +419,7 @@ func startEchoProxy(hostUrl *url.URL, logger *common.Logger, coreService *coreSe
 		grpcServerGroup.Any(storagePath+"*", echo.WrapHandler(storageHandler))
 		grpcServerGroup.Any(etlPath+"*", echo.WrapHandler(etlHandler))
 		grpcServerGroup.Any(systemPath+"*", echo.WrapHandler(systemHandler))
+		grpcServerGroup.Any(ethPath+"*", echo.WrapHandler(ethHandler))
 
 		// Create h2c-compatible server
 		h2cServer := &http.Server{
@@ -452,7 +472,7 @@ func startEchoProxy(hostUrl *url.URL, logger *common.Logger, coreService *coreSe
 			Latitude  float64 `json:"latitude"`
 			Longitude float64 `json:"longitude"`
 		}{
-			Version: mediorum.GetVersionJson().Version,
+			Version: version.Version.Version,
 		}
 
 		resp, err := http.Get("https://ipinfo.io")
@@ -475,7 +495,7 @@ func startEchoProxy(hostUrl *url.URL, logger *common.Logger, coreService *coreSe
 		return c.JSON(http.StatusOK, map[string]interface{}{
 			"data": response,
 			"version": map[string]string{
-				"version": mediorum.GetVersionJson().Version,
+				"version": version.Version.Version,
 			},
 		})
 	}
@@ -716,7 +736,7 @@ func getHealthCheckResponse(hostUrl *url.URL) map[string]interface{} {
 		"uptime":    time.Since(startTime).String(),
 		// TODO: legacy version data for uptime health check
 		"data": map[string]interface{}{
-			"version": mediorum.GetVersionJson().Version,
+			"version": version.Version.Version,
 		},
 	}
 

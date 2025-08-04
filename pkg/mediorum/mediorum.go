@@ -1,10 +1,8 @@
 package mediorum
 
 import (
-	"context"
-	"encoding/json"
+	"errors"
 	"fmt"
-	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -12,45 +10,31 @@ import (
 
 	_ "embed"
 
-	"github.com/AudiusProject/audiusd/pkg/common"
 	coreServer "github.com/AudiusProject/audiusd/pkg/core/server"
 	"github.com/AudiusProject/audiusd/pkg/httputil"
+	"github.com/AudiusProject/audiusd/pkg/lifecycle"
 	"github.com/AudiusProject/audiusd/pkg/mediorum/ethcontracts"
 	"github.com/AudiusProject/audiusd/pkg/mediorum/server"
 	"github.com/AudiusProject/audiusd/pkg/pos"
 	"github.com/AudiusProject/audiusd/pkg/registrar"
-	"golang.org/x/exp/slices"
+	"github.com/AudiusProject/audiusd/pkg/version"
 	"golang.org/x/exp/slog"
 	"golang.org/x/sync/errgroup"
 )
-
-//go:embed .version.json
-var versionJSON []byte
-
-func GetVersionJson() server.VersionJson {
-	var versionJson server.VersionJson
-
-	if err := json.Unmarshal(versionJSON, &versionJson); err != nil {
-		log.Fatalf("unable to parse .version.json file: %v", err)
-	}
-
-	return versionJson
-}
 
 func init() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{AddSource: true}))
 	slog.SetDefault(logger)
 }
 
-func Run(ctx context.Context, logger *common.Logger, posChannel chan pos.PoSRequest, storageService *server.StorageService, core *coreServer.CoreService) error {
+func Run(lc *lifecycle.Lifecycle, posChannel chan pos.PoSRequest, storageService *server.StorageService, core *coreServer.CoreService) error {
 	mediorumEnv := os.Getenv("MEDIORUM_ENV")
 	slog.Info("starting", "MEDIORUM_ENV", mediorumEnv)
 
-	startMediorum(mediorumEnv, posChannel, storageService, core)
-	return nil
+	return runMediorum(lc, mediorumEnv, posChannel, storageService, core)
 }
 
-func startMediorum(mediorumEnv string, posChannel chan pos.PoSRequest, storageService *server.StorageService, core *coreServer.CoreService) {
+func runMediorum(lc *lifecycle.Lifecycle, mediorumEnv string, posChannel chan pos.PoSRequest, storageService *server.StorageService, core *coreServer.CoreService) error {
 	logger := slog.With("creatorNodeEndpoint", os.Getenv("creatorNodeEndpoint"))
 
 	isProd := mediorumEnv == "prod"
@@ -68,59 +52,35 @@ func startMediorum(mediorumEnv string, posChannel chan pos.PoSRequest, storageSe
 		g = registrar.NewMultiDev()
 	}
 
-	var peers, signers []server.Peer
+	var peers, signers []registrar.Peer
 	var err error
 
 	eg := new(errgroup.Group)
 	eg.Go(func() error {
 		peers, err = g.Peers()
-		if !isDev {
-			return err
-		}
-
-		for {
-			if len(peers) >= 3 {
-				return nil
-			}
-
-			time.Sleep(3 * time.Second)
-
-			peers, err = g.Peers()
-			if err != nil {
-				return err
-			}
-		}
+		return err
 	})
 	eg.Go(func() error {
 		signers, err = g.Signers()
-		if !isDev {
-			return err
-		}
-
-		for {
-			if len(peers) >= 1 {
-				return nil
-			}
-
-			time.Sleep(3 * time.Second)
-
-			signers, err = g.Signers()
-			if err != nil {
-				return err
-			}
-		}
+		return err
 	})
 	if err := eg.Wait(); err != nil {
 		panic(err)
 	}
 	logger.Info("fetched registered nodes", "peers", len(peers), "signers", len(signers))
 
-	creatorNodeEndpoint := mustGetenv("creatorNodeEndpoint")
-	privateKeyHex := mustGetenv("delegatePrivateKey")
+	creatorNodeEndpoint := os.Getenv("creatorNodeEndpoint")
+	if creatorNodeEndpoint == "" {
+		return errors.New("missing required env variable 'creatorNodeEndpoint'")
+	}
+	privateKeyHex := os.Getenv("delegatePrivateKey")
+	if privateKeyHex == "" {
+		return errors.New("missing required env variable 'delegatePrivateKey'")
+	}
 
 	privateKey, err := ethcontracts.ParsePrivateKeyHex(privateKeyHex)
 	if err != nil {
-		log.Fatal("invalid private key", err)
+		return fmt.Errorf("invalid private key: %v", err)
 	}
 
 	// compute wallet address
@@ -160,7 +120,7 @@ func startMediorum(mediorumEnv string, posChannel chan pos.PoSRequest, storageSe
 	}
 
 	config := server.MediorumConfig{
-		Self: server.Peer{
+		Self: registrar.Peer{
 			Host:   httputil.RemoveTrailingSlash(strings.ToLower(creatorNodeEndpoint)),
 			Wallet: strings.ToLower(walletAddress),
 		},
@@ -180,33 +140,18 @@ func startMediorum(mediorumEnv string, posChannel chan pos.PoSRequest, storageSe
 		AudiusDockerCompose:       os.Getenv("AUDIUS_DOCKER_COMPOSE_GIT_SHA"),
 		AutoUpgradeEnabled:        os.Getenv("autoUpgradeEnabled") == "true",
 		StoreAll:                  os.Getenv("STORE_ALL") == "true",
-		VersionJson:               GetVersionJson(),
+		VersionJson:               version.Version,
 		DiscoveryListensEndpoints: discoveryListensEndpoints(),
 		LogLevel:                  getenvWithDefault("AUDIUSD_LOG_LEVEL", "info"),
 	}
 
-	ss, err := server.New(config, posChannel, core)
+	ss, err := server.New(lc, config, g, posChannel, core)
 	if err != nil {
-		logger.Error("failed to create server", "err", err)
-		log.Fatal(err)
+		return fmt.Errorf("failed to create server: %v", err)
 	}
 
 	storageService.SetMediorum(ss)
-
-	go refreshPeersAndSigners(ss, g)
-
-	ss.MustStart()
-}
-
-func mustGetenv(key string) string {
-	val := os.Getenv(key)
-	if val == "" {
-		log.Println("missing required env variable: ", key, " sleeping ...")
-		// if config is incorrect, sleep a bit to prevent container from restarting constantly
-		time.Sleep(time.Hour)
-		log.Fatal("missing required env variable: ", key)
-	}
-	return val
+	return ss.MustStart()
 }
 
 func getenvWithDefault(key string, fallback string) string {
@@ -215,51 +160,6 @@ func getenvWithDefault(key string, fallback string) string {
 		return fallback
 	}
 	return val
-}
-
-// fetch registered nodes from chain / The Graph every 30 minutes and restart if they've changed
-func refreshPeersAndSigners(ss *server.MediorumServer, g registrar.PeerProvider) {
-	logger := slog.With("creatorNodeEndpoint", os.Getenv("creatorNodeEndpoint"))
-	interval := 30 * time.Minute
-	if os.Getenv("MEDIORUM_ENV") == "dev" {
-		interval = 10 * time.Second
-	}
-	ticker := time.NewTicker(interval)
-	for range ticker.C {
-		var peers, signers []server.Peer
-		var err error
-
-		eg := new(errgroup.Group)
-		eg.Go(func() error {
-			peers, err = g.Peers()
-			return err
-		})
-		eg.Go(func() error {
-			signers, err = g.Signers()
-			return err
-		})
-		if err := eg.Wait(); err != nil {
-			logger.Error("failed to fetch registered nodes", "err", err)
-			continue
-		}
-
-		var combined, configCombined []string
-
-		for _, peer := range append(peers, signers...) {
-			combined = append(combined, fmt.Sprintf("%s,%s", httputil.RemoveTrailingSlash(strings.ToLower(peer.Host)), strings.ToLower(peer.Wallet)))
-		}
-
-		for _, configPeer := range append(ss.Config.Peers, ss.Config.Signers...) {
-			configCombined = append(configCombined, fmt.Sprintf("%s,%s", httputil.RemoveTrailingSlash(strings.ToLower(configPeer.Host)), strings.ToLower(configPeer.Wallet)))
-		}
-
-		slices.Sort(combined)
-		slices.Sort(configCombined)
-		if !slices.Equal(combined, configCombined) {
-			logger.Info("peers or signers changed on chain. restarting...", "peers", len(peers), "signers", len(signers), "combined", combined, "configCombined", configCombined)
-			os.Exit(0) // restarting from inside the app is too error-prone so we'll let docker compose autoheal handle it
-		}
-	}
 }
 
 func discoveryListensEndpoints() []string {

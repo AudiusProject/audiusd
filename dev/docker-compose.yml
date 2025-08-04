@@ -22,7 +22,7 @@ services:
       - 443:443
     profiles:
       - audiusd-dev
-      - core-tests
+      - integration-tests
 
   eth-ganache:
     image: audius/eth-ganache:latest
@@ -33,9 +33,11 @@ services:
       - ./dev/scripts/eth-ganache.sh:/tmp/scripts/eth-ganache.sh
     deploy:
       mode: global
+    ports:
+      - 8545:8545
     profiles:
       - audiusd-dev
-      - core-tests
+      - integration-tests
 
   audiusd-1:
     image: ${AUDIUSD_IMAGE:-audius/audiusd:dev}
@@ -60,7 +62,7 @@ services:
       - ./go.sum:/app/go.sum
     profiles:
       - audiusd-dev
-      - core-tests
+      - integration-tests
 
   audiusd-2:
     image: ${AUDIUSD_IMAGE:-audius/audiusd:dev}
@@ -85,7 +87,7 @@ services:
       - ./go.sum:/app/go.sum
     profiles:
       - audiusd-dev
-      - core-tests
+      - integration-tests
 
   audiusd-3:
     image: ${AUDIUSD_IMAGE:-audius/audiusd:dev}
@@ -110,7 +112,7 @@ services:
       - ./go.sum:/app/go.sum
     profiles:
       - audiusd-dev
-      - core-tests
+      - integration-tests
 
   audiusd-4:
     image: ${AUDIUSD_IMAGE:-audius/audiusd:dev}
@@ -135,7 +137,7 @@ services:
       - ./go.sum:/app/go.sum
     profiles:
       - audiusd-dev
-      - core-tests
+      - integration-tests
 
   audiusd-console:
     image: ${AUDIUSD_IMAGE:-audius/audiusd:dev}
@@ -194,9 +196,9 @@ services:
     profiles:
       - audiusd-dev
 
-  test-core:
-    image: ${AUDIUSD_TEST_IMAGE:-audius/audiusd:test}
-    command: go test -v -count=1 -timeout=60s ./pkg/core/...
+  test-integration:
+    image: ${AUDIUSD_TEST_HARNESS_IMAGE:-audius/audiusd:harness}
+    command: go test -v -count=1 -timeout=60s ./pkg/integration_tests/...
     volumes:
       - ./cmd:/app/cmd
       - ./pkg:/app/pkg
@@ -204,6 +206,11 @@ services:
       - ./go.sum:/app/go.sum
     env_file:
       - ./dev/env/test-core.env
+    extra_hosts:
+      - 'node1.audiusd.devnet:host-gateway'
+      - 'node2.audiusd.devnet:host-gateway'
+      - 'node3.audiusd.devnet:host-gateway'
+      - 'node4.audiusd.devnet:host-gateway'
     depends_on:
       audiusd-1:
         condition: service_started
@@ -215,11 +222,13 @@ services:
         condition: service_started
       eth-ganache:
         condition: service_healthy
+      nginx:
+        condition: service_healthy
     profiles:
-      - core-tests
+      - integration-tests
 
   test-mediorum-unittests:
-    image: ${AUDIUSD_TEST_IMAGE:-audius/audiusd:test}
+    image: ${AUDIUSD_TEST_HARNESS_IMAGE:-audius/audiusd:harness}
     command: go test -v -count=1 -timeout=60s ./pkg/mediorum/...
     volumes:
       - ./cmd:/app/cmd
@@ -232,3 +241,23 @@ services:
       dbUrl: 'postgres://postgres:postgres@localhost:5432/mediorum_test'
     profiles:
       - mediorum-unittests
+
+  test-unittests:
+    image: ${AUDIUSD_TEST_HARNESS_IMAGE:-audius/audiusd:harness}
+    command:
+      - go
+      - test
+      - -v
+      - -count=1
+      - -timeout=60s
+      - ./pkg/core/...
+      - ./pkg/lifecycle/...
+      - ./pkg/rewards/...
+      - ./pkg/common/...
+    volumes:
+      - ./cmd:/app/cmd
+      - ./pkg:/app/pkg
+      - ./go.mod:/app/go.mod
+      - ./go.sum:/app/go.sum
+    profiles:
+      - unittests

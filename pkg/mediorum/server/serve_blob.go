@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/AudiusProject/audiusd/pkg/mediorum/server/signature"
+	"github.com/AudiusProject/audiusd/pkg/registrar"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
@@ -25,6 +26,7 @@ import (
 )
 
 func (ss *MediorumServer) serveBlobLocation(c echo.Context) error {
+	ctx := c.Request().Context()
 	cid := c.Param("cid")
 	preferred, _ := ss.rendezvousAllHosts(cid)
 
@@ -33,7 +35,7 @@ func (ss *MediorumServer) serveBlobLocation(c echo.Context) error {
 	var attrs []HostAttrSniff
 	if sniff {
 		fix, _ := strconv.ParseBool(c.QueryParam("fix"))
-		attrs = ss.sniffAndFix(cid, fix)
+		attrs = ss.sniffAndFix(ctx, cid, fix)
 	}
 
 	return c.JSON(200, map[string]any{
@@ -160,6 +162,30 @@ func (ss *MediorumServer) serveBlob(c echo.Context) error {
 		ss.logTrackListen(c)
 		setTimingHeader(c)
 
+		if id3, _ := strconv.ParseBool(c.QueryParam("id3")); id3 {
+			title := c.QueryParam("id3_title")
+			artist := c.QueryParam("id3_artist")
+
+			tag := buildID3v2Tag(title, artist)
+
+			tagged := &taggedStream{
+				tag:  tag,
+				blob: blob,
+			}
+
+			// Rewind blob to start
+			if _, err := blob.Seek(0, io.SeekStart); err != nil {
+				return err
+			}
+
+			http.ServeContent(c.Response(), c.Request(), cid, blob.ModTime(), &struct {
+				io.ReadSeeker
+			}{
+				ReadSeeker: tagged,
+			})
+			return nil
+		}
+
 		// stream audio
 		http.ServeContent(c.Response(), c.Request(), cid, blob.ModTime(), blob)
 		return nil
@@ -248,12 +274,12 @@ func (ss *MediorumServer) findNodeToServeBlob(_ context.Context, key string) str
 	return ""
 }
 
-func (ss *MediorumServer) findAndPullBlob(_ context.Context, key string) (string, error) {
+func (ss *MediorumServer) findAndPullBlob(ctx context.Context, key string) (string, error) {
 	// start := time.Now()
 
 	hosts, _ := ss.rendezvousAllHosts(key)
 	for _, host := range hosts {
-		err := ss.pullFileFromHost(host, key)
+		err := ss.pullFileFromHost(ctx, host, key)
 		if err == nil {
 			return host, nil
 		}
@@ -330,7 +356,7 @@ func (s *MediorumServer) requireRegisteredSignature(next echo.HandlerFunc) echo.
 			})
 		} else {
 			// check it was signed by a registered node
-			isRegistered := slices.ContainsFunc(s.Config.Signers, func(peer Peer) bool {
+			isRegistered := slices.ContainsFunc(s.Config.Signers, func(peer registrar.Peer) bool {
 				return strings.EqualFold(peer.Wallet, sig.SignerWallet)
 			})
 			wallets := make([]string, len(s.Config.Signers))
@@ -423,7 +449,7 @@ func (ss *MediorumServer) serveInternalBlobPOST(c echo.Context) error {
 			})
 		}
 
-		err = ss.replicateToMyBucket(cid, inp)
+		err = ss.replicateToMyBucket(c.Request().Context(), cid, inp)
 		if err != nil {
 			ss.logger.Error("accept ERR", "err", err)
 			return err

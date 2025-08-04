@@ -18,7 +18,7 @@ import (
 
 const MAX_TRIES = 3
 
-func (ss *MediorumServer) startAudioAnalyzer() {
+func (ss *MediorumServer) startAudioAnalyzer(ctx context.Context) error {
 	work := make(chan *Upload)
 
 	numWorkers := 4
@@ -33,22 +33,26 @@ func (ss *MediorumServer) startAudioAnalyzer() {
 	}
 
 	// start workers
-	for range make([]struct{}, numWorkers) {
-		go ss.startAudioAnalysisWorker(work)
+	for i, _ := range make([]struct{}, numWorkers) {
+		ss.startAudioAnalysisWorker(i, work)
 	}
-
-	time.Sleep(time.Minute)
 
 	// in prod... only look for old work on StoreAll nodes
 	// see transcode.go line 123 for longer comment
 	if ss.Config.Env == "prod" && !ss.Config.StoreAll {
-		return
+		return nil
 	}
 
 	// find old work from backlog
+	ticker := time.NewTicker(1 * time.Minute)
 	for {
-		time.Sleep(time.Minute * 5)
-		ss.findMissedAudioAnalysisJobs(context.Background(), work)
+		select {
+		case <-ticker.C:
+			ticker.Reset(5 * time.Minute) // increase interval length after first run
+			ss.findMissedAudioAnalysisJobs(ctx, work)
+		case <-ctx.Done():
+			return ctx.Err()
+		}
 	}
 }
 
@@ -74,7 +78,7 @@ func (ss *MediorumServer) findMissedAudioAnalysisJobs(ctx context.Context, work 
 		cid, ok := upload.TranscodeResults["320"]
 		if !ok {
 			if exists, _ := ss.bucket.Exists(ctx, upload.OrigFileCID); exists {
-				ss.transcode(upload)
+				ss.transcode(ctx, upload)
 				cid, ok = upload.TranscodeResults["320"]
 			}
 		}
@@ -86,29 +90,39 @@ func (ss *MediorumServer) findMissedAudioAnalysisJobs(ctx context.Context, work 
 	}
 }
 
-func (ss *MediorumServer) startAudioAnalysisWorker(work chan *Upload) {
-	for upload := range work {
-		logger := ss.logger.With("upload", upload.ID)
-		logger.Debug("analyzing audio")
-		startTime := time.Now().UTC()
-		err := ss.analyzeAudio(upload, time.Minute*10)
-		elapsedTime := time.Since(startTime)
-		logger = logger.With("duration", elapsedTime.String(), "start_time", startTime)
+func (ss *MediorumServer) startAudioAnalysisWorker(workerId int, work chan *Upload) {
+	ss.lc.AddManagedRoutine(fmt.Sprintf("audio analysis worker %d", workerId), func(ctx context.Context) error {
+		for {
+			select {
+			case upload, ok := <-work:
+				if !ok {
+					return nil // channel closed
+				}
+				logger := ss.logger.With("upload", upload.ID)
+				logger.Debug("analyzing audio")
+				startTime := time.Now().UTC()
+				err := ss.analyzeAudio(ctx, upload, time.Minute*10)
+				elapsedTime := time.Since(startTime)
+				logger = logger.With("duration", elapsedTime.String(), "start_time", startTime)
 
-		if err != nil {
-			logger.Warn("audio analysis failed", "err", err)
-		} else {
-			logger.Info("audio analysis done")
+				if err != nil {
+					logger.Warn("audio analysis failed", "err", err)
+				} else {
+					logger.Info("audio analysis done")
+				}
+			case <-ctx.Done():
+				return ctx.Err()
+			}
 		}
-	}
+	})
 }
 
-func (ss *MediorumServer) analyzeAudio(upload *Upload, deadline time.Duration) error {
+func (ss *MediorumServer) analyzeAudio(ctx context.Context, upload *Upload, deadline time.Duration) error {
 	upload.AudioAnalyzedAt = time.Now().UTC()
 	upload.AudioAnalyzedBy = ss.Config.Self.Host
 	upload.Status = JobStatusBusyAudioAnalysis
 
-	ctx, cancel := context.WithTimeout(context.Background(), deadline)
+	ctx, cancel := context.WithTimeout(ctx, deadline)
 	g, ctx := errgroup.WithContext(ctx)
 	defer cancel()
 
@@ -129,7 +143,7 @@ func (ss *MediorumServer) analyzeAudio(upload *Upload, deadline time.Duration) e
 	cid, ok := upload.TranscodeResults["320"]
 	if !ok {
 		if exists, _ := ss.bucket.Exists(ctx, upload.OrigFileCID); exists {
-			ss.transcode(upload)
+			ss.transcode(ctx, upload)
 			cid, ok = upload.TranscodeResults["320"]
 		}
 	}
@@ -282,7 +296,11 @@ func (ss *MediorumServer) analyzeBPM(filename string) (float64, error) {
 
 // converts an MP3 file to WAV format using ffmpeg
 func convertToWav(inputFile, outputFile string) error {
-	cmd := exec.Command("ffmpeg", "-i", inputFile, "-f", "wav", "-t", "60", outputFile)
+	// for consistent downstream analysis, convert to:
+	// - mono (1 channel)
+	// - 44.1 kHz sample rate
+	// - 120 seconds
+	cmd := exec.Command("ffmpeg", "-i", inputFile, "-ac", "1", "-ar", "44100", "-f", "wav", "-t", "120", outputFile)
 	if output, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("failed to convert to WAV: %v, output: %s", err, string(output))
 	}

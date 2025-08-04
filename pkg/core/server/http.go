@@ -2,15 +2,17 @@
 package server
 
 import (
+	"context"
 	"net/http"
 	"net/http/pprof"
+	"time"
 
 	"github.com/AudiusProject/audiusd/pkg/core/console/views/sandbox"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
 
-func (s *Server) startEchoServer() error {
+func (s *Server) startEchoServer(ctx context.Context) error {
 	s.logger.Info("core HTTP server starting")
 	// create http server
 	httpServer := s.httpServer
@@ -30,7 +32,6 @@ func (s *Server) startEchoServer() error {
 	g.GET("/nodes/discovery/verbose", s.getRegisteredNodes)
 	g.GET("/nodes/content", s.getRegisteredNodes)
 	g.GET("/nodes/content/verbose", s.getRegisteredNodes)
-	g.GET("/nodes/eth", s.getEthNodesHandler)
 
 	// proxy cometbft requests
 	g.Any("/crpc*", s.proxyCometRequest)
@@ -59,14 +60,34 @@ func (s *Server) startEchoServer() error {
 		g.GET("/debug/pprof/block", echo.WrapHandler(pprof.Handler("block")))
 	}
 
+	done := make(chan error, 1)
+	go func() {
+		err := s.httpServer.Start(s.config.CoreServerAddr)
+		if err != nil && err != http.ErrServerClosed {
+			s.logger.Error("echo server error", "error", err)
+			done <- err
+		} else {
+			done <- nil
+		}
+	}()
+
 	close(s.awaitHttpServerReady)
 	s.logger.Info("core http server ready")
 
-	if err := s.httpServer.Start(s.config.CoreServerAddr); err != nil {
-		s.logger.Errorf("echo failed to start: %v", err)
+	select {
+	case err := <-done:
 		return err
+	case <-ctx.Done():
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		err := s.httpServer.Shutdown(shutdownCtx)
+		if err != nil {
+			s.logger.Error("failed to shutdown echo server", "error", err)
+			return err
+		}
+		return ctx.Err()
 	}
-	return nil
 }
 
 func (s *Server) GetEcho() *echo.Echo {

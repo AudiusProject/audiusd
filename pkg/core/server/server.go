@@ -9,37 +9,41 @@ import (
 	corev1connect "github.com/AudiusProject/audiusd/pkg/api/core/v1/v1connect"
 	"github.com/AudiusProject/audiusd/pkg/common"
 	"github.com/AudiusProject/audiusd/pkg/core/config"
-	"github.com/AudiusProject/audiusd/pkg/core/contracts"
 	"github.com/AudiusProject/audiusd/pkg/core/db"
+	"github.com/AudiusProject/audiusd/pkg/eth"
+	"github.com/AudiusProject/audiusd/pkg/lifecycle"
 	aLogger "github.com/AudiusProject/audiusd/pkg/logger"
 	"github.com/AudiusProject/audiusd/pkg/pos"
+	"github.com/AudiusProject/audiusd/pkg/pubsub"
 	"github.com/AudiusProject/audiusd/pkg/rewards"
 	cconfig "github.com/cometbft/cometbft/config"
 	nm "github.com/cometbft/cometbft/node"
 	"github.com/cometbft/cometbft/rpc/client/local"
-	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
-	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 )
 
+// subscribes by tx hash, pubsub completes once tx
+// is committed
+type TransactionHashPubsub = pubsub.Pubsub[struct{}]
+
 type Server struct {
+	lc             *lifecycle.Lifecycle
 	config         *config.Config
 	cometbftConfig *cconfig.Config
 	logger         *common.Logger
 	z              *zap.Logger
 	self           corev1connect.CoreServiceClient
+	eth            *eth.EthService
 
 	httpServer         *echo.Echo
 	grpcServer         *grpc.Server
 	pool               *pgxpool.Pool
-	contracts          *contracts.AudiusContracts
 	mediorumPoSChannel chan pos.PoSRequest
 
 	db    *db.Queries
-	eth   *ethclient.Client
 	node  *nm.Node
 	rpc   *local.Local
 	mempl *Mempool
@@ -54,34 +58,20 @@ type Server struct {
 
 	rewards *rewards.RewardAttester
 
-	ethNodes          []*contracts.Node
-	duplicateEthNodes []*contracts.Node
-	missingEthNodes   []string
-	ethNodeMU         sync.RWMutex
-
 	awaitHttpServerReady chan struct{}
 	awaitRpcReady        chan struct{}
-	awaitEthNodesReady   chan struct{}
+	awaitEthReady        chan struct{}
 }
 
-func NewServer(config *config.Config, cconfig *cconfig.Config, logger *common.Logger, pool *pgxpool.Pool, eth *ethclient.Client, posChannel chan pos.PoSRequest) (*Server, error) {
+func NewServer(lc *lifecycle.Lifecycle, config *config.Config, cconfig *cconfig.Config, logger *common.Logger, pool *pgxpool.Pool, ethService *eth.EthService, posChannel chan pos.PoSRequest) (*Server, error) {
 	// create mempool
 	mempl := NewMempool(logger, config, db.New(pool), cconfig.Mempool.Size)
 
 	// create pubsubs
-	txPubsub := NewPubsub[struct{}]()
-
-	// create contracts
-	c, err := contracts.NewAudiusContracts(eth, config.EthRegistryAddress)
-	if err != nil {
-		return nil, fmt.Errorf("contracts init error: %v", err)
-	}
+	txPubsub := pubsub.NewPubsub[struct{}]()
 
 	httpServer := echo.New()
 	grpcServer := grpc.NewServer()
-
-	ethNodes := []*contracts.Node{}
-	duplicateEthNodes := []*contracts.Node{}
 
 	baseLogger, err := aLogger.CreateLogger(config.Environment, config.LogLevel)
 	if err != nil {
@@ -91,18 +81,20 @@ func NewServer(config *config.Config, cconfig *cconfig.Config, logger *common.Lo
 	z := baseLogger.With(zap.String("service", "core"), zap.String("node", config.NodeEndpoint))
 	z.Info("core server starting")
 
+	coreLifecycle := lifecycle.NewFromLifecycle(lc, "core")
+
 	s := &Server{
+		lc:             coreLifecycle,
 		config:         config,
 		cometbftConfig: cconfig,
 		logger:         logger.Child("server"),
 		z:              z,
+		eth:            ethService,
 
 		pool:               pool,
-		contracts:          c,
 		mediorumPoSChannel: posChannel,
 
 		db:        db.New(pool),
-		eth:       eth,
 		mempl:     mempl,
 		peers:     make(map[string]corev1connect.CoreServiceClient),
 		txPubsub:  txPubsub,
@@ -112,64 +104,56 @@ func NewServer(config *config.Config, cconfig *cconfig.Config, logger *common.Lo
 		httpServer: httpServer,
 		grpcServer: grpcServer,
 
-		ethNodes:          ethNodes,
-		duplicateEthNodes: duplicateEthNodes,
-		missingEthNodes:   []string{},
-
 		rewards: rewards.NewRewardAttester(config.EthereumKey, config.Rewards),
 
 		awaitHttpServerReady: make(chan struct{}),
 		awaitRpcReady:        make(chan struct{}),
-		awaitEthNodesReady:   make(chan struct{}),
+		awaitEthReady:        make(chan struct{}),
 	}
 
 	return s, nil
 }
 
-func (s *Server) Start(ctx context.Context) error {
-	g, _ := errgroup.WithContext(ctx)
+func (s *Server) Start() error {
+	s.lc.AddManagedRoutine("abci", s.startABCI)
+	s.lc.AddManagedRoutine("registry bridge", s.startRegistryBridge)
+	s.lc.AddManagedRoutine("echo server", s.startEchoServer)
+	s.lc.AddManagedRoutine("sync tasks", s.startSyncTasks)
+	s.lc.AddManagedRoutine("peer manager", s.startPeerManager)
+	s.lc.AddManagedRoutine("cache", s.startCache)
+	s.lc.AddManagedRoutine("data companion", s.startDataCompanion)
+	s.lc.AddManagedRoutine("log sync", s.syncLogs)
+	s.lc.AddManagedRoutine("state sync", s.startStateSync)
 
-	g.Go(s.startABCI)
-	g.Go(s.startRegistryBridge)
-	g.Go(s.startEchoServer)
-	g.Go(s.startSyncTasks)
-	g.Go(s.startPeerManager)
-	g.Go(s.startEthNodeManager)
-	g.Go(s.startCache)
-	g.Go(s.startDataCompanion)
-	g.Go(s.syncLogs)
-	g.Go(s.startProportionalRewards)
-	g.Go(s.startStateSync)
 	s.z.Info("routines started")
 
-	return g.Wait()
+	s.lc.Wait()
+	return fmt.Errorf("core stopped or shut down")
 }
 
 func (s *Server) setSelf(self corev1connect.CoreServiceClient) {
 	s.self = self
 }
 
-func (s *Server) syncLogs() error {
+func (s *Server) syncLogs(ctx context.Context) error {
 	ticker := time.NewTicker(10 * time.Second)
-	defer ticker.Stop()
-
-	for range ticker.C {
-		s.z.Sync()
+	for {
+		select {
+		case <-ticker.C:
+			s.z.Sync()
+		case <-ctx.Done():
+			return ctx.Err()
+		}
 	}
-	return nil
 }
 
-func (s *Server) Shutdown(ctx context.Context) error {
+func (s *Server) Shutdown() error {
 	s.logger.Info("shutting down all services...")
 
-	g, ctx := errgroup.WithContext(ctx)
+	if err := s.lc.ShutdownWithTimeout(60 * time.Second); err != nil {
+		return fmt.Errorf("failure shutting down core: %v", err)
+	}
+	s.grpcServer.GracefulStop()
 
-	g.Go(func() error { return s.httpServer.Shutdown(ctx) })
-	g.Go(s.node.Stop)
-	g.Go(func() error {
-		s.grpcServer.GracefulStop()
-		return nil
-	})
-
-	return g.Wait()
+	return nil
 }
