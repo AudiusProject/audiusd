@@ -16,6 +16,9 @@ func (s *Server) startDataCompanion(ctx context.Context) error {
 
 	s.logger.Info("starting data companion")
 
+	storingSnapshots := s.config.StateSync.ServeSnapshots
+	snapshotInterval := s.config.StateSync.BlockInterval
+
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
