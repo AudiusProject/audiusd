@@ -45,6 +45,17 @@ func (s *Server) startDataCompanion(ctx context.Context) error {
 				continue
 			}
 
+			// Ensure we keep enough blocks for snapshots
+			if storingSnapshots && snapshotInterval > 0 {
+				// Add a buffer equal to one full snapshot interval to ensure we
+				// always retain enough historical blocks to fully serve the
+				// most recent snapshot without risk of pruning too far.
+				wantMin := blockRetainHeight.App + uint64(snapshotInterval)
+				if blockRetainHeight.App < wantMin {
+					blockRetainHeight.App = wantMin
+				}
+			}
+
 			if err := conn.SetBlockRetainHeight(ctx, blockRetainHeight.App); err != nil {
 				s.logger.Errorf("dc could not set block retain height: %v", err)
 			}
