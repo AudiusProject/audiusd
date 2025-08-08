@@ -32,3 +32,8 @@ type EthServiceProvider struct {
 	MinAccountStake   int64  `json:"min_account_stake"`
 	MaxAccountStake   int64  `json:"max_account_stake"`
 }
+
+type EthStaked struct {
+	Address     string `json:"address"`
+	TotalStaked int64  `json:"total_staked"`
+}

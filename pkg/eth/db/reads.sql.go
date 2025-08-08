@@ -165,3 +165,14 @@ func (q *Queries) GetServiceProviders(ctx context.Context) ([]EthServiceProvider
 	}
 	return items, nil
 }
+
+const getStakedAmountForServiceProvider = `-- name: GetStakedAmountForServiceProvider :one
+select total_staked from eth_staked where address = $1
+`
+
+func (q *Queries) GetStakedAmountForServiceProvider(ctx context.Context, address string) (int64, error) {
+	row := q.db.QueryRow(ctx, getStakedAmountForServiceProvider, address)
+	var total_staked int64
+	err := row.Scan(&total_staked)
+	return total_staked, err
+}

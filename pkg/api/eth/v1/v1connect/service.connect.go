@@ -50,6 +50,9 @@ const (
 	// EthServiceGetServiceProvidersProcedure is the fully-qualified name of the EthService's
 	// GetServiceProviders RPC.
 	EthServiceGetServiceProvidersProcedure = "/eth.v1.EthService/GetServiceProviders"
+	// EthServiceGetStakingMetadataForServiceProviderProcedure is the fully-qualified name of the
+	// EthService's GetStakingMetadataForServiceProvider RPC.
+	EthServiceGetStakingMetadataForServiceProviderProcedure = "/eth.v1.EthService/GetStakingMetadataForServiceProvider"
 	// EthServiceGetLatestFundingRoundProcedure is the fully-qualified name of the EthService's
 	// GetLatestFundingRound RPC.
 	EthServiceGetLatestFundingRoundProcedure = "/eth.v1.EthService/GetLatestFundingRound"
@@ -70,6 +73,7 @@ type EthServiceClient interface {
 	GetRegisteredEndpointInfo(context.Context, *connect.Request[v1.GetRegisteredEndpointInfoRequest]) (*connect.Response[v1.GetRegisteredEndpointInfoResponse], error)
 	GetServiceProvider(context.Context, *connect.Request[v1.GetServiceProviderRequest]) (*connect.Response[v1.GetServiceProviderResponse], error)
 	GetServiceProviders(context.Context, *connect.Request[v1.GetServiceProvidersRequest]) (*connect.Response[v1.GetServiceProvidersResponse], error)
+	GetStakingMetadataForServiceProvider(context.Context, *connect.Request[v1.GetStakingMetadataForServiceProviderRequest]) (*connect.Response[v1.GetStakingMetadataForServiceProviderResponse], error)
 	GetLatestFundingRound(context.Context, *connect.Request[v1.GetLatestFundingRoundRequest]) (*connect.Response[v1.GetLatestFundingRoundResponse], error)
 	IsDuplicateDelegateWallet(context.Context, *connect.Request[v1.IsDuplicateDelegateWalletRequest]) (*connect.Response[v1.IsDuplicateDelegateWalletResponse], error)
 	Register(context.Context, *connect.Request[v1.RegisterRequest]) (*connect.Response[v1.RegisterResponse], error)
@@ -123,6 +127,12 @@ func NewEthServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			connect.WithSchema(ethServiceMethods.ByName("GetServiceProviders")),
 			connect.WithClientOptions(opts...),
 		),
+		getStakingMetadataForServiceProvider: connect.NewClient[v1.GetStakingMetadataForServiceProviderRequest, v1.GetStakingMetadataForServiceProviderResponse](
+			httpClient,
+			baseURL+EthServiceGetStakingMetadataForServiceProviderProcedure,
+			connect.WithSchema(ethServiceMethods.ByName("GetStakingMetadataForServiceProvider")),
+			connect.WithClientOptions(opts...),
+		),
 		getLatestFundingRound: connect.NewClient[v1.GetLatestFundingRoundRequest, v1.GetLatestFundingRoundResponse](
 			httpClient,
 			baseURL+EthServiceGetLatestFundingRoundProcedure,
@@ -158,6 +168,7 @@ type ethServiceClient struct {
 	getRegisteredEndpointInfo                *connect.Client[v1.GetRegisteredEndpointInfoRequest, v1.GetRegisteredEndpointInfoResponse]
 	getServiceProvider                       *connect.Client[v1.GetServiceProviderRequest, v1.GetServiceProviderResponse]
 	getServiceProviders                      *connect.Client[v1.GetServiceProvidersRequest, v1.GetServiceProvidersResponse]
+	getStakingMetadataForServiceProvider     *connect.Client[v1.GetStakingMetadataForServiceProviderRequest, v1.GetStakingMetadataForServiceProviderResponse]
 	getLatestFundingRound                    *connect.Client[v1.GetLatestFundingRoundRequest, v1.GetLatestFundingRoundResponse]
 	isDuplicateDelegateWallet                *connect.Client[v1.IsDuplicateDelegateWalletRequest, v1.IsDuplicateDelegateWalletResponse]
 	register                                 *connect.Client[v1.RegisterRequest, v1.RegisterResponse]
@@ -195,6 +206,12 @@ func (c *ethServiceClient) GetServiceProviders(ctx context.Context, req *connect
 	return c.getServiceProviders.CallUnary(ctx, req)
 }
 
+// GetStakingMetadataForServiceProvider calls
+// eth.v1.EthService.GetStakingMetadataForServiceProvider.
+func (c *ethServiceClient) GetStakingMetadataForServiceProvider(ctx context.Context, req *connect.Request[v1.GetStakingMetadataForServiceProviderRequest]) (*connect.Response[v1.GetStakingMetadataForServiceProviderResponse], error) {
+	return c.getStakingMetadataForServiceProvider.CallUnary(ctx, req)
+}
+
 // GetLatestFundingRound calls eth.v1.EthService.GetLatestFundingRound.
 func (c *ethServiceClient) GetLatestFundingRound(ctx context.Context, req *connect.Request[v1.GetLatestFundingRoundRequest]) (*connect.Response[v1.GetLatestFundingRoundResponse], error) {
 	return c.getLatestFundingRound.CallUnary(ctx, req)
@@ -223,6 +240,7 @@ type EthServiceHandler interface {
 	GetRegisteredEndpointInfo(context.Context, *connect.Request[v1.GetRegisteredEndpointInfoRequest]) (*connect.Response[v1.GetRegisteredEndpointInfoResponse], error)
 	GetServiceProvider(context.Context, *connect.Request[v1.GetServiceProviderRequest]) (*connect.Response[v1.GetServiceProviderResponse], error)
 	GetServiceProviders(context.Context, *connect.Request[v1.GetServiceProvidersRequest]) (*connect.Response[v1.GetServiceProvidersResponse], error)
+	GetStakingMetadataForServiceProvider(context.Context, *connect.Request[v1.GetStakingMetadataForServiceProviderRequest]) (*connect.Response[v1.GetStakingMetadataForServiceProviderResponse], error)
 	GetLatestFundingRound(context.Context, *connect.Request[v1.GetLatestFundingRoundRequest]) (*connect.Response[v1.GetLatestFundingRoundResponse], error)
 	IsDuplicateDelegateWallet(context.Context, *connect.Request[v1.IsDuplicateDelegateWalletRequest]) (*connect.Response[v1.IsDuplicateDelegateWalletResponse], error)
 	Register(context.Context, *connect.Request[v1.RegisterRequest]) (*connect.Response[v1.RegisterResponse], error)
@@ -272,6 +290,12 @@ func NewEthServiceHandler(svc EthServiceHandler, opts ...connect.HandlerOption) 
 		connect.WithSchema(ethServiceMethods.ByName("GetServiceProviders")),
 		connect.WithHandlerOptions(opts...),
 	)
+	ethServiceGetStakingMetadataForServiceProviderHandler := connect.NewUnaryHandler(
+		EthServiceGetStakingMetadataForServiceProviderProcedure,
+		svc.GetStakingMetadataForServiceProvider,
+		connect.WithSchema(ethServiceMethods.ByName("GetStakingMetadataForServiceProvider")),
+		connect.WithHandlerOptions(opts...),
+	)
 	ethServiceGetLatestFundingRoundHandler := connect.NewUnaryHandler(
 		EthServiceGetLatestFundingRoundProcedure,
 		svc.GetLatestFundingRound,
@@ -310,6 +334,8 @@ func NewEthServiceHandler(svc EthServiceHandler, opts ...connect.HandlerOption) 
 			ethServiceGetServiceProviderHandler.ServeHTTP(w, r)
 		case EthServiceGetServiceProvidersProcedure:
 			ethServiceGetServiceProvidersHandler.ServeHTTP(w, r)
+		case EthServiceGetStakingMetadataForServiceProviderProcedure:
+			ethServiceGetStakingMetadataForServiceProviderHandler.ServeHTTP(w, r)
 		case EthServiceGetLatestFundingRoundProcedure:
 			ethServiceGetLatestFundingRoundHandler.ServeHTTP(w, r)
 		case EthServiceIsDuplicateDelegateWalletProcedure:
@@ -349,6 +375,10 @@ func (UnimplementedEthServiceHandler) GetServiceProvider(context.Context, *conne
 
 func (UnimplementedEthServiceHandler) GetServiceProviders(context.Context, *connect.Request[v1.GetServiceProvidersRequest]) (*connect.Response[v1.GetServiceProvidersResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("eth.v1.EthService.GetServiceProviders is not implemented"))
+}
+
+func (UnimplementedEthServiceHandler) GetStakingMetadataForServiceProvider(context.Context, *connect.Request[v1.GetStakingMetadataForServiceProviderRequest]) (*connect.Response[v1.GetStakingMetadataForServiceProviderResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("eth.v1.EthService.GetStakingMetadataForServiceProvider is not implemented"))
 }
 
 func (UnimplementedEthServiceHandler) GetLatestFundingRound(context.Context, *connect.Request[v1.GetLatestFundingRoundRequest]) (*connect.Response[v1.GetLatestFundingRoundResponse], error) {

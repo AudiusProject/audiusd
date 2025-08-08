@@ -27,3 +27,12 @@ set
     number_of_endpoints = $5,
     min_account_stake = $6,
     max_account_stake = $7;
+
+-- name: ClearStaked :exec
+delete from eth_staked;
+
+-- name: UpsertStaked :exec
+insert into eth_staked (address, total_staked)
+values ($1, $2)
+on conflict (address) do update
+set total_staked = $2;

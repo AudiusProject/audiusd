@@ -27,6 +27,15 @@ func (q *Queries) ClearServiceProviders(ctx context.Context) error {
 	return err
 }
 
+const clearStaked = `-- name: ClearStaked :exec
+delete from eth_staked
+`
+
+func (q *Queries) ClearStaked(ctx context.Context) error {
+	_, err := q.db.Exec(ctx, clearStaked)
+	return err
+}
+
 const deleteRegisteredEndpoint = `-- name: DeleteRegisteredEndpoint :exec
 delete from eth_registered_endpoints
 where id = $1 and endpoint = $2 and owner = $3 and service_type = $4
@@ -136,5 +145,22 @@ func (q *Queries) UpsertServiceProvider(ctx context.Context, arg UpsertServicePr
 		arg.MinAccountStake,
 		arg.MaxAccountStake,
 	)
+	return err
+}
+
+const upsertStaked = `-- name: UpsertStaked :exec
+insert into eth_staked (address, total_staked)
+values ($1, $2)
+on conflict (address) do update
+set total_staked = $2
+`
+
+type UpsertStakedParams struct {
+	Address     string `json:"address"`
+	TotalStaked int64  `json:"total_staked"`
+}
+
+func (q *Queries) UpsertStaked(ctx context.Context, arg UpsertStakedParams) error {
+	_, err := q.db.Exec(ctx, upsertStaked, arg.Address, arg.TotalStaked)
 	return err
 }

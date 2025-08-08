@@ -25,6 +25,16 @@ const (
 	DeregistrationTopic = "deregistration-subscriber"
 )
 
+var audConversion = new(big.Int)
+
+func init() {
+	var ok bool
+	audConversion, ok = audConversion.SetString("1000000000000000000", 10)
+	if !ok {
+		panic("invalid big int for aud conversion")
+	}
+}
+
 type DeregistrationPubsub = pubsub.Pubsub[*v1.ServiceEndpoint]
 
 type EthService struct {
@@ -33,14 +43,21 @@ type EthService struct {
 	registryAddress string
 	env             string
 
-	rpc         *ethclient.Client
-	db          *db.Queries
-	pool        *pgxpool.Pool
-	logger      *common.Logger
-	c           *contracts.AudiusContracts
-	deregPubsub *DeregistrationPubsub
+	rpc          *ethclient.Client
+	db           *db.Queries
+	pool         *pgxpool.Pool
+	logger       *common.Logger
+	c            *contracts.AudiusContracts
+	deregPubsub  *DeregistrationPubsub
+	fundingRound *fundingRoundMetadata
 
 	isReady atomic.Bool
+}
+
+type fundingRoundMetadata struct {
+	initialized           bool
+	fundingAmountPerRound int64
+	totalStakedAmount     int64
 }
 
 func NewEthService(dbURL, rpcURL, registryAddress string, logger *common.Logger, environment string) *EthService {
@@ -50,6 +67,7 @@ func NewEthService(dbURL, rpcURL, registryAddress string, logger *common.Logger,
 		dbURL:           dbURL,
 		registryAddress: registryAddress,
 		env:             environment,
+		fundingRound:    &fundingRoundMetadata{},
 	}
 }
 
@@ -131,10 +149,14 @@ initial:
 
 	eth.isReady.Store(true)
 
-	// Instantiate the contract
-	spf, err := eth.c.GetServiceProviderFactoryContract()
+	// Instantiate the contracts
+	serviceProviderFactory, err := eth.c.GetServiceProviderFactoryContract()
 	if err != nil {
 		return fmt.Errorf("failed to bind service provider factory contract: %v", err)
+	}
+	staking, err := eth.c.GetStakingContract()
+	if err != nil {
+		return fmt.Errorf("failed to bind staking contract: %v", err)
 	}
 
 	watchOpts := &bind.WatchOpts{Context: ctx}
@@ -143,21 +165,37 @@ initial:
 	deregisterChan := make(chan *gen.ServiceProviderFactoryDeregisteredServiceProvider)
 	updateChan := make(chan *gen.ServiceProviderFactoryEndpointUpdated)
 
-	registerSub, err := spf.WatchRegisteredServiceProvider(watchOpts, registerChan, nil, nil, nil)
+	stakedChan := make(chan *gen.StakingStaked)
+	unstakedChan := make(chan *gen.StakingUnstaked)
+	slashedChan := make(chan *gen.StakingSlashed)
+
+	registerSub, err := serviceProviderFactory.WatchRegisteredServiceProvider(watchOpts, registerChan, nil, nil, nil)
 	if err != nil {
 		return fmt.Errorf("failed to subscribe to endpoint registration events: %v", err)
 	}
-
-	deregisterSub, err := spf.WatchDeregisteredServiceProvider(watchOpts, deregisterChan, nil, nil, nil)
+	deregisterSub, err := serviceProviderFactory.WatchDeregisteredServiceProvider(watchOpts, deregisterChan, nil, nil, nil)
 	if err != nil {
 		return fmt.Errorf("failed to subscribe to endpoint deregistration events: %v", err)
 	}
-
-	updateSub, err := spf.WatchEndpointUpdated(watchOpts, updateChan, nil, nil, nil)
+	updateSub, err := serviceProviderFactory.WatchEndpointUpdated(watchOpts, updateChan, nil, nil, nil)
 	if err != nil {
 		return fmt.Errorf("failed to subscribe to endpoint update events: %v", err)
 	}
 
+	stakedSub, err := staking.WatchStaked(watchOpts, stakedChan, nil)
+	if err != nil {
+		return fmt.Errorf("failed to subscribe to staking events: %v", err)
+	}
+	unstakedSub, err := staking.WatchUnstaked(watchOpts, unstakedChan, nil)
+	if err != nil {
+		return fmt.Errorf("failed to subscribe to unstaking events: %v", err)
+	}
+	slashedSub, err := staking.WatchSlashed(watchOpts, slashedChan, nil)
+	if err != nil {
+		return fmt.Errorf("failed to subscribe to slashing events: %v", err)
+	}
+
+	// interval to clean refresh all indexed data
 	ticker = time.NewTicker(1 * time.Hour)
 
 	for {
@@ -168,6 +206,12 @@ initial:
 			return fmt.Errorf("deregister event subscription error: %v", err)
 		case err := <-updateSub.Err():
 			return fmt.Errorf("update event subscription error: %v", err)
+		case err := <-stakedSub.Err():
+			return fmt.Errorf("staked event subscription error: %v", err)
+		case err := <-unstakedSub.Err():
+			return fmt.Errorf("unstaked event subscription error: %v", err)
+		case err := <-slashedSub.Err():
+			return fmt.Errorf("slashed event subscription error: %v", err)
 		case reg := <-registerChan:
 			if err := eth.addRegisteredEndpoint(ctx, reg.SpID, reg.ServiceType, reg.Endpoint, reg.Owner); err != nil {
 				eth.logger.Error("could not handle registration event: %v", err)
@@ -197,6 +241,21 @@ initial:
 			}
 			if err := eth.updateServiceProvider(ctx, update.Owner); err != nil {
 				eth.logger.Error("could not update service provider from update event: %v", err)
+				continue
+			}
+		case staked := <-stakedChan:
+			if err := eth.updateStakedAmountForServiceProvider(ctx, staked.User, staked.Total); err != nil {
+				eth.logger.Error("could not update service staked amount from staked event: %v", err)
+				continue
+			}
+		case unstaked := <-unstakedChan:
+			if err := eth.updateStakedAmountForServiceProvider(ctx, unstaked.User, unstaked.Total); err != nil {
+				eth.logger.Error("could not update service staked amount from unstaked event: %v", err)
+				continue
+			}
+		case slashed := <-slashedChan:
+			if err := eth.updateStakedAmountForServiceProvider(ctx, slashed.User, slashed.Total); err != nil {
+				eth.logger.Error("could not update service staked amount from slashed event: %v", err)
 				continue
 			}
 		case <-ticker.C:
@@ -253,6 +312,33 @@ func (eth *EthService) deleteAndDeregisterEndpoint(ctx context.Context, spID *bi
 	return nil
 }
 
+func (eth *EthService) updateStakedAmountForServiceProvider(ctx context.Context, address ethcommon.Address, totalStaked *big.Int) error {
+	if err := eth.db.UpsertStaked(
+		ctx,
+		db.UpsertStakedParams{Address: address.Hex(), TotalStaked: new(big.Int).Div(totalStaked, audConversion).Int64()},
+	); err != nil {
+		return fmt.Errorf("could not update service staked amount: %v", err)
+	}
+	if err := eth.updateTotalStakedAmount(ctx); err != nil {
+		return fmt.Errorf("cound not update total staked amount: %v", err)
+	}
+	return nil
+}
+
+func (eth *EthService) updateTotalStakedAmount(ctx context.Context) error {
+	staking, err := eth.c.GetStakingContract()
+	if err != nil {
+		return fmt.Errorf("failed to bind staking contract: %v", err)
+	}
+	opts := &bind.CallOpts{Context: ctx}
+	totalStaked, err := staking.TotalStaked(opts)
+	if err != nil {
+		return fmt.Errorf("could not get total staked across all delegators: %v", err)
+	}
+	eth.fundingRound.totalStakedAmount = new(big.Int).Div(totalStaked, audConversion).Int64()
+	return nil
+}
+
 func (eth *EthService) addRegisteredEndpoint(ctx context.Context, spID *big.Int, serviceType [32]byte, endpoint string, owner ethcommon.Address) error {
 	st, err := contracts.ServiceTypeToString(serviceType)
 	if err != nil {
@@ -286,9 +372,9 @@ func (eth *EthService) updateServiceProvider(ctx context.Context, serviceProvide
 	if err != nil {
 		return fmt.Errorf("failed get service provider details for address %s: %v", serviceProviderAddress.Hex(), err)
 	}
-	if err := eth.db.InsertServiceProvider(
+	if err := eth.db.UpsertServiceProvider(
 		ctx,
-		db.InsertServiceProviderParams{
+		db.UpsertServiceProviderParams{
 			Address:           serviceProviderAddress.Hex(),
 			DeployerStake:     spDetails.DeployerStake.Int64(),
 			DeployerCut:       spDetails.DeployerCut.Int64(),
@@ -323,17 +409,32 @@ func (eth *EthService) hydrateEthData(ctx context.Context) error {
 		return fmt.Errorf("could not clear registered endpoints: %w", err)
 	}
 
+	if err := txq.ClearRegisteredEndpoints(ctx); err != nil {
+		return fmt.Errorf("could not clear registered endpoints: %w", err)
+	}
+	if err := txq.ClearServiceProviders(ctx); err != nil {
+		return fmt.Errorf("could not clear service providers: %w", err)
+	}
+
 	allServiceProviders := make(map[string]*db.EthServiceProvider, len(nodes))
 	serviceProviderFactory, err := eth.c.GetServiceProviderFactoryContract()
 	if err != nil {
 		return fmt.Errorf("failed to bind service provider factory contract: %v", err)
+	}
+	staking, err := eth.c.GetStakingContract()
+	if err != nil {
+		return fmt.Errorf("failed to bind staking contract: %v", err)
+	}
+	claimsManager, err := eth.c.GetClaimsManagerContract()
+	if err != nil {
+		return fmt.Errorf("failed to bind claims manager contract: %v", err)
 	}
 	opts := &bind.CallOpts{Context: ctx}
 
 	for _, node := range nodes {
 		st, err := contracts.ServiceTypeToString(node.Type)
 		if err != nil {
-			return fmt.Errorf("could resolve service type for node: %w", err)
+			return fmt.Errorf("could resolve service type for node: %v", err)
 		}
 		if err := txq.InsertRegisteredEndpoint(
 			ctx,
@@ -346,7 +447,7 @@ func (eth *EthService) hydrateEthData(ctx context.Context) error {
 				Blocknumber:    node.BlockNumber.Int64(),
 			},
 		); err != nil {
-			return fmt.Errorf("could not insert registered endpoint into eth indexer db: %w", err)
+			return fmt.Errorf("could not insert registered endpoint into eth indexer db: %v", err)
 		}
 
 		if _, ok := allServiceProviders[node.Owner.Hex()]; !ok {
@@ -366,7 +467,6 @@ func (eth *EthService) hydrateEthData(ctx context.Context) error {
 		}
 	}
 
-	eth.logger.Info("***** DELETEME Gonna insert sps", "sps", allServiceProviders)
 	for _, sp := range allServiceProviders {
 		if err := txq.InsertServiceProvider(
 			ctx,
@@ -380,9 +480,35 @@ func (eth *EthService) hydrateEthData(ctx context.Context) error {
 				MaxAccountStake:   sp.MaxAccountStake,
 			},
 		); err != nil {
-			return fmt.Errorf("could not insert service provider into eth indexer db: %w", err)
+			return fmt.Errorf("could not insert service provider into eth indexer db: %v", err)
+		}
+
+		totalStakedForSp, err := staking.TotalStakedFor(opts, ethcommon.HexToAddress(sp.Address))
+		if err != nil {
+			return fmt.Errorf("could not get total staked amount for address %s: %v", sp.Address, err)
+		}
+		if err = txq.UpsertStaked(
+			ctx,
+			db.UpsertStakedParams{
+				Address:     sp.Address,
+				TotalStaked: new(big.Int).Div(totalStakedForSp, audConversion).Int64(),
+			},
+		); err != nil {
+			return fmt.Errorf("could not insert staked amount into eth indexer db: %v", err)
 		}
 	}
+
+	if err := eth.updateTotalStakedAmount(ctx); err != nil {
+		return fmt.Errorf("could not update total staked amount: %v", err)
+	}
+
+	fundingAmountPerRound, err := claimsManager.GetFundsPerRound(opts)
+	if err != nil {
+		return fmt.Errorf("could not get funding amount per round: %v", err)
+	}
+
+	eth.fundingRound.fundingAmountPerRound = new(big.Int).Div(fundingAmountPerRound, audConversion).Int64()
+	eth.fundingRound.initialized = true
 
 	return tx.Commit(ctx)
 }
