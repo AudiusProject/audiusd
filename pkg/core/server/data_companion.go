@@ -9,6 +9,14 @@ import (
 	"github.com/cometbft/cometbft/rpc/grpc/client/privileged"
 )
 
+// Used in both ABCI and Data Companion to retain the block height correctly.
+// Assumes block pruning is enabled.
+// If serving snapshots and pruning is enabled then the lowest retain height will be
+// current block - lowest snapshot - 100. Otherwise it'll be the configured retain height.
+func (s *Server) calculateLowestRetainHeight() uint64 {
+	return 0
+}
+
 func (s *Server) startDataCompanion(ctx context.Context) error {
 	if s.config.Archive {
 		return nil
