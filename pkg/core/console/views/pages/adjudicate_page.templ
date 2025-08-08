@@ -2,6 +2,7 @@ package pages
 
 import (
     "fmt"
+    "net/url"
     "time"
 
     "github.com/dustin/go-humanize"
@@ -59,6 +60,13 @@ func getSlaBarColor(status SlaStatus) string {
     }
 }
 
+func getTimeRangeQueryString(start time.Time, end time.Time) string {
+    v := url.Values{}
+    v.Set("start", start.Format("2006-01-02T15:04"))
+    v.Set("end", end.Format("2006-01-02T15:04"))
+    return v.Encode()
+}
+
 css slaBar(status SlaStatus) {
     width: 5px;
     height: 18px;
@@ -69,17 +77,75 @@ css slaBar(status SlaStatus) {
     vertical-align: middle;
 }
 
+templ staticAdjudicateStyles() {
+    <style type="text/css">
+        .copyAdjudicateLink {
+            cursor: pointer;
+        }
+        .slashProposalModal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0; top: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+        }
+
+        .slashProposalModalContent {
+            background: #fff;
+            padding: 20px;
+            margin: 15% auto;
+            width: 800px;
+            border-radius: 8px;
+            position: relative;
+        }
+
+        .slashProposalModalCloseButton {
+            position: absolute;
+            top: 10px; right: 10px;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        #openSlashProposalModal:hover {
+            cursor: pointer;
+            background-color: black;
+        }
+    </style>
+}
+
 templ (c *Pages) AdjudicatePageHTML(props *AdjudicatePageView) {
 	@c.layout.SiteFrame() {
         @staticUptimeStyles()
+        @staticAdjudicateStyles()
         <div>
             <h3 class="text-sm text-gray-400 px-3">
                 Node Operator
             </h3>
             <h1 class="text-xl p-4">
                 { props.ServiceProvider.Address }
+                <svg xmlns="http://www.w3.org/2000/svg" id="copyAdjudicateLinkButton" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="copyAdjudicateLink size-6 inline text-gray-600">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" />
+                </svg>
             </h1>
         </div>
+        <input type="text" id="timeRangeQueryStringInput" class="hidden" value={ getTimeRangeQueryString(props.StartTime, props.EndTime) }>
+
+        <script>
+            document.getElementById("copyAdjudicateLinkButton").addEventListener("click", () => {
+              timeRangeInput = document.getElementById("timeRangeQueryStringInput")
+              const link = window.location.origin + window.location.pathname + "?" + timeRangeInput.value;
+              
+              navigator.clipboard.writeText(link)
+                .then(() => {
+                  console.log("Link copied to clipboard!");
+                  alert("Copied to clipboard!");
+                })
+                .catch(err => {
+                  console.error("Failed to copy: ", err);
+                });
+              });
+        </script>
 
         <div class="flex flex-row text-center p-2">
             <div class="basis-1/2 rounded-md bg-slate-100 py-8 mx-1">
@@ -146,6 +212,57 @@ templ (c *Pages) AdjudicatePageHTML(props *AdjudicatePageView) {
                 @endpointRowReport(ep)
             }
         </table>
+
+        <div id="slashProposalModal" class="slashProposalModal">
+          <div class="slashProposalModalContent">
+            <span id="closeSlashProposalModal" class="slashProposalModalCloseButton">&times;</span>
+            <h2 class="text-lg">{ fmt.Sprintf("Create Slash Proposal for %s", props.ServiceProvider.Address) }</h2>
+
+            <div class="py-2">
+                <h3 class="text-sm text-gray-400">Signature</h3>
+                <p class="text-sm px-2">slash(uint256,address)</p>
+            </div>
+
+            <div class="py-2">
+                <h3 class="text-sm text-gray-400">Call Data</h3>
+                <p class="text-sm px-2">{ fmt.Sprintf("%d,%s", props.TotalUnearnedSPRewards, props.ServiceProvider.Address) }</p>
+            </div>
+
+            <div class="py-2">
+                <h3 class="text-sm text-gray-400">Name</h3>
+                <p class="text-sm px-2">Slash Non-contributing Node Operator</p>
+            </div>
+
+            <div class="py-2">
+                <h3 class="text-sm text-gray-400">Description</h3>
+                <p class="text-sm px-2" id="slashProposalDescription">
+                    { fmt.Sprintf("Slash %s $AUDIO from %s for consistently failing to meet SLA. See ", humanize.Comma(props.TotalUnearnedSPRewards), props.ServiceProvider.Address) }
+                </p>
+            </div>
+
+            <a class="py-3 text-blue-800" href="https://dashboard.audius.co/#/governance" target="_blank">
+                Click here to create a proposal
+            </a>
+          </div>
+        </div>
+
+        <script>
+            const modal = document.getElementById("slashProposalModal");
+            const openBtn = document.getElementById("openSlashProposalModal");
+            const closeBtn = document.getElementById("closeSlashProposalModal");
+
+            openBtn.onclick = () => modal.style.display = "block";
+            closeBtn.onclick = () => modal.style.display = "none";
+
+            window.onclick = (e) => {
+                if (e.target === modal) modal.style.display = "none";
+            };
+
+            timeRangeInput = document.getElementById("timeRangeQueryStringInput")
+            const link = window.location.origin + window.location.pathname + "?" + timeRangeInput.value;
+            const slashDesc = document.getElementById("slashProposalDescription")
+            slashDesc.textContent += link
+        </script>
 	}
 }
 
@@ -172,12 +289,14 @@ templ endpointSlaHistory(report *AdjudicateSlaReport) {
 
 templ adjudicateProposalRecommendation(unearnedRewards int64) {
     if unearnedRewards > unearnedRewardsThreshold {
-        <div class={ "basis-1/4 rounded-md bg-slate-100 py-8 mx-1", slaDeadClass() }>
-            <dt class="text-sm">
-                <a href="https://dashboard.audius.co/#/governance">
-                    { fmt.Sprintf("Click to Open a Proposal to Slash %s $AUDIO from this Service Provider", humanize.Comma(unearnedRewards)) }
-                </a>
+        <div id="openSlashProposalModal" class={ "basis-1/4 rounded-md bg-slate-100 py-8 mx-1", slaDeadClass() }>
+            <dt>
+                Action Recommended
             </dt>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-12 py-2 w-full">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
+            </svg>
+
         </div>
     } else {
         <div class="basis-1/4 rounded-md bg-slate-100 py-8 mx-1">

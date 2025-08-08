@@ -7,6 +7,8 @@ import (
 	"sort"
 	"strconv"
 
+	"connectrpc.com/connect"
+	ethv1 "github.com/AudiusProject/audiusd/pkg/api/eth/v1"
 	"github.com/AudiusProject/audiusd/pkg/core/console/views/pages"
 	"github.com/AudiusProject/audiusd/pkg/core/db"
 	"github.com/jackc/pgx/v5"
@@ -21,7 +23,7 @@ const (
 
 func (cs *Console) uptimeFragment(c echo.Context) error {
 	ctx := c.Request().Context()
-	rollupNodeAddress := c.Param("endpoint")
+	rollupNodeAddress := c.Param("validator")
 	rollupBlockEnd := c.Param("rollup")
 
 	if rollupNodeAddress == "" {
@@ -49,24 +51,46 @@ func (cs *Console) uptimeFragment(c echo.Context) error {
 		return err
 	}
 
-	// Gather validator info
-	validators, err := cs.db.GetAllRegisteredNodes(ctx)
-	if err != nil && err != pgx.ErrNoRows {
-		cs.logger.Error("Failed to get registered nodes from db", "error", err)
+	allEndpointsResp, err := cs.eth.GetRegisteredEndpoints(
+		ctx,
+		connect.NewRequest(&ethv1.GetRegisteredEndpointsRequest{}),
+	)
+	if err != nil {
+		cs.logger.Error("Falled to get all registered endpoints from eth service", "error", err)
 		return err
 	}
-	validatorMap := make(map[string]*pages.NodeUptime, len(validators))
-	for _, v := range validators {
-		validatorMap[v.CometAddress] = &pages.NodeUptime{
-			Endpoint:      v.Endpoint,
-			Owner:         v.EthAddress,
-			Address:       v.CometAddress,
-			IsValidator:   true,
-			ReportHistory: make([]pages.SlaReport, 0, validatorReportHistoryLength),
+
+	// Gather validator info
+	endpointMap := make(map[string]*pages.NodeUptime, len(allEndpointsResp.Msg.Endpoints))
+	for _, ep := range allEndpointsResp.Msg.Endpoints {
+		node, err := cs.db.GetNodeByEndpoint(ctx, ep.Endpoint)
+		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+			cs.logger.Error("Failed to get registered node from db", "endpoint", ep.Endpoint, "error", err)
+			return err
+		} else if errors.Is(err, pgx.ErrNoRows) {
+			endpointMap[ep.Endpoint] = &pages.NodeUptime{
+				Endpoint:      ep.Endpoint,
+				Owner:         ep.Owner,
+				IsValidator:   true,
+				ReportHistory: make([]pages.SlaReport, 0, validatorReportHistoryLength),
+			}
+		} else {
+			endpointMap[node.CometAddress] = &pages.NodeUptime{
+				Endpoint:      ep.Endpoint,
+				Owner:         ep.Owner,
+				Address:       node.CometAddress,
+				IsValidator:   true,
+				ReportHistory: make([]pages.SlaReport, 0, validatorReportHistoryLength),
+			}
 		}
 	}
-	_, isValidator := validatorMap[rollupNodeAddress]
+	_, isValidator := endpointMap[rollupNodeAddress]
 	myUptime.IsValidator = isValidator
+	totalCometValidators, err := cs.db.TotalValidators(ctx)
+	if err != nil {
+		cs.logger.Error("Failed to get count of all validators from db", "error", err)
+		return err
+	}
 
 	// Get history for this node
 	recentRollups, err := cs.db.GetRecentRollupsForNode(
@@ -82,8 +106,8 @@ func (cs *Console) uptimeFragment(c echo.Context) error {
 	}
 	for _, rr := range recentRollups {
 		reportQuota := int32(0)
-		if len(validators) > 0 {
-			reportQuota = int32(rr.BlockEnd-rr.BlockStart) / int32(len(validators))
+		if totalCometValidators > 0 {
+			reportQuota = int32(rr.BlockEnd-rr.BlockStart) / int32(totalCometValidators)
 		}
 		myUptime.ReportHistory = append(
 			myUptime.ReportHistory,
@@ -112,10 +136,10 @@ func (cs *Console) uptimeFragment(c echo.Context) error {
 		return err
 	}
 	for _, rr := range bulkRecentReports {
-		if valData, ok := validatorMap[rr.Address.String]; ok {
+		if valData, ok := endpointMap[rr.Address.String]; ok {
 			var reportQuota int32 = 0
-			if len(validatorMap) > 0 {
-				reportQuota = int32(rr.BlockEnd-rr.BlockStart) / int32(len(validators))
+			if totalCometValidators > 0 {
+				reportQuota = int32(rr.BlockEnd-rr.BlockStart) / int32(totalCometValidators)
 			}
 			rep := pages.SlaReport{
 				SlaRollupId:    rr.ID,
@@ -146,7 +170,7 @@ func (cs *Console) uptimeFragment(c echo.Context) error {
 		return err
 	}
 	for _, posr := range posRollups {
-		if valData, ok := validatorMap[posr.Address]; ok {
+		if valData, ok := endpointMap[posr.Address]; ok {
 			valData.ActiveReport.PoSChallengesFailed = int32(posr.FailedCount)
 			valData.ActiveReport.PoSChallengesTotal = int32(posr.TotalCount)
 		}
@@ -158,20 +182,20 @@ func (cs *Console) uptimeFragment(c echo.Context) error {
 
 	// Store validators as sorted slice
 	// (adjust sorting method to fit display preference)
-	sortedValidators := make([]*pages.NodeUptime, 0, len(validatorMap))
-	for _, v := range validatorMap {
-		sortedValidators = append(sortedValidators, v)
+	sortedEndpoints := make([]*pages.NodeUptime, 0, len(endpointMap))
+	for _, v := range endpointMap {
+		sortedEndpoints = append(sortedEndpoints, v)
 	}
-	sort.Slice(sortedValidators, func(i, j int) bool {
-		if sortedValidators[i].ActiveReport.BlocksProposed != sortedValidators[j].ActiveReport.BlocksProposed {
-			return sortedValidators[i].ActiveReport.BlocksProposed < sortedValidators[j].ActiveReport.BlocksProposed
+	sort.Slice(sortedEndpoints, func(i, j int) bool {
+		if sortedEndpoints[i].ActiveReport.BlocksProposed != sortedEndpoints[j].ActiveReport.BlocksProposed {
+			return sortedEndpoints[i].ActiveReport.BlocksProposed < sortedEndpoints[j].ActiveReport.BlocksProposed
 		}
-		return sortedValidators[i].Endpoint < sortedValidators[j].Endpoint
+		return sortedEndpoints[i].Endpoint < sortedEndpoints[j].Endpoint
 	})
 
 	return cs.views.RenderUptimeView(c, &pages.UptimePageView{
 		ActiveNodeUptime: myUptime,
-		ValidatorUptimes: sortedValidators,
+		ValidatorUptimes: sortedEndpoints,
 		AvgBlockTimeMs:   avgBlockTimeMs,
 	})
 }
