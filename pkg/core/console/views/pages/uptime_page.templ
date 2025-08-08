@@ -150,7 +150,7 @@ css slaDeadClass() {
 }
 
 
-templ staticStyles() {
+templ staticUptimeStyles() {
     <style type="text/css">
         a.reportLink {
             display: block;
@@ -195,11 +195,11 @@ templ staticStyles() {
 
 templ (c *Pages) UptimePageHTML(props *UptimePageView) {
 	@c.layout.SiteFrame() {
-        @staticStyles()
+        @staticUptimeStyles()
         <ul class="m-2">
             for _, r := range props.ActiveNodeUptime.ReportHistory {
                 <li class={ templ.KV("selectedUptimeBar", props.ActiveNodeUptime.ActiveReport.SlaRollupId == r.SlaRollupId), uptimeBar(r, !props.ActiveNodeUptime.IsValidator) }>
-                    <a class="reportLink" href={ templ.URL(fmt.Sprintf("/console/uptime/%d", r.SlaRollupId)) }></a>
+                    <a class="reportLink" href={ templ.URL(fmt.Sprintf("/console/uptime/%d", r.BlockEnd)) }></a>
                     <span class="uptimebarTooltip">{ r.Time.Format("06-01-02 15:04:05 MST") }</span>
                 </li>
             }

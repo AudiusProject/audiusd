@@ -56,6 +56,17 @@ message GetServiceProvidersResponse {
   repeated ServiceProvider serviceProviders = 1;
 }
 
+message GetStakingMetadataForServiceProviderRequest {
+  string address = 1;
+}
+
+message GetStakingMetadataForServiceProviderResponse {
+  int64 total_staked = 1;
+  int64 rewards_per_round = 2;
+}
+
+
+
 message ServiceProvider {
   string wallet = 1;
   int64 deployer_stake = 2; 

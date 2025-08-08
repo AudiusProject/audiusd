@@ -18,10 +18,15 @@ const validatorReportHistoryLength = 5
 
 func (cs *Console) uptimeFragment(c echo.Context) error {
 	ctx := c.Request().Context()
+	rollupNodeAddress := c.Param("endpoint")
 	rollupBlockEnd := c.Param("rollup")
 
+	if rollupNodeAddress == "" {
+		rollupNodeAddress = cs.state.cometAddress
+	}
+
 	// Get active report
-	activeReport, err := cs.getActiveSlaReport(ctx, rollupBlockEnd)
+	activeReport, err := cs.getActiveSlaReport(ctx, rollupBlockEnd, rollupNodeAddress)
 	if err != nil {
 		cs.logger.Error("Falled to get active Proof Of Work report", "error", err)
 		return err
@@ -29,7 +34,7 @@ func (cs *Console) uptimeFragment(c echo.Context) error {
 
 	// Attach report to this node
 	myUptime := pages.NodeUptime{
-		Address:       cs.state.cometAddress,
+		Address:       rollupNodeAddress,
 		ActiveReport:  activeReport,
 		ReportHistory: make([]pages.SlaReport, 0, 30),
 	}
@@ -57,11 +62,11 @@ func (cs *Console) uptimeFragment(c echo.Context) error {
 			ReportHistory: make([]pages.SlaReport, 0, validatorReportHistoryLength),
 		}
 	}
-	_, isValidator := validatorMap[cs.state.cometAddress]
+	_, isValidator := validatorMap[rollupNodeAddress]
 	myUptime.IsValidator = isValidator
 
 	// Get history for this node
-	recentRollups, err := cs.db.GetRecentRollupsForNode(ctx, cs.state.cometAddress)
+	recentRollups, err := cs.db.GetRecentRollupsForNode(ctx, rollupNodeAddress)
 	if err != nil && err != pgx.ErrNoRows {
 		cs.logger.Error("Failed to get recent rollups from db", "error", err)
 		return err
@@ -162,7 +167,7 @@ func (cs *Console) uptimeFragment(c echo.Context) error {
 	})
 }
 
-func (cs *Console) getActiveSlaReport(ctx context.Context, rollupBlockEnd string) (pages.SlaReport, error) {
+func (cs *Console) getActiveSlaReport(ctx context.Context, rollupBlockEnd, rollupNodeAddress string) (pages.SlaReport, error) {
 	var report pages.SlaReport
 
 	var rollup db.SlaRollup
@@ -182,7 +187,7 @@ func (cs *Console) getActiveSlaReport(ctx context.Context, rollupBlockEnd string
 	mySlaNodeReport, err := cs.db.GetRollupReportForNodeAndId(
 		ctx,
 		db.GetRollupReportForNodeAndIdParams{
-			Address:     cs.state.cometAddress,
+			Address:     rollupNodeAddress,
 			SlaRollupID: pgtype.Int4{Int32: rollup.ID, Valid: true},
 		},
 	)

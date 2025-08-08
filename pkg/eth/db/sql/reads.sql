@@ -23,3 +23,6 @@ where delegate_wallet = $1;
 
 -- name: GetLatestFundingRound :one
 select * from eth_funding_rounds order by round_num desc limit 1;
+
+-- name: GetStakedAmountForServiceProvider :one
+select total_staked from eth_staked where address = $1;

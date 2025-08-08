@@ -3,6 +3,8 @@ package pages
 import (
     "fmt"
     "time"
+
+    "github.com/dustin/go-humanize"
 )
 
 type SlaStatus = int
@@ -13,10 +15,18 @@ const (
     SlaMet
 )
 
+const unearnedRewardsThreshold = int64(10000)
+
 type AdjudicatePageView struct {
-    ServiceProvider *ServiceProvider
-    StartTime       time.Time
-    EndTime         time.Time
+    ServiceProvider        *ServiceProvider
+    StartTime              time.Time
+    EndTime                time.Time
+    MetSlas                int
+    PartialSlas            int
+    DeadSlas               int
+    TotalStaked            int64
+    TotalSPRewards         int64
+    TotalUnearnedSPRewards int64
 }
 
 type ServiceProvider struct {
@@ -61,10 +71,71 @@ css slaBar(status SlaStatus) {
 
 templ (c *Pages) AdjudicatePageHTML(props *AdjudicatePageView) {
 	@c.layout.SiteFrame() {
-        @staticStyles()
-        <h1 class="text-xl">
-            SLA Performance Summary for { props.ServiceProvider.Address } From { fmt.Sprintf("%v - %v", props.StartTime, props.EndTime) }
-        </h1>
+        @staticUptimeStyles()
+        <div>
+            <h3 class="text-sm text-gray-400 px-3">
+                Node Operator
+            </h3>
+            <h1 class="text-xl p-4">
+                { props.ServiceProvider.Address }
+            </h1>
+        </div>
+
+        <div class="flex flex-row text-center p-2">
+            <div class="basis-1/2 rounded-md bg-slate-100 py-8 mx-1">
+                <dt class="text-lg">
+                    { props.StartTime.Format("2006-01-02") }
+                    <br />
+                    { props.StartTime.Format("15:04 MST") }
+                </dt>
+                <dd class="text-sm">Start</dd>
+            </div>
+            <div class="basis-1/2 rounded-md bg-slate-100 py-8 mx-1">
+                <dt class="text-lg">
+                    { props.EndTime.Format("2006-01-02") }
+                    <br />
+                    { props.EndTime.Format("15:04 MST") }
+                </dt>
+                <dd class="text-sm">End</dd>
+            </div>
+
+        </div>
+
+        <div class="flex flex-row text-center p-2">
+            <div class="basis-1/3 rounded-md bg-slate-100 py-8 mx-1">
+                <dt class="text-4xl">{ humanize.Comma(int64(props.MetSlas)) }</dt>
+                <dd class="text-sm">SLAs Met</dd>
+            </div>
+
+            <div class={ "basis-1/3 rounded-md bg-slate-100 py-8 mx-1", templ.KV(slaMissClass(), props.PartialSlas > 0) }>
+                <dt class="text-4xl">{ humanize.Comma(int64(props.PartialSlas)) }</dt>
+                <dd class="text-sm">SLAs Partially Met</dd>
+            </div>
+
+            <div class={ "basis-1/3 rounded-md bg-slate-100 py-8 mx-1", templ.KV(slaDeadClass(), props.DeadSlas > 0) }>
+                <dt class="text-4xl">{ humanize.Comma(int64(props.DeadSlas)) }</dt>
+                <dd class="text-sm">SLAs Completely Missed</dd>
+            </div>
+        </div>
+
+        <div class="flex flex-row text-center p-2">
+            <div class="basis-1/4 rounded-md bg-slate-100 py-8 mx-1">
+                <dt class="text-4xl">{ humanize.Comma(props.TotalStaked) }</dt>
+                <dd class="text-sm">Total Staked for Service Provider</dd>
+            </div>
+
+            <div class="basis-1/4 rounded-md bg-slate-100 py-8 mx-1">
+                <dt class="text-4xl">{ humanize.Comma(props.TotalSPRewards) }</dt>
+                <dd class="text-sm">Est. Rewards Accrued During Time Period</dd>
+            </div>
+
+            <div class={ "basis-1/4 rounded-md bg-slate-100 py-8 mx-1", templ.KV(slaDeadClass(), props.TotalUnearnedSPRewards > unearnedRewardsThreshold) }>
+                <dt class="text-4xl">{ humanize.Comma(props.TotalUnearnedSPRewards) }</dt>
+                <dd class="text-sm">Est. Rewards to Slash Based on SLA Performance</dd>
+            </div>
+
+            @adjudicateProposalRecommendation(props.TotalUnearnedSPRewards)
+        </div>
 
         <table class="bg-slate-50 p-2 rounded validatorReports text-left m-4">
             <tr>
@@ -97,4 +168,21 @@ templ endpointSlaHistory(report *AdjudicateSlaReport) {
     <li class={ slaBar(report.Status) }>
         <a class="reportLink" href={ templ.URL(fmt.Sprintf("/console/uptime/%d", report.BlockEnd)) }></a>
     </li>
+}
+
+templ adjudicateProposalRecommendation(unearnedRewards int64) {
+    if unearnedRewards > unearnedRewardsThreshold {
+        <div class={ "basis-1/4 rounded-md bg-slate-100 py-8 mx-1", slaDeadClass() }>
+            <dt class="text-sm">
+                <a href="https://dashboard.audius.co/#/governance">
+                    { fmt.Sprintf("Click to Open a Proposal to Slash %s $AUDIO from this Service Provider", humanize.Comma(unearnedRewards)) }
+                </a>
+            </dt>
+        </div>
+    } else {
+        <div class="basis-1/4 rounded-md bg-slate-100 py-8 mx-1">
+            <dt class="text-sm">
+            </dt>
+        </div>
+    }
 }

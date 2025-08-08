@@ -258,3 +258,19 @@ func (e *EthService) Subscribe(ctx context.Context, req *connect.Request[v1.Subs
 		}
 	}
 }
+
+func (e *EthService) GetStakingMetadataForServiceProvider(ctx context.Context, req *connect.Request[v1.GetStakingMetadataForServiceProviderRequest]) (*connect.Response[v1.GetStakingMetadataForServiceProviderResponse], error) {
+	staked, err := e.db.GetStakedAmountForServiceProvider(ctx, req.Msg.Address)
+	if err != nil {
+		e.logger.Debugf("could not get staked amount for service provider at address %s: %v", req.Msg.Address, err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("Could not get staking metadata"))
+	}
+	e.logger.Infof("**** DELETEMEcon staked, fundingamountperround, totalStakedAmount: %d, %d, %d", staked, e.fundingRound.fundingAmountPerRound, e.fundingRound.totalStakedAmount)
+	rewardsPerRound := int64(float64(staked) * float64(e.fundingRound.fundingAmountPerRound) / float64(e.fundingRound.totalStakedAmount))
+	return connect.NewResponse(
+		&v1.GetStakingMetadataForServiceProviderResponse{
+			TotalStaked:     e.fundingRound.totalStakedAmount,
+			RewardsPerRound: rewardsPerRound,
+		},
+	), nil
+}
