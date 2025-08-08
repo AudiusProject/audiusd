@@ -43,6 +43,9 @@ const (
 )
 
 func meetsPoWSla(report SlaReport) bool {
+    if report.BlocksProposed == 0 {
+        return false
+    }
     faultRatio := 1.0
     if report.Quota > 0 {
         faultRatio = float64(report.BlocksProposed) / float64(report.Quota)

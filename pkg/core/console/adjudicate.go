@@ -48,14 +48,14 @@ func (cs *Console) adjudicateFragment(c echo.Context) error {
 	startTime := time.Now().Add(-7 * 24 * time.Hour)
 	endTime := time.Now()
 	if c.QueryParam("start") != "" {
-		if parsed, err := time.Parse(c.QueryParam("start"), "2006-01-02T15:04"); err != nil {
+		if parsed, err := time.Parse("2006-01-02T15:04", c.QueryParam("start")); err != nil {
 			cs.logger.Warn("failed to parse start time from query string", "error", err)
 		} else {
 			startTime = parsed
 		}
 	}
 	if c.QueryParam("end") != "" {
-		if parsed, err := time.Parse(c.QueryParam("end"), "2006-01-02T15:04"); err != nil {
+		if parsed, err := time.Parse("2006-01-02T15:04", c.QueryParam("end")); err != nil {
 			cs.logger.Warn("failed to parse end time from query string", "error", err)
 		} else {
 			endTime = parsed
