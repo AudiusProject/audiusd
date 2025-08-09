@@ -141,10 +141,7 @@ func (cs *Console) adjudicateFragment(c echo.Context) error {
 		return err
 	}
 	periodDays := int64(endTime.Sub(startTime).Hours() / 24)
-	cs.logger.Infof("**** DELETEMEcs period days: %d", periodDays)
 	totalRewards := int64(stakingResp.Msg.RewardsPerRound * periodDays / 7)
-	cs.logger.Infof("**** DELETEMEcs rewards per round: %d", stakingResp.Msg.RewardsPerRound)
-	cs.logger.Infof("**** DELETEMEcs totalRewards: %d", totalRewards)
 	totalUnearnedRewards := int64(float64(totalDeadSlas) / float64(totalMetSlas+totalPartialSlas+totalDeadSlas) * float64(totalRewards))
 
 	view := &pages.AdjudicatePageView{
