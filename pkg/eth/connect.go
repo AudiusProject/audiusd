@@ -265,7 +265,6 @@ func (e *EthService) GetStakingMetadataForServiceProvider(ctx context.Context, r
 		e.logger.Debugf("could not get staked amount for service provider at address %s: %v", req.Msg.Address, err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("Could not get staking metadata"))
 	}
-	e.logger.Infof("**** DELETEMEcon staked, fundingamountperround, totalStakedAmount: %d, %d, %d", staked, e.fundingRound.fundingAmountPerRound, e.fundingRound.totalStakedAmount)
 	rewardsPerRound := int64(float64(staked) * float64(e.fundingRound.fundingAmountPerRound) / float64(e.fundingRound.totalStakedAmount))
 	return connect.NewResponse(
 		&v1.GetStakingMetadataForServiceProviderResponse{

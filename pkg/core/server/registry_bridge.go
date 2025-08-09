@@ -75,11 +75,6 @@ ethstatus:
 		return err
 	}
 
-	// DELETEME for testing
-	if s.config.NodeEndpoint == "https://node3.audiusd.devnet" {
-		return nil
-	}
-
 	timeout := time.After(120 * time.Minute)
 	delay := 2 * time.Second
 	ticker = time.NewTicker(2 * time.Second)
