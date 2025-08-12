@@ -25,4 +25,12 @@ message Party {
   PartyId party_id = 3;
 }
 
-message PartyDescriptorWithPronounciation {}
+message PartyDescriptorWithPronounciation {
+  message PartyIdOrPartyName {
+    oneof party {
+      Party.PartyId party_id = 1;
+      Party.PartyName party_name = 2;
+    }
+  }
+  repeated PartyIdOrPartyName parties = 1;
+}
