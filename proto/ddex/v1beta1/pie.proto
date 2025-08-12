@@ -4,6 +4,7 @@ package ddex.v1beta1;
 
 import "ddex/v1beta1/common.proto";
 import "ddex/v1beta1/party.proto";
+import "ddex/v1beta1/resource.proto";
 
 option go_package = "github.com/AudiusProject/audiusd/pkg/api/ddex/v1beta1";
 
@@ -19,13 +20,24 @@ message PieMessage {
     }
     string party_reference = 1;
     ddex.v1beta1.Party.PartyId party_id = 2;
-    ddex.v1beta1.Party.PartyName party_name = 3;
+    repeated ddex.v1beta1.Party.PartyName party_name = 3;
     PartyType party_type = 4;
 
-    // optional enrichment fields
-    repeated Handle handles = 5;
-    repeated Verified verified = 6;
-    repeated Award awards = 7;
+    // enrichment fields
+    repeated Biography biographies = 5;
+    repeated Resource.Image images = 6;
+  }
+
+  message Biography {
+    message BiographyText {}
+
+    BiographyText text = 1;
+    PartyDescriptorWithPronounciation author = 2;
+    SocialMediaUrl social_media_urls = 3;
+  }
+
+  message SocialMediaUrl {
+    string url = 1;
   }
 
   message Handle {
