@@ -141,6 +141,10 @@ type Config struct {
 	ERNAccessControlEnabled bool
 }
 
+func (c *Config) IsDev() bool {
+	return c.Environment == "dev"
+}
+
 type StateSyncConfig struct {
 	// will periodically save pg_dumps to disk and serve them to other nodes
 	ServeSnapshots bool
@@ -196,9 +200,10 @@ func ReadConfig(logger *common.Logger) (*Config, error) {
 		ssRpcServers = StageStateSyncRpcs
 	}
 
+	ssEnableDefault := strings.ToLower(strconv.FormatBool(!cfg.IsDev()))
 	cfg.StateSync = &StateSyncConfig{
 		ServeSnapshots: GetEnvWithDefault("stateSyncServeSnapshots", "false") == "true",
-		Enable:         GetEnvWithDefault("stateSyncEnable", "true") == "true",
+		Enable:         GetEnvWithDefault("stateSyncEnable", ssEnableDefault) == "true",
 		Keep:           getEnvIntWithDefault("stateSyncKeep", 6),
 		BlockInterval:  int64(getEnvIntWithDefault("stateSyncBlockInterval", 100)),
 		ChunkFetchers:  int32(getEnvIntWithDefault("stateSyncChunkFetchers", 10)),
