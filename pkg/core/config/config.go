@@ -61,6 +61,11 @@ const (
 	DevPersistentPeers   = "ffad25668e060a357bbe534c8b7e5b4e1274368b@audiusd-1:26656"
 )
 
+var (
+	ProdStateSyncRpcs  = strings.Split("creatornode.audius.co,creatornode2.audius.co", ",")
+	StageStateSyncRpcs = strings.Split("creatornode11.audius.co,creatornode5.audius.co", ",")
+)
+
 const (
 	mainnetValidatorVotingPower = 10
 	testnetValidatorVotingPower = 10
@@ -184,19 +189,16 @@ func ReadConfig(logger *common.Logger) (*Config, error) {
 	cfg.LogLevel = GetEnvWithDefault("AUDIUSD_LOG_LEVEL", "info")
 
 	ssRpcServers := ""
-	ssEnable := "false"
 	switch cfg.Environment {
 	case "prod", "production":
-		ssRpcServers = "creatornode.audius.co,creatornode2.audius.co"
-		ssEnable = "true"
+		ssRpcServers = "creatornode2.audius.co,creatornode2.audius.co"
 	case "stage", "staging":
 		ssRpcServers = "creatornode11.audius.co,creatornode5.audius.co"
-		ssEnable = "true"
 	}
 
 	cfg.StateSync = &StateSyncConfig{
 		ServeSnapshots: GetEnvWithDefault("stateSyncServeSnapshots", "false") == "true",
-		Enable:         GetEnvWithDefault("stateSyncEnable", ssEnable) == "true",
+		Enable:         GetEnvWithDefault("stateSyncEnable", "true") == "true",
 		Keep:           getEnvIntWithDefault("stateSyncKeep", 6),
 		BlockInterval:  int64(getEnvIntWithDefault("stateSyncBlockInterval", 100)),
 		ChunkFetchers:  int32(getEnvIntWithDefault("stateSyncChunkFetchers", 10)),
