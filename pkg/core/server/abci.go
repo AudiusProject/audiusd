@@ -82,7 +82,7 @@ func (s *Server) startABCI(ctx context.Context) error {
 		return fmt.Errorf("db not ready for ABCI: %v", err)
 	}
 
-	if s.config.StateSync.Enable && !alreadySynced {
+	if s.config.StateSync.Enable && !alreadySynced && len(s.config.StateSync.RPCServers) > 1 {
 		cometConfig.StateSync.Enable = true
 		rpcServers := s.config.StateSync.RPCServers
 		s.logger.Info("state sync enabled, using rpc servers", "rpcServers", rpcServers)
