@@ -187,16 +187,16 @@ func ReadConfig(logger *common.Logger) (*Config, error) {
 	ssEnable := "false"
 	switch cfg.Environment {
 	case "prod", "production":
-		ssRpcServers = "creatornode.audius.co,creatornode.audius.co"
+		ssRpcServers = "creatornode.audius.co,creatornode2.audius.co"
 		ssEnable = "true"
 	case "stage", "staging":
-		ssRpcServers = "creatornode11.audius.co,creatornode11.audius.co"
+		ssRpcServers = "creatornode11.audius.co,creatornode5.audius.co"
 		ssEnable = "true"
 	}
 
 	cfg.StateSync = &StateSyncConfig{
-		ServeSnapshots: GetEnvWithDefault("stateSyncServeSnapshots", ssEnable) == "true",
-		Enable:         GetEnvWithDefault("stateSyncEnable", "false") == "true",
+		ServeSnapshots: GetEnvWithDefault("stateSyncServeSnapshots", "false") == "true",
+		Enable:         GetEnvWithDefault("stateSyncEnable", ssEnable) == "true",
 		Keep:           getEnvIntWithDefault("stateSyncKeep", 6),
 		BlockInterval:  int64(getEnvIntWithDefault("stateSyncBlockInterval", 100)),
 		ChunkFetchers:  int32(getEnvIntWithDefault("stateSyncChunkFetchers", 10)),
