@@ -73,6 +73,10 @@ func (s *Server) startABCI(ctx context.Context) error {
 		return fmt.Errorf("failed to parse log level: %v", err)
 	}
 
+	if err := s.resetChain(); err != nil {
+		s.logger.Errorf("couldn't reset chain: %v", err)
+	}
+
 	// query for existing blocks
 	alreadySynced := true
 	_, err = s.db.GetLatestBlock(context.Background())

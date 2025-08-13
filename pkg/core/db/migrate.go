@@ -76,3 +76,22 @@ func runMigrations(logger *common.Logger, db *sql.DB, downFirst bool) error {
 
 	return nil
 }
+
+func RunDownMigrations(logger *common.Logger, pgConnectionString string) error {
+	db, err := sql.Open("postgres", pgConnectionString)
+	if err != nil {
+		return fmt.Errorf("error opening sql db %v", err)
+	}
+
+	migrations := migrate.EmbedFileSystemMigrationSource{
+		FileSystem: migrationsFS,
+		Root:       "sql/migrations",
+	}
+
+	migrate.SetTable("core_db_migrations")
+	_, err = migrate.Exec(db, "postgres", migrations, migrate.Down)
+	if err != nil {
+		return fmt.Errorf("error running down migrations %v", err)
+	}
+	return nil
+}
