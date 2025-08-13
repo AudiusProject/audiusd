@@ -33,7 +33,7 @@ func (q *Queries) GetLatestFundingRound(ctx context.Context) (EthFundingRound, e
 }
 
 const getRegisteredEndpoint = `-- name: GetRegisteredEndpoint :one
-select id, service_type, owner, delegate_wallet, endpoint, blocknumber from eth_registered_endpoints
+select id, service_type, owner, delegate_wallet, endpoint, blocknumber, registered_at from eth_registered_endpoints
 where endpoint = $1
 `
 
@@ -47,12 +47,13 @@ func (q *Queries) GetRegisteredEndpoint(ctx context.Context, endpoint string) (E
 		&i.DelegateWallet,
 		&i.Endpoint,
 		&i.Blocknumber,
+		&i.RegisteredAt,
 	)
 	return i, err
 }
 
 const getRegisteredEndpoints = `-- name: GetRegisteredEndpoints :many
-select id, service_type, owner, delegate_wallet, endpoint, blocknumber from eth_registered_endpoints
+select id, service_type, owner, delegate_wallet, endpoint, blocknumber, registered_at from eth_registered_endpoints
 `
 
 func (q *Queries) GetRegisteredEndpoints(ctx context.Context) ([]EthRegisteredEndpoint, error) {
@@ -71,6 +72,7 @@ func (q *Queries) GetRegisteredEndpoints(ctx context.Context) ([]EthRegisteredEn
 			&i.DelegateWallet,
 			&i.Endpoint,
 			&i.Blocknumber,
+			&i.RegisteredAt,
 		); err != nil {
 			return nil, err
 		}
@@ -83,7 +85,7 @@ func (q *Queries) GetRegisteredEndpoints(ctx context.Context) ([]EthRegisteredEn
 }
 
 const getRegisteredEndpointsForServiceProvider = `-- name: GetRegisteredEndpointsForServiceProvider :many
-select id, service_type, owner, delegate_wallet, endpoint, blocknumber from eth_registered_endpoints
+select id, service_type, owner, delegate_wallet, endpoint, blocknumber, registered_at from eth_registered_endpoints
 where owner = $1
 `
 
@@ -103,6 +105,7 @@ func (q *Queries) GetRegisteredEndpointsForServiceProvider(ctx context.Context, 
 			&i.DelegateWallet,
 			&i.Endpoint,
 			&i.Blocknumber,
+			&i.RegisteredAt,
 		); err != nil {
 			return nil, err
 		}

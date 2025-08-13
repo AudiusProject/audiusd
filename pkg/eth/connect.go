@@ -82,6 +82,7 @@ func (e *EthService) GetRegisteredEndpointInfo(ctx context.Context, req *connect
 			Endpoint:       ep.Endpoint,
 			BlockNumber:    ep.Blocknumber,
 			DelegateWallet: ep.DelegateWallet,
+			RegisteredAt:   timestamppb.New(ep.RegisteredAt.Time),
 		},
 	}
 	return connect.NewResponse(res), nil

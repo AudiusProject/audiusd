@@ -99,7 +99,7 @@ func (cs *Console) adjudicateFragment(c echo.Context) error {
 		}
 
 		// Calculate the status of each SLA rollup as met, partially met, or dead (0% met)
-		viewSlaReports := make([]*pages.AdjudicateSlaReport, len(slaRollups))
+		viewSlaReports := make([]*pages.SlaReport, len(slaRollups))
 		for i, r := range slaRollups {
 			reportQuota := int32(0)
 			if totalValidators > 0 {
@@ -118,7 +118,7 @@ func (cs *Console) adjudicateFragment(c echo.Context) error {
 				totalMetSlas += 1
 			}
 
-			viewSlaReports[i] = &pages.AdjudicateSlaReport{
+			viewSlaReports[i] = &pages.SlaReport{
 				TxHash:     r.TxHash,
 				Status:     status,
 				BlockStart: r.BlockStart,

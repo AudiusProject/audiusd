@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const clearRegisteredEndpoints = `-- name: ClearRegisteredEndpoints :exec
@@ -59,17 +61,18 @@ func (q *Queries) DeleteRegisteredEndpoint(ctx context.Context, arg DeleteRegist
 }
 
 const insertRegisteredEndpoint = `-- name: InsertRegisteredEndpoint :exec
-insert into eth_registered_endpoints (id, service_type, owner, delegate_wallet, endpoint, blocknumber)
-values ($1, $2, $3, $4, $5, $6)
+insert into eth_registered_endpoints (id, service_type, owner, delegate_wallet, endpoint, blocknumber, registered_at)
+values ($1, $2, $3, $4, $5, $6, $7)
 `
 
 type InsertRegisteredEndpointParams struct {
-	ID             int32  `json:"id"`
-	ServiceType    string `json:"service_type"`
-	Owner          string `json:"owner"`
-	DelegateWallet string `json:"delegate_wallet"`
-	Endpoint       string `json:"endpoint"`
-	Blocknumber    int64  `json:"blocknumber"`
+	ID             int32            `json:"id"`
+	ServiceType    string           `json:"service_type"`
+	Owner          string           `json:"owner"`
+	DelegateWallet string           `json:"delegate_wallet"`
+	Endpoint       string           `json:"endpoint"`
+	Blocknumber    int64            `json:"blocknumber"`
+	RegisteredAt   pgtype.Timestamp `json:"registered_at"`
 }
 
 func (q *Queries) InsertRegisteredEndpoint(ctx context.Context, arg InsertRegisteredEndpointParams) error {
@@ -80,6 +83,7 @@ func (q *Queries) InsertRegisteredEndpoint(ctx context.Context, arg InsertRegist
 		arg.DelegateWallet,
 		arg.Endpoint,
 		arg.Blocknumber,
+		arg.RegisteredAt,
 	)
 	return err
 }

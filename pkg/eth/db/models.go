@@ -15,12 +15,13 @@ type EthFundingRound struct {
 }
 
 type EthRegisteredEndpoint struct {
-	ID             int32  `json:"id"`
-	ServiceType    string `json:"service_type"`
-	Owner          string `json:"owner"`
-	DelegateWallet string `json:"delegate_wallet"`
-	Endpoint       string `json:"endpoint"`
-	Blocknumber    int64  `json:"blocknumber"`
+	ID             int32            `json:"id"`
+	ServiceType    string           `json:"service_type"`
+	Owner          string           `json:"owner"`
+	DelegateWallet string           `json:"delegate_wallet"`
+	Endpoint       string           `json:"endpoint"`
+	Blocknumber    int64            `json:"blocknumber"`
+	RegisteredAt   pgtype.Timestamp `json:"registered_at"`
 }
 
 type EthServiceProvider struct {

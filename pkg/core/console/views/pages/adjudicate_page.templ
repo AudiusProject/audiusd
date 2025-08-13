@@ -8,14 +8,6 @@ import (
     "github.com/dustin/go-humanize"
 )
 
-type SlaStatus = int
-
-const (
-	SlaDead SlaStatus = iota
-	SlaPartial
-    SlaMet
-)
-
 const unearnedRewardsThreshold = int64(10000)
 
 type AdjudicatePageView struct {
@@ -33,21 +25,6 @@ type AdjudicatePageView struct {
 type ServiceProvider struct {
     Address   string
     Endpoints []*Endpoint
-}
-
-type Endpoint struct {
-    EthAddress   string
-    CometAddress string
-    Endpoint     string
-    SlaReports   []*AdjudicateSlaReport
-}
-
-type AdjudicateSlaReport struct {
-	TxHash     string
-    Status     SlaStatus
-	BlockStart int64
-	BlockEnd   int64
-	Time       time.Time
 }
 
 func getSlaBarColor(status SlaStatus) string {
@@ -111,6 +88,19 @@ templ staticAdjudicateStyles() {
             cursor: pointer;
             background-color: black;
         }
+
+        .adjudicateToolTip {
+            visibility: hidden;
+            width: 120px;
+            background-color: black;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px 0;
+            position: absolute;
+            z-index: 1;
+        }
+
     </style>
 }
 
@@ -281,7 +271,7 @@ templ endpointRowReport(endpoint *Endpoint) {
     </tr>
 }
 
-templ endpointSlaHistory(report *AdjudicateSlaReport) {
+templ endpointSlaHistory(report *SlaReport) {
     <li class={ slaBar(report.Status) }>
         <a class="reportLink" href={ templ.URL(fmt.Sprintf("/console/uptime/%d", report.BlockEnd)) }></a>
     </li>

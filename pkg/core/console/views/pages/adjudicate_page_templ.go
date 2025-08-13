@@ -16,14 +16,6 @@ import (
 	"github.com/dustin/go-humanize"
 )
 
-type SlaStatus = int
-
-const (
-	SlaDead SlaStatus = iota
-	SlaPartial
-	SlaMet
-)
-
 const unearnedRewardsThreshold = int64(10000)
 
 type AdjudicatePageView struct {
@@ -41,21 +33,6 @@ type AdjudicatePageView struct {
 type ServiceProvider struct {
 	Address   string
 	Endpoints []*Endpoint
-}
-
-type Endpoint struct {
-	EthAddress   string
-	CometAddress string
-	Endpoint     string
-	SlaReports   []*AdjudicateSlaReport
-}
-
-type AdjudicateSlaReport struct {
-	TxHash     string
-	Status     SlaStatus
-	BlockStart int64
-	BlockEnd   int64
-	Time       time.Time
 }
 
 func getSlaBarColor(status SlaStatus) string {
@@ -112,7 +89,7 @@ func staticAdjudicateStyles() templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<style type=\"text/css\">\n        .copyAdjudicateLink {\n            cursor: pointer;\n        }\n        .slashProposalModal {\n            display: none;\n            position: fixed;\n            z-index: 1000;\n            left: 0; top: 0;\n            width: 100%; height: 100%;\n            background: rgba(0,0,0,0.5);\n        }\n\n        .slashProposalModalContent {\n            background: #fff;\n            padding: 20px;\n            margin: 15% auto;\n            width: 800px;\n            border-radius: 8px;\n            position: relative;\n        }\n\n        .slashProposalModalCloseButton {\n            position: absolute;\n            top: 10px; right: 10px;\n            font-size: 20px;\n            cursor: pointer;\n        }\n\n        #openSlashProposalModal:hover {\n            cursor: pointer;\n            background-color: black;\n        }\n    </style>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<style type=\"text/css\">\n        .copyAdjudicateLink {\n            cursor: pointer;\n        }\n        .slashProposalModal {\n            display: none;\n            position: fixed;\n            z-index: 1000;\n            left: 0; top: 0;\n            width: 100%; height: 100%;\n            background: rgba(0,0,0,0.5);\n        }\n\n        .slashProposalModalContent {\n            background: #fff;\n            padding: 20px;\n            margin: 15% auto;\n            width: 800px;\n            border-radius: 8px;\n            position: relative;\n        }\n\n        .slashProposalModalCloseButton {\n            position: absolute;\n            top: 10px; right: 10px;\n            font-size: 20px;\n            cursor: pointer;\n        }\n\n        #openSlashProposalModal:hover {\n            cursor: pointer;\n            background-color: black;\n        }\n\n        .adjudicateToolTip {\n            visibility: hidden;\n            width: 120px;\n            background-color: black;\n            color: #fff;\n            text-align: center;\n            border-radius: 6px;\n            padding: 5px 0;\n            position: absolute;\n            z-index: 1;\n        }\n\n    </style>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -172,7 +149,7 @@ func (c *Pages) AdjudicatePageHTML(props *AdjudicatePageView) templ.Component {
 			var templ_7745c5c3_Var4 string
 			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(props.ServiceProvider.Address)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 126, Col: 47}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 116, Col: 47}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 			if templ_7745c5c3_Err != nil {
@@ -185,7 +162,7 @@ func (c *Pages) AdjudicatePageHTML(props *AdjudicatePageView) templ.Component {
 			var templ_7745c5c3_Var5 string
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(getTimeRangeQueryString(props.StartTime, props.EndTime))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 132, Col: 136}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 122, Col: 136}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 			if templ_7745c5c3_Err != nil {
@@ -198,7 +175,7 @@ func (c *Pages) AdjudicatePageHTML(props *AdjudicatePageView) templ.Component {
 			var templ_7745c5c3_Var6 string
 			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(props.StartTime.Format("2006-01-02"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 153, Col: 58}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 143, Col: 58}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 			if templ_7745c5c3_Err != nil {
@@ -211,7 +188,7 @@ func (c *Pages) AdjudicatePageHTML(props *AdjudicatePageView) templ.Component {
 			var templ_7745c5c3_Var7 string
 			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(props.StartTime.Format("15:04 MST"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 155, Col: 57}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 145, Col: 57}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 			if templ_7745c5c3_Err != nil {
@@ -224,7 +201,7 @@ func (c *Pages) AdjudicatePageHTML(props *AdjudicatePageView) templ.Component {
 			var templ_7745c5c3_Var8 string
 			templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(props.EndTime.Format("2006-01-02"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 161, Col: 56}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 151, Col: 56}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 			if templ_7745c5c3_Err != nil {
@@ -237,7 +214,7 @@ func (c *Pages) AdjudicatePageHTML(props *AdjudicatePageView) templ.Component {
 			var templ_7745c5c3_Var9 string
 			templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(props.EndTime.Format("15:04 MST"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 163, Col: 55}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 153, Col: 55}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 			if templ_7745c5c3_Err != nil {
@@ -250,7 +227,7 @@ func (c *Pages) AdjudicatePageHTML(props *AdjudicatePageView) templ.Component {
 			var templ_7745c5c3_Var10 string
 			templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(humanize.Comma(int64(props.MetSlas)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 172, Col: 75}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 162, Col: 75}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 			if templ_7745c5c3_Err != nil {
@@ -285,7 +262,7 @@ func (c *Pages) AdjudicatePageHTML(props *AdjudicatePageView) templ.Component {
 			var templ_7745c5c3_Var13 string
 			templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(humanize.Comma(int64(props.PartialSlas)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 177, Col: 79}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 167, Col: 79}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 			if templ_7745c5c3_Err != nil {
@@ -320,7 +297,7 @@ func (c *Pages) AdjudicatePageHTML(props *AdjudicatePageView) templ.Component {
 			var templ_7745c5c3_Var16 string
 			templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(humanize.Comma(int64(props.DeadSlas)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 182, Col: 76}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 172, Col: 76}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
 			if templ_7745c5c3_Err != nil {
@@ -333,7 +310,7 @@ func (c *Pages) AdjudicatePageHTML(props *AdjudicatePageView) templ.Component {
 			var templ_7745c5c3_Var17 string
 			templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinStringErrs(humanize.Comma(props.TotalStaked))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 189, Col: 72}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 179, Col: 72}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
 			if templ_7745c5c3_Err != nil {
@@ -346,7 +323,7 @@ func (c *Pages) AdjudicatePageHTML(props *AdjudicatePageView) templ.Component {
 			var templ_7745c5c3_Var18 string
 			templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(humanize.Comma(props.TotalSPRewards))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 194, Col: 75}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 184, Col: 75}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 			if templ_7745c5c3_Err != nil {
@@ -381,7 +358,7 @@ func (c *Pages) AdjudicatePageHTML(props *AdjudicatePageView) templ.Component {
 			var templ_7745c5c3_Var21 string
 			templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs(humanize.Comma(props.TotalUnearnedSPRewards))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 199, Col: 83}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 189, Col: 83}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
 			if templ_7745c5c3_Err != nil {
@@ -412,7 +389,7 @@ func (c *Pages) AdjudicatePageHTML(props *AdjudicatePageView) templ.Component {
 			var templ_7745c5c3_Var22 string
 			templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("Create Slash Proposal for %s", props.ServiceProvider.Address))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 219, Col: 108}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 209, Col: 108}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var22))
 			if templ_7745c5c3_Err != nil {
@@ -425,7 +402,7 @@ func (c *Pages) AdjudicatePageHTML(props *AdjudicatePageView) templ.Component {
 			var templ_7745c5c3_Var23 string
 			templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d,%s", props.TotalUnearnedSPRewards, props.ServiceProvider.Address))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 228, Col: 123}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 218, Col: 123}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var23))
 			if templ_7745c5c3_Err != nil {
@@ -438,7 +415,7 @@ func (c *Pages) AdjudicatePageHTML(props *AdjudicatePageView) templ.Component {
 			var templ_7745c5c3_Var24 string
 			templ_7745c5c3_Var24, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("Slash %s $AUDIO from %s for consistently failing to meet SLA. See ", humanize.Comma(props.TotalUnearnedSPRewards), props.ServiceProvider.Address))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 239, Col: 180}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 229, Col: 180}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var24))
 			if templ_7745c5c3_Err != nil {
@@ -486,7 +463,7 @@ func endpointRowReport(endpoint *Endpoint) templ.Component {
 		var templ_7745c5c3_Var26 templ.SafeURL
 		templ_7745c5c3_Var26, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL(fmt.Sprintf("%s/console/uptime", endpoint.Endpoint)))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 272, Col: 84}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 262, Col: 84}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var26))
 		if templ_7745c5c3_Err != nil {
@@ -499,7 +476,7 @@ func endpointRowReport(endpoint *Endpoint) templ.Component {
 		var templ_7745c5c3_Var27 string
 		templ_7745c5c3_Var27, templ_7745c5c3_Err = templ.JoinStringErrs(strippedEndpoint(endpoint.Endpoint))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 273, Col: 53}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 263, Col: 53}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var27))
 		if templ_7745c5c3_Err != nil {
@@ -523,7 +500,7 @@ func endpointRowReport(endpoint *Endpoint) templ.Component {
 	})
 }
 
-func endpointSlaHistory(report *AdjudicateSlaReport) templ.Component {
+func endpointSlaHistory(report *SlaReport) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -569,7 +546,7 @@ func endpointSlaHistory(report *AdjudicateSlaReport) templ.Component {
 		var templ_7745c5c3_Var31 templ.SafeURL
 		templ_7745c5c3_Var31, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL(fmt.Sprintf("/console/uptime/%d", report.BlockEnd)))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 286, Col: 98}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 276, Col: 98}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var31))
 		if templ_7745c5c3_Err != nil {

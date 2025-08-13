@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
+	"time"
 
 	"connectrpc.com/connect"
 	ethv1 "github.com/AudiusProject/audiusd/pkg/api/eth/v1"
@@ -19,16 +20,95 @@ import (
 const (
 	activeValidatorReportHistoryLength = 30
 	validatorReportHistoryLength       = 5
+	slaMeetsThreshold                  = 0.8
+	slaMissThreshold                   = 0.4
 )
 
 func (cs *Console) uptimeFragment(c echo.Context) error {
 	ctx := c.Request().Context()
-	rollupNodeAddress := c.Param("validator")
+	endpoint := c.Param("endpoint")
 	rollupBlockEnd := c.Param("rollup")
 
-	if rollupNodeAddress == "" {
-		rollupNodeAddress = cs.state.cometAddress
+	// 1. Get selected SLA rollup
+	activeRollup, err := cs.getActiveSlaRollup(ctx, rollupBlockEnd)
+	if err != nil {
+		cs.logger.Error("failed to active sla rollup", "error", err)
+		return err
 	}
+
+	// 2. Get selected endpoint
+	activeEndpoint, err := cs.getEndpoint(ctx, endpoint)
+	if err != nil {
+		cs.logger.Error("failed to active endpoint", "error", err)
+		return err
+	}
+
+	// 3. Get SLA Rollups around the selected SLA rollup time period
+	dbReports, err := cs.db.GetRollupReportsForNodeInTimeRange(
+		ctx,
+		db.GetRollupReportsForNodeInTimeRangeParams{
+			Address: activeEndpoint.CometAddress, // Does not matter if unset
+			Time:    cs.db.ToPgxTimestamp(activeRollup.Time.Time.Add(-24 * time.Hour)),
+			Time_2:  cs.db.ToPgxTimestamp(activeRollup.Time.Time.Add(24 * time.Hour)),
+		},
+	)
+	if err != nil {
+		cs.logger.Error("failed to get rollup reports", "error", err)
+		return err
+	}
+
+	// 4. Apply each report to the endpoint's history
+	pageReports := make([]*pages.SlaReport, len(dbReports))
+	totalCometValidators, err := cs.db.TotalValidators(ctx)
+	if err != nil {
+		cs.logger.Error("Failed to get count of all validators from db", "error", err)
+		return err
+	} else if totalCometValidators == 0 {
+		cs.logger.Error("No validators have been registered.")
+		return errors.New("no validators have been registered")
+	}
+	for i, dbrep := range dbReports {
+		pagerep := &pages.SlaReport{
+			SlaRollupId:    dbrep.ID,
+			TxHash:         dbrep.TxHash,
+			BlockStart:     dbrep.BlockStart,
+			BlockEnd:       dbrep.BlockEnd,
+			BlocksProposed: dbrep.BlocksProposed.Int32,
+			Time:           dbrep.Time.Time,
+		}
+
+		if dbrep.ID == activeRollup.ID {
+			activeEndpoint.ActiveReport = pagerep
+		}
+
+		if !activeEndpoint.IsEthRegistered || activeEndpoint.RegisteredAt.After(dbrep.Time.Time) {
+			pagerep.Status = pages.SlaExempt
+			pagerep.Quota = 0
+		} else {
+			quota := int32(dbrep.BlockEnd-dbrep.BlockStart) / int32(totalCometValidators)
+			if quota == 0 { // no divide by zero panic
+				quota += 1
+			}
+			pagerep.Quota = quota
+			faultRatio := float64(dbrep.BlocksProposed.Int32) / float64(quota)
+			if faultRatio < slaMeetsThreshold && faultRatio > 0 {
+				pagerep.Status = pages.SlaPartial
+			} else if faultRatio == 0 {
+				pagerep.Status = pages.SlaDead
+			} else {
+				pagerep.Status = pages.SlaMet
+			}
+		}
+		pageReports[i] = pagerep
+	}
+
+	// 5. Now do the same for all endpoints
+
+	// ***********************************
+	// old code
+	// ***********************************
+
+	rollupNodeAddress := cs.state.cometAddress
 
 	// Get active report
 	activeReport, err := cs.getActiveSlaReport(ctx, rollupBlockEnd, rollupNodeAddress)
@@ -38,10 +118,10 @@ func (cs *Console) uptimeFragment(c echo.Context) error {
 	}
 
 	// Attach report to this node
-	myUptime := pages.NodeUptime{
-		Address:       rollupNodeAddress,
-		ActiveReport:  activeReport,
-		ReportHistory: make([]pages.SlaReport, 0, 30),
+	myUptime := pages.Endpoint{
+		CometAddress: rollupNodeAddress,
+		ActiveReport: activeReport,
+		SlaReports:   make([]*pages.SlaReport, 0, 30),
 	}
 
 	// Get avg block time
@@ -61,35 +141,26 @@ func (cs *Console) uptimeFragment(c echo.Context) error {
 	}
 
 	// Gather validator info
-	endpointMap := make(map[string]*pages.NodeUptime, len(allEndpointsResp.Msg.Endpoints))
+	endpointMap := make(map[string]*pages.Endpoint, len(allEndpointsResp.Msg.Endpoints))
 	for _, ep := range allEndpointsResp.Msg.Endpoints {
 		node, err := cs.db.GetNodeByEndpoint(ctx, ep.Endpoint)
 		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 			cs.logger.Error("Failed to get registered node from db", "endpoint", ep.Endpoint, "error", err)
 			return err
 		} else if errors.Is(err, pgx.ErrNoRows) {
-			endpointMap[ep.Endpoint] = &pages.NodeUptime{
-				Endpoint:      ep.Endpoint,
-				Owner:         ep.Owner,
-				IsValidator:   true,
-				ReportHistory: make([]pages.SlaReport, 0, validatorReportHistoryLength),
+			endpointMap[ep.Endpoint] = &pages.Endpoint{
+				Endpoint:   ep.Endpoint,
+				Owner:      ep.Owner,
+				SlaReports: make([]*pages.SlaReport, 0, validatorReportHistoryLength),
 			}
 		} else {
-			endpointMap[node.CometAddress] = &pages.NodeUptime{
-				Endpoint:      ep.Endpoint,
-				Owner:         ep.Owner,
-				Address:       node.CometAddress,
-				IsValidator:   true,
-				ReportHistory: make([]pages.SlaReport, 0, validatorReportHistoryLength),
+			endpointMap[node.CometAddress] = &pages.Endpoint{
+				Endpoint:     ep.Endpoint,
+				Owner:        ep.Owner,
+				CometAddress: node.CometAddress,
+				SlaReports:   make([]*pages.SlaReport, 0, validatorReportHistoryLength),
 			}
 		}
-	}
-	_, isValidator := endpointMap[rollupNodeAddress]
-	myUptime.IsValidator = isValidator
-	totalCometValidators, err := cs.db.TotalValidators(ctx)
-	if err != nil {
-		cs.logger.Error("Failed to get count of all validators from db", "error", err)
-		return err
 	}
 
 	// Get history for this node
@@ -109,9 +180,9 @@ func (cs *Console) uptimeFragment(c echo.Context) error {
 		if totalCometValidators > 0 {
 			reportQuota = int32(rr.BlockEnd-rr.BlockStart) / int32(totalCometValidators)
 		}
-		myUptime.ReportHistory = append(
-			myUptime.ReportHistory,
-			pages.SlaReport{
+		myUptime.SlaReports = append(
+			myUptime.SlaReports,
+			&pages.SlaReport{
 				SlaRollupId:    rr.ID,
 				TxHash:         rr.TxHash,
 				BlockStart:     rr.BlockStart,
@@ -141,7 +212,7 @@ func (cs *Console) uptimeFragment(c echo.Context) error {
 			if totalCometValidators > 0 {
 				reportQuota = int32(rr.BlockEnd-rr.BlockStart) / int32(totalCometValidators)
 			}
-			rep := pages.SlaReport{
+			rep := &pages.SlaReport{
 				SlaRollupId:    rr.ID,
 				TxHash:         rr.TxHash,
 				BlockStart:     rr.BlockStart,
@@ -153,7 +224,7 @@ func (cs *Console) uptimeFragment(c echo.Context) error {
 			if rr.ID == myUptime.ActiveReport.SlaRollupId {
 				valData.ActiveReport = rep
 			}
-			valData.ReportHistory = append(valData.ReportHistory, rep)
+			valData.SlaReports = append(valData.SlaReports, rep)
 		}
 	}
 
@@ -174,7 +245,7 @@ func (cs *Console) uptimeFragment(c echo.Context) error {
 			valData.ActiveReport.PoSChallengesFailed = int32(posr.FailedCount)
 			valData.ActiveReport.PoSChallengesTotal = int32(posr.TotalCount)
 		}
-		if posr.Address == myUptime.Address {
+		if posr.Address == myUptime.CometAddress {
 			myUptime.ActiveReport.PoSChallengesFailed = int32(posr.FailedCount)
 			myUptime.ActiveReport.PoSChallengesTotal = int32(posr.TotalCount)
 		}
@@ -182,7 +253,7 @@ func (cs *Console) uptimeFragment(c echo.Context) error {
 
 	// Store validators as sorted slice
 	// (adjust sorting method to fit display preference)
-	sortedEndpoints := make([]*pages.NodeUptime, 0, len(endpointMap))
+	sortedEndpoints := make([]*pages.Endpoint, 0, len(endpointMap))
 	for _, v := range endpointMap {
 		sortedEndpoints = append(sortedEndpoints, v)
 	}
@@ -194,14 +265,66 @@ func (cs *Console) uptimeFragment(c echo.Context) error {
 	})
 
 	return cs.views.RenderUptimeView(c, &pages.UptimePageView{
-		ActiveNodeUptime: myUptime,
+		ActiveEndpoint:   myUptime,
 		ValidatorUptimes: sortedEndpoints,
 		AvgBlockTimeMs:   avgBlockTimeMs,
 	})
 }
 
-func (cs *Console) getActiveSlaReport(ctx context.Context, rollupBlockEnd, rollupNodeAddress string) (pages.SlaReport, error) {
-	var report pages.SlaReport
+func (cs *Console) getActiveSlaRollup(ctx context.Context, rollupBlockEndParam string) (db.SlaRollup, error) {
+	var rollup db.SlaRollup
+	var err error
+	if rollupBlockEndParam == "" || rollupBlockEndParam == "latest" {
+		rollup, err = cs.db.GetLatestSlaRollup(ctx)
+	} else if i, err := strconv.Atoi(rollupBlockEndParam); err == nil {
+		rollup, err = cs.db.GetSlaRollupWithBlockEnd(ctx, int64(i))
+	} else {
+		err = fmt.Errorf("Sla page called with invalid rollup block end %s", rollupBlockEndParam)
+	}
+	if err != nil {
+		err = fmt.Errorf("Failed to retrieve SlaRollup from db: %v", err)
+		return rollup, err
+	}
+
+	return rollup, nil
+}
+
+func (cs *Console) getEndpoint(ctx context.Context, endpoint string) (*pages.Endpoint, error) {
+	infoResp, err := cs.eth.GetRegisteredEndpointInfo(
+		ctx,
+		connect.NewRequest(&ethv1.GetRegisteredEndpointInfoRequest{
+			Endpoint: endpoint,
+		}),
+	)
+	if err != nil {
+		var connectErr *connect.Error
+		if errors.As(err, &connectErr) {
+			if connectErr.Code() == connect.CodeNotFound {
+				return &pages.Endpoint{Endpoint: endpoint}, nil
+			}
+		}
+		return nil, err
+	}
+
+	ep := &pages.Endpoint{
+		Endpoint:        endpoint,
+		EthAddress:      infoResp.Msg.Se.DelegateWallet,
+		Owner:           infoResp.Msg.Se.Owner,
+		RegisteredAt:    infoResp.Msg.Se.RegisteredAt.AsTime(),
+		IsEthRegistered: true,
+	}
+
+	if validator, err := cs.db.GetRegisteredNodeByEthAddress(ctx, infoResp.Msg.Se.DelegateWallet); err != nil {
+		ep.CometAddress = validator.CometAddress
+	} else if !errors.Is(err, pgx.ErrNoRows) {
+		return nil, err
+	}
+
+	return ep, nil
+}
+
+func (cs *Console) getActiveSlaReport(ctx context.Context, rollupBlockEnd, rollupNodeAddress string) (*pages.SlaReport, error) {
+	var report *pages.SlaReport
 
 	var rollup db.SlaRollup
 	var err error
@@ -239,7 +362,7 @@ func (cs *Console) getActiveSlaReport(ctx context.Context, rollupBlockEnd, rollu
 	if numValidators > int64(0) {
 		quota = int32(rollup.BlockEnd-rollup.BlockStart) / int32(numValidators)
 	}
-	report = pages.SlaReport{
+	report = &pages.SlaReport{
 		SlaRollupId:    rollup.ID,
 		TxHash:         rollup.TxHash,
 		BlockStart:     rollup.BlockStart,
@@ -252,7 +375,7 @@ func (cs *Console) getActiveSlaReport(ctx context.Context, rollupBlockEnd, rollu
 	return report, nil
 }
 
-func (cs *Console) getAverageBlockTimeForReport(ctx context.Context, report pages.SlaReport) (int, error) {
+func (cs *Console) getAverageBlockTimeForReport(ctx context.Context, report *pages.SlaReport) (int, error) {
 	var avgBlockTimeMs = 0
 	previousRollup, err := cs.db.GetPreviousSlaRollupFromId(ctx, report.SlaRollupId)
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {

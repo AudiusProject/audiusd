@@ -1,6 +1,6 @@
 -- name: InsertRegisteredEndpoint :exec
-insert into eth_registered_endpoints (id, service_type, owner, delegate_wallet, endpoint, blocknumber)
-values ($1, $2, $3, $4, $5, $6);
+insert into eth_registered_endpoints (id, service_type, owner, delegate_wallet, endpoint, blocknumber, registered_at)
+values ($1, $2, $3, $4, $5, $6, $7);
 
 -- name: ClearRegisteredEndpoints :exec
 delete from eth_registered_endpoints;

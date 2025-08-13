@@ -18,6 +18,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -348,6 +349,14 @@ func (eth *EthService) addRegisteredEndpoint(ctx context.Context, spID *big.Int,
 	if err != nil {
 		return err
 	}
+
+	// Grab timestamp from block when this endpoint was registered
+	registeredBlock, err := eth.rpc.BlockByNumber(ctx, node.BlockNumber)
+	if err != nil {
+		return fmt.Errorf("failed to get block to check registration date: %v", err)
+	}
+	registrationTimestamp := time.Unix(int64(registeredBlock.Time()), 0)
+
 	return eth.db.InsertRegisteredEndpoint(
 		ctx,
 		db.InsertRegisteredEndpointParams{
@@ -357,6 +366,10 @@ func (eth *EthService) addRegisteredEndpoint(ctx context.Context, spID *big.Int,
 			DelegateWallet: node.DelegateOwnerWallet.Hex(),
 			Endpoint:       endpoint,
 			Blocknumber:    node.BlockNumber.Int64(),
+			RegisteredAt: pgtype.Timestamp{
+				Time:  registrationTimestamp,
+				Valid: true,
+			},
 		},
 	)
 }
@@ -436,6 +449,14 @@ func (eth *EthService) hydrateEthData(ctx context.Context) error {
 		if err != nil {
 			return fmt.Errorf("could resolve service type for node: %v", err)
 		}
+
+		// Grab timestamp from block when this endpoint was registered
+		registeredBlock, err := eth.rpc.BlockByNumber(ctx, node.BlockNumber)
+		if err != nil {
+			return fmt.Errorf("failed to get block to check registration date: %v", err)
+		}
+		registrationTimestamp := time.Unix(int64(registeredBlock.Time()), 0)
+
 		if err := txq.InsertRegisteredEndpoint(
 			ctx,
 			db.InsertRegisteredEndpointParams{
@@ -445,6 +466,10 @@ func (eth *EthService) hydrateEthData(ctx context.Context) error {
 				DelegateWallet: node.DelegateOwnerWallet.Hex(),
 				Endpoint:       node.Endpoint,
 				Blocknumber:    node.BlockNumber.Int64(),
+				RegisteredAt: pgtype.Timestamp{
+					Time:  registrationTimestamp,
+					Valid: true,
+				},
 			},
 		); err != nil {
 			return fmt.Errorf("could not insert registered endpoint into eth indexer db: %v", err)
