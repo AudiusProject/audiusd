@@ -61,9 +61,9 @@ const (
 	DevPersistentPeers   = "ffad25668e060a357bbe534c8b7e5b4e1274368b@audiusd-1:26656"
 )
 
-var (
-	ProdStateSyncRpcs  = strings.Split("creatornode.audius.co,creatornode2.audius.co", ",")
-	StageStateSyncRpcs = strings.Split("creatornode11.audius.co,creatornode5.audius.co", ",")
+const (
+	ProdStateSyncRpcs  = "creatornode.audius.co,creatornode2.audius.co"
+	StageStateSyncRpcs = "creatornode11.audius.co,creatornode5.audius.co"
 )
 
 const (
@@ -191,9 +191,9 @@ func ReadConfig(logger *common.Logger) (*Config, error) {
 	ssRpcServers := ""
 	switch cfg.Environment {
 	case "prod", "production":
-		ssRpcServers = "creatornode2.audius.co,creatornode2.audius.co"
+		ssRpcServers = ProdStateSyncRpcs
 	case "stage", "staging":
-		ssRpcServers = "creatornode11.audius.co,creatornode5.audius.co"
+		ssRpcServers = StageStateSyncRpcs
 	}
 
 	cfg.StateSync = &StateSyncConfig{

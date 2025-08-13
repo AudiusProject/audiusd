@@ -13,7 +13,6 @@ import (
 	v1 "github.com/AudiusProject/audiusd/pkg/api/core/v1"
 	"github.com/AudiusProject/audiusd/pkg/api/core/v1beta1"
 	"github.com/AudiusProject/audiusd/pkg/common"
-	"github.com/AudiusProject/audiusd/pkg/core/config"
 	"github.com/AudiusProject/audiusd/pkg/core/db"
 	abcitypes "github.com/cometbft/cometbft/abci/types"
 	cfg "github.com/cometbft/cometbft/config"
@@ -79,19 +78,13 @@ func (s *Server) startABCI(ctx context.Context) error {
 	_, err = s.db.GetLatestBlock(context.Background())
 	if errors.Is(err, pgx.ErrNoRows) {
 		alreadySynced = false
+	} else if err != nil {
+		return fmt.Errorf("db not ready for ABCI: %v", err)
 	}
 
 	if s.config.StateSync.Enable && !alreadySynced {
 		cometConfig.StateSync.Enable = true
 		rpcServers := s.config.StateSync.RPCServers
-		if len(rpcServers) == 0 {
-			switch s.config.Environment {
-			case "prod", "production":
-				rpcServers = config.ProdStateSyncRpcs
-			case "stage", "staging":
-				rpcServers = config.StageStateSyncRpcs
-			}
-		}
 		s.logger.Info("state sync enabled, using rpc servers", "rpcServers", rpcServers)
 		cometConfig.StateSync.RPCServers = rpcServers
 		latestBlockHeight, latestBlockHash, err := s.stateSyncLatestBlock(rpcServers)
