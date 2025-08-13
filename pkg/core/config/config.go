@@ -200,10 +200,9 @@ func ReadConfig(logger *common.Logger) (*Config, error) {
 		ssRpcServers = StageStateSyncRpcs
 	}
 
-	ssEnableDefault := strings.ToLower(strconv.FormatBool(!cfg.IsDev()))
 	cfg.StateSync = &StateSyncConfig{
 		ServeSnapshots: GetEnvWithDefault("stateSyncServeSnapshots", "false") == "true",
-		Enable:         GetEnvWithDefault("stateSyncEnable", ssEnableDefault) == "true",
+		Enable:         GetEnvWithDefault("stateSyncEnable", "true") == "true",
 		Keep:           getEnvIntWithDefault("stateSyncKeep", 6),
 		BlockInterval:  int64(getEnvIntWithDefault("stateSyncBlockInterval", 100)),
 		ChunkFetchers:  int32(getEnvIntWithDefault("stateSyncChunkFetchers", 10)),
