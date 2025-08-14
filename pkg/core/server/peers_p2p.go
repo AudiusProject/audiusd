@@ -16,7 +16,7 @@ import (
 
 func (s *Server) startP2PPeers(ctx context.Context) error {
 	<-s.awaitRpcReady
-	ticker := time.NewTicker(5 * time.Second)
+	ticker := time.NewTicker(10 * time.Minute)
 	defer ticker.Stop()
 
 	for {
