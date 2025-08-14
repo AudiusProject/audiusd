@@ -202,36 +202,36 @@ func (c *CoreService) GetDeregistrationAttestation(ctx context.Context, req *con
 			err,
 		)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("could not attest to node deregistration"))
-	} else if registered {
-		// if node is still registered on eth, check if node has been down too long
-		// and deregister anyway
-		shouldPurge, err := c.core.ShouldPurgeValidatorForUnderperformance(ctx, dereg.CometAddress)
-		if err != nil {
-			c.core.logger.Error("Could not attest to node eth deregistration: could not check uptime SLA history",
-				"cometAddress",
-				dereg.CometAddress,
-				"ethAddress",
-				node.EthAddress,
-				"endpoint",
-				node.Endpoint,
-				"error",
-				err,
-			)
-			return nil, connect.NewError(connect.CodeInternal, errors.New("could not attest to node deregistration"))
-		} else if !shouldPurge {
-			c.core.logger.Error("Could not attest to node eth deregistration: node is still registered",
-				"cometAddress",
-				dereg.CometAddress,
-				"ethAddress",
-				node.EthAddress,
-				"endpoint",
-				node.Endpoint,
-			)
-			return nil, connect.NewError(connect.CodeInternal, errors.New("could not attest to node deregistration"))
-		}
-		// continue attesting to deregistration to eliminate nodes that have been down
-		c.core.logger.Infof("Attesting to deregister %s because validator is down", dereg.CometAddress)
 	}
+
+	shouldPurge, err := c.core.ShouldPurgeValidatorForUnderperformance(ctx, dereg.CometAddress)
+	if err != nil {
+		c.core.logger.Error("Could not attest to node eth deregistration: could not check uptime SLA history",
+			"cometAddress",
+			dereg.CometAddress,
+			"ethAddress",
+			node.EthAddress,
+			"endpoint",
+			node.Endpoint,
+			"error",
+			err,
+		)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("could not attest to node deregistration"))
+	}
+
+	if registered && !shouldPurge {
+		c.core.logger.Error("Could not attest to node eth deregistration: node is still registered and not underperforming",
+			"cometAddress",
+			dereg.CometAddress,
+			"ethAddress",
+			node.EthAddress,
+			"endpoint",
+			node.Endpoint,
+		)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("could not attest to node deregistration"))
+	}
+
+	c.core.logger.Infof("Attesting to deregister %s because validator is down", dereg.CometAddress)
 
 	deregBytes, err := proto.Marshal(dereg)
 	if err != nil {
