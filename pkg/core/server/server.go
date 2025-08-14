@@ -130,6 +130,7 @@ func (s *Server) Start() error {
 	s.lc.AddManagedRoutine("state sync", s.startStateSync)
 	s.lc.AddManagedRoutine("p2p peer manager", s.startP2PPeers)
 	s.lc.AddManagedRoutine("cometbft rpc manager", s.startCometRPCPeers)
+	s.lc.AddManagedRoutine("mempool cache", s.startMempoolCache)
 
 	s.z.Info("routines started")
 
