@@ -1590,14 +1590,23 @@ func (q *Queries) GetRollupReportsForId(ctx context.Context, slaRollupID pgtype.
 
 const getRollupReportsForNodeInTimeRange = `-- name: GetRollupReportsForNodeInTimeRange :many
 select 
-    sr.id, sr.tx_hash, sr.block_start, sr.block_end, sr.time,
-    nr.id, nr.address, nr.blocks_proposed, nr.sla_rollup_id
+    sr.id,
+    sr.tx_hash,
+    sr.block_start,
+    sr.block_end,
+    sr.time,
+    nr.address,
+    nr.blocks_proposed,
+    (
+        select count(distinct address)
+        from sla_node_reports
+        where sla_rollup_id = sr.id
+    ) as validator_count
 from 
     sla_rollups sr
-left join
-    sla_node_reports nr
+left join sla_node_reports nr
     on nr.sla_rollup_id = sr.id and nr.address = $1
-where sr.time >= $2 and sr.time < $3
+where sr.time > $2 and sr.time <= $3
 order by sr.time
 `
 
@@ -1613,10 +1622,9 @@ type GetRollupReportsForNodeInTimeRangeRow struct {
 	BlockStart     int64
 	BlockEnd       int64
 	Time           pgtype.Timestamp
-	ID_2           pgtype.Int4
 	Address        pgtype.Text
 	BlocksProposed pgtype.Int4
-	SlaRollupID    pgtype.Int4
+	ValidatorCount int64
 }
 
 func (q *Queries) GetRollupReportsForNodeInTimeRange(ctx context.Context, arg GetRollupReportsForNodeInTimeRangeParams) ([]GetRollupReportsForNodeInTimeRangeRow, error) {
@@ -1634,10 +1642,82 @@ func (q *Queries) GetRollupReportsForNodeInTimeRange(ctx context.Context, arg Ge
 			&i.BlockStart,
 			&i.BlockEnd,
 			&i.Time,
-			&i.ID_2,
 			&i.Address,
 			&i.BlocksProposed,
-			&i.SlaRollupID,
+			&i.ValidatorCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getRollupReportsForNodesInTimeRange = `-- name: GetRollupReportsForNodesInTimeRange :many
+with address_list as (
+    select unnest($1::text[])::text as address
+)
+select 
+    sr.id,
+    sr.tx_hash,
+    sr.block_start,
+    sr.block_end,
+    sr.time,
+    al.address,
+    nr.blocks_proposed,
+    (
+        select count(distinct address)
+        from sla_node_reports
+        where sla_rollup_id = sr.id
+    ) as validator_count
+from 
+    sla_rollups sr
+join address_list al on true
+left join sla_node_reports nr
+    on nr.sla_rollup_id = sr.id 
+    and nr.address = al.address
+where sr.time > $2 and sr.time <= $3
+order by sr.time, al.address
+`
+
+type GetRollupReportsForNodesInTimeRangeParams struct {
+	Column1 []string
+	Time    pgtype.Timestamp
+	Time_2  pgtype.Timestamp
+}
+
+type GetRollupReportsForNodesInTimeRangeRow struct {
+	ID             int32
+	TxHash         string
+	BlockStart     int64
+	BlockEnd       int64
+	Time           pgtype.Timestamp
+	Address        string
+	BlocksProposed pgtype.Int4
+	ValidatorCount int64
+}
+
+func (q *Queries) GetRollupReportsForNodesInTimeRange(ctx context.Context, arg GetRollupReportsForNodesInTimeRangeParams) ([]GetRollupReportsForNodesInTimeRangeRow, error) {
+	rows, err := q.db.Query(ctx, getRollupReportsForNodesInTimeRange, arg.Column1, arg.Time, arg.Time_2)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetRollupReportsForNodesInTimeRangeRow
+	for rows.Next() {
+		var i GetRollupReportsForNodesInTimeRangeRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.TxHash,
+			&i.BlockStart,
+			&i.BlockEnd,
+			&i.Time,
+			&i.Address,
+			&i.BlocksProposed,
+			&i.ValidatorCount,
 		); err != nil {
 			return nil, err
 		}

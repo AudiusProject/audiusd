@@ -16,8 +16,8 @@ const (
 )
 
 type UptimePageView struct {
-    ActiveEndpoint Endpoint
-    ValidatorUptimes []*Endpoint
+    ActiveEndpoint *Endpoint
+    Endpoints []*Endpoint
     AvgBlockTimeMs   int
 }
 
@@ -40,6 +40,7 @@ type SlaReport struct {
 	BlockEnd            int64
     BlocksProposed      int32
     Quota               int32
+    ValidatorCount      int64
     PoSChallengesFailed int32
     PoSChallengesTotal  int32
 	Time                time.Time
@@ -211,27 +212,31 @@ templ staticUptimeStyles() {
 templ (c *Pages) UptimePageHTML(props *UptimePageView) {
 	@c.layout.SiteFrame() {
         @staticUptimeStyles()
-        <ul class="m-2">
-            for _, r := range props.ActiveEndpoint.SlaReports {
-                <li class={ templ.KV("selectedUptimeBar", props.ActiveEndpoint.ActiveReport.BlockEnd == r.BlockEnd), uptimeBar(r, !props.ActiveEndpoint.IsEthRegistered) }>
-                    <a class="reportLink" href={ templ.URL(fmt.Sprintf("/console/uptime/%d", r.BlockEnd)) }></a>
-                    <span class="uptimebarTooltip">{ r.Time.Format("06-01-02 15:04:05 MST") }</span>
-                </li>
-            }
-        </ul>
-
-        if props.ActiveEndpoint.ActiveReport.BlockEnd <= int64(0) {
-            <h1 class="text-xl"> No SLA Rollup with requested ID. </h1>
+        if props.ActiveEndpoint == nil {
+            <h1 class="text-xl"> No SLA Rollup with requested block end. </h1>
         } else {
-            <h1 class="text-xl">
-                SLA Rollup For Blocks { fmt.Sprintf("%d - %d", props.ActiveEndpoint.ActiveReport.BlockStart, props.ActiveEndpoint.ActiveReport.BlockEnd) }
+            <h1 class="text-4xl">
+                { strippedEndpoint(props.ActiveEndpoint.Endpoint) }
             </h1>
-            <h3 class="text-sm">
+            <h3 class="text-sm text-gray-400">
+                <a href={ templ.URL(fmt.Sprintf("/console/node/%s", props.ActiveEndpoint.CometAddress)) }>{ props.ActiveEndpoint.CometAddress }</a>
+            </h3>
+
+            <ul class="m-2">
+                for _, r := range props.ActiveEndpoint.SlaReports {
+                    <li class={ templ.KV("selectedUptimeBar", props.ActiveEndpoint.ActiveReport.BlockEnd == r.BlockEnd), uptimeBar(r, !props.ActiveEndpoint.IsEthRegistered) }>
+                        <a class="reportLink" href={ templ.URL(fmt.Sprintf("/console/uptime/%d", r.BlockEnd)) }></a>
+                        <span class="uptimebarTooltip">{ r.Time.Format("06-01-02 15:04:05 MST") }</span>
+                    </li>
+                }
+            </ul>
+
+            <h3 class="text-sm text-gray-400">
                 TX: <a href={ templ.URL(fmt.Sprintf("/console/tx/%s", props.ActiveEndpoint.ActiveReport.TxHash)) }>{ props.ActiveEndpoint.ActiveReport.TxHash }</a>
             </h3>
 
             <div class="flex flex-row text-center p-2">
-                <div class="basis-1/3 rounded-md bg-slate-100 py-8 mx-1">
+                <div class="basis-1/4 rounded-md bg-slate-100 py-8 mx-1">
                     <dt class="text-lg">
                         { props.ActiveEndpoint.ActiveReport.Time.Format("06-01-02") }
                         <br />
@@ -240,14 +245,19 @@ templ (c *Pages) UptimePageHTML(props *UptimePageView) {
                     <dd class="text-sm">Date Finalized</dd>
                 </div>
 
-                <div class="basis-1/3 rounded-md bg-slate-100 py-8 mx-1">
-                    <dt class="text-4xl">{ fmt.Sprintf("%.1fs", float64(props.AvgBlockTimeMs)/1000.0) }</dt>
-                    <dd class="text-sm">Avg Block Time</dd>
+                <div class="basis-1/4 rounded-md bg-slate-100 py-8 mx-1">
+                    <dt class="text-4xl">{ fmt.Sprintf("%d", props.ActiveEndpoint.ActiveReport.BlockStart) }</dt>
+                    <dd class="text-sm">Start Block</dd>
                 </div>
 
-                <div class="basis-1/3 rounded-md bg-slate-100 py-8 mx-1">
-                    <dt class="text-4xl">{ fmt.Sprintf("%d", (props.ActiveEndpoint.ActiveReport.BlockEnd - props.ActiveEndpoint.ActiveReport.BlockStart) + 1) }</dt>
-                    <dd class="text-sm">Total Blocks in Rollup</dd>
+                <div class="basis-1/4 rounded-md bg-slate-100 py-8 mx-1">
+                    <dt class="text-4xl">{ fmt.Sprintf("%d", props.ActiveEndpoint.ActiveReport.BlockEnd) }</dt>
+                    <dd class="text-sm">End Block</dd>
+                </div>
+
+                <div class="basis-1/4 rounded-md bg-slate-100 py-8 mx-1">
+                    <dt class="text-4xl">{ fmt.Sprintf("%.1fs", float64(props.AvgBlockTimeMs)/1000.0) }</dt>
+                    <dd class="text-sm">Avg Block Time</dd>
                 </div>
             </div>
 
@@ -320,7 +330,7 @@ templ (c *Pages) UptimePageHTML(props *UptimePageView) {
                     <th>SLA</th>
                     <th>History</th>
                 </tr>
-                for _, up := range props.ValidatorUptimes {
+                for _, up := range props.Endpoints {
                     @validatorRowReport(up)
                 }
             </table>
@@ -358,6 +368,6 @@ templ validatorRowReport(up *Endpoint) {
 
 templ validatorMiniHistory(report *SlaReport, endpoint string) {
     <li class={ uptimeBarMini(report) }>
-        <a class="reportLink" href={ templ.URL(fmt.Sprintf("%s/console/uptime/%d", endpoint, report.BlockEnd)) }></a>
+        <a class="reportLink" href={ templ.URL(fmt.Sprintf("/console/uptime/%d/%s", report.BlockEnd, strippedEndpoint(endpoint))) }></a>
     </li>
 }

@@ -97,15 +97,50 @@ order by rr.time;
 
 -- name: GetRollupReportsForNodeInTimeRange :many
 select 
-    sr.*,
-    nr.*
+    sr.id,
+    sr.tx_hash,
+    sr.block_start,
+    sr.block_end,
+    sr.time,
+    nr.address,
+    nr.blocks_proposed,
+    (
+        select count(distinct address)
+        from sla_node_reports
+        where sla_rollup_id = sr.id
+    ) as validator_count
 from 
     sla_rollups sr
-left join
-    sla_node_reports nr
+left join sla_node_reports nr
     on nr.sla_rollup_id = sr.id and nr.address = $1
-where sr.time >= $2 and sr.time < $3
+where sr.time > $2 and sr.time <= $3
 order by sr.time;
+
+-- name: GetRollupReportsForNodesInTimeRange :many
+with address_list as (
+    select unnest($1::text[])::text as address
+)
+select 
+    sr.id,
+    sr.tx_hash,
+    sr.block_start,
+    sr.block_end,
+    sr.time,
+    al.address,
+    nr.blocks_proposed,
+    (
+        select count(distinct address)
+        from sla_node_reports
+        where sla_rollup_id = sr.id
+    ) as validator_count
+from 
+    sla_rollups sr
+join address_list al on true
+left join sla_node_reports nr
+    on nr.sla_rollup_id = sr.id 
+    and nr.address = al.address
+where sr.time > $2 and sr.time <= $3
+order by sr.time, al.address;
 
 -- name: GetSlaRollupWithTimestamp :one
 select *

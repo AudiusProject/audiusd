@@ -26,249 +26,292 @@ const (
 
 func (cs *Console) uptimeFragment(c echo.Context) error {
 	ctx := c.Request().Context()
-	endpoint := c.Param("endpoint")
+	endpointURL := c.Param("endpoint")
 	rollupBlockEnd := c.Param("rollup")
+	if endpointURL == "" {
+		endpointURL = cs.config.NodeEndpoint
+	} else {
+		endpointURL = fmt.Sprintf("https://%s", endpointURL)
+	}
 
-	// 1. Get selected SLA rollup
-	activeRollup, err := cs.getActiveSlaRollup(ctx, rollupBlockEnd)
+	endpoints, activeEndpoint, err := cs.generateEndpoints(ctx, endpointURL)
 	if err != nil {
-		cs.logger.Error("failed to active sla rollup", "error", err)
+		cs.logger.Error("failed to generate endpoints: %v", err)
 		return err
 	}
 
-	// 2. Get selected endpoint
-	activeEndpoint, err := cs.getEndpoint(ctx, endpoint)
-	if err != nil {
-		cs.logger.Error("failed to active endpoint", "error", err)
+	if err := cs.populateSlaReportsForEndpoints(ctx, endpoints, activeEndpoint, rollupBlockEnd); err != nil {
+		cs.logger.Error("failed to populate SLA reports for endpoints: %v", err)
 		return err
 	}
 
-	// 3. Get SLA Rollups around the selected SLA rollup time period
-	dbReports, err := cs.db.GetRollupReportsForNodeInTimeRange(
-		ctx,
-		db.GetRollupReportsForNodeInTimeRangeParams{
-			Address: activeEndpoint.CometAddress, // Does not matter if unset
-			Time:    cs.db.ToPgxTimestamp(activeRollup.Time.Time.Add(-24 * time.Hour)),
-			Time_2:  cs.db.ToPgxTimestamp(activeRollup.Time.Time.Add(24 * time.Hour)),
-		},
-	)
-	if err != nil {
-		cs.logger.Error("failed to get rollup reports", "error", err)
-		return err
+	// SLA rollup not found, abort early with empty data
+	if activeEndpoint.ActiveReport == nil {
+		return cs.views.RenderUptimeView(c, &pages.UptimePageView{})
 	}
 
-	// 4. Apply each report to the endpoint's history
-	pageReports := make([]*pages.SlaReport, len(dbReports))
-	totalCometValidators, err := cs.db.TotalValidators(ctx)
-	if err != nil {
-		cs.logger.Error("Failed to get count of all validators from db", "error", err)
-		return err
-	} else if totalCometValidators == 0 {
-		cs.logger.Error("No validators have been registered.")
-		return errors.New("no validators have been registered")
-	}
-	for i, dbrep := range dbReports {
-		pagerep := &pages.SlaReport{
-			SlaRollupId:    dbrep.ID,
-			TxHash:         dbrep.TxHash,
-			BlockStart:     dbrep.BlockStart,
-			BlockEnd:       dbrep.BlockEnd,
-			BlocksProposed: dbrep.BlocksProposed.Int32,
-			Time:           dbrep.Time.Time,
-		}
-
-		if dbrep.ID == activeRollup.ID {
-			activeEndpoint.ActiveReport = pagerep
-		}
-
-		if !activeEndpoint.IsEthRegistered || activeEndpoint.RegisteredAt.After(dbrep.Time.Time) {
-			pagerep.Status = pages.SlaExempt
-			pagerep.Quota = 0
-		} else {
-			quota := int32(dbrep.BlockEnd-dbrep.BlockStart) / int32(totalCometValidators)
-			if quota == 0 { // no divide by zero panic
-				quota += 1
-			}
-			pagerep.Quota = quota
-			faultRatio := float64(dbrep.BlocksProposed.Int32) / float64(quota)
-			if faultRatio < slaMeetsThreshold && faultRatio > 0 {
-				pagerep.Status = pages.SlaPartial
-			} else if faultRatio == 0 {
-				pagerep.Status = pages.SlaDead
-			} else {
-				pagerep.Status = pages.SlaMet
-			}
-		}
-		pageReports[i] = pagerep
-	}
-
-	// 5. Now do the same for all endpoints
-
-	// ***********************************
-	// old code
-	// ***********************************
-
-	rollupNodeAddress := cs.state.cometAddress
-
-	// Get active report
-	activeReport, err := cs.getActiveSlaReport(ctx, rollupBlockEnd, rollupNodeAddress)
-	if err != nil {
-		cs.logger.Error("Falled to get active Proof Of Work report", "error", err)
-		return err
-	}
-
-	// Attach report to this node
-	myUptime := pages.Endpoint{
-		CometAddress: rollupNodeAddress,
-		ActiveReport: activeReport,
-		SlaReports:   make([]*pages.SlaReport, 0, 30),
-	}
-
-	// Get avg block time
-	avgBlockTimeMs, err := cs.getAverageBlockTimeForReport(ctx, activeReport)
+	avgBlockTimeMs, err := cs.getAverageBlockTimeForReport(ctx, activeEndpoint.ActiveReport)
 	if err != nil {
 		cs.logger.Error("Failed to calculate average block time", "error", err)
 		return err
 	}
 
-	allEndpointsResp, err := cs.eth.GetRegisteredEndpoints(
-		ctx,
-		connect.NewRequest(&ethv1.GetRegisteredEndpointsRequest{}),
-	)
-	if err != nil {
-		cs.logger.Error("Falled to get all registered endpoints from eth service", "error", err)
-		return err
-	}
-
-	// Gather validator info
-	endpointMap := make(map[string]*pages.Endpoint, len(allEndpointsResp.Msg.Endpoints))
-	for _, ep := range allEndpointsResp.Msg.Endpoints {
-		node, err := cs.db.GetNodeByEndpoint(ctx, ep.Endpoint)
-		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
-			cs.logger.Error("Failed to get registered node from db", "endpoint", ep.Endpoint, "error", err)
-			return err
-		} else if errors.Is(err, pgx.ErrNoRows) {
-			endpointMap[ep.Endpoint] = &pages.Endpoint{
-				Endpoint:   ep.Endpoint,
-				Owner:      ep.Owner,
-				SlaReports: make([]*pages.SlaReport, 0, validatorReportHistoryLength),
-			}
-		} else {
-			endpointMap[node.CometAddress] = &pages.Endpoint{
-				Endpoint:     ep.Endpoint,
-				Owner:        ep.Owner,
-				CometAddress: node.CometAddress,
-				SlaReports:   make([]*pages.SlaReport, 0, validatorReportHistoryLength),
-			}
-		}
-	}
-
-	// Get history for this node
-	recentRollups, err := cs.db.GetRecentRollupsForNode(
-		ctx,
-		db.GetRecentRollupsForNodeParams{
-			Limit:   activeValidatorReportHistoryLength,
-			Address: cs.state.cometAddress,
-		},
-	)
-	if err != nil && err != pgx.ErrNoRows {
-		cs.logger.Error("Failed to get recent rollups from db", "error", err)
-		return err
-	}
-	for _, rr := range recentRollups {
-		reportQuota := int32(0)
-		if totalCometValidators > 0 {
-			reportQuota = int32(rr.BlockEnd-rr.BlockStart) / int32(totalCometValidators)
-		}
-		myUptime.SlaReports = append(
-			myUptime.SlaReports,
-			&pages.SlaReport{
-				SlaRollupId:    rr.ID,
-				TxHash:         rr.TxHash,
-				BlockStart:     rr.BlockStart,
-				BlockEnd:       rr.BlockEnd,
-				BlocksProposed: rr.BlocksProposed.Int32,
-				Quota:          reportQuota,
-				Time:           rr.Time.Time,
-			},
-		)
-	}
-
-	// Get history for all validators
-	bulkRecentReports, err := cs.db.GetRecentRollupsForAllNodes(
-		ctx,
-		db.GetRecentRollupsForAllNodesParams{
-			ID:    activeReport.SlaRollupId,
-			Limit: int32(validatorReportHistoryLength),
-		},
-	)
-	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
-		cs.logger.Error("Failure getting bulk recent reports", "error", err)
-		return err
-	}
-	for _, rr := range bulkRecentReports {
-		if valData, ok := endpointMap[rr.Address.String]; ok {
-			var reportQuota int32 = 0
-			if totalCometValidators > 0 {
-				reportQuota = int32(rr.BlockEnd-rr.BlockStart) / int32(totalCometValidators)
-			}
-			rep := &pages.SlaReport{
-				SlaRollupId:    rr.ID,
-				TxHash:         rr.TxHash,
-				BlockStart:     rr.BlockStart,
-				BlockEnd:       rr.BlockEnd,
-				BlocksProposed: rr.BlocksProposed.Int32,
-				Quota:          reportQuota,
-				Time:           rr.Time.Time,
-			}
-			if rr.ID == myUptime.ActiveReport.SlaRollupId {
-				valData.ActiveReport = rep
-			}
-			valData.SlaReports = append(valData.SlaReports, rep)
-		}
-	}
-
-	// Get proof of storage history
-	posRollups, err := cs.db.GetStorageProofRollups(
-		ctx,
-		db.GetStorageProofRollupsParams{
-			BlockHeight:   activeReport.BlockStart,
-			BlockHeight_2: activeReport.BlockEnd,
-		},
-	)
-	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
-		cs.logger.Error("Failure getting proof of storage rollups", "error", err)
-		return err
-	}
-	for _, posr := range posRollups {
-		if valData, ok := endpointMap[posr.Address]; ok {
-			valData.ActiveReport.PoSChallengesFailed = int32(posr.FailedCount)
-			valData.ActiveReport.PoSChallengesTotal = int32(posr.TotalCount)
-		}
-		if posr.Address == myUptime.CometAddress {
-			myUptime.ActiveReport.PoSChallengesFailed = int32(posr.FailedCount)
-			myUptime.ActiveReport.PoSChallengesTotal = int32(posr.TotalCount)
-		}
-	}
-
-	// Store validators as sorted slice
+	// Store endpoints as sorted slice
 	// (adjust sorting method to fit display preference)
-	sortedEndpoints := make([]*pages.Endpoint, 0, len(endpointMap))
-	for _, v := range endpointMap {
-		sortedEndpoints = append(sortedEndpoints, v)
-	}
-	sort.Slice(sortedEndpoints, func(i, j int) bool {
-		if sortedEndpoints[i].ActiveReport.BlocksProposed != sortedEndpoints[j].ActiveReport.BlocksProposed {
-			return sortedEndpoints[i].ActiveReport.BlocksProposed < sortedEndpoints[j].ActiveReport.BlocksProposed
+	sort.Slice(endpoints, func(i, j int) bool {
+		// TODO incorporate exempt status
+		if endpoints[i].ActiveReport.BlocksProposed != endpoints[j].ActiveReport.BlocksProposed {
+			return endpoints[i].ActiveReport.BlocksProposed < endpoints[j].ActiveReport.BlocksProposed
 		}
-		return sortedEndpoints[i].Endpoint < sortedEndpoints[j].Endpoint
+		return endpoints[i].Endpoint < endpoints[j].Endpoint
 	})
 
 	return cs.views.RenderUptimeView(c, &pages.UptimePageView{
-		ActiveEndpoint:   myUptime,
-		ValidatorUptimes: sortedEndpoints,
-		AvgBlockTimeMs:   avgBlockTimeMs,
+		ActiveEndpoint: activeEndpoint,
+		Endpoints:      endpoints,
+		AvgBlockTimeMs: avgBlockTimeMs,
 	})
+
+	/*
+
+		// 1. Get selected SLA rollup
+		activeRollup, err := cs.getActiveSlaRollup(ctx, rollupBlockEnd)
+		if err != nil {
+			cs.logger.Error("failed to active sla rollup", "error", err)
+			return err
+		}
+
+		// 2. Get selected endpoint
+		activeEndpoint, err := cs.getEndpoint(ctx, endpoint)
+		if err != nil {
+			cs.logger.Error("failed to active endpoint", "error", err)
+			return err
+		}
+
+		// 3. Get SLA Rollups around the selected SLA rollup time period
+		dbReports, err := cs.db.GetRollupReportsForNodeInTimeRange(
+			ctx,
+			db.GetRollupReportsForNodeInTimeRangeParams{
+				Address: activeEndpoint.CometAddress, // Does not matter if unset
+				Time:    cs.db.ToPgxTimestamp(activeRollup.Time.Time.Add(-24 * time.Hour)),
+				Time_2:  cs.db.ToPgxTimestamp(activeRollup.Time.Time.Add(24 * time.Hour)),
+			},
+		)
+		if err != nil {
+			cs.logger.Error("failed to get rollup reports", "error", err)
+			return err
+		}
+
+		// 4. Apply each report to the endpoint's history
+		pageReports := make([]*pages.SlaReport, len(dbReports))
+		for i, dbrep := range dbReports {
+			pagerep := &pages.SlaReport{
+				SlaRollupId:    dbrep.ID,
+				TxHash:         dbrep.TxHash,
+				BlockStart:     dbrep.BlockStart,
+				BlockEnd:       dbrep.BlockEnd,
+				BlocksProposed: dbrep.BlocksProposed.Int32,
+				Time:           dbrep.Time.Time,
+			}
+
+			if dbrep.ID == activeRollup.ID {
+				activeEndpoint.ActiveReport = pagerep
+			}
+
+			if endpointIsExemptForSlaReport(activeEndpoint, dbrep.Time.Time, dbrep.Address.Valid) {
+				pagerep.Status = pages.SlaExempt
+				pagerep.Quota = 0
+			} else {
+				if dbrep.ValidatorCount == 0 {
+					// unexpected state, but protect against divide-by-zero panic anyway
+					dbrep.ValidatorCount += 1
+				}
+				quota := int32(dbrep.BlockEnd-dbrep.BlockStart) / int32(dbrep.ValidatorCount)
+				if quota == 0 {
+					// protect against divide-by-zero panic again
+					quota += 1
+				}
+				pagerep.Quota = quota
+				faultRatio := float64(dbrep.BlocksProposed.Int32) / float64(quota)
+				if faultRatio < slaMeetsThreshold && faultRatio > 0 {
+					pagerep.Status = pages.SlaPartial
+				} else if faultRatio == 0 {
+					pagerep.Status = pages.SlaDead
+				} else {
+					pagerep.Status = pages.SlaMet
+				}
+			}
+			pageReports[i] = pagerep
+		}
+
+		// 5. Now do the same for all endpoints
+
+		// ***********************************
+		// old code
+		// ***********************************
+
+		rollupNodeAddress := cs.state.cometAddress
+
+		// Get active report
+		activeReport, err := cs.getActiveSlaReport(ctx, rollupBlockEnd, rollupNodeAddress)
+		if err != nil {
+			cs.logger.Error("Falled to get active Proof Of Work report", "error", err)
+			return err
+		}
+
+		// Attach report to this node
+		myUptime := pages.Endpoint{
+			CometAddress: rollupNodeAddress,
+			ActiveReport: activeReport,
+			SlaReports:   make([]*pages.SlaReport, 0, 30),
+		}
+
+		// Get avg block time
+		avgBlockTimeMs, err := cs.getAverageBlockTimeForReport(ctx, activeReport)
+		if err != nil {
+			cs.logger.Error("Failed to calculate average block time", "error", err)
+			return err
+		}
+
+		allEndpointsResp, err := cs.eth.GetRegisteredEndpoints(
+			ctx,
+			connect.NewRequest(&ethv1.GetRegisteredEndpointsRequest{}),
+		)
+		if err != nil {
+			cs.logger.Error("Falled to get all registered endpoints from eth service", "error", err)
+			return err
+		}
+
+		// Gather validator info
+		endpointMap := make(map[string]*pages.Endpoint, len(allEndpointsResp.Msg.Endpoints))
+		for _, ep := range allEndpointsResp.Msg.Endpoints {
+			node, err := cs.db.GetNodeByEndpoint(ctx, ep.Endpoint)
+			if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+				cs.logger.Error("Failed to get registered node from db", "endpoint", ep.Endpoint, "error", err)
+				return err
+			} else if errors.Is(err, pgx.ErrNoRows) {
+				endpointMap[ep.Endpoint] = &pages.Endpoint{
+					Endpoint:   ep.Endpoint,
+					Owner:      ep.Owner,
+					SlaReports: make([]*pages.SlaReport, 0, validatorReportHistoryLength),
+				}
+			} else {
+				endpointMap[node.CometAddress] = &pages.Endpoint{
+					Endpoint:     ep.Endpoint,
+					Owner:        ep.Owner,
+					CometAddress: node.CometAddress,
+					SlaReports:   make([]*pages.SlaReport, 0, validatorReportHistoryLength),
+				}
+			}
+		}
+
+		// Get history for this node
+		recentRollups, err := cs.db.GetRecentRollupsForNode(
+			ctx,
+			db.GetRecentRollupsForNodeParams{
+				Limit:   activeValidatorReportHistoryLength,
+				Address: cs.state.cometAddress,
+			},
+		)
+		if err != nil && err != pgx.ErrNoRows {
+			cs.logger.Error("Failed to get recent rollups from db", "error", err)
+			return err
+		}
+		for _, rr := range recentRollups {
+			reportQuota := int32(0)
+			if totalCometValidators > 0 {
+				reportQuota = int32(rr.BlockEnd-rr.BlockStart) / int32(totalCometValidators)
+			}
+			myUptime.SlaReports = append(
+				myUptime.SlaReports,
+				&pages.SlaReport{
+					SlaRollupId:    rr.ID,
+					TxHash:         rr.TxHash,
+					BlockStart:     rr.BlockStart,
+					BlockEnd:       rr.BlockEnd,
+					BlocksProposed: rr.BlocksProposed.Int32,
+					Quota:          reportQuota,
+					Time:           rr.Time.Time,
+				},
+			)
+		}
+
+		// Get history for all validators
+		bulkRecentReports, err := cs.db.GetRecentRollupsForAllNodes(
+			ctx,
+			db.GetRecentRollupsForAllNodesParams{
+				ID:    activeReport.SlaRollupId,
+				Limit: int32(validatorReportHistoryLength),
+			},
+		)
+		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+			cs.logger.Error("Failure getting bulk recent reports", "error", err)
+			return err
+		}
+		for _, rr := range bulkRecentReports {
+			if valData, ok := endpointMap[rr.Address.String]; ok {
+				var reportQuota int32 = 0
+				if totalCometValidators > 0 {
+					reportQuota = int32(rr.BlockEnd-rr.BlockStart) / int32(totalCometValidators)
+				}
+				rep := &pages.SlaReport{
+					SlaRollupId:    rr.ID,
+					TxHash:         rr.TxHash,
+					BlockStart:     rr.BlockStart,
+					BlockEnd:       rr.BlockEnd,
+					BlocksProposed: rr.BlocksProposed.Int32,
+					Quota:          reportQuota,
+					Time:           rr.Time.Time,
+				}
+				if rr.ID == myUptime.ActiveReport.SlaRollupId {
+					valData.ActiveReport = rep
+				}
+				valData.SlaReports = append(valData.SlaReports, rep)
+			}
+		}
+
+		// Get proof of storage history
+		posRollups, err := cs.db.GetStorageProofRollups(
+			ctx,
+			db.GetStorageProofRollupsParams{
+				BlockHeight:   activeReport.BlockStart,
+				BlockHeight_2: activeReport.BlockEnd,
+			},
+		)
+		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+			cs.logger.Error("Failure getting proof of storage rollups", "error", err)
+			return err
+		}
+		for _, posr := range posRollups {
+			if valData, ok := endpointMap[posr.Address]; ok {
+				valData.ActiveReport.PoSChallengesFailed = int32(posr.FailedCount)
+				valData.ActiveReport.PoSChallengesTotal = int32(posr.TotalCount)
+			}
+			if posr.Address == myUptime.CometAddress {
+				myUptime.ActiveReport.PoSChallengesFailed = int32(posr.FailedCount)
+				myUptime.ActiveReport.PoSChallengesTotal = int32(posr.TotalCount)
+			}
+		}
+
+		// Store validators as sorted slice
+		// (adjust sorting method to fit display preference)
+		sortedEndpoints := make([]*pages.Endpoint, 0, len(endpointMap))
+		for _, v := range endpointMap {
+			sortedEndpoints = append(sortedEndpoints, v)
+		}
+		sort.Slice(sortedEndpoints, func(i, j int) bool {
+			if sortedEndpoints[i].ActiveReport.BlocksProposed != sortedEndpoints[j].ActiveReport.BlocksProposed {
+				return sortedEndpoints[i].ActiveReport.BlocksProposed < sortedEndpoints[j].ActiveReport.BlocksProposed
+			}
+			return sortedEndpoints[i].Endpoint < sortedEndpoints[j].Endpoint
+		})
+
+		return cs.views.RenderUptimeView(c, &pages.UptimePageView{
+			ActiveEndpoint: activeEndpoint,
+			Endpoints:      sortedEndpoints,
+			AvgBlockTimeMs: avgBlockTimeMs,
+		})
+	*/
 }
 
 func (cs *Console) getActiveSlaRollup(ctx context.Context, rollupBlockEndParam string) (db.SlaRollup, error) {
@@ -387,4 +430,189 @@ func (cs *Console) getAverageBlockTimeForReport(ctx context.Context, report *pag
 		avgBlockTimeMs = int(report.Time.UnixMilli()-previousRollup.Time.Time.UnixMilli()) / totalBlocks
 	}
 	return avgBlockTimeMs, err
+}
+
+func endpointIsExemptForSlaReport(endpoint *pages.Endpoint, reportTimestamp time.Time) bool {
+	return !endpoint.IsEthRegistered || endpoint.RegisteredAt.After(reportTimestamp)
+}
+
+func (cs *Console) generateEndpoints(ctx context.Context, activeEndpointURL string) (endpoints []*pages.Endpoint, activeEndpoint *pages.Endpoint, err error) {
+	// get all endpoints registered on eth
+	endpointsResp, err := cs.eth.GetRegisteredEndpoints(
+		ctx,
+		connect.NewRequest(&ethv1.GetRegisteredEndpointsRequest{}),
+	)
+	if err != nil {
+		return nil, nil, fmt.Errorf("error requesting endpoints from eth service: %v", err)
+	}
+
+	// transform endpoints into pages.Endpoint objects
+	endpointMap := make(map[string]*pages.Endpoint, len(endpointsResp.Msg.Endpoints))
+	for _, ep := range endpointsResp.Msg.Endpoints {
+		pep := &pages.Endpoint{
+			Endpoint:        ep.Endpoint,
+			EthAddress:      ep.DelegateWallet,
+			Owner:           ep.Owner,
+			RegisteredAt:    ep.RegisteredAt.AsTime(),
+			IsEthRegistered: true,
+		}
+		if ep.Endpoint == activeEndpointURL {
+			activeEndpoint = pep
+		}
+		endpointMap[ep.Endpoint] = pep
+	}
+	if activeEndpoint == nil {
+		// dummy endpoint for unregistered nodes, e.g. sandboxes or rpcs
+		activeEndpoint = &pages.Endpoint{Endpoint: activeEndpointURL}
+	}
+
+	// Attach comet address to as many endpoints as possible
+	cometValidators, err := cs.db.GetAllRegisteredNodes(ctx)
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil, fmt.Errorf("error fetching cometValidators from db: %v", err)
+	}
+	for _, cv := range cometValidators {
+		if pep, ok := endpointMap[cv.Endpoint]; ok {
+			pep.CometAddress = cv.CometAddress
+		} else {
+			// Rare case when node is a comet validator but not registered on eth
+			endpointMap[cv.Endpoint] = &pages.Endpoint{
+				Endpoint:     cv.Endpoint,
+				EthAddress:   cv.EthAddress,
+				CometAddress: cv.CometAddress,
+			}
+		}
+	}
+
+	endpoints = make([]*pages.Endpoint, 0, len(endpointMap))
+	for _, ep := range endpointMap {
+		endpoints = append(endpoints, ep)
+	}
+
+	return endpoints, activeEndpoint, nil
+}
+
+func (cs *Console) populateSlaReportsForEndpoints(ctx context.Context, endpoints []*pages.Endpoint, activeEndpoint *pages.Endpoint, rollupBlockEnd string) error {
+	activeRollup, err := cs.getActiveSlaRollup(ctx, rollupBlockEnd)
+	if err != nil {
+		cs.logger.Error("failed to fetch active sla rollup", "error", err)
+		return err
+	}
+
+	// Get SLA reports for active endpoint
+	dbReports, err := cs.db.GetRollupReportsForNodeInTimeRange(
+		ctx,
+		db.GetRollupReportsForNodeInTimeRangeParams{
+			Address: activeEndpoint.CometAddress, // Does not matter if unset
+			Time:    cs.db.ToPgxTimestamp(activeRollup.Time.Time.Add(-24 * time.Hour)),
+			Time_2:  cs.db.ToPgxTimestamp(activeRollup.Time.Time.Add(24 * time.Hour)),
+		},
+	)
+	if err != nil {
+		cs.logger.Error("failed to get rollup reports for active endpoint", "error", err)
+		return err
+	}
+
+	// Attach each report to the active endpoint's history
+	activeEndpoint.SlaReports = make([]*pages.SlaReport, 0, len(dbReports))
+	for _, dbrep := range dbReports {
+		pagerep := &pages.SlaReport{
+			SlaRollupId:    dbrep.ID,
+			TxHash:         dbrep.TxHash,
+			BlockStart:     dbrep.BlockStart,
+			BlockEnd:       dbrep.BlockEnd,
+			BlocksProposed: dbrep.BlocksProposed.Int32,
+			Time:           dbrep.Time.Time,
+			ValidatorCount: dbrep.ValidatorCount,
+		}
+		attachSlaReportToEndpoint(pagerep, activeEndpoint, activeRollup.ID, !dbrep.Address.Valid)
+	}
+
+	// Now fetch the SLA reports for all endpoints, along with extra reports
+	// to show a quick overview of each endpoint's SLA history
+
+	// Organize endpoints in to map before populating with SlaRollups
+	cometAddressToEndpointMap := make(map[string]*pages.Endpoint, len(endpoints))
+	allCometAddresses := make([]string, len(endpoints))
+	for i, ep := range endpoints {
+		var key string
+		if ep.CometAddress != "" {
+			key = ep.CometAddress
+		} else {
+			// dummy address allows us to assign empty SlaReport from db later
+			key = fmt.Sprintf("dummy_address_%d", i)
+		}
+		cometAddressToEndpointMap[key] = ep
+		allCometAddresses[i] = key
+	}
+
+	// Get SLA reports for all endpoints from db in a six hour time window
+	allDbReports, err := cs.db.GetRollupReportsForNodesInTimeRange(
+		ctx,
+		db.GetRollupReportsForNodesInTimeRangeParams{
+			Column1: allCometAddresses,
+			Time:    cs.db.ToPgxTimestamp(activeRollup.Time.Time.Add(-6 * time.Hour)),
+			Time_2:  cs.db.ToPgxTimestamp(activeRollup.Time.Time),
+		},
+	)
+	if err != nil {
+		cs.logger.Error("failed to get rollup reports for all endpoints", "error", err)
+		return err
+	}
+
+	// Attach each report to the appropriate endpoint's history
+	for _, dbrep := range allDbReports {
+		if ep, ok := cometAddressToEndpointMap[dbrep.Address]; ok {
+			if ep.Endpoint == activeEndpoint.Endpoint {
+				// we already filled out the history of the active endpoint, skip
+				continue
+			}
+			if ep.SlaReports == nil {
+				// initialize SlaReports slice with some extra headroom
+				ep.SlaReports = make([]*pages.SlaReport, 0, len(allDbReports)/len(allCometAddresses)+3)
+			}
+			pagerep := &pages.SlaReport{
+				SlaRollupId:    dbrep.ID,
+				TxHash:         dbrep.TxHash,
+				BlockStart:     dbrep.BlockStart,
+				BlockEnd:       dbrep.BlockEnd,
+				BlocksProposed: dbrep.BlocksProposed.Int32,
+				Time:           dbrep.Time.Time,
+				ValidatorCount: dbrep.ValidatorCount,
+			}
+			attachSlaReportToEndpoint(pagerep, ep, activeRollup.ID, false)
+		}
+	}
+
+	return nil
+}
+
+func attachSlaReportToEndpoint(slaReport *pages.SlaReport, endpoint *pages.Endpoint, activeSlaReportId int32, forceExemptStatus bool) {
+	if slaReport.SlaRollupId == activeSlaReportId {
+		endpoint.ActiveReport = slaReport
+	}
+	if forceExemptStatus || endpointIsExemptForSlaReport(endpoint, slaReport.Time) {
+		slaReport.Status = pages.SlaExempt
+		slaReport.Quota = 0
+	} else {
+		if slaReport.ValidatorCount == 0 {
+			// unexpected state, but protect against divide-by-zero panic anyway
+			slaReport.ValidatorCount += 1
+		}
+		quota := int32(slaReport.BlockEnd-slaReport.BlockStart) / int32(slaReport.ValidatorCount)
+		if quota == 0 {
+			// protect against divide-by-zero panic again
+			quota += 1
+		}
+		slaReport.Quota = quota
+		faultRatio := float64(slaReport.BlocksProposed) / float64(quota)
+		if faultRatio < slaMeetsThreshold && faultRatio > 0 {
+			slaReport.Status = pages.SlaPartial
+		} else if faultRatio == 0 {
+			slaReport.Status = pages.SlaDead
+		} else {
+			slaReport.Status = pages.SlaMet
+		}
+	}
+	endpoint.SlaReports = append(endpoint.SlaReports, slaReport)
 }
