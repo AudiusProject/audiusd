@@ -1827,6 +1827,38 @@ func (q *Queries) GetStorageProofPeers(ctx context.Context, blockHeight int64) (
 	return prover_addresses, err
 }
 
+const getStorageProofRollupForNode = `-- name: GetStorageProofRollupForNode :one
+select address,
+    count(*) filter (
+        where status = 'fail'
+    ) as failed_count,
+    count(*) as total_count
+from storage_proofs
+where address = $1
+    and block_height >= $2
+    and block_height <= $3
+group by address
+`
+
+type GetStorageProofRollupForNodeParams struct {
+	Address       string
+	BlockHeight   int64
+	BlockHeight_2 int64
+}
+
+type GetStorageProofRollupForNodeRow struct {
+	Address     string
+	FailedCount int64
+	TotalCount  int64
+}
+
+func (q *Queries) GetStorageProofRollupForNode(ctx context.Context, arg GetStorageProofRollupForNodeParams) (GetStorageProofRollupForNodeRow, error) {
+	row := q.db.QueryRow(ctx, getStorageProofRollupForNode, arg.Address, arg.BlockHeight, arg.BlockHeight_2)
+	var i GetStorageProofRollupForNodeRow
+	err := row.Scan(&i.Address, &i.FailedCount, &i.TotalCount)
+	return i, err
+}
+
 const getStorageProofRollups = `-- name: GetStorageProofRollups :many
 select address,
     count(*) filter (

@@ -283,6 +283,18 @@ where block_height >= $1
     and block_height <= $2
 group by address;
 
+-- name: GetStorageProofRollupForNode :one
+select address,
+    count(*) filter (
+        where status = 'fail'
+    ) as failed_count,
+    count(*) as total_count
+from storage_proofs
+where address = $1
+    and block_height >= $2
+    and block_height <= $3
+group by address;
+
 -- name: GetStorageProofsForNodeInRange :many
 select *
 from storage_proofs

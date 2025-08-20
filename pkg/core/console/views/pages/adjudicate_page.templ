@@ -17,41 +17,43 @@ type AdjudicatePageView struct {
     MetSlas                int
     PartialSlas            int
     DeadSlas               int
+    TotalSlas              int
     TotalStaked            int64
-    TotalSPRewards         int64
-    TotalUnearnedSPRewards int64
+    TotalChallenges        int64
+    FailedChallenges       int64
+    SlashRecommendation    int64
 }
 
 type ServiceProvider struct {
     Address   string
     Endpoints []*Endpoint
+    StorageProofRollups map[string]*StorageProofRollup
 }
 
-func getSlaBarColor(status SlaStatus) string {
-    if status == SlaDead {
-        return slaDead
-    } else if status == SlaPartial {
-        return slaRed
-    } else {
-        return slaGreen
-    }
+type StorageProofRollup struct {
+    ChallengesReceived int64
+    ChallengesFailed   int64
 }
 
 func getTimeRangeQueryString(start time.Time, end time.Time) string {
     v := url.Values{}
-    v.Set("start", start.Format("2006-01-02T15:04"))
-    v.Set("end", end.Format("2006-01-02T15:04"))
+    v.Set("start", start.Format("2006-01-02"))
+    v.Set("end", end.Format("2006-01-02"))
     return v.Encode()
 }
 
-css slaBar(status SlaStatus) {
-    width: 5px;
-    height: 18px;
-    display: inline-block;
-    margin: 1px;
-    border-radius: 0.5rem;
-    background-color: { templ.SafeCSSProperty(getSlaBarColor(status)) };
-    vertical-align: middle;
+func getReceivedChallengesFromProofRollup(rollup *StorageProofRollup) int64 {
+    if rollup != nil {
+        return rollup.ChallengesReceived
+    }
+    return int64(0)
+}
+
+func getFailedChallengesFromProofRollup(rollup *StorageProofRollup) int64 {
+    if rollup != nil {
+        return rollup.ChallengesFailed
+    }
+    return int64(0)
 }
 
 templ staticAdjudicateStyles() {
@@ -109,9 +111,16 @@ templ (c *Pages) AdjudicatePageHTML(props *AdjudicatePageView) {
         @staticUptimeStyles()
         @staticAdjudicateStyles()
         <div>
-            <h3 class="text-sm text-gray-400 px-3">
+            <h1 class="text-xl w-full p-3 text-center bg-red-100 text-red-400 my-3">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-8 p-1 inline">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
+                </svg>
+                <span class="align-middle">UI currently under development</span>
+            </h1>
+
+            <h2 class="text-lg text-gray-400">
                 Node Operator
-            </h3>
+            </h2>
             <h1 class="text-xl p-4">
                 { props.ServiceProvider.Address }
                 <svg xmlns="http://www.w3.org/2000/svg" id="copyAdjudicateLinkButton" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="copyAdjudicateLink size-6 inline text-gray-600">
@@ -141,72 +150,75 @@ templ (c *Pages) AdjudicatePageHTML(props *AdjudicatePageView) {
             <div class="basis-1/2 rounded-md bg-slate-100 py-8 mx-1">
                 <dt class="text-lg">
                     { props.StartTime.Format("2006-01-02") }
-                    <br />
-                    { props.StartTime.Format("15:04 MST") }
                 </dt>
                 <dd class="text-sm">Start</dd>
             </div>
             <div class="basis-1/2 rounded-md bg-slate-100 py-8 mx-1">
                 <dt class="text-lg">
                     { props.EndTime.Format("2006-01-02") }
-                    <br />
-                    { props.EndTime.Format("15:04 MST") }
                 </dt>
                 <dd class="text-sm">End</dd>
             </div>
-
         </div>
 
         <div class="flex flex-row text-center p-2">
-            <div class="basis-1/3 rounded-md bg-slate-100 py-8 mx-1">
+            <div class="basis-1/5 rounded-md bg-slate-100 py-8 mx-1">
+                <dt class="text-4xl">{ humanize.Comma(int64(props.TotalSlas)) }</dt>
+                <dd class="text-sm">Total SLAs</dd>
+            </div>
+
+            <div class={ "basis-1/5 rounded-md bg-slate-100 py-8 mx-1", templ.KV(slaMetClass(), props.MetSlas > 0) }>
                 <dt class="text-4xl">{ humanize.Comma(int64(props.MetSlas)) }</dt>
                 <dd class="text-sm">SLAs Met</dd>
             </div>
 
-            <div class={ "basis-1/3 rounded-md bg-slate-100 py-8 mx-1", templ.KV(slaMissClass(), props.PartialSlas > 0) }>
-                <dt class="text-4xl">{ humanize.Comma(int64(props.PartialSlas)) }</dt>
-                <dd class="text-sm">SLAs Partially Met</dd>
-            </div>
-
-            <div class={ "basis-1/3 rounded-md bg-slate-100 py-8 mx-1", templ.KV(slaDeadClass(), props.DeadSlas > 0) }>
+            <div class={ "basis-1/5 rounded-md bg-slate-100 py-8 mx-1", templ.KV(slaDeadClass(), props.DeadSlas > 0) }>
                 <dt class="text-4xl">{ humanize.Comma(int64(props.DeadSlas)) }</dt>
-                <dd class="text-sm">SLAs Completely Missed</dd>
+                <dd class="text-sm">SLAs Missed</dd>
             </div>
+
+            <div class="basis-1/5 rounded-md bg-slate-100 py-8 mx-1">
+                <dt class="text-4xl">{ humanize.Comma(int64(props.TotalChallenges)) }</dt>
+                <dd class="text-sm">Challenges Received</dd>
+            </div>
+
+            <div class={ "basis-1/5 rounded-md bg-slate-100 py-8 mx-1", templ.KV(slaMissClass(), props.FailedChallenges > 0) }>
+                <dt class="text-4xl">{ humanize.Comma(int64(props.FailedChallenges)) }</dt>
+                <dd class="text-sm">Challenges Failed</dd>
+            </div>
+
         </div>
+        @adjudicateProposalRecommendation(props.SlashRecommendation)
 
-        <div class="flex flex-row text-center p-2">
-            <div class="basis-1/4 rounded-md bg-slate-100 py-8 mx-1">
-                <dt class="text-4xl">{ humanize.Comma(props.TotalStaked) }</dt>
-                <dd class="text-sm">Total Staked for Service Provider</dd>
-            </div>
-
-            <div class="basis-1/4 rounded-md bg-slate-100 py-8 mx-1">
-                <dt class="text-4xl">{ humanize.Comma(props.TotalSPRewards) }</dt>
-                <dd class="text-sm">Est. Rewards Accrued During Time Period</dd>
-            </div>
-
-            <div class={ "basis-1/4 rounded-md bg-slate-100 py-8 mx-1", templ.KV(slaDeadClass(), props.TotalUnearnedSPRewards > unearnedRewardsThreshold) }>
-                <dt class="text-4xl">{ humanize.Comma(props.TotalUnearnedSPRewards) }</dt>
-                <dd class="text-sm">Est. Rewards to Slash Based on SLA Performance</dd>
-            </div>
-
-            @adjudicateProposalRecommendation(props.TotalUnearnedSPRewards)
-        </div>
 
         <table class="bg-slate-50 p-2 rounded validatorReports text-left m-4">
+            <colgroup>
+                <col />
+                <col class="bg-white" />
+                <col />
+                <col class="bg-white" />
+                <col />
+            </colgroup>
             <tr>
                 <th>Endpoint</th>
+                <th colspan="2" class="text-center">
+                    Proof of Storage Challenges
+                    <div class="flex flex-row text-left">
+                        <div class="basis-1/2">Received</div>
+                        <div class="basis-1/2">Failed</div>
+                    </div>
+                </th>
                 <th>SLA History</th>
             </tr>
             for _, ep := range props.ServiceProvider.Endpoints {
-                @endpointRowReport(ep)
+                @endpointRowReport(ep, props.ServiceProvider.StorageProofRollups[ep.CometAddress])
             }
         </table>
 
         <div id="slashProposalModal" class="slashProposalModal">
           <div class="slashProposalModalContent">
             <span id="closeSlashProposalModal" class="slashProposalModalCloseButton">&times;</span>
-            <h2 class="text-lg">{ fmt.Sprintf("Create Slash Proposal for %s", props.ServiceProvider.Address) }</h2>
+            <h2 class="text-lg">Create Slash Proposal for Delinquent Node Operator</h2>
 
             <div class="py-2">
                 <h3 class="text-sm text-gray-400">Signature</h3>
@@ -215,24 +227,26 @@ templ (c *Pages) AdjudicatePageHTML(props *AdjudicatePageView) {
 
             <div class="py-2">
                 <h3 class="text-sm text-gray-400">Call Data</h3>
-                <p class="text-sm px-2">{ fmt.Sprintf("%d,%s", props.TotalUnearnedSPRewards, props.ServiceProvider.Address) }</p>
+                <p class="text-sm px-2">{ fmt.Sprintf("%d,%s", props.SlashRecommendation, props.ServiceProvider.Address) }</p>
             </div>
 
             <div class="py-2">
                 <h3 class="text-sm text-gray-400">Name</h3>
-                <p class="text-sm px-2">Slash Non-contributing Node Operator</p>
+                <p class="text-sm px-2">{ fmt.Sprintf("Slash %s", props.ServiceProvider.Address) }</p>
             </div>
 
             <div class="py-2">
                 <h3 class="text-sm text-gray-400">Description</h3>
                 <p class="text-sm px-2" id="slashProposalDescription">
-                    { fmt.Sprintf("Slash %s $AUDIO from %s for consistently failing to meet SLA. See ", humanize.Comma(props.TotalUnearnedSPRewards), props.ServiceProvider.Address) }
+                    { fmt.Sprintf("Slash %s $AUDIO from %s for consistently failing to meet SLA. See ", humanize.Comma(props.SlashRecommendation), props.ServiceProvider.Address) }
                 </p>
             </div>
 
-            <a class="py-3 text-blue-800" href="https://dashboard.audius.co/#/governance" target="_blank">
-                Click here to create a proposal
-            </a>
+            <div class="p-4 text-right">
+                <a class="text-blue-800" href="https://dashboard.audius.co/#/governance" target="_blank">
+                    Open Protocol Dashboard
+                </a>
+            </div>
           </div>
         </div>
 
@@ -256,12 +270,16 @@ templ (c *Pages) AdjudicatePageHTML(props *AdjudicatePageView) {
 	}
 }
 
-templ endpointRowReport(endpoint *Endpoint) {
+templ endpointRowReport(endpoint *Endpoint, proofRollup *StorageProofRollup) {
     <tr>
         <td>
             <a href={ templ.URL(fmt.Sprintf("%s/console/uptime", endpoint.Endpoint)) }>
                 { strippedEndpoint(endpoint.Endpoint) }
             </a>
+        </td>
+        <td>{ fmt.Sprintf("%d", getReceivedChallengesFromProofRollup(proofRollup)) }</td>
+        <td class={ templ.KV(slaMissClass(), getFailedChallengesFromProofRollup(proofRollup) > 100) }>
+            { fmt.Sprintf("%d", getFailedChallengesFromProofRollup(proofRollup)) }
         </td>
         <td class="bg-white">
             for _, r := range endpoint.SlaReports {
@@ -272,26 +290,21 @@ templ endpointRowReport(endpoint *Endpoint) {
 }
 
 templ endpointSlaHistory(report *SlaReport) {
-    <li class={ slaBar(report.Status) }>
+    <li class={ "slaBarMini",  getSlaClassFromStatus(report.Status) }>
         <a class="reportLink" href={ templ.URL(fmt.Sprintf("/console/uptime/%d", report.BlockEnd)) }></a>
     </li>
 }
 
 templ adjudicateProposalRecommendation(unearnedRewards int64) {
     if unearnedRewards > unearnedRewardsThreshold {
-        <div id="openSlashProposalModal" class={ "basis-1/4 rounded-md bg-slate-100 py-8 mx-1", slaDeadClass() }>
+        <div id="openSlashProposalModal" class={ "flex-row rounded-md bg-slate-100 mx-3 p-1", slaDeadClass() }>
             <dt>
-                Action Recommended
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-8 p-1 inline">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
+                </svg>
+                <span class="align-middle">Node performance appears to be delinquent. Action is recommended.</span>
             </dt>
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-12 py-2 w-full">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
-            </svg>
 
-        </div>
-    } else {
-        <div class="basis-1/4 rounded-md bg-slate-100 py-8 mx-1">
-            <dt class="text-sm">
-            </dt>
         </div>
     }
 }
