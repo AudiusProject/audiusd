@@ -26,15 +26,7 @@ const (
 	DeregistrationTopic = "deregistration-subscriber"
 )
 
-var audConversion = new(big.Int)
-
-func init() {
-	var ok bool
-	audConversion, ok = audConversion.SetString("1000000000000000000", 10)
-	if !ok {
-		panic("invalid big int for aud conversion")
-	}
-}
+var audConversion = new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
 
 type DeregistrationPubsub = pubsub.Pubsub[*v1.ServiceEndpoint]
 
