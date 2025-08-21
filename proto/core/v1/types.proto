@@ -137,10 +137,14 @@ message GetStatusResponse {
       string eth_address = 3;
       string node_type = 4;
 
-      bool connectrpc = 5;
-      bool cometrpc = 6;
-      bool cometp2p = 7;
-      bool port_accessible = 8;
+      bool connectrpc_client = 5;
+      bool connectrpc_healthy = 6;
+
+      bool cometrpc_client = 7;
+      bool cometrpc_healthy = 8;
+
+      bool p2p_connected = 9;
+      bool p2p_accessible = 10;
     }
     repeated Peer peers = 1;
   }

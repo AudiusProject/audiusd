@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	v1 "github.com/AudiusProject/audiusd/pkg/api/core/v1"
 	corev1connect "github.com/AudiusProject/audiusd/pkg/api/core/v1/v1connect"
 	"github.com/AudiusProject/audiusd/pkg/common"
 	"github.com/AudiusProject/audiusd/pkg/core/config"
@@ -51,6 +52,7 @@ type Server struct {
 	connectRPCPeers  *safemap.SafeMap[EthAddress, corev1connect.CoreServiceClient]
 	cometRPCPeers    *safemap.SafeMap[EthAddress, *CometBFTRPC]
 	cometListenAddrs *safemap.SafeMap[CometBFTAddress, CometBFTListener]
+	peerStatus       *safemap.SafeMap[EthAddress, *v1.GetStatusResponse_PeerInfo_Peer]
 
 	txPubsub *TransactionHashPubsub
 
@@ -100,6 +102,7 @@ func NewServer(lc *lifecycle.Lifecycle, config *config.Config, cconfig *cconfig.
 		connectRPCPeers:  safemap.New[EthAddress, corev1connect.CoreServiceClient](),
 		cometRPCPeers:    safemap.New[EthAddress, *CometBFTRPC](),
 		cometListenAddrs: safemap.New[CometBFTAddress, CometBFTListener](),
+		peerStatus:       safemap.New[EthAddress, *v1.GetStatusResponse_PeerInfo_Peer](),
 		txPubsub:         txPubsub,
 		cache:            NewCache(config),
 		abciState:        NewABCIState(config.RetainHeight),
@@ -122,12 +125,12 @@ func (s *Server) Start() error {
 	s.lc.AddManagedRoutine("registry bridge", s.startRegistryBridge)
 	s.lc.AddManagedRoutine("echo server", s.startEchoServer)
 	s.lc.AddManagedRoutine("sync tasks", s.startSyncTasks)
-	s.lc.AddManagedRoutine("peer manager", s.startPeerManager)
 	s.lc.AddManagedRoutine("cache", s.startCache)
 	s.lc.AddManagedRoutine("data companion", s.startDataCompanion)
 	s.lc.AddManagedRoutine("log sync", s.syncLogs)
 	s.lc.AddManagedRoutine("state sync", s.startStateSync)
 	s.lc.AddManagedRoutine("mempool cache", s.startMempoolCache)
+	s.lc.AddManagedRoutine("peer manager", s.managePeers)
 
 	s.z.Info("routines started")
 

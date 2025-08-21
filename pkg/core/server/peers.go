@@ -7,19 +7,29 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"sort"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
+	"connectrpc.com/connect"
 	v1 "github.com/AudiusProject/audiusd/pkg/api/core/v1"
+	"github.com/AudiusProject/audiusd/pkg/api/core/v1/v1connect"
 	"github.com/AudiusProject/audiusd/pkg/common"
-	"github.com/AudiusProject/audiusd/pkg/core/db"
 	"github.com/AudiusProject/audiusd/pkg/eth/contracts"
+	"github.com/AudiusProject/audiusd/pkg/safemap"
 	"github.com/AudiusProject/audiusd/pkg/sdk"
+	"github.com/cometbft/cometbft/p2p"
 	rpchttp "github.com/cometbft/cometbft/rpc/client/http"
 	"github.com/labstack/echo/v4"
+)
+
+const (
+	connectRPCInterval  = 15 * time.Second
+	cometRPCInterval    = 15 * time.Second
+	healthcheckInterval = 30 * time.Second
+	p2pcheckInterval    = 15 * time.Second
+	peerInfoInterval    = 15 * time.Second
 )
 
 var legacyDiscoveryProviderProfile = []string{".audius.co", ".creatorseed.com", "dn1.monophonic.digital", ".figment.io", ".tikilabs.com"}
@@ -40,141 +50,6 @@ type RegisteredNodesVerboseResponse struct {
 
 type RegisteredNodesEndpointResponse struct {
 	RegisteredNodes []string `json:"data"`
-}
-
-func (s *Server) startPeerManager(ctx context.Context) error {
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case <-s.awaitRpcReady:
-	}
-
-	ticker := time.NewTicker(5 * time.Second)
-
-	for {
-		select {
-		case <-ticker.C:
-			if err := s.onPeerTick(ctx); err != nil {
-				s.logger.Errorf("error connecting to peers: %v", err)
-			}
-		case <-ctx.Done():
-			return ctx.Err()
-		}
-	}
-}
-
-func (s *Server) onPeerTick(ctx context.Context) error {
-	validators, err := s.db.GetAllRegisteredNodes(ctx)
-	if err != nil {
-		return fmt.Errorf("could not get validators from db: %v", err)
-	}
-
-	netInfo, err := s.rpc.NetInfo(ctx)
-	if err != nil {
-		return fmt.Errorf("could not get self net info: %v", err)
-	}
-	for _, peer := range netInfo.Peers {
-		s.cometListenAddrs.Set(CometBFTAddress(peer.NodeInfo.ID()), peer.NodeInfo.ListenAddr)
-	}
-
-	var wg sync.WaitGroup
-	wg.Add(len(validators))
-
-	for _, validator := range validators {
-		go s.peerValidator(ctx, &wg, &validator)
-	}
-
-	wg.Wait()
-
-	return nil
-}
-
-func (s *Server) peerValidator(ctx context.Context, wg *sync.WaitGroup, validator *db.CoreValidator) {
-	defer wg.Done()
-
-	endpoint := validator.Endpoint
-	ethAddress := validator.EthAddress
-	nodeid := strings.ToLower(validator.CometAddress)
-	self := s.config.WalletAddress
-	logger := s.logger.Child("peer_manager")
-
-	logger.Infof("peering with %s", endpoint)
-
-	// don't peer with self
-	if ethAddress == self {
-		return
-	}
-
-	// get or create connectrpc client
-	connectRPC, ok := s.connectRPCPeers.Get(ethAddress)
-	if !ok {
-		// create connectrpc client
-		auds := sdk.NewAudiusdSDK(endpoint)
-		connectRPC = auds.Core
-		s.connectRPCPeers.Set(ethAddress, connectRPC)
-	}
-
-	// get or create cometrpc client
-	cometRPC, ok := s.cometRPCPeers.Get(ethAddress)
-	if !ok {
-		rpc, _ := rpchttp.New(endpoint + "/core/crpc")
-		if rpc != nil {
-			cometRPC = rpc
-			s.cometRPCPeers.Set(ethAddress, cometRPC)
-		}
-	}
-
-	listener, peered := s.cometListenAddrs.Get(nodeid)
-	portAccessible := false
-	conn, _ := net.DialTimeout("tcp", listener, 3*time.Second)
-	if conn != nil {
-		portAccessible = true
-		_ = conn.Close()
-	}
-
-	if !peered {
-		res, err := s.rpc.DialPeers(ctx, []string{listener}, true, true, false)
-		if err != nil {
-			s.logger.Errorf("error dialing peer %s: %v", endpoint, err)
-		} else {
-			s.logger.Infof("dialed peer %s: %s", endpoint, res.Log)
-			peered = true
-		}
-	}
-
-	nodeStatus := &v1.GetStatusResponse_PeerInfo_Peer{
-		Endpoint:       endpoint,
-		CometAddress:   nodeid,
-		EthAddress:     ethAddress,
-		NodeType:       validator.NodeType,
-		Connectrpc:     connectRPC != nil,
-		Cometrpc:       cometRPC != nil,
-		Cometp2P:       peered,
-		PortAccessible: portAccessible,
-	}
-
-	upsertCache(s.cache.peers, PeersKey, func(peerInfo *v1.GetStatusResponse_PeerInfo) *v1.GetStatusResponse_PeerInfo {
-		var index int = -1
-		for i, peer := range peerInfo.Peers {
-			if peer.CometAddress == nodeStatus.CometAddress {
-				index = i
-				break
-			}
-		}
-
-		if index >= 0 {
-			peerInfo.Peers[index] = nodeStatus
-		} else {
-			peerInfo.Peers = append(peerInfo.Peers, nodeStatus)
-		}
-
-		// Sort by CometAddress
-		sort.Slice(peerInfo.Peers, func(i, j int) bool {
-			return peerInfo.Peers[i].CometAddress < peerInfo.Peers[j].CometAddress
-		})
-
-		return peerInfo
-	})
 }
 
 func (s *Server) getRegisteredNodes(c echo.Context) error {
@@ -314,4 +189,319 @@ func (s *Server) getRegisteredNodes(c echo.Context) error {
 	}
 
 	return c.JSON(200, res)
+}
+
+func (s *Server) managePeers(ctx context.Context) error {
+	logger := s.logger.Child("peer_manager")
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-s.awaitRpcReady:
+	}
+
+	connectRPCTicker := time.NewTicker(connectRPCInterval)
+	defer connectRPCTicker.Stop()
+
+	cometRPCTicker := time.NewTicker(cometRPCInterval)
+	defer cometRPCTicker.Stop()
+
+	healthcheckTicker := time.NewTicker(healthcheckInterval)
+	defer healthcheckTicker.Stop()
+
+	p2pcheckTicker := time.NewTicker(p2pcheckInterval)
+	defer p2pcheckTicker.Stop()
+
+	peerInfoTicker := time.NewTicker(peerInfoInterval)
+	defer peerInfoTicker.Stop()
+
+	for {
+		select {
+		case <-connectRPCTicker.C:
+			if err := s.refreshConnectRPCPeers(ctx, logger); err != nil {
+				logger.Errorf("could not refresh connectrpcs: %v", err)
+			}
+		case <-cometRPCTicker.C:
+			if err := s.refreshCometRPCPeers(ctx, logger); err != nil {
+				logger.Errorf("could not refresh cometbft rpcs: %v", err)
+			}
+		case <-healthcheckTicker.C:
+			if err := s.refreshPeerHealth(ctx, logger); err != nil {
+				logger.Errorf("could not check health: %v", err)
+			}
+		case <-p2pcheckTicker.C:
+			if err := s.checkPeerP2PAddr(ctx, logger); err != nil {
+				logger.Errorf("could not check p2p connectivity: %v", err)
+			}
+		case <-peerInfoTicker.C:
+			if err := s.refreshPeerData(ctx, logger); err != nil {
+				logger.Errorf("could not refresh peer data: %v", err)
+			}
+		case <-ctx.Done():
+			logger.Info("shutting down")
+			return ctx.Err()
+		}
+	}
+}
+
+func (s *Server) refreshPeerData(ctx context.Context, _ *common.Logger) error {
+	validators, err := s.db.GetAllRegisteredNodes(ctx)
+	if err != nil {
+		return fmt.Errorf("could not get validators from db: %v", err)
+	}
+
+	for _, validator := range validators {
+		self := s.config.WalletAddress
+		if validator.EthAddress == self {
+			continue
+		}
+		exists := s.peerStatus.Has(validator.EthAddress)
+		if exists {
+			continue
+		}
+		s.peerStatus.Set(validator.EthAddress, &v1.GetStatusResponse_PeerInfo_Peer{
+			Endpoint:     validator.Endpoint,
+			CometAddress: validator.CometAddress,
+			EthAddress:   validator.EthAddress,
+			NodeType:     validator.NodeType,
+		})
+	}
+
+	return nil
+}
+
+// refreshes the clients in the server struct for connectrpc, does not test connectivity.
+func (s *Server) refreshConnectRPCPeers(ctx context.Context, _ *common.Logger) error {
+	validators, err := s.db.GetAllRegisteredNodes(ctx)
+	if err != nil {
+		return fmt.Errorf("could not get validators from db: %v", err)
+	}
+
+	for _, validator := range validators {
+		ethAddress := validator.EthAddress
+		self := s.config.WalletAddress
+		if ethAddress == self {
+			continue
+		}
+
+		status, exists := s.peerStatus.Get(ethAddress)
+		if s.connectRPCPeers.Has(ethAddress) {
+			// Client exists, make sure status reflects reality
+			if exists && !status.ConnectrpcClient {
+				status.ConnectrpcClient = true
+				s.peerStatus.Set(ethAddress, status)
+			}
+			continue
+		}
+
+		endpoint := validator.Endpoint
+		auds := sdk.NewAudiusdSDK(endpoint)
+		connectRPC := auds.Core
+		s.connectRPCPeers.Set(ethAddress, connectRPC)
+
+		if exists {
+			status.ConnectrpcClient = true
+			s.peerStatus.Set(ethAddress, status)
+		}
+	}
+
+	return nil
+}
+
+// refreshes the cometbft rpc clients in the server struct, does not test connectivity.
+func (s *Server) refreshCometRPCPeers(ctx context.Context, logger *common.Logger) error {
+	validators, err := s.db.GetAllRegisteredNodes(ctx)
+	if err != nil {
+		return fmt.Errorf("could not get validators from db: %v", err)
+	}
+
+	for _, validator := range validators {
+		ethAddress := validator.EthAddress
+		self := s.config.WalletAddress
+		if ethAddress == self {
+			continue
+		}
+
+		status, exists := s.peerStatus.Get(ethAddress)
+		if s.cometRPCPeers.Has(ethAddress) {
+			if exists && !status.CometrpcClient {
+				status.CometrpcClient = true
+				s.peerStatus.Set(ethAddress, status)
+			}
+			continue
+		}
+
+		endpoint := validator.Endpoint + "/core/crpc"
+		cometRPC, err := rpchttp.New(endpoint)
+		if err != nil {
+			logger.Errorf("could not create cometrpc for %s: %v", endpoint, err)
+			continue
+		}
+		s.cometRPCPeers.Set(ethAddress, cometRPC)
+
+		if exists {
+			status.CometrpcClient = true
+			s.peerStatus.Set(ethAddress, status)
+		}
+	}
+
+	return nil
+}
+
+// grabs the cometbft rpc and connectrpc clients from the server struct and tests their
+// connectivity and health. reports health status to status check.
+func (s *Server) refreshPeerHealth(ctx context.Context, logger *common.Logger) error {
+	var wg sync.WaitGroup
+
+	connectPeers := s.connectRPCPeers.ToMap()
+	cometPeers := s.cometRPCPeers.ToMap()
+	wg.Add(len(connectPeers) + len(cometPeers))
+
+	for ethaddress, rpc := range connectPeers {
+		go func(ethaddress EthAddress, rpc v1connect.CoreServiceClient) {
+			defer wg.Done()
+
+			self := s.config.WalletAddress
+			if ethaddress == self {
+				return
+			}
+
+			pingCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+			defer cancel()
+			_, err := rpc.Ping(pingCtx, connect.NewRequest(&v1.PingRequest{}))
+			if err != nil {
+				logger.Errorf("connect rpc unreachable for %s: %v", ethaddress, err)
+			}
+
+			status, exists := s.peerStatus.Get(ethaddress)
+			if exists {
+				status.ConnectrpcHealthy = (err == nil)
+				s.peerStatus.Set(ethaddress, status)
+			}
+		}(ethaddress, rpc)
+	}
+
+	for ethaddress, rpc := range cometPeers {
+		go func(ethaddress EthAddress, rpc *CometBFTRPC) {
+			defer wg.Done()
+
+			self := s.config.WalletAddress
+			if ethaddress == self {
+				return
+			}
+
+			healthCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+			defer cancel()
+			_, err := rpc.Health(healthCtx)
+			if err != nil {
+				logger.Errorf("comet rpc unreachable for %s: %v", ethaddress, err)
+			}
+
+			status, exists := s.peerStatus.Get(ethaddress)
+			if exists {
+				status.CometrpcHealthy = (err == nil)
+				s.peerStatus.Set(ethaddress, status)
+			}
+		}(ethaddress, rpc)
+	}
+
+	wg.Wait()
+
+	return nil
+}
+
+// grabs the cometbft rpc clients in the server struct, uses the status endpoints to test
+// p2p connectivity. if not already peered will dial peers for comet. reports p2p status
+// to status check.
+func (s *Server) checkPeerP2PAddr(ctx context.Context, logger *common.Logger) error {
+	var wg sync.WaitGroup
+
+	netInfoCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	netInfo, err := s.rpc.NetInfo(netInfoCtx)
+	if err != nil {
+		return fmt.Errorf("could not get self net info: %v", err)
+	}
+
+	isPeered := func(nodeid p2p.ID) bool {
+		for _, peer := range netInfo.Peers {
+			if peer.NodeInfo.DefaultNodeID == nodeid {
+				return true
+			}
+		}
+		return false
+	}
+
+	peersToDial := safemap.New[CometP2PConnectionString, struct{}]()
+
+	cometPeers := s.cometRPCPeers.ToMap()
+	wg.Add(len(cometPeers))
+	for ethaddress, rpc := range cometPeers {
+		go func(ethaddress EthAddress, rpc *CometBFTRPC) {
+			defer wg.Done()
+
+			self := s.config.WalletAddress
+			if ethaddress == self {
+				return
+			}
+
+			status, ok := s.peerStatus.Get(ethaddress)
+			if ok && status.P2PAccessible && status.P2PConnected {
+				return
+			}
+
+			statusCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+			defer cancel()
+			cometStatus, err := rpc.Status(statusCtx)
+			if err != nil {
+				logger.Errorf("could not get status from %s: %v", ethaddress, err)
+				return
+			}
+
+			nodeid := cometStatus.NodeInfo.DefaultNodeID
+			listenAddr := cometStatus.NodeInfo.ListenAddr
+
+			conn, err := net.DialTimeout("tcp", listenAddr, 3*time.Second)
+			if err != nil {
+				logger.Errorf("p2p not accessible for %s: %v", ethaddress, err)
+			}
+			if conn != nil {
+				_ = conn.Close()
+			}
+
+			status, exists := s.peerStatus.Get(ethaddress)
+			if exists {
+				status.P2PAccessible = (err == nil)
+				s.peerStatus.Set(ethaddress, status)
+			}
+
+			if err != nil {
+				return
+			}
+
+			if exists {
+				status.P2PConnected = isPeered(nodeid)
+				s.peerStatus.Set(ethaddress, status)
+			}
+
+			if status.P2PConnected {
+				return
+			}
+
+			connectionString := fmt.Sprintf("%s@%s", nodeid, listenAddr)
+			peersToDial.Set(connectionString, struct{}{})
+		}(ethaddress, rpc)
+	}
+
+	wg.Wait()
+
+	res, err := s.rpc.DialPeers(ctx, peersToDial.Keys(), true, true, false)
+	if err != nil {
+		return fmt.Errorf("failed to dial peers: %v", err)
+	}
+
+	logger.Infof("dialed peers: %s", res.Log)
+
+	return nil
 }
