@@ -131,8 +131,18 @@ message GetStatusResponse {
   }
 
   message PeerInfo {
-    repeated NodeInfo p2p = 1;
-    repeated NodeInfo rpc = 2;
+    message Peer {
+      string endpoint = 1;
+      string comet_address = 2;
+      string eth_address = 3;
+      string node_type = 4;
+
+      bool connectrpc = 5;
+      bool cometrpc = 6;
+      bool cometp2p = 7;
+      bool port_accessible = 8;
+    }
+    repeated Peer peers = 1;
   }
 
   bool live = 1;

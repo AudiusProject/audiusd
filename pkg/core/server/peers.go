@@ -6,18 +6,19 @@ package server
 import (
 	"context"
 	"fmt"
-	"net/http"
+	"net"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
-	"connectrpc.com/connect"
 	v1 "github.com/AudiusProject/audiusd/pkg/api/core/v1"
-	corev1connect "github.com/AudiusProject/audiusd/pkg/api/core/v1/v1connect"
 	"github.com/AudiusProject/audiusd/pkg/common"
+	"github.com/AudiusProject/audiusd/pkg/core/db"
 	"github.com/AudiusProject/audiusd/pkg/eth/contracts"
+	"github.com/AudiusProject/audiusd/pkg/sdk"
+	rpchttp "github.com/cometbft/cometbft/rpc/client/http"
 	"github.com/labstack/echo/v4"
 )
 
@@ -47,7 +48,6 @@ func (s *Server) startPeerManager(ctx context.Context) error {
 		return ctx.Err()
 	case <-s.awaitRpcReady:
 	}
-	go s.updatePeersCache(ctx)
 
 	ticker := time.NewTicker(5 * time.Second)
 
@@ -69,134 +69,112 @@ func (s *Server) onPeerTick(ctx context.Context) error {
 		return fmt.Errorf("could not get validators from db: %v", err)
 	}
 
-	peers := s.GetPeers()
-	var addedNewPeer atomic.Bool
-	self := s.config.WalletAddress
+	netInfo, err := s.rpc.NetInfo(ctx)
+	if err != nil {
+		return fmt.Errorf("could not get self net info: %v", err)
+	}
+	for _, peer := range netInfo.Peers {
+		s.cometListenAddrs.Set(CometBFTAddress(peer.NodeInfo.ID()), peer.NodeInfo.ListenAddr)
+	}
 
 	var wg sync.WaitGroup
 	wg.Add(len(validators))
 
-	var localPeerMU sync.RWMutex
 	for _, validator := range validators {
-		go func() {
-			defer wg.Done()
-
-			ethaddr := validator.EthAddress
-			if ethaddr == self {
-				return
-			}
-
-			localPeerMU.RLock()
-			_, peered := peers[ethaddr]
-			localPeerMU.RUnlock()
-			if peered {
-				return
-			}
-
-			rpc := corev1connect.NewCoreServiceClient(http.DefaultClient, validator.Endpoint)
-			_, err = rpc.Ping(ctx, connect.NewRequest(&v1.PingRequest{}))
-			if err != nil {
-				return
-			} else {
-				s.logger.Infof("pinged peer %s", validator.Endpoint)
-			}
-
-			// add to peers copy
-			localPeerMU.Lock()
-			peers[ethaddr] = rpc
-			localPeerMU.Unlock()
-			addedNewPeer.Store(true)
-		}()
+		go s.peerValidator(ctx, &wg, &validator)
 	}
 
 	wg.Wait()
 
-	if addedNewPeer.Load() {
-		s.UpdatePeers(peers)
-	}
-
-	if err := s.updatePeersCache(ctx); err != nil {
-		return fmt.Errorf("could not update peers cache: %v", err)
-	}
-
 	return nil
 }
 
-func (s *Server) updatePeersCache(ctx context.Context) error {
-	rpcPeers := s.GetPeers()
+func (s *Server) peerValidator(ctx context.Context, wg *sync.WaitGroup, validator *db.CoreValidator) {
+	defer wg.Done()
 
-	ethAddresses := []string{}
-	for ethAddress, _ := range rpcPeers {
-		ethAddresses = append(ethAddresses, ethAddress)
+	endpoint := validator.Endpoint
+	ethAddress := validator.EthAddress
+	nodeid := strings.ToLower(validator.CometAddress)
+	self := s.config.WalletAddress
+	logger := s.logger.Child("peer_manager")
+
+	logger.Infof("peering with %s", endpoint)
+
+	// don't peer with self
+	if ethAddress == self {
+		return
 	}
 
-	cometAddresses := []string{}
-	netInfo, err := s.rpc.NetInfo(ctx)
-	if err != nil {
-		return fmt.Errorf("could not get net info: %v", err)
+	// get or create connectrpc client
+	connectRPC, ok := s.connectRPCPeers.Get(ethAddress)
+	if !ok {
+		// create connectrpc client
+		auds := sdk.NewAudiusdSDK(endpoint)
+		connectRPC = auds.Core
+		s.connectRPCPeers.Set(ethAddress, connectRPC)
 	}
 
-	for _, peer := range netInfo.Peers {
-		cometAddresses = append(cometAddresses, strings.ToUpper(string(peer.NodeInfo.ID())))
+	// get or create cometrpc client
+	cometRPC, ok := s.cometRPCPeers.Get(ethAddress)
+	if !ok {
+		rpc, _ := rpchttp.New(endpoint + "/core/crpc")
+		if rpc != nil {
+			cometRPC = rpc
+			s.cometRPCPeers.Set(ethAddress, cometRPC)
+		}
 	}
 
-	rpcNodes, err := s.db.GetRegisteredNodesByEthAddresses(ctx, ethAddresses)
-	if err != nil {
-		return fmt.Errorf("could not get registered nodes by eth addresses: %v", err)
+	listener, peered := s.cometListenAddrs.Get(nodeid)
+	portAccessible := false
+	conn, _ := net.DialTimeout("tcp", listener, 3*time.Second)
+	if conn != nil {
+		portAccessible = true
+		_ = conn.Close()
 	}
 
-	p2pNodes, err := s.db.GetRegisteredNodesByCometAddresses(ctx, cometAddresses)
-	if err != nil {
-		return fmt.Errorf("could not get registered nodes by comet addresses: %v", err)
+	if !peered {
+		res, err := s.rpc.DialPeers(ctx, []string{listener}, true, true, false)
+		if err != nil {
+			s.logger.Errorf("error dialing peer %s: %v", endpoint, err)
+		} else {
+			s.logger.Infof("dialed peer %s: %s", endpoint, res.Log)
+			peered = true
+		}
 	}
 
-	peersP2P := make([]*v1.GetStatusResponse_NodeInfo, 0, len(p2pNodes))
-	peersRPC := make([]*v1.GetStatusResponse_NodeInfo, 0, len(rpcNodes))
-
-	for _, node := range rpcNodes {
-		peersRPC = append(peersRPC, &v1.GetStatusResponse_NodeInfo{
-			Endpoint:     node.Endpoint,
-			EthAddress:   node.EthAddress,
-			CometAddress: strings.ToLower(node.CometAddress),
-			NodeType:     node.NodeType,
-		})
-	}
-
-	for _, node := range p2pNodes {
-		peersP2P = append(peersP2P, &v1.GetStatusResponse_NodeInfo{
-			Endpoint:     node.Endpoint,
-			EthAddress:   node.EthAddress,
-			CometAddress: strings.ToLower(node.CometAddress),
-			NodeType:     node.NodeType,
-		})
+	nodeStatus := &v1.GetStatusResponse_PeerInfo_Peer{
+		Endpoint:       endpoint,
+		CometAddress:   nodeid,
+		EthAddress:     ethAddress,
+		NodeType:       validator.NodeType,
+		Connectrpc:     connectRPC != nil,
+		Cometrpc:       cometRPC != nil,
+		Cometp2P:       peered,
+		PortAccessible: portAccessible,
 	}
 
 	upsertCache(s.cache.peers, PeersKey, func(peerInfo *v1.GetStatusResponse_PeerInfo) *v1.GetStatusResponse_PeerInfo {
-		peerInfo.P2P = peersP2P
-		peerInfo.Rpc = peersRPC
+		var index int = -1
+		for i, peer := range peerInfo.Peers {
+			if peer.CometAddress == nodeStatus.CometAddress {
+				index = i
+				break
+			}
+		}
+
+		if index >= 0 {
+			peerInfo.Peers[index] = nodeStatus
+		} else {
+			peerInfo.Peers = append(peerInfo.Peers, nodeStatus)
+		}
+
+		// Sort by CometAddress
+		sort.Slice(peerInfo.Peers, func(i, j int) bool {
+			return peerInfo.Peers[i].CometAddress < peerInfo.Peers[j].CometAddress
+		})
+
 		return peerInfo
 	})
-
-	return nil
-}
-
-// UpdatePeers updates the peers map
-func (s *Server) UpdatePeers(newPeers map[string]corev1connect.CoreServiceClient) {
-	s.peersMU.Lock()
-	defer s.peersMU.Unlock()
-	s.peers = newPeers
-}
-
-// GetPeers retrieves a snapshot of the current peers map
-func (s *Server) GetPeers() map[string]corev1connect.CoreServiceClient {
-	s.peersMU.RLock()
-	defer s.peersMU.RUnlock()
-	// Return a copy to avoid race conditions
-	peersCopy := make(map[string]corev1connect.CoreServiceClient, len(s.peers))
-	for k, v := range s.peers {
-		peersCopy[k] = v
-	}
-	return peersCopy
 }
 
 func (s *Server) getRegisteredNodes(c echo.Context) error {

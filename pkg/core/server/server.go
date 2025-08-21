@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 	"fmt"
-	"sync"
 	"time"
 
 	corev1connect "github.com/AudiusProject/audiusd/pkg/api/core/v1/v1connect"
@@ -49,10 +48,9 @@ type Server struct {
 	rpc   *local.Local
 	mempl *Mempool
 
-	peers   map[EthAddress]corev1connect.CoreServiceClient
-	peersMU sync.RWMutex
-
-	cometRPCPeers *safemap.SafeMap[EthAddress, *CometBFTRPC]
+	connectRPCPeers  *safemap.SafeMap[EthAddress, corev1connect.CoreServiceClient]
+	cometRPCPeers    *safemap.SafeMap[EthAddress, *CometBFTRPC]
+	cometListenAddrs *safemap.SafeMap[CometBFTAddress, CometBFTListener]
 
 	txPubsub *TransactionHashPubsub
 
@@ -97,13 +95,14 @@ func NewServer(lc *lifecycle.Lifecycle, config *config.Config, cconfig *cconfig.
 		pool:               pool,
 		mediorumPoSChannel: posChannel,
 
-		db:            db.New(pool),
-		mempl:         mempl,
-		peers:         make(map[string]corev1connect.CoreServiceClient),
-		cometRPCPeers: safemap.New[EthAddress, *CometBFTRPC](),
-		txPubsub:      txPubsub,
-		cache:         NewCache(config),
-		abciState:     NewABCIState(config.RetainHeight),
+		db:               db.New(pool),
+		mempl:            mempl,
+		connectRPCPeers:  safemap.New[EthAddress, corev1connect.CoreServiceClient](),
+		cometRPCPeers:    safemap.New[EthAddress, *CometBFTRPC](),
+		cometListenAddrs: safemap.New[CometBFTAddress, CometBFTListener](),
+		txPubsub:         txPubsub,
+		cache:            NewCache(config),
+		abciState:        NewABCIState(config.RetainHeight),
 
 		httpServer: httpServer,
 		grpcServer: grpcServer,
@@ -128,8 +127,6 @@ func (s *Server) Start() error {
 	s.lc.AddManagedRoutine("data companion", s.startDataCompanion)
 	s.lc.AddManagedRoutine("log sync", s.syncLogs)
 	s.lc.AddManagedRoutine("state sync", s.startStateSync)
-	s.lc.AddManagedRoutine("p2p peer manager", s.startP2PPeers)
-	s.lc.AddManagedRoutine("cometbft rpc manager", s.startCometRPCPeers)
 	s.lc.AddManagedRoutine("mempool cache", s.startMempoolCache)
 
 	s.z.Info("routines started")

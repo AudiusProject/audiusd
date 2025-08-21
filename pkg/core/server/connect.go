@@ -647,7 +647,7 @@ func (c *CoreService) GetStatus(context.Context, *connect.Request[v1.GetStatusRe
 	mempoolInfo, _ := c.core.cache.mempoolInfo.Get(MempoolInfoKey)
 	snapshotInfo, _ := c.core.cache.snapshotInfo.Get(SnapshotInfoKey)
 
-	peersOk := len(peers.P2P) > 0 && len(peers.Rpc) > 0
+	peersOk := len(peers.Peers) > 0
 	syncInfoOk := syncInfo.Synced
 	diskOk := resourceInfo.DiskFree > 0
 	memOk := resourceInfo.MemUsage < resourceInfo.MemSize
