@@ -108,7 +108,7 @@ message GetStatusResponse {
 
   message PruningInfo {
     bool enabled = 1;
-    int64 prune_amount = 2;
+    int64 retain_blocks = 2;
     int64 earliest_height = 3;
   }
 

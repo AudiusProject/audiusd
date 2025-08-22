@@ -636,7 +636,7 @@ func (c *CoreService) GetStoredSnapshots(context.Context, *connect.Request[v1.Ge
 }
 
 // GetStatus implements v1connect.CoreServiceHandler.
-func (c *CoreService) GetStatus(context.Context, *connect.Request[v1.GetStatusRequest]) (*connect.Response[v1.GetStatusResponse], error) {
+func (c *CoreService) GetStatus(ctx context.Context, _ *connect.Request[v1.GetStatusRequest]) (*connect.Response[v1.GetStatusResponse], error) {
 	live := true
 	ready := false
 
@@ -658,7 +658,7 @@ func (c *CoreService) GetStatus(context.Context, *connect.Request[v1.GetStatusRe
 	peers := &v1.GetStatusResponse_PeerInfo{Peers: peerStatuses}
 	chainInfo, _ := c.core.cache.chainInfo.Get(ChainInfoKey)
 	syncInfo, _ := c.core.cache.syncInfo.Get(SyncInfoKey)
-	pruningInfo, _ := c.core.cache.pruningInfo.Get(PruningInfoKey)
+	pruningInfo := &v1.GetStatusResponse_PruningInfo{}
 	resourceInfo, _ := c.core.cache.resourceInfo.Get(ResourceInfoKey)
 	mempoolInfo, _ := c.core.cache.mempoolInfo.Get(MempoolInfoKey)
 	snapshotInfo, _ := c.core.cache.snapshotInfo.Get(SnapshotInfoKey)
@@ -675,17 +675,27 @@ func (c *CoreService) GetStatus(context.Context, *connect.Request[v1.GetStatusRe
 	stateSyncState, _ := c.core.cache.stateSyncState.Get(ProcessStateStateSync)
 	mempoolCacheState, _ := c.core.cache.mempoolCacheState.Get(ProcessStateMempoolCache)
 
+	// data companion state
+	if c.core != nil && c.core.rpc != nil {
+		status, err := c.core.rpc.Status(ctx)
+		if err == nil {
+			pruningInfo.EarliestHeight = status.SyncInfo.EarliestBlockHeight
+			pruningInfo.Enabled = status.SyncInfo.EarliestBlockHeight != 1
+			pruningInfo.RetainBlocks = c.core.config.RetainHeight
+		}
+	}
+
 	processInfo := &v1.GetStatusResponse_ProcessInfo{
-		Abci:          abciState,
+		Abci:           abciState,
 		RegistryBridge: registryBridgeState,
-		EchoServer:    echoServerState,
-		SyncTasks:     syncTasksState,
-		PeerManager:   peerManagerState,
-		DataCompanion: dataCompanionState,
-		Cache:         cacheState,
-		LogSync:       logSyncState,
-		StateSync:     stateSyncState,
-		MempoolCache:  mempoolCacheState,
+		EchoServer:     echoServerState,
+		SyncTasks:      syncTasksState,
+		PeerManager:    peerManagerState,
+		DataCompanion:  dataCompanionState,
+		Cache:          cacheState,
+		LogSync:        logSyncState,
+		StateSync:      stateSyncState,
+		MempoolCache:   mempoolCacheState,
 	}
 
 	peersOk := len(peers.Peers) > 0
