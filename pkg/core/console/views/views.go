@@ -71,3 +71,19 @@ func (v *Views) RenderAdjudicateView(c echo.Context, view *pages.AdjudicatePageV
 func (v *Views) RenderOverview(c echo.Context, status *v1.GetStatusResponse) error {
 	return v.pages.OverviewPage(status).Render(c.Request().Context(), c.Response().Writer)
 }
+
+func (v *Views) RenderOverviewCritical(c echo.Context, status *v1.GetStatusResponse) error {
+	return v.pages.OverviewCriticalFragment(status).Render(c.Request().Context(), c.Response().Writer)
+}
+
+func (v *Views) RenderOverviewProcesses(c echo.Context, status *v1.GetStatusResponse) error {
+	return v.pages.OverviewProcessesFragment(status).Render(c.Request().Context(), c.Response().Writer)
+}
+
+func (v *Views) RenderOverviewResources(c echo.Context, status *v1.GetStatusResponse) error {
+	return v.pages.OverviewResourcesFragment(status).Render(c.Request().Context(), c.Response().Writer)
+}
+
+func (v *Views) RenderOverviewNetwork(c echo.Context, status *v1.GetStatusResponse) error {
+	return v.pages.OverviewNetworkFragment(status).Render(c.Request().Context(), c.Response().Writer)
+}

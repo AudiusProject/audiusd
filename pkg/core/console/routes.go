@@ -44,6 +44,10 @@ func (c *Console) registerRoutes(logger *common.Logger, e *echo.Echo) {
 	g.GET("/adjudicate/:sp", c.adjudicateFragment)
 
 	g.GET("/fragments/nav/chain_data", c.navChainData)
+	g.GET("/fragments/overview/critical", c.overviewCriticalFragment)
+	g.GET("/fragments/overview/processes", c.overviewProcessesFragment)
+	g.GET("/fragments/overview/resources", c.overviewResourcesFragment)
+	g.GET("/fragments/overview/network", c.overviewNetworkFragment)
 
 	// future pages
 	// g.GET("/blocks", c.blocksPage)
