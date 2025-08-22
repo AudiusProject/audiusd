@@ -286,40 +286,6 @@ templ (p *Pages) OverviewPage(status *v1.GetStatusResponse) {
 						</div>
 						<div class="bg-slate-50 rounded-lg p-4">
 							<div class="flex items-center justify-between mb-2">
-								<span class="font-medium">Cache</span>
-								if status.ProcessInfo.Cache != nil {
-									<span>{ getProcessStateIcon(status.ProcessInfo.Cache.GetState()) }</span>
-								}
-							</div>
-							if status.ProcessInfo.Cache != nil {
-								<div class="text-sm text-gray-600">{ getProcessStateText(status.ProcessInfo.Cache.GetState()) }</div>
-								if status.ProcessInfo.Cache.Metadata != "" {
-									<div class="text-xs text-gray-500 mt-1">{ status.ProcessInfo.Cache.Metadata }</div>
-								}
-								if status.ProcessInfo.Cache.Error != "" {
-									<div class="text-xs text-red-600 mt-1">{ status.ProcessInfo.Cache.Error }</div>
-								}
-							}
-						</div>
-						<div class="bg-slate-50 rounded-lg p-4">
-							<div class="flex items-center justify-between mb-2">
-								<span class="font-medium">Log Sync</span>
-								if status.ProcessInfo.LogSync != nil {
-									<span>{ getProcessStateIcon(status.ProcessInfo.LogSync.GetState()) }</span>
-								}
-							</div>
-							if status.ProcessInfo.LogSync != nil {
-								<div class="text-sm text-gray-600">{ getProcessStateText(status.ProcessInfo.LogSync.GetState()) }</div>
-								if status.ProcessInfo.LogSync.Metadata != "" {
-									<div class="text-xs text-gray-500 mt-1">{ status.ProcessInfo.LogSync.Metadata }</div>
-								}
-								if status.ProcessInfo.LogSync.Error != "" {
-									<div class="text-xs text-red-600 mt-1">{ status.ProcessInfo.LogSync.Error }</div>
-								}
-							}
-						</div>
-						<div class="bg-slate-50 rounded-lg p-4">
-							<div class="flex items-center justify-between mb-2">
 								<span class="font-medium">State Sync</span>
 								if status.ProcessInfo.StateSync != nil {
 									<span>{ getProcessStateIcon(status.ProcessInfo.StateSync.GetState()) }</span>
@@ -337,7 +303,7 @@ templ (p *Pages) OverviewPage(status *v1.GetStatusResponse) {
 						</div>
 						<div class="bg-slate-50 rounded-lg p-4">
 							<div class="flex items-center justify-between mb-2">
-								<span class="font-medium">Mempool Cache</span>
+								<span class="font-medium">Mempool</span>
 								if status.ProcessInfo.MempoolCache != nil {
 									<span>{ getProcessStateIcon(status.ProcessInfo.MempoolCache.GetState()) }</span>
 								}
@@ -359,7 +325,6 @@ templ (p *Pages) OverviewPage(status *v1.GetStatusResponse) {
 			if status.ResourceInfo != nil || status.MempoolInfo != nil || status.SyncInfo != nil {
 				<div class="bg-white shadow-md rounded-lg p-6">
 					<h2 class="text-xl font-semibold mb-4">Performance & Resources</h2>
-					
 					<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
 						<!-- Left Column: System Resources -->
 						<div>
@@ -393,7 +358,6 @@ templ (p *Pages) OverviewPage(status *v1.GetStatusResponse) {
 								</div>
 							}
 						</div>
-						
 						<!-- Right Column: Mempool & Sync -->
 						<div class="space-y-6">
 							<!-- Mempool -->
@@ -412,7 +376,6 @@ templ (p *Pages) OverviewPage(status *v1.GetStatusResponse) {
 									</div>
 								</div>
 							}
-							
 							<!-- Sync Details -->
 							if status.SyncInfo != nil && (!status.SyncInfo.Synced) {
 								<div>
@@ -457,10 +420,10 @@ templ (p *Pages) OverviewPage(status *v1.GetStatusResponse) {
 								for _, peer := range status.Peers.Peers {
 									<tr>
 										<td class="px-4 py-2 text-sm font-mono">
-									@p.components.ExternalLink("%s%s", peer.Endpoint, "/console/overview") {
-										{ peer.Endpoint }
-									}
-								</td>
+											@p.components.ExternalLink("%s%s", peer.Endpoint, "/console/overview") {
+												{ peer.Endpoint }
+											}
+										</td>
 										<td class="px-4 py-2 text-sm">{ peer.NodeType }</td>
 										<td class="px-4 py-2 text-sm">
 											if peer.ConnectrpcHealthy {
@@ -494,7 +457,6 @@ templ (p *Pages) OverviewPage(status *v1.GetStatusResponse) {
 					</div>
 				</div>
 			}
-			
 			<!-- Advanced Configuration -->
 			if status.PruningInfo != nil || status.SnapshotInfo != nil {
 				<div class="bg-white shadow-md rounded-lg p-6">
@@ -530,7 +492,6 @@ templ (p *Pages) OverviewPage(status *v1.GetStatusResponse) {
 								</div>
 							</div>
 						}
-						
 						<!-- Snapshots -->
 						if status.SnapshotInfo != nil {
 							<div>
