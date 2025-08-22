@@ -42,6 +42,7 @@ message GetStatusResponse {
       google.protobuf.Timestamp started_at = 2;
       google.protobuf.Timestamp completed_at = 3;
       string error = 4;
+      string metadata = 5;
     }
 
     ProcessStateInfo abci = 1;

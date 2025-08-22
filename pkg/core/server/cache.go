@@ -292,7 +292,7 @@ func (s *Server) refreshSyncStatus(ctx context.Context) error {
 	}
 }
 
-func (c *Cache) UpdateProcessState(processKey string, state v1.GetStatusResponse_ProcessInfo_ProcessState, errorMsg string) error {
+func (c *Cache) UpdateProcessState(processKey string, state v1.GetStatusResponse_ProcessInfo_ProcessState, errorMsg string, metadata string) error {
 	var processCache otter.Cache[string, *v1.GetStatusResponse_ProcessInfo_ProcessStateInfo]
 	
 	switch processKey {
@@ -318,6 +318,7 @@ func (c *Cache) UpdateProcessState(processKey string, state v1.GetStatusResponse
 		now := timestamppb.Now()
 		stateInfo.State = state
 		stateInfo.Error = errorMsg
+		stateInfo.Metadata = metadata
 
 		if state == v1.GetStatusResponse_ProcessInfo_PROCESS_STATE_STARTING {
 			stateInfo.StartedAt = now

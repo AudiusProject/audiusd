@@ -82,8 +82,8 @@ templ (p *Pages) OverviewPage(status *v1.GetStatusResponse) {
 	@p.layout.SiteFrame() {
 		<div class="space-y-6">
 			<h1 class="text-3xl font-bold">Node Overview</h1>
-			<!-- Status Overview Cards -->
-			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+			<!-- Critical Status Overview -->
+			<div class="grid grid-cols-2 md:grid-cols-4 gap-4">
 				<div class="bg-slate-100 rounded-lg p-4 text-center">
 					<div class="text-2xl font-bold">
 						if status.Live {
@@ -93,16 +93,6 @@ templ (p *Pages) OverviewPage(status *v1.GetStatusResponse) {
 						}
 					</div>
 					<div class="text-sm text-gray-600">Node Status</div>
-				</div>
-				<div class="bg-slate-100 rounded-lg p-4 text-center">
-					<div class="text-2xl font-bold">
-						if status.Ready {
-							✅ Ready
-						} else {
-							⏳ Not Ready
-						}
-					</div>
-					<div class="text-sm text-gray-600">Readiness</div>
 				</div>
 				<div class="bg-slate-100 rounded-lg p-4 text-center">
 					<div class="text-2xl font-bold">
@@ -126,64 +116,64 @@ templ (p *Pages) OverviewPage(status *v1.GetStatusResponse) {
 					</div>
 					<div class="text-sm text-gray-600">Current Height</div>
 				</div>
-			</div>
-			<!-- Node Information -->
-			if status.NodeInfo != nil {
-				<div class="bg-white shadow-md rounded-lg p-6">
-					<h2 class="text-xl font-semibold mb-4">Node Information</h2>
-					<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-						<div>
-							<label class="text-sm text-gray-500">Endpoint</label>
-							<div class="font-mono text-sm">{ status.NodeInfo.Endpoint }</div>
-						</div>
-						<div>
-							<label class="text-sm text-gray-500">Node Type</label>
-							<div class="font-mono text-sm">{ status.NodeInfo.NodeType }</div>
-						</div>
-						<div>
-							<label class="text-sm text-gray-500">Comet Address</label>
-							<div class="font-mono text-sm break-all">
-								@p.components.Link("/validator/%s", status.NodeInfo.CometAddress) {
-									{ status.NodeInfo.CometAddress }
-								}
-							</div>
-						</div>
-						<div>
-							<label class="text-sm text-gray-500">Ethereum Address</label>
-							<div class="font-mono text-sm break-all">
-								@p.components.Link("/validator/%s", status.NodeInfo.EthAddress) {
-									{ status.NodeInfo.EthAddress }
-								}
-							</div>
-						</div>
+				<div class="bg-slate-100 rounded-lg p-4 text-center">
+					<div class="text-2xl font-bold">
+						if status.Ready {
+							✅ Ready
+						} else {
+							⏳ Not Ready
+						}
 					</div>
+					<div class="text-sm text-gray-600">Readiness</div>
 				</div>
-			}
-			<!-- Chain Information -->
-			if status.ChainInfo != nil {
+			</div>
+			<!-- Node & Chain Information -->
+			if status.NodeInfo != nil || status.ChainInfo != nil {
 				<div class="bg-white shadow-md rounded-lg p-6">
-					<h2 class="text-xl font-semibold mb-4">Chain Information</h2>
-					<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-						<div>
-							<label class="text-sm text-gray-500">Chain ID</label>
-							<div class="font-mono text-sm">{ status.ChainInfo.ChainId }</div>
-						</div>
-						<div>
-							<label class="text-sm text-gray-500">Current Height</label>
-							<div class="font-mono text-sm">
-								@p.components.Link("/block/%d", status.ChainInfo.CurrentHeight) {
-									{ fmt.Sprintf("%d", status.ChainInfo.CurrentHeight) }
-								}
+					<h2 class="text-xl font-semibold mb-4">Node & Chain Information</h2>
+					<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+						if status.NodeInfo != nil {
+							<div>
+								<label class="text-sm text-gray-500">Endpoint</label>
+								<div class="font-mono text-sm">{ status.NodeInfo.Endpoint }</div>
 							</div>
-						</div>
-						<div>
-							<label class="text-sm text-gray-500">Block Hash</label>
-							<div class="font-mono text-sm break-all">
-								@p.components.Link("/block/%d", status.ChainInfo.CurrentHeight) {
-									{ status.ChainInfo.CurrentBlockHash }
-								}
+							<div>
+								<label class="text-sm text-gray-500">Node Type</label>
+								<div class="font-mono text-sm">{ status.NodeInfo.NodeType }</div>
 							</div>
-						</div>
+						}
+						if status.ChainInfo != nil {
+							<div>
+								<label class="text-sm text-gray-500">Chain ID</label>
+								<div class="font-mono text-sm">{ status.ChainInfo.ChainId }</div>
+							</div>
+							<div>
+								<label class="text-sm text-gray-500">Block Hash</label>
+								<div class="font-mono text-sm break-all">
+									@p.components.Link("/block/%d", status.ChainInfo.CurrentHeight) {
+										{ status.ChainInfo.CurrentBlockHash }
+									}
+								</div>
+							</div>
+						}
+						if status.NodeInfo != nil {
+							<div>
+								<label class="text-sm text-gray-500">Comet Address</label>
+								<div class="font-mono text-sm break-all">
+									@p.components.Link("/validator/%s", status.NodeInfo.CometAddress) {
+										{ status.NodeInfo.CometAddress }
+									}
+								</div>
+							</div>
+							<div>
+								<label class="text-sm text-gray-500">Ethereum Address</label>
+								<div class="font-mono text-sm break-all">
+									@p.components.Link("/validator/%s", status.NodeInfo.EthAddress) {
+										{ status.NodeInfo.EthAddress }
+									}
+								</div>
+							</div>
+						}
 					</div>
 				</div>
 			}
@@ -201,6 +191,9 @@ templ (p *Pages) OverviewPage(status *v1.GetStatusResponse) {
 							</div>
 							if status.ProcessInfo.Abci != nil {
 								<div class="text-sm text-gray-600">{ getProcessStateText(status.ProcessInfo.Abci.GetState()) }</div>
+								if status.ProcessInfo.Abci.Metadata != "" {
+									<div class="text-xs text-gray-500 mt-1">{ status.ProcessInfo.Abci.Metadata }</div>
+								}
 								if status.ProcessInfo.Abci.Error != "" {
 									<div class="text-xs text-red-600 mt-1">{ status.ProcessInfo.Abci.Error }</div>
 								}
@@ -215,6 +208,9 @@ templ (p *Pages) OverviewPage(status *v1.GetStatusResponse) {
 							</div>
 							if status.ProcessInfo.RegistryBridge != nil {
 								<div class="text-sm text-gray-600">{ getProcessStateText(status.ProcessInfo.RegistryBridge.GetState()) }</div>
+								if status.ProcessInfo.RegistryBridge.Metadata != "" {
+									<div class="text-xs text-gray-500 mt-1">{ status.ProcessInfo.RegistryBridge.Metadata }</div>
+								}
 								if status.ProcessInfo.RegistryBridge.Error != "" {
 									<div class="text-xs text-red-600 mt-1">{ status.ProcessInfo.RegistryBridge.Error }</div>
 								}
@@ -229,6 +225,9 @@ templ (p *Pages) OverviewPage(status *v1.GetStatusResponse) {
 							</div>
 							if status.ProcessInfo.EchoServer != nil {
 								<div class="text-sm text-gray-600">{ getProcessStateText(status.ProcessInfo.EchoServer.GetState()) }</div>
+								if status.ProcessInfo.EchoServer.Metadata != "" {
+									<div class="text-xs text-gray-500 mt-1">{ status.ProcessInfo.EchoServer.Metadata }</div>
+								}
 								if status.ProcessInfo.EchoServer.Error != "" {
 									<div class="text-xs text-red-600 mt-1">{ status.ProcessInfo.EchoServer.Error }</div>
 								}
@@ -243,6 +242,9 @@ templ (p *Pages) OverviewPage(status *v1.GetStatusResponse) {
 							</div>
 							if status.ProcessInfo.SyncTasks != nil {
 								<div class="text-sm text-gray-600">{ getProcessStateText(status.ProcessInfo.SyncTasks.GetState()) }</div>
+								if status.ProcessInfo.SyncTasks.Metadata != "" {
+									<div class="text-xs text-gray-500 mt-1">{ status.ProcessInfo.SyncTasks.Metadata }</div>
+								}
 								if status.ProcessInfo.SyncTasks.Error != "" {
 									<div class="text-xs text-red-600 mt-1">{ status.ProcessInfo.SyncTasks.Error }</div>
 								}
@@ -257,6 +259,9 @@ templ (p *Pages) OverviewPage(status *v1.GetStatusResponse) {
 							</div>
 							if status.ProcessInfo.PeerManager != nil {
 								<div class="text-sm text-gray-600">{ getProcessStateText(status.ProcessInfo.PeerManager.GetState()) }</div>
+								if status.ProcessInfo.PeerManager.Metadata != "" {
+									<div class="text-xs text-gray-500 mt-1">{ status.ProcessInfo.PeerManager.Metadata }</div>
+								}
 								if status.ProcessInfo.PeerManager.Error != "" {
 									<div class="text-xs text-red-600 mt-1">{ status.ProcessInfo.PeerManager.Error }</div>
 								}
@@ -271,6 +276,9 @@ templ (p *Pages) OverviewPage(status *v1.GetStatusResponse) {
 							</div>
 							if status.ProcessInfo.EthNodeManager != nil {
 								<div class="text-sm text-gray-600">{ getProcessStateText(status.ProcessInfo.EthNodeManager.GetState()) }</div>
+								if status.ProcessInfo.EthNodeManager.Metadata != "" {
+									<div class="text-xs text-gray-500 mt-1">{ status.ProcessInfo.EthNodeManager.Metadata }</div>
+								}
 								if status.ProcessInfo.EthNodeManager.Error != "" {
 									<div class="text-xs text-red-600 mt-1">{ status.ProcessInfo.EthNodeManager.Error }</div>
 								}
@@ -279,138 +287,93 @@ templ (p *Pages) OverviewPage(status *v1.GetStatusResponse) {
 					</div>
 				</div>
 			}
-			<!-- Sync Information -->
-			if status.SyncInfo != nil {
+			<!-- Performance & Resources -->
+			if status.ResourceInfo != nil || status.MempoolInfo != nil || status.SyncInfo != nil {
 				<div class="bg-white shadow-md rounded-lg p-6">
-					<h2 class="text-xl font-semibold mb-4">Sync Information</h2>
-					<div class="space-y-4">
-						<div class="flex items-center space-x-2">
-							<span class="font-medium">Status:</span>
-							if status.SyncInfo.Synced {
-								<span class="text-green-600">🟢 Synced</span>
-							} else {
-								<span class="text-yellow-600">🟡 Syncing</span>
+					<h2 class="text-xl font-semibold mb-4">Performance & Resources</h2>
+					
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+						<!-- Left Column: System Resources -->
+						<div>
+							<h3 class="text-lg font-medium mb-4">System Resources</h3>
+							if status.ResourceInfo != nil {
+								<div class="grid grid-cols-2 gap-4">
+									<div class="bg-slate-100 rounded-lg p-4 text-center">
+										<div class="text-2xl font-bold">{ formatBytes(status.ResourceInfo.MemUsage) }</div>
+										<div class="text-sm text-gray-600">Memory</div>
+									</div>
+									<div class="bg-slate-100 rounded-lg p-4 text-center">
+										<div class="text-2xl font-bold">{ fmt.Sprintf("%.1f%%", float64(status.ResourceInfo.CpuUsage)/100.0) }</div>
+										<div class="text-sm text-gray-600">CPU</div>
+									</div>
+									<div class="bg-slate-100 rounded-lg p-4 text-center">
+										<div class="text-2xl font-bold">{ formatBytes(status.ResourceInfo.DiskUsage) }</div>
+										<div class="text-sm text-gray-600">Disk Used</div>
+									</div>
+									<div class="bg-slate-100 rounded-lg p-4 text-center">
+										<div class="text-2xl font-bold">{ formatBytes(status.ResourceInfo.DiskFree) }</div>
+										<div class="text-sm text-gray-600">Disk Free</div>
+									</div>
+									<div class="bg-slate-100 rounded-lg p-4 text-center">
+										<div class="text-2xl font-bold">{ formatBytes(status.ResourceInfo.DbSize) }</div>
+										<div class="text-sm text-gray-600">Database</div>
+									</div>
+									<div class="bg-slate-100 rounded-lg p-4 text-center">
+										<div class="text-2xl font-bold">{ formatBytes(status.ResourceInfo.ChainSize) }</div>
+										<div class="text-sm text-gray-600">Chain Size</div>
+									</div>
+								</div>
 							}
 						</div>
-						if status.SyncInfo.GetStateSync() != nil {
-							<div class="bg-slate-50 rounded-lg p-4">
-								<h3 class="font-medium mb-2">State Sync</h3>
-								<div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-									<div>
-										<label class="text-gray-500">Phase</label>
-										<div>{ getSyncPhaseText(status.SyncInfo.GetStateSync().Phase) }</div>
+						
+						<!-- Right Column: Mempool & Sync -->
+						<div class="space-y-6">
+							<!-- Mempool -->
+							if status.MempoolInfo != nil {
+								<div>
+									<h3 class="text-lg font-medium mb-3">Mempool</h3>
+									<div class="grid grid-cols-2 gap-4">
+										<div class="bg-slate-100 rounded-lg p-4 text-center">
+											<div class="text-2xl font-bold">{ fmt.Sprintf("%d", status.MempoolInfo.TxCount) }</div>
+											<div class="text-sm text-gray-600">Transactions</div>
+										</div>
+										<div class="bg-slate-100 rounded-lg p-4 text-center">
+											<div class="text-2xl font-bold">{ formatBytes(status.MempoolInfo.TxSize) }</div>
+											<div class="text-sm text-gray-600">Size</div>
+										</div>
 									</div>
-									<div>
-										<label class="text-gray-500">Downloaded Chunks</label>
-										<div>{ fmt.Sprintf("%d", status.SyncInfo.GetStateSync().DownloadedChunks) }</div>
-									</div>
-									<div>
-										<label class="text-gray-500">Chunk Fetchers</label>
-										<div>{ fmt.Sprintf("%d", status.SyncInfo.GetStateSync().ChunkFetchers) }</div>
-									</div>
-									if status.SyncInfo.GetStateSync().Snapshot != nil {
-										<div>
-											<label class="text-gray-500">Snapshot Height</label>
-											<div>{ fmt.Sprintf("%d", status.SyncInfo.GetStateSync().Snapshot.Height) }</div>
+								</div>
+							}
+							
+							<!-- Sync Details -->
+							if status.SyncInfo != nil && (!status.SyncInfo.Synced) {
+								<div>
+									<h3 class="text-lg font-medium mb-3">Sync Progress</h3>
+									if status.SyncInfo.GetStateSync() != nil {
+										<div class="bg-slate-50 rounded-lg p-3 mb-3">
+											<div class="text-sm font-medium">State Sync: { getSyncPhaseText(status.SyncInfo.GetStateSync().Phase) }</div>
+											<div class="text-xs text-gray-600">{ fmt.Sprintf("%d chunks downloaded", status.SyncInfo.GetStateSync().DownloadedChunks) }</div>
+										</div>
+									}
+									if status.SyncInfo.GetBlockSync() != nil {
+										<div class="bg-slate-50 rounded-lg p-3">
+											<div class="text-sm font-medium">Block Sync</div>
+											<div class="text-xs text-gray-600">{ fmt.Sprintf("%d blocks behind", status.SyncInfo.GetBlockSync().BlockDiff) }</div>
+											if status.SyncInfo.GetBlockSync().HeadSource != nil {
+												<div class="text-xs text-gray-600">Source: { status.SyncInfo.GetBlockSync().HeadSource.Endpoint }</div>
+											}
 										</div>
 									}
 								</div>
-							</div>
-						}
-						if status.SyncInfo.GetBlockSync() != nil {
-							<div class="bg-slate-50 rounded-lg p-4">
-								<h3 class="font-medium mb-2">Block Sync</h3>
-								<div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-									<div>
-										<label class="text-gray-500">Block Difference</label>
-										<div>{ fmt.Sprintf("%d", status.SyncInfo.GetBlockSync().BlockDiff) }</div>
-									</div>
-									<div>
-										<label class="text-gray-500">Head Height</label>
-										<div>{ fmt.Sprintf("%d", status.SyncInfo.GetBlockSync().HeadHeight) }</div>
-									</div>
-									<div>
-										<label class="text-gray-500">Sync Height</label>
-										<div>{ fmt.Sprintf("%d", status.SyncInfo.GetBlockSync().SyncHeight) }</div>
-									</div>
-									if status.SyncInfo.GetBlockSync().HeadSource != nil {
-										<div>
-											<label class="text-gray-500">Head Source</label>
-											<div class="font-mono">
-												@p.components.ExternalLink("%s%s", status.SyncInfo.GetBlockSync().HeadSource.Endpoint, "/console/overview") {
-													{ status.SyncInfo.GetBlockSync().HeadSource.Endpoint }
-												}
-											</div>
-										</div>
-									}
-								</div>
-							</div>
-						}
-					</div>
-				</div>
-			}
-			<!-- Resource Usage -->
-			if status.ResourceInfo != nil {
-				<div class="bg-white shadow-md rounded-lg p-6">
-					<h2 class="text-xl font-semibold mb-4">Resource Usage</h2>
-					<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-						<div class="bg-slate-100 rounded-lg p-4 text-center">
-							<div class="text-2xl font-bold">{ formatBytes(status.ResourceInfo.MemUsage) }</div>
-							<div class="text-sm text-gray-600">Memory Usage</div>
-						</div>
-						<div class="bg-slate-100 rounded-lg p-4 text-center">
-							<div class="text-2xl font-bold">{ fmt.Sprintf("%.1f%%", float64(status.ResourceInfo.CpuUsage)/100.0) }</div>
-							<div class="text-sm text-gray-600">CPU Usage</div>
-						</div>
-						<div class="bg-slate-100 rounded-lg p-4 text-center">
-							<div class="text-2xl font-bold">{ formatBytes(status.ResourceInfo.DiskUsage) }</div>
-							<div class="text-sm text-gray-600">Disk Used</div>
-						</div>
-						<div class="bg-slate-100 rounded-lg p-4 text-center">
-							<div class="text-2xl font-bold">{ formatBytes(status.ResourceInfo.DiskFree) }</div>
-							<div class="text-sm text-gray-600">Disk Free</div>
-						</div>
-					</div>
-					<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-						<div class="bg-slate-100 rounded-lg p-4 text-center">
-							<div class="text-2xl font-bold">{ formatBytes(status.ResourceInfo.DbSize) }</div>
-							<div class="text-sm text-gray-600">Database Size</div>
-						</div>
-						<div class="bg-slate-100 rounded-lg p-4 text-center">
-							<div class="text-2xl font-bold">{ formatBytes(status.ResourceInfo.ChainSize) }</div>
-							<div class="text-sm text-gray-600">Chain Size</div>
+							}
 						</div>
 					</div>
 				</div>
 			}
-			<!-- Mempool Information -->
-			if status.MempoolInfo != nil {
-				<div class="bg-white shadow-md rounded-lg p-6">
-					<h2 class="text-xl font-semibold mb-4">Mempool</h2>
-					<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-						<div class="bg-slate-100 rounded-lg p-4 text-center">
-							<div class="text-2xl font-bold">{ fmt.Sprintf("%d", status.MempoolInfo.TxCount) }</div>
-							<div class="text-sm text-gray-600">Current Transactions</div>
-						</div>
-						<div class="bg-slate-100 rounded-lg p-4 text-center">
-							<div class="text-2xl font-bold">{ fmt.Sprintf("%d", status.MempoolInfo.MaxTxCount) }</div>
-							<div class="text-sm text-gray-600">Max Transactions</div>
-						</div>
-						<div class="bg-slate-100 rounded-lg p-4 text-center">
-							<div class="text-2xl font-bold">{ formatBytes(status.MempoolInfo.TxSize) }</div>
-							<div class="text-sm text-gray-600">Current Size</div>
-						</div>
-						<div class="bg-slate-100 rounded-lg p-4 text-center">
-							<div class="text-2xl font-bold">{ formatBytes(status.MempoolInfo.MaxTxSize) }</div>
-							<div class="text-sm text-gray-600">Max Size</div>
-						</div>
-					</div>
-				</div>
-			}
-			<!-- Peer Information -->
+			<!-- Network -->
 			if status.Peers != nil && len(status.Peers.Peers) > 0 {
 				<div class="bg-white shadow-md rounded-lg p-6">
-					<h2 class="text-xl font-semibold mb-4">Connected Peers ({ fmt.Sprintf("%d", len(status.Peers.Peers)) })</h2>
+					<h2 class="text-xl font-semibold mb-4">Network - Connected Peers ({ fmt.Sprintf("%d", len(status.Peers.Peers)) })</h2>
 					<div class="overflow-x-auto">
 						<table class="min-w-full">
 							<thead class="bg-slate-50">
@@ -463,72 +426,85 @@ templ (p *Pages) OverviewPage(status *v1.GetStatusResponse) {
 					</div>
 				</div>
 			}
-			<!-- Pruning Information -->
-			if status.PruningInfo != nil {
+			
+			<!-- Advanced Configuration -->
+			if status.PruningInfo != nil || status.SnapshotInfo != nil {
 				<div class="bg-white shadow-md rounded-lg p-6">
-					<h2 class="text-xl font-semibold mb-4">Pruning Configuration</h2>
-					<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-						<div class="bg-slate-100 rounded-lg p-4 text-center">
-							<div class="text-2xl font-bold">
-								if status.PruningInfo.Enabled {
-									🟢 Enabled
-								} else {
-									🔴 Disabled
+					<h2 class="text-xl font-semibold mb-4">Advanced Configuration</h2>
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+						<!-- Pruning -->
+						if status.PruningInfo != nil {
+							<div>
+								<h3 class="text-lg font-medium mb-3">Pruning</h3>
+								<div class="space-y-3">
+									<div class="bg-slate-100 rounded-lg p-3 text-center">
+										<div class="text-lg font-bold">
+											if status.PruningInfo.Enabled {
+												🟢 Enabled
+											} else {
+												🔴 Disabled
+											}
+										</div>
+										<div class="text-xs text-gray-600">Status</div>
+									</div>
+									if status.PruningInfo.Enabled {
+										<div class="grid grid-cols-2 gap-3">
+											<div class="bg-slate-100 rounded-lg p-3 text-center">
+												<div class="text-lg font-bold">{ fmt.Sprintf("%d", status.PruningInfo.PruneAmount) }</div>
+												<div class="text-xs text-gray-600">Prune Amount</div>
+											</div>
+											<div class="bg-slate-100 rounded-lg p-3 text-center">
+												<div class="text-lg font-bold">{ fmt.Sprintf("%d", status.PruningInfo.EarliestHeight) }</div>
+												<div class="text-xs text-gray-600">Earliest Height</div>
+											</div>
+										</div>
+									}
+								</div>
+							</div>
+						}
+						
+						<!-- Snapshots -->
+						if status.SnapshotInfo != nil {
+							<div>
+								<h3 class="text-lg font-medium mb-3">Snapshots</h3>
+								<div class="bg-slate-100 rounded-lg p-3 text-center mb-3">
+									<div class="text-lg font-bold">
+										if status.SnapshotInfo.Enabled {
+											🟢 Enabled
+										} else {
+											🔴 Disabled
+										}
+									</div>
+									<div class="text-xs text-gray-600">Status</div>
+								</div>
+								if status.SnapshotInfo.Enabled && len(status.SnapshotInfo.Snapshots) > 0 {
+									<div class="text-xs text-gray-600 mb-3">{ fmt.Sprintf("%d snapshots available", len(status.SnapshotInfo.Snapshots)) }</div>
+									<div class="overflow-x-auto">
+										<table class="min-w-full text-xs">
+											<thead class="bg-slate-50">
+												<tr>
+													<th class="px-2 py-1 text-left text-xs font-medium text-gray-500">Height</th>
+													<th class="px-2 py-1 text-left text-xs font-medium text-gray-500">Hash</th>
+													<th class="px-2 py-1 text-left text-xs font-medium text-gray-500">Chunks</th>
+													<th class="px-2 py-1 text-left text-xs font-medium text-gray-500">Chain ID</th>
+												</tr>
+											</thead>
+											<tbody class="bg-white divide-y divide-gray-200">
+												for _, snapshot := range status.SnapshotInfo.Snapshots {
+													<tr>
+														<td class="px-2 py-1 text-xs">{ fmt.Sprintf("%d", snapshot.Height) }</td>
+														<td class="px-2 py-1 text-xs font-mono">{ snapshot.Hash[:12] }...</td>
+														<td class="px-2 py-1 text-xs">{ fmt.Sprintf("%d", snapshot.ChunkCount) }</td>
+														<td class="px-2 py-1 text-xs">{ snapshot.ChainId }</td>
+													</tr>
+												}
+											</tbody>
+										</table>
+									</div>
 								}
-							</div>
-							<div class="text-sm text-gray-600">Pruning Status</div>
-						</div>
-						if status.PruningInfo.Enabled {
-							<div class="bg-slate-100 rounded-lg p-4 text-center">
-								<div class="text-2xl font-bold">{ fmt.Sprintf("%d", status.PruningInfo.PruneAmount) }</div>
-								<div class="text-sm text-gray-600">Prune Amount</div>
-							</div>
-							<div class="bg-slate-100 rounded-lg p-4 text-center">
-								<div class="text-2xl font-bold">{ fmt.Sprintf("%d", status.PruningInfo.EarliestHeight) }</div>
-								<div class="text-sm text-gray-600">Earliest Height</div>
 							</div>
 						}
 					</div>
-				</div>
-			}
-			<!-- Snapshot Information -->
-			if status.SnapshotInfo != nil {
-				<div class="bg-white shadow-md rounded-lg p-6">
-					<h2 class="text-xl font-semibold mb-4">Snapshots</h2>
-					<div class="mb-4">
-						<span class="text-sm">
-							Snapshots: 
-							if status.SnapshotInfo.Enabled {
-								🟢 Enabled
-							} else {
-								🔴 Disabled
-							}
-						</span>
-					</div>
-					if status.SnapshotInfo.Enabled && len(status.SnapshotInfo.Snapshots) > 0 {
-						<div class="overflow-x-auto">
-							<table class="min-w-full">
-								<thead class="bg-slate-50">
-									<tr>
-										<th class="px-4 py-2 text-left text-sm font-medium text-gray-500">Height</th>
-										<th class="px-4 py-2 text-left text-sm font-medium text-gray-500">Hash</th>
-										<th class="px-4 py-2 text-left text-sm font-medium text-gray-500">Chunks</th>
-										<th class="px-4 py-2 text-left text-sm font-medium text-gray-500">Chain ID</th>
-									</tr>
-								</thead>
-								<tbody class="bg-white divide-y divide-gray-200">
-									for _, snapshot := range status.SnapshotInfo.Snapshots {
-										<tr>
-											<td class="px-4 py-2 text-sm">{ fmt.Sprintf("%d", snapshot.Height) }</td>
-											<td class="px-4 py-2 text-sm font-mono">{ snapshot.Hash }</td>
-											<td class="px-4 py-2 text-sm">{ fmt.Sprintf("%d", snapshot.ChunkCount) }</td>
-											<td class="px-4 py-2 text-sm">{ snapshot.ChainId }</td>
-										</tr>
-									}
-								</tbody>
-							</table>
-						</div>
-					}
 				</div>
 			}
 		</div>

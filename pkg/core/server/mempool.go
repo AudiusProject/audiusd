@@ -20,6 +20,7 @@ import (
 	"github.com/AudiusProject/audiusd/pkg/core/db"
 	"github.com/labstack/echo/v4"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 var (
@@ -247,12 +248,31 @@ func (s *Server) startMempoolCache(ctx context.Context) error {
 			memplCount := mempl.deque.Len()
 			txCount := int64(memplCount)
 			maxTxCount := int64(mempl.maxMempoolTransactions)
+			
+			// Calculate total size of transactions in mempool
+			var totalSize int64
+			for e := mempl.deque.Front(); e != nil; e = e.Next() {
+				if tx, ok := e.Value.(*MempoolTransaction); ok {
+					if tx.Tx != nil {
+						totalSize += int64(proto.Size(tx.Tx))
+					} else if tx.Txv2 != nil {
+						totalSize += int64(proto.Size(tx.Txv2))
+					}
+				}
+			}
+			
+			// Calculate theoretical max mempool size using actual config value
+			maxTxBytes := int64(s.cometbftConfig.Mempool.MaxTxBytes)
+			maxTxSize := maxTxCount * maxTxBytes
+			
 			mempl.mutex.Unlock()
 
 			upsertCache(s.cache.mempoolInfo, MempoolInfoKey, func(mempoolInfo *v1.GetStatusResponse_MempoolInfo) *v1.GetStatusResponse_MempoolInfo {
 				return &v1.GetStatusResponse_MempoolInfo{
 					TxCount:    txCount,
 					MaxTxCount: maxTxCount,
+					TxSize:     totalSize,
+					MaxTxSize:  maxTxSize,
 				}
 			})
 		}(s)
