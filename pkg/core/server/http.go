@@ -3,6 +3,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/pprof"
 	"time"
@@ -15,6 +16,7 @@ import (
 )
 
 func (s *Server) startEchoServer(ctx context.Context) error {
+	s.StartProcess(ProcessStateEchoServer)
 	s.logger.Info("core HTTP server starting")
 	// create http server
 	httpServer := s.httpServer
@@ -77,6 +79,7 @@ func (s *Server) startEchoServer(ctx context.Context) error {
 		err := s.httpServer.Start(s.config.CoreServerAddr)
 		if err != nil && err != http.ErrServerClosed {
 			s.logger.Error("echo server error", "error", err)
+			s.ErrorProcess(ProcessStateEchoServer, fmt.Sprintf("echo server error: %v", err))
 			done <- err
 		} else {
 			done <- nil
@@ -84,20 +87,29 @@ func (s *Server) startEchoServer(ctx context.Context) error {
 	}()
 
 	close(s.awaitHttpServerReady)
+	s.RunningProcess(ProcessStateEchoServer)
 	s.logger.Info("core http server ready")
 
 	select {
 	case err := <-done:
+		if err != nil {
+			s.ErrorProcess(ProcessStateEchoServer, fmt.Sprintf("echo server failed: %v", err))
+		} else {
+			s.CompleteProcess(ProcessStateEchoServer)
+		}
 		return err
 	case <-ctx.Done():
+		s.SleepingProcess(ProcessStateEchoServer)
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
 		err := s.httpServer.Shutdown(shutdownCtx)
 		if err != nil {
 			s.logger.Error("failed to shutdown echo server", "error", err)
+			s.ErrorProcess(ProcessStateEchoServer, fmt.Sprintf("failed to shutdown echo server: %v", err))
 			return err
 		}
+		s.CompleteProcess(ProcessStateEchoServer)
 		return ctx.Err()
 	}
 }

@@ -663,6 +663,23 @@ func (c *CoreService) GetStatus(context.Context, *connect.Request[v1.GetStatusRe
 	mempoolInfo, _ := c.core.cache.mempoolInfo.Get(MempoolInfoKey)
 	snapshotInfo, _ := c.core.cache.snapshotInfo.Get(SnapshotInfoKey)
 
+	// Retrieve process states from cache
+	abciState, _ := c.core.cache.abciState.Get(ProcessStateABCI)
+	registryBridgeState, _ := c.core.cache.registryBridgeState.Get(ProcessStateRegistryBridge)
+	echoServerState, _ := c.core.cache.echoServerState.Get(ProcessStateEchoServer)
+	syncTasksState, _ := c.core.cache.syncTasksState.Get(ProcessStateSyncTasks)
+	peerManagerState, _ := c.core.cache.peerManagerState.Get(ProcessStatePeerManager)
+	ethNodeManagerState, _ := c.core.cache.ethNodeManagerState.Get(ProcessStateEthNodeManager)
+
+	processInfo := &v1.GetStatusResponse_ProcessInfo{
+		Abci:           abciState,
+		RegistryBridge: registryBridgeState,
+		EchoServer:     echoServerState,
+		SyncTasks:      syncTasksState,
+		PeerManager:    peerManagerState,
+		EthNodeManager: ethNodeManagerState,
+	}
+
 	peersOk := len(peers.Peers) > 0
 	syncInfoOk := syncInfo.Synced
 	diskOk := resourceInfo.DiskFree > 0
@@ -679,6 +696,7 @@ func (c *CoreService) GetStatus(context.Context, *connect.Request[v1.GetStatusRe
 	res.ResourceInfo = resourceInfo
 	res.MempoolInfo = mempoolInfo
 	res.SnapshotInfo = snapshotInfo
+	res.ProcessInfo = processInfo
 
 	return connect.NewResponse(res), nil
 }
