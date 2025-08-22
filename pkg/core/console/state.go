@@ -149,7 +149,7 @@ func (state *State) Start() error {
 	state.recalculateState()
 
 	for {
-		time.Sleep(5 * time.Second)
+		time.Sleep(1 * time.Second)
 
 		highestBlock, err := state.db.GetLatestBlock(context.Background())
 		if err != nil {

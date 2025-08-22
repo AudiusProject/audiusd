@@ -483,10 +483,10 @@ func (s *Server) checkPeerP2PAddr(ctx context.Context, logger *common.Logger) er
 			if exists {
 				status.P2PConnected = isPeered(nodeid)
 				s.peerStatus.Set(ethaddress, status)
-			}
 
-			if status.P2PConnected {
-				return
+				if status.P2PConnected {
+					return
+				}
 			}
 
 			connectionString := fmt.Sprintf("%s@%s", nodeid, listenAddr)

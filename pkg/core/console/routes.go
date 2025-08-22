@@ -31,12 +31,9 @@ func (c *Console) registerRoutes(logger *common.Logger, e *echo.Echo) {
 	g.StaticFS("/*", embeddedAssets)
 
 	g.GET("/overview", c.overviewPage)
-	g.GET("/analytics", c.analyticsPage)
-	g.GET("/nodes", c.nodesPage)
-	g.GET("/node", c.nodesPage)
-	g.GET("/node/:node", c.nodePage)
-	g.GET("/content", c.contentFragment)
-	g.GET("/content/upload", c.uploadPage)
+	g.GET("/validators", c.nodesPage)
+	g.GET("/validator", c.nodesPage)
+	g.GET("/validator/:validator", c.nodePage)
 	g.GET("/uptime/:rollup/:endpoint", c.uptimeFragment)
 	g.GET("/uptime/:rollup", c.uptimeFragment)
 	g.GET("/uptime", c.uptimeFragment)
@@ -44,7 +41,6 @@ func (c *Console) registerRoutes(logger *common.Logger, e *echo.Echo) {
 	g.GET("/block/:block", c.blockPage)
 	g.GET("/tx/:tx", c.txPage)
 	g.GET("/genesis", c.genesisPage)
-	g.GET("/health_check", c.getHealth)
 	g.GET("/adjudicate/:sp", c.adjudicateFragment)
 
 	g.GET("/fragments/nav/chain_data", c.navChainData)

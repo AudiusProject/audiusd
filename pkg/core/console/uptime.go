@@ -41,12 +41,16 @@ func (cs *Console) uptimeFragment(c echo.Context) error {
 
 	if err := cs.populateSlaReportsForEndpoints(ctx, endpoints, activeEndpoint, rollupBlockEnd); err != nil {
 		cs.logger.Error("failed to populate SLA reports for endpoints: %v", err)
-		return err
+		return cs.views.RenderUptimeView(c, &pages.UptimePageView{
+			ActiveEndpoint: activeEndpoint,
+		})
 	}
 
 	// SLA rollup not found, abort early with empty data
 	if activeEndpoint.ActiveReport == nil {
-		return cs.views.RenderUptimeView(c, &pages.UptimePageView{})
+		return cs.views.RenderUptimeView(c, &pages.UptimePageView{
+			ActiveEndpoint: activeEndpoint,
+		})
 	}
 
 	avgBlockTimeMs, err := cs.getAverageBlockTimeForReport(ctx, activeEndpoint.ActiveReport)

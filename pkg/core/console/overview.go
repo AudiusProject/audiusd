@@ -1,15 +1,11 @@
 package console
 
 import (
-	"github.com/AudiusProject/audiusd/pkg/core/console/views/pages"
+	"net/http"
+
 	"github.com/labstack/echo/v4"
 )
 
 func (cs *Console) overviewPage(c echo.Context) error {
-	view := &pages.OverviewPageView{
-		Blocks: cs.state.latestBlocks,
-		Txs:    cs.state.latestTransactions,
-	}
-
-	return cs.views.RenderOverviewView(c, view)
+	return c.Redirect(http.StatusMovedPermanently, "/console/uptime")
 }
