@@ -159,6 +159,7 @@ message GetStatusResponse {
   MempoolInfo mempool_info = 8;
   PeerInfo peers = 9;
   SnapshotInfo snapshot_info = 10;
+  ProcessInfo process_info = 11;
 }
 
 message GetNodeInfoRequest {}

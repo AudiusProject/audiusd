@@ -1,6 +1,7 @@
 package views
 
 import (
+	v1 "github.com/AudiusProject/audiusd/pkg/api/core/v1"
 	"github.com/AudiusProject/audiusd/pkg/core/config"
 	"github.com/AudiusProject/audiusd/pkg/core/console/views/layout"
 	"github.com/AudiusProject/audiusd/pkg/core/console/views/pages"
@@ -65,4 +66,8 @@ func (v *Views) RenderTxView(c echo.Context, view *pages.TxView) error {
 
 func (v *Views) RenderAdjudicateView(c echo.Context, view *pages.AdjudicatePageView) error {
 	return v.pages.AdjudicatePageHTML(view).Render(c.Request().Context(), c.Response().Writer)
+}
+
+func (v *Views) RenderOverview(c echo.Context, status *v1.GetStatusResponse) error {
+	return v.pages.OverviewPage(status).Render(c.Request().Context(), c.Response().Writer)
 }
