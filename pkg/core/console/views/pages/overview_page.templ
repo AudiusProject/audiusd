@@ -117,7 +117,9 @@ templ (p *Pages) OverviewPage(status *v1.GetStatusResponse) {
 				<div class="bg-slate-100 rounded-lg p-4 text-center">
 					<div class="text-2xl font-bold">
 						if status.ChainInfo != nil {
-							{ fmt.Sprintf("%d", status.ChainInfo.CurrentHeight) }
+							@p.components.Link("/block/%d", status.ChainInfo.CurrentHeight) {
+								{ fmt.Sprintf("%d", status.ChainInfo.CurrentHeight) }
+							}
 						} else {
 							N/A
 						}
@@ -140,11 +142,19 @@ templ (p *Pages) OverviewPage(status *v1.GetStatusResponse) {
 						</div>
 						<div>
 							<label class="text-sm text-gray-500">Comet Address</label>
-							<div class="font-mono text-sm break-all">{ status.NodeInfo.CometAddress }</div>
+							<div class="font-mono text-sm break-all">
+								@p.components.Link("/validator/%s", status.NodeInfo.CometAddress) {
+									{ status.NodeInfo.CometAddress }
+								}
+							</div>
 						</div>
 						<div>
 							<label class="text-sm text-gray-500">Ethereum Address</label>
-							<div class="font-mono text-sm break-all">{ status.NodeInfo.EthAddress }</div>
+							<div class="font-mono text-sm break-all">
+								@p.components.Link("/validator/%s", status.NodeInfo.EthAddress) {
+									{ status.NodeInfo.EthAddress }
+								}
+							</div>
 						</div>
 					</div>
 				</div>
@@ -160,11 +170,19 @@ templ (p *Pages) OverviewPage(status *v1.GetStatusResponse) {
 						</div>
 						<div>
 							<label class="text-sm text-gray-500">Current Height</label>
-							<div class="font-mono text-sm">{ fmt.Sprintf("%d", status.ChainInfo.CurrentHeight) }</div>
+							<div class="font-mono text-sm">
+								@p.components.Link("/block/%d", status.ChainInfo.CurrentHeight) {
+									{ fmt.Sprintf("%d", status.ChainInfo.CurrentHeight) }
+								}
+							</div>
 						</div>
 						<div>
 							<label class="text-sm text-gray-500">Block Hash</label>
-							<div class="font-mono text-sm break-all">{ status.ChainInfo.CurrentBlockHash }</div>
+							<div class="font-mono text-sm break-all">
+								@p.components.Link("/block/%d", status.ChainInfo.CurrentHeight) {
+									{ status.ChainInfo.CurrentBlockHash }
+								}
+							</div>
 						</div>
 					</div>
 				</div>
@@ -318,7 +336,11 @@ templ (p *Pages) OverviewPage(status *v1.GetStatusResponse) {
 									if status.SyncInfo.GetBlockSync().HeadSource != nil {
 										<div>
 											<label class="text-gray-500">Head Source</label>
-											<div class="font-mono">{ status.SyncInfo.GetBlockSync().HeadSource.Endpoint }</div>
+											<div class="font-mono">
+												@p.components.ExternalLink("%s%s", status.SyncInfo.GetBlockSync().HeadSource.Endpoint, "/console/overview") {
+													{ status.SyncInfo.GetBlockSync().HeadSource.Endpoint }
+												}
+											</div>
 										</div>
 									}
 								</div>
@@ -403,7 +425,11 @@ templ (p *Pages) OverviewPage(status *v1.GetStatusResponse) {
 							<tbody class="bg-white divide-y divide-gray-200">
 								for _, peer := range status.Peers.Peers {
 									<tr>
-										<td class="px-4 py-2 text-sm font-mono">{ peer.Endpoint }</td>
+										<td class="px-4 py-2 text-sm font-mono">
+									@p.components.ExternalLink("%s%s", peer.Endpoint, "/console/overview") {
+										{ peer.Endpoint }
+									}
+								</td>
 										<td class="px-4 py-2 text-sm">{ peer.NodeType }</td>
 										<td class="px-4 py-2 text-sm">
 											if peer.ConnectrpcHealthy {

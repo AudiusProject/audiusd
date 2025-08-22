@@ -291,3 +291,41 @@ func (s *Server) refreshSyncStatus(ctx context.Context) error {
 		}
 	}
 }
+
+func (c *Cache) UpdateProcessState(processKey string, state v1.GetStatusResponse_ProcessInfo_ProcessState, errorMsg string) error {
+	var processCache otter.Cache[string, *v1.GetStatusResponse_ProcessInfo_ProcessStateInfo]
+	
+	switch processKey {
+	case ProcessStateABCI:
+		processCache = c.abciState
+	case ProcessStateRegistryBridge:
+		processCache = c.registryBridgeState
+	case ProcessStateEchoServer:
+		processCache = c.echoServerState
+	case ProcessStateSyncTasks:
+		processCache = c.syncTasksState
+	case ProcessStatePeerManager:
+		processCache = c.peerManagerState
+	case ProcessStateEthNodeManager:
+		processCache = c.ethNodeManagerState
+	case ProcessStateCache:
+		processCache = c.cacheState
+	default:
+		return fmt.Errorf("unknown process: %s", processKey)
+	}
+
+	return upsertCache(processCache, processKey, func(stateInfo *v1.GetStatusResponse_ProcessInfo_ProcessStateInfo) *v1.GetStatusResponse_ProcessInfo_ProcessStateInfo {
+		now := timestamppb.Now()
+		stateInfo.State = state
+		stateInfo.Error = errorMsg
+
+		if state == v1.GetStatusResponse_ProcessInfo_PROCESS_STATE_STARTING {
+			stateInfo.StartedAt = now
+			stateInfo.CompletedAt = nil
+		} else if state == v1.GetStatusResponse_ProcessInfo_PROCESS_STATE_COMPLETED || state == v1.GetStatusResponse_ProcessInfo_PROCESS_STATE_ERROR {
+			stateInfo.CompletedAt = now
+		}
+
+		return stateInfo
+	})
+}
