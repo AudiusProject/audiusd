@@ -237,46 +237,54 @@ func (s *Server) getMempl(c echo.Context) error {
 }
 
 func (s *Server) startMempoolCache(ctx context.Context) error {
+	s.StartProcess(ProcessStateMempoolCache)
+	
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 
-	for range ticker.C {
-		func(s *Server) {
-			mempl := s.mempl
-			mempl.mutex.Lock()
+	for {
+		select {
+		case <-ticker.C:
+			s.RunningProcessWithMetadata(ProcessStateMempoolCache, "Updating mempool statistics")
+			func(s *Server) {
+				mempl := s.mempl
+				mempl.mutex.Lock()
 
-			memplCount := mempl.deque.Len()
-			txCount := int64(memplCount)
-			maxTxCount := int64(mempl.maxMempoolTransactions)
-			
-			// Calculate total size of transactions in mempool
-			var totalSize int64
-			for e := mempl.deque.Front(); e != nil; e = e.Next() {
-				if tx, ok := e.Value.(*MempoolTransaction); ok {
-					if tx.Tx != nil {
-						totalSize += int64(proto.Size(tx.Tx))
-					} else if tx.Txv2 != nil {
-						totalSize += int64(proto.Size(tx.Txv2))
+				memplCount := mempl.deque.Len()
+				txCount := int64(memplCount)
+				maxTxCount := int64(mempl.maxMempoolTransactions)
+				
+				// Calculate total size of transactions in mempool
+				var totalSize int64
+				for e := mempl.deque.Front(); e != nil; e = e.Next() {
+					if tx, ok := e.Value.(*MempoolTransaction); ok {
+						if tx.Tx != nil {
+							totalSize += int64(proto.Size(tx.Tx))
+						} else if tx.Txv2 != nil {
+							totalSize += int64(proto.Size(tx.Txv2))
+						}
 					}
 				}
-			}
-			
-			// Calculate theoretical max mempool size using actual config value
-			maxTxBytes := int64(s.cometbftConfig.Mempool.MaxTxBytes)
-			maxTxSize := maxTxCount * maxTxBytes
-			
-			mempl.mutex.Unlock()
+				
+				// Calculate theoretical max mempool size using actual config value
+				maxTxBytes := int64(s.cometbftConfig.Mempool.MaxTxBytes)
+				maxTxSize := maxTxCount * maxTxBytes
+				
+				mempl.mutex.Unlock()
 
-			upsertCache(s.cache.mempoolInfo, MempoolInfoKey, func(mempoolInfo *v1.GetStatusResponse_MempoolInfo) *v1.GetStatusResponse_MempoolInfo {
-				return &v1.GetStatusResponse_MempoolInfo{
-					TxCount:    txCount,
-					MaxTxCount: maxTxCount,
-					TxSize:     totalSize,
-					MaxTxSize:  maxTxSize,
-				}
-			})
-		}(s)
+				upsertCache(s.cache.mempoolInfo, MempoolInfoKey, func(mempoolInfo *v1.GetStatusResponse_MempoolInfo) *v1.GetStatusResponse_MempoolInfo {
+					return &v1.GetStatusResponse_MempoolInfo{
+						TxCount:    txCount,
+						MaxTxCount: maxTxCount,
+						TxSize:     totalSize,
+						MaxTxSize:  maxTxSize,
+					}
+				})
+			}(s)
+			s.SleepingProcessWithMetadata(ProcessStateMempoolCache, "Waiting for next update")
+		case <-ctx.Done():
+			s.CompleteProcess(ProcessStateMempoolCache)
+			return ctx.Err()
+		}
 	}
-
-	return nil
 }

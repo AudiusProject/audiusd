@@ -269,18 +269,86 @@ templ (p *Pages) OverviewPage(status *v1.GetStatusResponse) {
 						</div>
 						<div class="bg-slate-50 rounded-lg p-4">
 							<div class="flex items-center justify-between mb-2">
-								<span class="font-medium">ETH Node Manager</span>
-								if status.ProcessInfo.EthNodeManager != nil {
-									<span>{ getProcessStateIcon(status.ProcessInfo.EthNodeManager.GetState()) }</span>
+								<span class="font-medium">Data Companion</span>
+								if status.ProcessInfo.DataCompanion != nil {
+									<span>{ getProcessStateIcon(status.ProcessInfo.DataCompanion.GetState()) }</span>
 								}
 							</div>
-							if status.ProcessInfo.EthNodeManager != nil {
-								<div class="text-sm text-gray-600">{ getProcessStateText(status.ProcessInfo.EthNodeManager.GetState()) }</div>
-								if status.ProcessInfo.EthNodeManager.Metadata != "" {
-									<div class="text-xs text-gray-500 mt-1">{ status.ProcessInfo.EthNodeManager.Metadata }</div>
+							if status.ProcessInfo.DataCompanion != nil {
+								<div class="text-sm text-gray-600">{ getProcessStateText(status.ProcessInfo.DataCompanion.GetState()) }</div>
+								if status.ProcessInfo.DataCompanion.Metadata != "" {
+									<div class="text-xs text-gray-500 mt-1">{ status.ProcessInfo.DataCompanion.Metadata }</div>
 								}
-								if status.ProcessInfo.EthNodeManager.Error != "" {
-									<div class="text-xs text-red-600 mt-1">{ status.ProcessInfo.EthNodeManager.Error }</div>
+								if status.ProcessInfo.DataCompanion.Error != "" {
+									<div class="text-xs text-red-600 mt-1">{ status.ProcessInfo.DataCompanion.Error }</div>
+								}
+							}
+						</div>
+						<div class="bg-slate-50 rounded-lg p-4">
+							<div class="flex items-center justify-between mb-2">
+								<span class="font-medium">Cache</span>
+								if status.ProcessInfo.Cache != nil {
+									<span>{ getProcessStateIcon(status.ProcessInfo.Cache.GetState()) }</span>
+								}
+							</div>
+							if status.ProcessInfo.Cache != nil {
+								<div class="text-sm text-gray-600">{ getProcessStateText(status.ProcessInfo.Cache.GetState()) }</div>
+								if status.ProcessInfo.Cache.Metadata != "" {
+									<div class="text-xs text-gray-500 mt-1">{ status.ProcessInfo.Cache.Metadata }</div>
+								}
+								if status.ProcessInfo.Cache.Error != "" {
+									<div class="text-xs text-red-600 mt-1">{ status.ProcessInfo.Cache.Error }</div>
+								}
+							}
+						</div>
+						<div class="bg-slate-50 rounded-lg p-4">
+							<div class="flex items-center justify-between mb-2">
+								<span class="font-medium">Log Sync</span>
+								if status.ProcessInfo.LogSync != nil {
+									<span>{ getProcessStateIcon(status.ProcessInfo.LogSync.GetState()) }</span>
+								}
+							</div>
+							if status.ProcessInfo.LogSync != nil {
+								<div class="text-sm text-gray-600">{ getProcessStateText(status.ProcessInfo.LogSync.GetState()) }</div>
+								if status.ProcessInfo.LogSync.Metadata != "" {
+									<div class="text-xs text-gray-500 mt-1">{ status.ProcessInfo.LogSync.Metadata }</div>
+								}
+								if status.ProcessInfo.LogSync.Error != "" {
+									<div class="text-xs text-red-600 mt-1">{ status.ProcessInfo.LogSync.Error }</div>
+								}
+							}
+						</div>
+						<div class="bg-slate-50 rounded-lg p-4">
+							<div class="flex items-center justify-between mb-2">
+								<span class="font-medium">State Sync</span>
+								if status.ProcessInfo.StateSync != nil {
+									<span>{ getProcessStateIcon(status.ProcessInfo.StateSync.GetState()) }</span>
+								}
+							</div>
+							if status.ProcessInfo.StateSync != nil {
+								<div class="text-sm text-gray-600">{ getProcessStateText(status.ProcessInfo.StateSync.GetState()) }</div>
+								if status.ProcessInfo.StateSync.Metadata != "" {
+									<div class="text-xs text-gray-500 mt-1">{ status.ProcessInfo.StateSync.Metadata }</div>
+								}
+								if status.ProcessInfo.StateSync.Error != "" {
+									<div class="text-xs text-red-600 mt-1">{ status.ProcessInfo.StateSync.Error }</div>
+								}
+							}
+						</div>
+						<div class="bg-slate-50 rounded-lg p-4">
+							<div class="flex items-center justify-between mb-2">
+								<span class="font-medium">Mempool Cache</span>
+								if status.ProcessInfo.MempoolCache != nil {
+									<span>{ getProcessStateIcon(status.ProcessInfo.MempoolCache.GetState()) }</span>
+								}
+							</div>
+							if status.ProcessInfo.MempoolCache != nil {
+								<div class="text-sm text-gray-600">{ getProcessStateText(status.ProcessInfo.MempoolCache.GetState()) }</div>
+								if status.ProcessInfo.MempoolCache.Metadata != "" {
+									<div class="text-xs text-gray-500 mt-1">{ status.ProcessInfo.MempoolCache.Metadata }</div>
+								}
+								if status.ProcessInfo.MempoolCache.Error != "" {
+									<div class="text-xs text-red-600 mt-1">{ status.ProcessInfo.MempoolCache.Error }</div>
 								}
 							}
 						</div>

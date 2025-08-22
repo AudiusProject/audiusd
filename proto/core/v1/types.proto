@@ -50,8 +50,11 @@ message GetStatusResponse {
     ProcessStateInfo echo_server = 3;
     ProcessStateInfo sync_tasks = 4;
     ProcessStateInfo peer_manager = 5;
-    ProcessStateInfo eth_node_manager = 6;
+    ProcessStateInfo data_companion = 6;
     ProcessStateInfo cache = 7;
+    ProcessStateInfo log_sync = 8;
+    ProcessStateInfo state_sync = 9;
+    ProcessStateInfo mempool_cache = 10;
   }
 
   message NodeInfo {

@@ -669,15 +669,23 @@ func (c *CoreService) GetStatus(context.Context, *connect.Request[v1.GetStatusRe
 	echoServerState, _ := c.core.cache.echoServerState.Get(ProcessStateEchoServer)
 	syncTasksState, _ := c.core.cache.syncTasksState.Get(ProcessStateSyncTasks)
 	peerManagerState, _ := c.core.cache.peerManagerState.Get(ProcessStatePeerManager)
-	ethNodeManagerState, _ := c.core.cache.ethNodeManagerState.Get(ProcessStateEthNodeManager)
+	dataCompanionState, _ := c.core.cache.dataCompanionState.Get(ProcessStateDataCompanion)
+	cacheState, _ := c.core.cache.cacheState.Get(ProcessStateCache)
+	logSyncState, _ := c.core.cache.logSyncState.Get(ProcessStateLogSync)
+	stateSyncState, _ := c.core.cache.stateSyncState.Get(ProcessStateStateSync)
+	mempoolCacheState, _ := c.core.cache.mempoolCacheState.Get(ProcessStateMempoolCache)
 
 	processInfo := &v1.GetStatusResponse_ProcessInfo{
-		Abci:           abciState,
+		Abci:          abciState,
 		RegistryBridge: registryBridgeState,
-		EchoServer:     echoServerState,
-		SyncTasks:      syncTasksState,
-		PeerManager:    peerManagerState,
-		EthNodeManager: ethNodeManagerState,
+		EchoServer:    echoServerState,
+		SyncTasks:     syncTasksState,
+		PeerManager:   peerManagerState,
+		DataCompanion: dataCompanionState,
+		Cache:         cacheState,
+		LogSync:       logSyncState,
+		StateSync:     stateSyncState,
+		MempoolCache:  mempoolCacheState,
 	}
 
 	peersOk := len(peers.Peers) > 0
