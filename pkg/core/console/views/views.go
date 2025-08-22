@@ -23,24 +23,12 @@ func (v *Views) RenderNavChainData(c echo.Context, totalBlocks, totalTxs string,
 	return v.layouts.NavBlockData(totalBlocks, totalTxs, syncing).Render(c.Request().Context(), c.Response().Writer)
 }
 
-func (v *Views) RenderOverviewView(c echo.Context, data *pages.OverviewPageView) error {
-	return v.pages.OverviewPageHTML(data).Render(c.Request().Context(), c.Response().Writer)
-}
-
 func (v *Views) RenderNodesView(c echo.Context, view *pages.NodesView) error {
 	return v.pages.NodesPageHTML(view).Render(c.Request().Context(), c.Response().Writer)
 }
 
 func (v *Views) RenderNodeView(c echo.Context, view *pages.NodePageView) error {
 	return v.pages.NodePageHTML(view).Render(c.Request().Context(), c.Response().Writer)
-}
-
-func (v *Views) RenderAnalyticsView(c echo.Context, view *pages.AnalyticsPageView) error {
-	return v.pages.AnalyticsPageHTML(view).Render(c.Request().Context(), c.Response().Writer)
-}
-
-func (v *Views) RenderAnalyticsHeader(c echo.Context, totalBlocks string, totalTransactions string, totalPlays string, totalManageEntities string, totalValidators string) error {
-	return v.pages.AnalyticsHeaderHTML(totalBlocks, totalTransactions, totalPlays, totalManageEntities, totalValidators).Render(c.Request().Context(), c.Response().Writer)
 }
 
 func (v *Views) RenderContentView(c echo.Context) error {

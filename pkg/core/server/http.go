@@ -7,6 +7,8 @@ import (
 	"net/http/pprof"
 	"time"
 
+	"connectrpc.com/connect"
+	v1 "github.com/AudiusProject/audiusd/pkg/api/core/v1"
 	"github.com/AudiusProject/audiusd/pkg/core/console/views/sandbox"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -32,6 +34,16 @@ func (s *Server) startEchoServer(ctx context.Context) error {
 	g.GET("/nodes/discovery/verbose", s.getRegisteredNodes)
 	g.GET("/nodes/content", s.getRegisteredNodes)
 	g.GET("/nodes/content/verbose", s.getRegisteredNodes)
+	g.GET("/status", func(c echo.Context) error {
+		if s.self == nil {
+			return c.String(http.StatusServiceUnavailable, "starting up")
+		}
+		res, err := s.self.GetStatus(c.Request().Context(), &connect.Request[v1.GetStatusRequest]{})
+		if err != nil {
+			return err
+		}
+		return c.JSON(http.StatusOK, res.Msg)
+	})
 
 	// proxy cometbft requests
 	g.Any("/crpc*", s.proxyCometRequest)

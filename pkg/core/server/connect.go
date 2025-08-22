@@ -39,17 +39,27 @@ var _ v1connect.CoreServiceHandler = (*CoreService)(nil)
 
 // GetNodeInfo implements v1connect.CoreServiceHandler.
 func (c *CoreService) GetNodeInfo(ctx context.Context, req *connect.Request[v1.GetNodeInfoRequest]) (*connect.Response[v1.GetNodeInfoResponse], error) {
-	status, err := c.core.rpc.Status(ctx)
+	status, err := c.GetStatus(ctx, &connect.Request[v1.GetStatusRequest]{})
 	if err != nil {
 		return nil, err
 	}
 
+	totalTxs, err := c.core.db.TotalTransactions(ctx)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			totalTxs = 0
+		} else {
+			return nil, err
+		}
+	}
+
 	res := &v1.GetNodeInfoResponse{
-		Chainid:       c.core.config.GenesisFile.ChainID,
-		Synced:        !status.SyncInfo.CatchingUp,
-		CometAddress:  c.core.config.ProposerAddress,
-		EthAddress:    c.core.config.WalletAddress,
-		CurrentHeight: status.SyncInfo.LatestBlockHeight,
+		Chainid:           c.core.config.GenesisFile.ChainID,
+		Synced:            status.Msg.SyncInfo.Synced,
+		CometAddress:      c.core.config.ProposerAddress,
+		EthAddress:        c.core.config.WalletAddress,
+		CurrentHeight:     status.Msg.ChainInfo.CurrentHeight,
+		TotalTransactions: totalTxs,
 	}
 	return connect.NewResponse(res), nil
 }

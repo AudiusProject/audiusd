@@ -61,7 +61,7 @@ templ (l *Layout) SiteFrame() {
 							<div>
 								Eth Address: 
 								<span>
-									@l.components.Link("/node/%s", l.config.WalletAddress) {
+									@l.components.Link("/validator/%s", l.config.WalletAddress) {
 										<span>{ l.config.WalletAddress }</span>
 									}
 								</span>
@@ -69,7 +69,7 @@ templ (l *Layout) SiteFrame() {
 							<div>
 								Comet Address: 
 								<span>
-									@l.components.Link("/node/%s", l.config.ProposerAddress) {
+									@l.components.Link("/validator/%s", l.config.ProposerAddress) {
 										<span>{ l.config.ProposerAddress }</span>
 									}
 								</span>

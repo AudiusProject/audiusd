@@ -280,7 +280,7 @@ func (l *Layout) SiteFrame() templ.Component {
 				}
 				return nil
 			})
-			templ_7745c5c3_Err = l.components.Link("/node/%s", l.config.WalletAddress).Render(templ.WithChildren(ctx, templ_7745c5c3_Var12), templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = l.components.Link("/validator/%s", l.config.WalletAddress).Render(templ.WithChildren(ctx, templ_7745c5c3_Var12), templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -319,7 +319,7 @@ func (l *Layout) SiteFrame() templ.Component {
 				}
 				return nil
 			})
-			templ_7745c5c3_Err = l.components.Link("/node/%s", l.config.ProposerAddress).Render(templ.WithChildren(ctx, templ_7745c5c3_Var14), templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = l.components.Link("/validator/%s", l.config.ProposerAddress).Render(templ.WithChildren(ctx, templ_7745c5c3_Var14), templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
