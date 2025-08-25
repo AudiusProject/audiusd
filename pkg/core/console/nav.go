@@ -15,8 +15,7 @@ func (con *Console) navChainData(c echo.Context) error {
 	}
 
 	totalBlocks := fmt.Sprint(res.Msg.CurrentHeight)
-	totalTxs := fmt.Sprint(res.Msg.TotalTransactions)
 	isSyncing := !res.Msg.Synced
 
-	return con.views.RenderNavChainData(c, totalBlocks, totalTxs, isSyncing)
+	return con.views.RenderNavChainData(c, totalBlocks, isSyncing)
 }

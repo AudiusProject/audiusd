@@ -8,9 +8,8 @@ import (
 
 var gitCommit = templ.URL(fmt.Sprintf("https://github.com/AudiusProject/audius-protocol/commits/%s", config.Version))
 
-templ (l *Layout) NavBlockData(totalBlocks, totalTxs string, syncing bool) {
+templ (l *Layout) NavBlockData(totalBlocks string, syncing bool) {
 	<div>Blocks: { totalBlocks }</div>
-	<div>Transactions: { totalTxs }</div>
 	if syncing {
 		<div>🟡 syncing</div>
 	} else {

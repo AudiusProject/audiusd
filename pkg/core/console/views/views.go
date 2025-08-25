@@ -20,8 +20,8 @@ func NewViews(config *config.Config, baseUrl string) *Views {
 	}
 }
 
-func (v *Views) RenderNavChainData(c echo.Context, totalBlocks, totalTxs string, syncing bool) error {
-	return v.layouts.NavBlockData(totalBlocks, totalTxs, syncing).Render(c.Request().Context(), c.Response().Writer)
+func (v *Views) RenderNavChainData(c echo.Context, totalBlocks string, syncing bool) error {
+	return v.layouts.NavBlockData(totalBlocks, syncing).Render(c.Request().Context(), c.Response().Writer)
 }
 
 func (v *Views) RenderNodesView(c echo.Context, view *pages.NodesView) error {

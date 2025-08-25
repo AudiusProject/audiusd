@@ -174,7 +174,6 @@ message GetNodeInfoResponse {
   string comet_address = 3;
   string eth_address = 4;
   int64 current_height = 5;
-  int64 total_transactions = 6;
 }
 
 message GetBlockRequest {

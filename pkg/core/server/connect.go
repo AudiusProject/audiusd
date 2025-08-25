@@ -44,22 +44,12 @@ func (c *CoreService) GetNodeInfo(ctx context.Context, req *connect.Request[v1.G
 		return nil, err
 	}
 
-	totalTxs, err := c.core.db.TotalTransactions(ctx)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			totalTxs = 0
-		} else {
-			return nil, err
-		}
-	}
-
 	res := &v1.GetNodeInfoResponse{
-		Chainid:           c.core.config.GenesisFile.ChainID,
-		Synced:            status.Msg.SyncInfo.Synced,
-		CometAddress:      c.core.config.ProposerAddress,
-		EthAddress:        c.core.config.WalletAddress,
-		CurrentHeight:     status.Msg.ChainInfo.CurrentHeight,
-		TotalTransactions: totalTxs,
+		Chainid:       c.core.config.GenesisFile.ChainID,
+		Synced:        status.Msg.SyncInfo.Synced,
+		CometAddress:  c.core.config.ProposerAddress,
+		EthAddress:    c.core.config.WalletAddress,
+		CurrentHeight: status.Msg.ChainInfo.CurrentHeight,
 	}
 	return connect.NewResponse(res), nil
 }
