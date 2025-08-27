@@ -2,13 +2,16 @@ package server
 
 import (
 	"testing"
+
+	"github.com/AudiusProject/audiusd/pkg/core/config"
 )
 
 func TestIsNonRoutableAddress(t *testing.T) {
 	tests := []struct {
-		name     string
-		addr     string
-		expected bool
+		name        string
+		addr        string
+		environment string
+		expected    bool
 	}{
 		// Test cases for invalid address formats (should return true)
 		{
@@ -187,9 +190,14 @@ func TestIsNonRoutableAddress(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := isNonRoutableAddress(tt.addr)
+			s := &Server{
+				config: &config.Config{
+					Environment: tt.environment,
+				},
+			}
+			result := s.isNonRoutableAddress(tt.addr)
 			if result != tt.expected {
-				t.Errorf("isNonRoutableAddress(%q) = %v, expected %v", tt.addr, result, tt.expected)
+				t.Errorf("Server.isNonRoutableAddress(%q) = %v, expected %v (env: %s)", tt.addr, result, tt.expected, tt.environment)
 			}
 		})
 	}
@@ -214,9 +222,14 @@ func TestIsNonRoutableAddress_IPClassifications(t *testing.T) {
 
 	for _, tt := range boundaryTests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := isNonRoutableAddress(tt.addr)
+			s := &Server{
+				config: &config.Config{
+					Environment: "prod", // Use prod environment for boundary tests
+				},
+			}
+			result := s.isNonRoutableAddress(tt.addr)
 			if result != tt.expected {
-				t.Errorf("isNonRoutableAddress(%q) = %v, expected %v (%s)", tt.addr, result, tt.expected, tt.reason)
+				t.Errorf("Server.isNonRoutableAddress(%q) = %v, expected %v (%s)", tt.addr, result, tt.expected, tt.reason)
 			}
 		})
 	}

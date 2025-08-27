@@ -464,7 +464,7 @@ func (s *Server) checkPeerP2PAddr(ctx context.Context, logger *common.Logger) er
 
 			var p2pAccessible bool
 
-			if isNonRoutableAddress(listenAddr) {
+			if s.isNonRoutableAddress(listenAddr) {
 				p2pAccessible = false
 				logger.Debugf("p2p not accessible for %s: non-routable address %s", ethaddress, listenAddr)
 			} else {
@@ -507,7 +507,7 @@ func (s *Server) checkPeerP2PAddr(ctx context.Context, logger *common.Logger) er
 	return nil
 }
 
-func isNonRoutableAddress(listenAddr string) bool {
+func (s *Server) isNonRoutableAddress(listenAddr string) bool {
 	host, _, err := net.SplitHostPort(listenAddr)
 	if err != nil {
 		return true // If we can't parse it, treat as non-routable
@@ -519,12 +519,19 @@ func isNonRoutableAddress(listenAddr string) bool {
 		if host == "localhost" {
 			return true
 		}
-		return false // Let hostname through for now
+		// Allow container names and other hostnames in Docker/k8s environments
+		return false
 	}
 
-	// Check for non-routable IP ranges
-	return ip.IsLoopback() || // 127.0.0.1, ::1
-		ip.IsPrivate() || // 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16
-		ip.IsLinkLocalUnicast() || // 169.254.0.0/16, fe80::/10
-		ip.IsUnspecified() // 0.0.0.0, ::
+	// Always block truly non-routable addresses
+	if ip.IsLoopback() || ip.IsLinkLocalUnicast() || ip.IsUnspecified() {
+		return true
+	}
+
+	// In production, also block private IPs - in dev/test, allow them for Docker
+	if s.config.Environment != "dev" && ip.IsPrivate() {
+		return true
+	}
+
+	return false
 }
