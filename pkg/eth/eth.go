@@ -20,6 +20,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -41,6 +42,7 @@ type EthService struct {
 	db           *db.Queries
 	pool         *pgxpool.Pool
 	logger       *common.Logger
+	z            *zap.Logger
 	c            *contracts.AudiusContracts
 	deregPubsub  *DeregistrationPubsub
 	fundingRound *fundingRoundMetadata
@@ -63,6 +65,10 @@ func NewEthService(dbURL, rpcURL, registryAddress string, logger *common.Logger,
 		env:             environment,
 		fundingRound:    &fundingRoundMetadata{},
 	}
+}
+
+func (eth *EthService) SetZapLogger(z *zap.Logger) {
+	eth.z = z
 }
 
 func (eth *EthService) Run(ctx context.Context) error {
@@ -99,10 +105,13 @@ func (eth *EthService) Run(ctx context.Context) error {
 	}
 	ethrpc, err := ethclient.Dial(wsRpcUrl)
 	if err != nil {
+		eth.z.Error("eth client dial err", zap.Error(err))
 		return fmt.Errorf("eth client dial err: %v", err)
 	}
 	eth.rpc = ethrpc
 	defer ethrpc.Close()
+
+	eth.z.Info("eth service is connected")
 
 	// Init contracts
 	c, err := contracts.NewAudiusContracts(eth.rpc, eth.registryAddress)
@@ -111,7 +120,7 @@ func (eth *EthService) Run(ctx context.Context) error {
 	}
 	eth.c = c
 
-	eth.logger.Infof("starting eth service")
+	eth.logger.Infof("starting eth data manager")
 
 	if err := eth.startEthDataManager(ctx); err != nil {
 		return fmt.Errorf("error running endpoint manager: %w", err)
@@ -129,8 +138,10 @@ initial:
 		select {
 		case <-ticker.C:
 			if err := eth.hydrateEthData(ctx); err != nil {
+				eth.z.Error("error gathering registered eth endpoints", zap.Error(err))
 				eth.logger.Errorf("error gathering registered eth endpoints: %v", err)
 				delay *= 2
+				eth.z.Error("retrying", zap.Int("delay", int(delay)))
 				eth.logger.Infof("retrying in %s seconds", delay)
 				ticker.Reset(delay)
 			} else {
@@ -142,6 +153,7 @@ initial:
 	}
 
 	eth.logger.Info("eth service is ready")
+	eth.z.Info("eth service is ready")
 	eth.isReady.Store(true)
 
 	// Instantiate the contracts
