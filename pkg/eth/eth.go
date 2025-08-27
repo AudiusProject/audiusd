@@ -114,7 +114,7 @@ func (eth *EthService) Run(ctx context.Context) error {
 	eth.logger.Infof("starting eth service")
 
 	if err := eth.startEthDataManager(ctx); err != nil {
-		return fmt.Errorf("Error running endpoint manager: %w", err)
+		return fmt.Errorf("error running endpoint manager: %w", err)
 	}
 
 	return nil
@@ -261,8 +261,6 @@ initial:
 			return errors.New("context canceled")
 		}
 	}
-
-	return nil
 }
 
 func (eth *EthService) SubscribeToDeregistrationEvents() chan *v1.ServiceEndpoint {
