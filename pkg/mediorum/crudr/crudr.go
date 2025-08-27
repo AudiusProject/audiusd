@@ -111,7 +111,7 @@ func New(selfHost string, myPrivateKey *ecdsa.PrivateKey, peerHosts []string, db
 		typeMap: map[string]reflect.Type{},
 
 		peerClients: make([]*PeerClient, len(peerHosts)),
-		lc:          lifecycle.NewFromLifecycle(parentLifecycle, &zap.Logger{}, "crudr lifecycle"),
+		lc:          lifecycle.NewFromLifecycle(parentLifecycle, zap.NewNop(), "crudr lifecycle"),
 	}
 
 	for idx, peerHost := range peerHosts {

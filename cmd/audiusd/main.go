@@ -101,7 +101,7 @@ func main() {
 	posChannel := make(chan pos.PoSRequest)
 	dbUrl := config.GetDbURL()
 
-	rootLifecycle := lifecycle.NewLifecycle(ctx, "root lifecycle", logger, &zap.Logger{})
+	rootLifecycle := lifecycle.NewLifecycle(ctx, "root lifecycle", logger, zap.NewNop())
 
 	ethService := eth.NewEthService(dbUrl, config.GetEthRPC(), config.GetRegistryAddress(), logger, config.GetRuntimeEnvironment())
 	coreService := coreServer.NewCoreService()

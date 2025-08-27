@@ -15,7 +15,7 @@ import (
 
 func TestLifecycleShutsDown(t *testing.T) {
 	ctx := context.Background()
-	lc := NewLifecycle(ctx, "test lifecycle", common.NewLogger(&slog.HandlerOptions{}), &zap.Logger{})
+	lc := NewLifecycle(ctx, "test lifecycle", common.NewLogger(&slog.HandlerOptions{}), zap.NewNop())
 
 	// Add routines and children asynchronously to test thread safety
 	var childLc1 *Lifecycle
@@ -23,11 +23,11 @@ func TestLifecycleShutsDown(t *testing.T) {
 	wg := sync.WaitGroup{}
 	wg.Add(2)
 	go func() {
-		childLc1 = NewFromLifecycle(lc, &zap.Logger{}, "child lc 1")
+		childLc1 = NewFromLifecycle(lc, zap.NewNop(), "child lc 1")
 		wg.Done()
 	}()
 	go func() {
-		childLc2 = NewFromLifecycle(lc, &zap.Logger{}, "child lc 2")
+		childLc2 = NewFromLifecycle(lc, zap.NewNop(), "child lc 2")
 		wg.Done()
 	}()
 
@@ -87,7 +87,7 @@ func TestLifecycleShutsDown(t *testing.T) {
 
 func TestLifecycleTimesOut(t *testing.T) {
 	ctx := context.Background()
-	lc := NewLifecycle(ctx, "test lifecycle", common.NewLogger(&slog.HandlerOptions{}), &zap.Logger{})
+	lc := NewLifecycle(ctx, "test lifecycle", common.NewLogger(&slog.HandlerOptions{}), zap.NewNop())
 	lc.AddManagedRoutine("dummyRoutineThatNeverEnds", dummyRoutineThatNeverEnds)
 	err := lc.ShutdownWithTimeout(3 * time.Second)
 	assert.Error(t, err)

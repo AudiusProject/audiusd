@@ -41,7 +41,7 @@ func setupTestNetwork(replicationFactor, serverCount int) []*MediorumServer {
 		})
 	}
 
-	lc := lifecycle.NewLifecycle(context.Background(), "mediorum test lifecycle", common.NewLogger(&slog.HandlerOptions{}), &zap.Logger{})
+	lc := lifecycle.NewLifecycle(context.Background(), "mediorum test lifecycle", common.NewLogger(&slog.HandlerOptions{}), zap.NewNop())
 
 	for idx, peer := range network {
 		peer := peer
