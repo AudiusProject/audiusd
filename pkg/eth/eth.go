@@ -141,6 +141,7 @@ initial:
 		}
 	}
 
+	eth.logger.Info("eth service is ready")
 	eth.isReady.Store(true)
 
 	// Instantiate the contracts
