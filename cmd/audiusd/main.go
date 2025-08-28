@@ -402,6 +402,7 @@ func startEchoProxy(hostUrl *url.URL, logger *common.Logger, coreService *coreSe
 	rpcGroup.GET(corev1connect.CoreServiceGetStatusProcedure, connectGET(coreService.GetStatus))
 	rpcGroup.GET(corev1connect.CoreServiceGetNodeInfoProcedure, connectGET(coreService.GetNodeInfo))
 	rpcGroup.GET(corev1connect.CoreServiceGetBlockProcedure, connectGET(coreService.GetBlock))
+	rpcGroup.GET(corev1connect.CoreServiceGetBlocksProcedure, connectGET(coreService.GetBlocks))
 	rpcGroup.GET(corev1connect.CoreServiceGetTransactionProcedure, connectGET(coreService.GetTransaction))
 	rpcGroup.GET(corev1connect.CoreServiceGetStoredSnapshotsProcedure, connectGET(coreService.GetStoredSnapshots))
 	rpcGroup.GET(corev1connect.CoreServiceGetRewardAttestationProcedure, connectGET(coreService.GetRewardAttestation))
