@@ -63,10 +63,6 @@ func (cs *Console) uptimeFragment(c echo.Context) error {
 	// Store endpoints as sorted slice
 	// (adjust sorting method to fit display preference)
 	sort.Slice(endpoints, func(i, j int) bool {
-		// TODO incorporate exempt status
-		if endpoints[i].ActiveReport.BlocksProposed != endpoints[j].ActiveReport.BlocksProposed {
-			return endpoints[i].ActiveReport.BlocksProposed < endpoints[j].ActiveReport.BlocksProposed
-		}
 		return endpoints[i].Endpoint < endpoints[j].Endpoint
 	})
 
