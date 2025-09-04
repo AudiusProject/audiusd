@@ -180,7 +180,7 @@ func (s *Server) broadcastMempoolTransaction(key string, tx *MempoolTransaction)
 	// For v2 transactions, we don't have specific broadcast filtering yet
 	// but we can add it here later if needed
 
-	s.connectRPCPeers.Range(func(addr, peer) bool {
+	s.connectRPCPeers.Range(func(addr EthAddress, peer corev1connect.CoreServiceClient) bool {
 		go func(logger *zap.Logger, peer corev1connect.CoreServiceClient) {
 			var err error
 			if tx.Tx != nil {
