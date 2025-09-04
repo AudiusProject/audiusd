@@ -772,14 +772,6 @@ func (s *Server) serializeAppState(prevHash []byte, txs [][]byte) []byte {
 	return newAppHashBytes[:]
 }
 
-func (s *Server) toTxHash(msg proto.Message) string {
-	hash, err := common.ToTxHash(msg)
-	if err != nil {
-		s.logger.Error("could not get txhash of msg", zap.Any("msg", msg), zap.Error(err))
-		return ""
-	}
-	return hash
-}
 
 
 func setupNodeLogger() *common.Logger {

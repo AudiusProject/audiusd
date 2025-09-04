@@ -636,7 +636,7 @@ func (c *CoreService) getBlockRpcFallback(ctx context.Context, height int64) (*c
 			return nil, err
 		}
 		txs = append(txs, &v1.Transaction{
-			Hash:        c.core.toTxHash(&transaction),
+			Hash:        common.ToTxHashFromBytes(tx),
 			BlockHash:   block.BlockID.Hash.String(),
 			ChainId:     c.core.config.GenesisFile.ChainID,
 			Height:      block.Block.Height,
