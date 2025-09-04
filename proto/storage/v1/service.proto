@@ -9,5 +9,9 @@ option go_package = "github.com/AudiusProject/audiusd/pkg/api/storage/v1";
 service StorageService {
   rpc Ping(PingRequest) returns (PingResponse) {}
   rpc GetHealth(GetHealthRequest) returns (GetHealthResponse) {}
+  rpc UploadFiles(UploadFilesRequest) returns (UploadFilesResponse) {}
+  rpc GetUpload(GetUploadRequest) returns (GetUploadResponse) {}
+  rpc StreamTrack(StreamTrackRequest) returns (stream StreamTrackResponse) {}
+  rpc GetStreamURL(GetStreamURLRequest) returns (GetStreamURLResponse) {}
   rpc GetIPData(GetIPDataRequest) returns (GetIPDataResponse) {}
 }
