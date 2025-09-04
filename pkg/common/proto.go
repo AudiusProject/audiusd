@@ -21,3 +21,11 @@ func ToTxHash(msg proto.Message) (TxHash, error) {
 
 	return hashStr, nil
 }
+
+// ToTxHashFromBytes creates a transaction hash from raw transaction bytes
+// using CometBFT's hashing utilities for consistency with block sync
+func ToTxHashFromBytes(txBytes []byte) TxHash {
+	tx := types.Tx(txBytes)
+	hash := tx.Hash()
+	return bytes.HexBytes(hash).String()
+}
