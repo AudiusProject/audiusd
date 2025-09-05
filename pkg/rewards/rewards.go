@@ -2,7 +2,6 @@ package rewards
 
 type ClaimAuthority struct {
 	Address string `json:"address"`
-	Name    string `json:"name"`
 }
 
 type Reward struct {
