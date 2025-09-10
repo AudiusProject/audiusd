@@ -63,7 +63,11 @@ func (cs *Console) uptimeFragment(c echo.Context) error {
 	// Store endpoints as sorted slice
 	// (adjust sorting method to fit display preference)
 	sort.Slice(endpoints, func(i, j int) bool {
-		return endpoints[i].Endpoint < endpoints[j].Endpoint
+		if endpoints[i].Owner == endpoints[j].Owner {
+			return endpoints[i].Endpoint < endpoints[j].Endpoint
+		} else {
+			return endpoints[i].Owner < endpoints[j].Owner
+		}
 	})
 
 	return cs.views.RenderUptimeView(c, &pages.UptimePageView{
