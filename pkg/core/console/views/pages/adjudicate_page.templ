@@ -4,6 +4,7 @@ import (
     "fmt"
     "net/url"
     "time"
+    "math/big"
 
     "github.com/dustin/go-humanize"
 	"github.com/AudiusProject/audiusd/pkg/core/console/templui/components/progress"
@@ -13,6 +14,7 @@ import (
 )
 
 const unearnedRewardsThreshold = int64(10000)
+var audConversion = new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
 
 type AdjudicatePageView struct {
     ServiceProvider       *ServiceProvider
@@ -44,6 +46,12 @@ type StorageProofRollup struct {
 type CopyButtonProps struct {
     Size int
     CustomId string
+}
+
+func audToWeiConversion(aud int64) string {
+    audBigInt := big.NewInt(aud) 
+    audBigInt = audBigInt.Mul(audBigInt, audConversion)
+    return audBigInt.String()
 }
 
 func getTimeRangeQueryString(start time.Time, end time.Time) string {
@@ -295,7 +303,7 @@ templ (c *Pages) AdjudicatePageHTML(props *AdjudicatePageView) {
                 <h3 class="text-sm text-gray-400">Call Data</h3>
                 <div class="flex">
                     @copyButton(CopyButtonProps{Size:4})
-                    <p class="text-sm px-2">{ fmt.Sprintf("%d,%s", props.SlashRecommendation, props.ServiceProvider.Address) }</p>
+                    <p class="text-sm px-2">{ fmt.Sprintf("%s,%s", audToWeiConversion(props.SlashRecommendation), props.ServiceProvider.Address) }</p>
                 </div>
             </div>
 
