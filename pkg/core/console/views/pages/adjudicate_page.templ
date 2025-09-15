@@ -15,7 +15,6 @@ import (
 )
 
 const unearnedRewardsThreshold = int64(10000)
-var audConversion = new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
 
 type AdjudicatePageView struct {
     ServiceProvider       *ServiceProvider
@@ -47,12 +46,6 @@ type StorageProofRollup struct {
 type CopyButtonProps struct {
     Size int
     CustomId string
-}
-
-func audToWeiConversion(aud int64) string {
-    audBigInt := big.NewInt(aud) 
-    audBigInt = audBigInt.Mul(audBigInt, audConversion)
-    return audBigInt.String()
 }
 
 func getTimeRangeQueryString(start time.Time, end time.Time) string {
