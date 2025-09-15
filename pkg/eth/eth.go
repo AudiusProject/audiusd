@@ -29,8 +29,6 @@ const (
 	DeregistrationTopic = "deregistration-subscriber"
 )
 
-var audConversion = new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
-
 type DeregistrationPubsub = pubsub.Pubsub[*v1.ServiceEndpoint]
 
 type EthService struct {
@@ -410,7 +408,7 @@ func (eth *EthService) deleteAndDeregisterEndpoint(ctx context.Context, spID *bi
 func (eth *EthService) updateStakedAmountForServiceProvider(ctx context.Context, address ethcommon.Address, totalStaked *big.Int) error {
 	if err := eth.db.UpsertStaked(
 		ctx,
-		db.UpsertStakedParams{Address: address.Hex(), TotalStaked: new(big.Int).Div(totalStaked, audConversion).Int64()},
+		db.UpsertStakedParams{Address: address.Hex(), TotalStaked: contracts.WeiToAudio(totalStaked).Int64()},
 	); err != nil {
 		eth.logger.Error("eth could not update service staked amount", zap.Error(err))
 		return fmt.Errorf("could not update service staked amount: %v", err)
@@ -434,7 +432,7 @@ func (eth *EthService) updateTotalStakedAmount(ctx context.Context) error {
 		eth.logger.Error("eth could not get total staked across all delegators", zap.Error(err))
 		return fmt.Errorf("could not get total staked across all delegators: %v", err)
 	}
-	eth.fundingRound.totalStakedAmount = new(big.Int).Div(totalStaked, audConversion).Int64()
+	eth.fundingRound.totalStakedAmount = contracts.WeiToAudio(totalStaked).Int64()
 	return nil
 }
 
@@ -639,7 +637,7 @@ func (eth *EthService) hydrateEthData(ctx context.Context) error {
 			ctx,
 			db.UpsertStakedParams{
 				Address:     sp.Address,
-				TotalStaked: new(big.Int).Div(totalStakedForSp, audConversion).Int64(),
+				TotalStaked: contracts.WeiToAudio(totalStakedForSp).Int64(),
 			},
 		); err != nil {
 			eth.logger.Error("eth could not insert staked amount into eth indexer db", zap.Error(err))
@@ -658,7 +656,7 @@ func (eth *EthService) hydrateEthData(ctx context.Context) error {
 		return fmt.Errorf("could not get funding amount per round: %v", err)
 	}
 
-	eth.fundingRound.fundingAmountPerRound = new(big.Int).Div(fundingAmountPerRound, audConversion).Int64()
+	eth.fundingRound.fundingAmountPerRound = contracts.WeiToAudio(fundingAmountPerRound).Int64()
 	eth.fundingRound.initialized = true
 
 	return tx.Commit(ctx)
