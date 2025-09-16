@@ -6,16 +6,19 @@ var (
 	DevClaimAuthorities = []rewards.ClaimAuthority{
 		{
 			Address: "0xfc3916B97489d2eFD81DDFDf11bad8E33ad5b87a",
+			Name:    "Audius",
 		},
 	}
 	StageClaimAuthorities = []rewards.ClaimAuthority{
 		{
 			Address: "0xDC2BDF1F23381CA2eC9e9c70D4FD96CD8645D090",
+			Name:    "Audius",
 		},
 	}
 	ProdClaimAuthorities = []rewards.ClaimAuthority{
 		{
 			Address: "0xc8d0C29B6d540295e8fc8ac72456F2f4D41088c8",
+			Name:    "Audius",
 		},
 	}
 )
