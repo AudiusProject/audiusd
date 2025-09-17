@@ -180,9 +180,8 @@ func (s *Server) broadcastMempoolTransaction(key string, tx *MempoolTransaction)
 	// For v2 transactions, we don't have specific broadcast filtering yet
 	// but we can add it here later if needed
 
-	peers := s.connectRPCPeers.Values()
-	for _, peer := range peers {
-		go func(logger *zap.Logger, peer corev1connect.CoreServiceClient) {
+	s.connectRPCPeers.Range(func(addr EthAddress, peer corev1connect.CoreServiceClient) bool {
+		go func(addr EthAddress, logger *zap.Logger, peer corev1connect.CoreServiceClient) {
 			var err error
 			if tx.Tx != nil {
 				_, err = peer.ForwardTransaction(context.Background(), connect.NewRequest(&v1.ForwardTransactionRequest{
@@ -198,12 +197,13 @@ func (s *Server) broadcastMempoolTransaction(key string, tx *MempoolTransaction)
 			}
 
 			if err != nil {
-				logger.Error("could not broadcast tx", zap.String("tx", key), zap.Error(err))
+				logger.Error("could not broadcast tx", zap.String("tx", key), zap.String("peer", addr), zap.Error(err))
 				return
 			}
-			s.logger.Info("broadcasted tx to peer", zap.String("tx", key))
-		}(s.logger, peer)
-	}
+			s.logger.Info("broadcasted tx to peer", zap.String("tx", key), zap.String("peer", addr))
+		}(addr, s.logger, peer)
+		return true
+	})
 }
 
 func (s *Server) getMempl(c echo.Context) error {
