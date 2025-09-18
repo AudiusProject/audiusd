@@ -261,19 +261,7 @@ func (c *Pages) AdjudicatePageHTML(props *AdjudicatePageView) templ.Component {
 			var templ_7745c5c3_Var4 string
 			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(props.ServiceProvider.Address)
 			if templ_7745c5c3_Err != nil {
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 150, Col: 47}
-=======
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 156, Col: 47}
->>>>>>> 18a6129 (Make eth service more resilient to websocket errors)
-=======
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 150, Col: 47}
->>>>>>> e1845da (Move audio-wei conversion helper functions to contracts module)
-=======
 				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 226, Col: 47}
->>>>>>> 141aca4 (Add extended description to slash proposal)
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 			if templ_7745c5c3_Err != nil {
@@ -321,19 +309,7 @@ func (c *Pages) AdjudicatePageHTML(props *AdjudicatePageView) templ.Component {
 				props.Slash.Signature,
 			))
 			if templ_7745c5c3_Err != nil {
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 174, Col: 136}
-=======
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 180, Col: 136}
->>>>>>> 18a6129 (Make eth service more resilient to websocket errors)
-=======
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 174, Col: 136}
->>>>>>> e1845da (Move audio-wei conversion helper functions to contracts module)
-=======
 				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 254, Col: 18}
->>>>>>> 141aca4 (Add extended description to slash proposal)
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 			if templ_7745c5c3_Err != nil {
@@ -346,19 +322,7 @@ func (c *Pages) AdjudicatePageHTML(props *AdjudicatePageView) templ.Component {
 			var templ_7745c5c3_Var6 string
 			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(getTimeRangeQueryString(props.StartTime, props.EndTime))
 			if templ_7745c5c3_Err != nil {
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 191, Col: 77}
-=======
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 197, Col: 77}
->>>>>>> 18a6129 (Make eth service more resilient to websocket errors)
-=======
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 191, Col: 77}
->>>>>>> e1845da (Move audio-wei conversion helper functions to contracts module)
-=======
 				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 257, Col: 136}
->>>>>>> 141aca4 (Add extended description to slash proposal)
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 			if templ_7745c5c3_Err != nil {
@@ -393,19 +357,7 @@ func (c *Pages) AdjudicatePageHTML(props *AdjudicatePageView) templ.Component {
 			var templ_7745c5c3_Var9 string
 			templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(templ.CSSClasses(templ_7745c5c3_Var8).String())
 			if templ_7745c5c3_Err != nil {
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 196, Col: 76}
-=======
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 202, Col: 76}
->>>>>>> 18a6129 (Make eth service more resilient to websocket errors)
-=======
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 196, Col: 76}
->>>>>>> e1845da (Move audio-wei conversion helper functions to contracts module)
-=======
 				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 1, Col: 0}
->>>>>>> 141aca4 (Add extended description to slash proposal)
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 			if templ_7745c5c3_Err != nil {
@@ -418,19 +370,7 @@ func (c *Pages) AdjudicatePageHTML(props *AdjudicatePageView) templ.Component {
 			var templ_7745c5c3_Var10 string
 			templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(humanize.Comma(int64(props.DeadSlas)))
 			if templ_7745c5c3_Err != nil {
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 201, Col: 83}
-=======
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 207, Col: 83}
->>>>>>> 18a6129 (Make eth service more resilient to websocket errors)
-=======
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 201, Col: 83}
->>>>>>> e1845da (Move audio-wei conversion helper functions to contracts module)
-=======
 				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 279, Col: 76}
->>>>>>> 141aca4 (Add extended description to slash proposal)
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 			if templ_7745c5c3_Err != nil {
@@ -465,19 +405,7 @@ func (c *Pages) AdjudicatePageHTML(props *AdjudicatePageView) templ.Component {
 			var templ_7745c5c3_Var13 string
 			templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(templ.CSSClasses(templ_7745c5c3_Var12).String())
 			if templ_7745c5c3_Err != nil {
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 206, Col: 84}
-=======
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 212, Col: 84}
->>>>>>> 18a6129 (Make eth service more resilient to websocket errors)
-=======
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 206, Col: 84}
->>>>>>> e1845da (Move audio-wei conversion helper functions to contracts module)
-=======
 				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 1, Col: 0}
->>>>>>> 141aca4 (Add extended description to slash proposal)
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 			if templ_7745c5c3_Err != nil {
@@ -564,81 +492,14 @@ func (c *Pages) AdjudicatePageHTML(props *AdjudicatePageView) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-<<<<<<< HEAD
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, "<p class=\"text-sm px-2\">")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			var templ_7745c5c3_Var14 string
-			templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("Slash %s", props.ServiceProvider.Address))
-			if templ_7745c5c3_Err != nil {
-<<<<<<< HEAD
-<<<<<<< HEAD
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 276, Col: 100}
-=======
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 282, Col: 100}
->>>>>>> 18a6129 (Make eth service more resilient to websocket errors)
-=======
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 276, Col: 100}
->>>>>>> e1845da (Move audio-wei conversion helper functions to contracts module)
-			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "</p></div></div><div class=\"py-2\"><h3 class=\"text-sm text-gray-400\">Target Contract</h3><div class=\"flex\">")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = copyButton(CopyButtonProps{Size: 4}).Render(ctx, templ_7745c5c3_Buffer)
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 29, "<p class=\"text-sm px-2\">DelegateManager</p></div></div><div class=\"py-2\"><h3 class=\"text-sm text-gray-400\">Signature</h3><div class=\"flex\">")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = copyButton(CopyButtonProps{Size: 4}).Render(ctx, templ_7745c5c3_Buffer)
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "<p class=\"text-sm px-2\">slash(uint256,address)</p></div></div><div class=\"py-2\"><h3 class=\"text-sm text-gray-400\">Call Data</h3><div class=\"flex\">")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = copyButton(CopyButtonProps{Size: 4}).Render(ctx, templ_7745c5c3_Buffer)
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 31, "<p class=\"text-sm px-2\">")
-=======
 			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "<p class=\"text-sm px-2\">")
->>>>>>> 141aca4 (Add extended description to slash proposal)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var15 string
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-			templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%s,%s", contracts.AudioToWei(big.NewInt(props.SlashRecommendation)).String(), props.ServiceProvider.Address))
-			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 300, Col: 167}
-=======
-			templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%s,%s", audToWeiConversion(props.SlashRecommendation), props.ServiceProvider.Address))
-			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 306, Col: 144}
->>>>>>> 18a6129 (Make eth service more resilient to websocket errors)
-=======
-			templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%s,%s", contracts.AudioToWei(big.NewInt(props.SlashRecommendation)).String(), props.ServiceProvider.Address))
-			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 300, Col: 167}
->>>>>>> e1845da (Move audio-wei conversion helper functions to contracts module)
-=======
 			templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("Slash %s", props.ServiceProvider.Address))
 			if templ_7745c5c3_Err != nil {
 				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 360, Col: 104}
->>>>>>> 141aca4 (Add extended description to slash proposal)
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 			if templ_7745c5c3_Err != nil {
@@ -675,19 +536,7 @@ func (c *Pages) AdjudicatePageHTML(props *AdjudicatePageView) templ.Component {
 			var templ_7745c5c3_Var16 string
 			templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%s,%s", contracts.AudioToWei(big.NewInt(props.Slash.Amount)).String(), props.ServiceProvider.Address))
 			if templ_7745c5c3_Err != nil {
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 309, Col: 181}
-=======
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 315, Col: 181}
->>>>>>> 18a6129 (Make eth service more resilient to websocket errors)
-=======
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 309, Col: 181}
->>>>>>> e1845da (Move audio-wei conversion helper functions to contracts module)
-=======
 				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 384, Col: 164}
->>>>>>> 141aca4 (Add extended description to slash proposal)
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
 			if templ_7745c5c3_Err != nil {
@@ -699,17 +548,6 @@ func (c *Pages) AdjudicatePageHTML(props *AdjudicatePageView) templ.Component {
 			}
 			templ_7745c5c3_Err = copyButton(CopyButtonProps{Size: 4}).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 315, Col: 118}
-=======
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 321, Col: 118}
->>>>>>> 18a6129 (Make eth service more resilient to websocket errors)
-=======
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 315, Col: 118}
->>>>>>> e1845da (Move audio-wei conversion helper functions to contracts module)
-=======
 				return templ_7745c5c3_Err
 			}
 			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 34, "<p class=\"whitespace-pre-wrap text-sm px-2 w-4/5\">")
@@ -720,7 +558,6 @@ func (c *Pages) AdjudicatePageHTML(props *AdjudicatePageView) templ.Component {
 			templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinStringErrs(buildProposalSubscription(props))
 			if templ_7745c5c3_Err != nil {
 				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 392, Col: 108}
->>>>>>> 141aca4 (Add extended description to slash proposal)
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
 			if templ_7745c5c3_Err != nil {
@@ -801,40 +638,7 @@ func endpointRowReport(endpoint *Endpoint, proofRollup *StorageProofRollup) temp
 		var templ_7745c5c3_Var20 templ.SafeURL
 		templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL(fmt.Sprintf("/console/uptime/latest/%s", strippedEndpoint(endpoint.Endpoint))))
 		if templ_7745c5c3_Err != nil {
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 331, Col: 110}
-=======
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 337, Col: 110}
->>>>>>> 18a6129 (Make eth service more resilient to websocket errors)
-=======
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 331, Col: 110}
->>>>>>> e1845da (Move audio-wei conversion helper functions to contracts module)
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 39, "\">")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		var templ_7745c5c3_Var20 string
-		templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.JoinStringErrs(strippedEndpoint(endpoint.Endpoint))
-		if templ_7745c5c3_Err != nil {
-<<<<<<< HEAD
-<<<<<<< HEAD
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 332, Col: 53}
-=======
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 338, Col: 53}
->>>>>>> 18a6129 (Make eth service more resilient to websocket errors)
-=======
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 332, Col: 53}
->>>>>>> e1845da (Move audio-wei conversion helper functions to contracts module)
-=======
 			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 414, Col: 110}
->>>>>>> 141aca4 (Add extended description to slash proposal)
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var20))
 		if templ_7745c5c3_Err != nil {
@@ -847,19 +651,7 @@ func endpointRowReport(endpoint *Endpoint, proofRollup *StorageProofRollup) temp
 		var templ_7745c5c3_Var21 string
 		templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs(strippedEndpoint(endpoint.Endpoint))
 		if templ_7745c5c3_Err != nil {
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 335, Col: 82}
-=======
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 341, Col: 82}
->>>>>>> 18a6129 (Make eth service more resilient to websocket errors)
-=======
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 335, Col: 82}
->>>>>>> e1845da (Move audio-wei conversion helper functions to contracts module)
-=======
 			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 415, Col: 53}
->>>>>>> 141aca4 (Add extended description to slash proposal)
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
 		if templ_7745c5c3_Err != nil {
@@ -894,19 +686,7 @@ func endpointRowReport(endpoint *Endpoint, proofRollup *StorageProofRollup) temp
 		var templ_7745c5c3_Var24 string
 		templ_7745c5c3_Var24, templ_7745c5c3_Err = templ.JoinStringErrs(templ.CSSClasses(templ_7745c5c3_Var23).String())
 		if templ_7745c5c3_Err != nil {
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 337, Col: 80}
-=======
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 343, Col: 80}
->>>>>>> 18a6129 (Make eth service more resilient to websocket errors)
-=======
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 337, Col: 80}
->>>>>>> e1845da (Move audio-wei conversion helper functions to contracts module)
-=======
 			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 1, Col: 0}
->>>>>>> 141aca4 (Add extended description to slash proposal)
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var24))
 		if templ_7745c5c3_Err != nil {
@@ -978,30 +758,6 @@ func endpointSlaHistory(report *SlaReport, endpoint string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 1, Col: 0}
 		}
-<<<<<<< HEAD
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var27))
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 47, "\"><a class=\"reportLink\" href=\"")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		var templ_7745c5c3_Var28 templ.SafeURL
-		templ_7745c5c3_Var28, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL(fmt.Sprintf("/console/uptime/%d/%s", report.BlockEnd, strippedEndpoint(endpoint))))
-		if templ_7745c5c3_Err != nil {
-<<<<<<< HEAD
-<<<<<<< HEAD
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 349, Col: 129}
-=======
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 355, Col: 129}
->>>>>>> 18a6129 (Make eth service more resilient to websocket errors)
-=======
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 349, Col: 129}
->>>>>>> e1845da (Move audio-wei conversion helper functions to contracts module)
-		}
-=======
->>>>>>> 141aca4 (Add extended description to slash proposal)
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var28))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
@@ -1061,40 +817,7 @@ func adjudicateProposalRecommendation(slash SlashRecommendation, dashboardURL st
 				var templ_7745c5c3_Var31 templ.SafeURL
 				templ_7745c5c3_Var31, templ_7745c5c3_Err = templ.JoinURLErrs(fmt.Sprintf("%s/#/governance/proposal/%d", dashboardURL, activeSlashProposalId))
 				if templ_7745c5c3_Err != nil {
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 363, Col: 167}
-=======
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 369, Col: 167}
->>>>>>> 18a6129 (Make eth service more resilient to websocket errors)
-=======
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 363, Col: 167}
->>>>>>> e1845da (Move audio-wei conversion helper functions to contracts module)
-				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var30))
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 51, "\">Vote on Proposal ")
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				var templ_7745c5c3_Var31 string
-				templ_7745c5c3_Var31, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprint(activeSlashProposalId))
-				if templ_7745c5c3_Err != nil {
-<<<<<<< HEAD
-<<<<<<< HEAD
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 364, Col: 72}
-=======
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 370, Col: 72}
->>>>>>> 18a6129 (Make eth service more resilient to websocket errors)
-=======
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 364, Col: 72}
->>>>>>> e1845da (Move audio-wei conversion helper functions to contracts module)
-=======
 					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 446, Col: 167}
->>>>>>> 141aca4 (Add extended description to slash proposal)
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var31))
 				if templ_7745c5c3_Err != nil {
@@ -1162,32 +885,7 @@ func copyButton(props CopyButtonProps) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-<<<<<<< HEAD
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 56, "<svg xmlns=\"http://www.w3.org/2000/svg\" id=\"")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		var templ_7745c5c3_Var34 string
-		templ_7745c5c3_Var34, templ_7745c5c3_Err = templ.JoinStringErrs(props.CustomId)
-		if templ_7745c5c3_Err != nil {
-<<<<<<< HEAD
-<<<<<<< HEAD
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 377, Col: 67}
-=======
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 383, Col: 67}
->>>>>>> 18a6129 (Make eth service more resilient to websocket errors)
-=======
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/pages/adjudicate_page.templ`, Line: 377, Col: 67}
->>>>>>> e1845da (Move audio-wei conversion helper functions to contracts module)
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var34))
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 57, "\" fill=\"none\" viewBox=\"0 0 24 24\" stroke-width=\"1.5\" stroke=\"currentColor\" class=\"")
-=======
 		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 57, "<svg xmlns=\"http://www.w3.org/2000/svg\" id=\"")
->>>>>>> 141aca4 (Add extended description to slash proposal)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
