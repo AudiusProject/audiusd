@@ -279,3 +279,13 @@ insert into validator_history (
     event_time,
     event_block
 ) values ($1, $2, $3, $4, $5, $6, $7, $8);
+
+-- name: InsertFileUpload :exec
+insert into core_uploads(
+    uploader_address,
+    cid,
+    upid,
+    upload_signature,
+    tx_hash,
+    block_height
+) values ($1, $2, $3, $4, $5, $6);

@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"connectrpc.com/connect"
+	v1 "github.com/AudiusProject/audiusd/pkg/api/core/v1"
 	"github.com/AudiusProject/audiusd/pkg/mediorum/cidutil"
 	"github.com/AudiusProject/audiusd/pkg/mediorum/server/signature"
 	"go.uber.org/zap"
@@ -303,6 +305,26 @@ func (ss *MediorumServer) postUpload(c echo.Context) error {
 	if err := wg.Wait(); err != nil {
 		ss.logger.Error("failed to process new upload", zap.Error(err))
 		status = 422
+	}
+
+	for _, upload := range uploads {
+		// maybe put in a worker pool?
+		go func() {
+			ss.core.SendTransaction(ctx, &connect.Request[v1.SendTransactionRequest]{
+				Msg: &v1.SendTransactionRequest{
+					Transaction: &v1.SignedTransaction{
+						Transaction: &v1.SignedTransaction_FileUpload{
+							FileUpload: &v1.FileUpload{
+								UploaderAddress: "0x123",
+								UploadSignature: "sig",
+								UploadId:        upload.ID,
+								Cid:             upload.OrigFileCID,
+							},
+						},
+					},
+				},
+			})
+		}()
 	}
 
 	return c.JSON(status, uploads)
