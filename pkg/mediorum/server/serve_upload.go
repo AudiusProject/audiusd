@@ -13,9 +13,11 @@ import (
 
 	"connectrpc.com/connect"
 	v1 "github.com/AudiusProject/audiusd/pkg/api/core/v1"
+	"github.com/AudiusProject/audiusd/pkg/common"
 	"github.com/AudiusProject/audiusd/pkg/mediorum/cidutil"
 	"github.com/AudiusProject/audiusd/pkg/mediorum/server/signature"
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/labstack/echo/v4"
 	"github.com/oklog/ulid/v2"
@@ -309,14 +311,33 @@ func (ss *MediorumServer) postUpload(c echo.Context) error {
 
 	for _, upload := range uploads {
 		// maybe put in a worker pool?
-		go func() {
+		// multiple files can be uploaded?
+		go func(c echo.Context) {
+			uploadSig := c.QueryParam("sig")
+			if uploadSig == "" {
+				return
+			}
+
+			sigData := &v1.UploadSignature{
+				Cid: upload.OrigFileCID,
+			}
+			sigDataBytes, err := proto.Marshal(sigData)
+			if err != nil {
+				return
+			}
+
+			_, address, err := common.EthRecover(uploadSig, sigDataBytes)
+			if err != nil {
+				return
+			}
+
 			ss.core.SendTransaction(ctx, &connect.Request[v1.SendTransactionRequest]{
 				Msg: &v1.SendTransactionRequest{
 					Transaction: &v1.SignedTransaction{
 						Transaction: &v1.SignedTransaction_FileUpload{
 							FileUpload: &v1.FileUpload{
-								UploaderAddress: "0x123",
-								UploadSignature: "sig",
+								UploaderAddress: address,
+								UploadSignature: uploadSig,
 								UploadId:        upload.ID,
 								Cid:             upload.OrigFileCID,
 							},
@@ -324,7 +345,7 @@ func (ss *MediorumServer) postUpload(c echo.Context) error {
 					},
 				},
 			})
-		}()
+		}(c)
 	}
 
 	return c.JSON(status, uploads)

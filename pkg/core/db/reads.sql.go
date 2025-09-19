@@ -391,6 +391,25 @@ func (q *Queries) GetBlocksWithTransactions(ctx context.Context, dollar_1 []int6
 	return items, nil
 }
 
+const getCoreUpload = `-- name: GetCoreUpload :one
+select id, uploader_address, cid, upid, upload_signature, tx_hash, block_height from core_uploads where cid = $1
+`
+
+func (q *Queries) GetCoreUpload(ctx context.Context, cid string) (CoreUpload, error) {
+	row := q.db.QueryRow(ctx, getCoreUpload, cid)
+	var i CoreUpload
+	err := row.Scan(
+		&i.ID,
+		&i.UploaderAddress,
+		&i.Cid,
+		&i.Upid,
+		&i.UploadSignature,
+		&i.TxHash,
+		&i.BlockHeight,
+	)
+	return i, err
+}
+
 const getDBSize = `-- name: GetDBSize :one
 select pg_database_size(current_database())::bigint as size
 `

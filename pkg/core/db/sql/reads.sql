@@ -551,3 +551,6 @@ from core_blocks b
 left join core_transactions t on b.height = t.block_id  
 where b.height = any($1::bigint[])
 order by b.height, t.created_at desc;
+
+-- name: GetCoreUpload :one
+select * from core_uploads where cid = $1;
