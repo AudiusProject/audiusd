@@ -117,7 +117,7 @@ func formatAdditionalProofs(props *AdjudicatePageView) string {
 			signature,
 			strippedEndpoint(endpoint),
 			fmt.Sprintf(
-				"%s/adjudicate/%s%s",
+				"%s/console/adjudicate/%s?%s",
 				endpoint,
 				props.ServiceProvider.Address,
 				getTimeRangeQueryString(props.StartTime, props.EndTime),
