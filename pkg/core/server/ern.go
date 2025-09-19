@@ -10,6 +10,7 @@ import (
 	"github.com/AudiusProject/audiusd/pkg/common"
 	"github.com/AudiusProject/audiusd/pkg/core/db"
 	abcitypes "github.com/cometbft/cometbft/abci/types"
+	ethcommon "github.com/ethereum/go-ethereum/common"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -83,9 +84,92 @@ func (s *Server) finalizeERN(ctx context.Context, req *abcitypes.FinalizeBlockRe
 
 /** ERN New Message */
 
+func getERNOAPMessageSender(msg *ddexv1beta1.NewReleaseMessage) string {
+	oapAddress := ""
+
+	mh := msg.GetMessageHeader()
+	if mh == nil {
+		return oapAddress
+	}
+
+	ms := mh.GetMessageSender()
+	if ms == nil {
+		return oapAddress
+	}
+
+	pi := ms.GetPartyId()
+	if pi == nil {
+		return oapAddress
+	}
+
+	pis := pi.GetProprietaryIds()
+	if len(pis) == 0 {
+		return oapAddress
+	}
+
+	for _, pri := range pis {
+		if pri.Namespace == "OAP" {
+			if ethcommon.IsHexAddress(pri.Id) {
+				oapAddress = pri.Id
+			}
+		}
+	}
+
+	return oapAddress
+}
+
 // Validate an ERN message that's expected to be a NEW_MESSAGE, expects that the transaction header is valid
-func (s *Server) validateERNNewMessage(_ context.Context, _ *ddexv1beta1.NewReleaseMessage) error {
-	// TODO: add ERN level validation for conflicts and duplicates
+func (s *Server) validateERNNewMessage(ctx context.Context, msg *ddexv1beta1.NewReleaseMessage) error {
+	resourceList := msg.GetResourceList()
+	if resourceList == nil {
+		return nil
+	}
+
+	if len(resourceList) == 0 {
+		return nil
+	}
+
+	oapAddress := getERNOAPMessageSender(msg)
+
+	for _, resource := range resourceList {
+		sr := resource.GetSoundRecording()
+		if sr == nil {
+			continue
+		}
+
+		sre := sr.GetSoundRecordingEdition()
+		if sre == nil {
+			continue
+		}
+
+		td := sre.GetTechnicalDetails()
+		if td == nil {
+			continue
+		}
+
+		df := td.GetDeliveryFile()
+		if df == nil {
+			continue
+		}
+
+		f := df.GetFile()
+		if f == nil {
+			continue
+		}
+
+		// in core this can be a CID
+		uri := f.Uri
+		upload, err := s.db.GetCoreUpload(ctx, uri)
+		if err != nil {
+			return fmt.Errorf("file doesn't exist with cid %s: %v", uri, err)
+		}
+
+		uploader := upload.UploaderAddress
+		if uploader != oapAddress {
+			return errors.New("sender doesn't match uploader")
+		}
+	}
+
 	return nil
 }
 
