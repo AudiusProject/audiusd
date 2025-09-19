@@ -331,7 +331,7 @@ func (ss *MediorumServer) postUpload(c echo.Context) error {
 				return
 			}
 
-			ss.core.SendTransaction(ctx, &connect.Request[v1.SendTransactionRequest]{
+			_, err = ss.core.SendTransaction(ctx, &connect.Request[v1.SendTransactionRequest]{
 				Msg: &v1.SendTransactionRequest{
 					Transaction: &v1.SignedTransaction{
 						Transaction: &v1.SignedTransaction_FileUpload{
@@ -345,6 +345,9 @@ func (ss *MediorumServer) postUpload(c echo.Context) error {
 					},
 				},
 			})
+			if err != nil {
+				ss.logger.Error("could not send FileUpload tx", zap.Error(err))
+			}
 		}(c)
 	}
 
