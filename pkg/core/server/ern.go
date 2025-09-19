@@ -8,6 +8,7 @@ import (
 	corev1beta1 "github.com/AudiusProject/audiusd/pkg/api/core/v1beta1"
 	ddexv1beta1 "github.com/AudiusProject/audiusd/pkg/api/ddex/v1beta1"
 	"github.com/AudiusProject/audiusd/pkg/common"
+	"github.com/AudiusProject/audiusd/pkg/core/address"
 	"github.com/AudiusProject/audiusd/pkg/core/db"
 	abcitypes "github.com/cometbft/cometbft/abci/types"
 	ethcommon "github.com/ethereum/go-ethereum/common"
@@ -174,30 +175,50 @@ func (s *Server) validateERNNewMessage(ctx context.Context, msg *ddexv1beta1.New
 }
 
 func (s *Server) finalizeERNNewMessage(ctx context.Context, req *abcitypes.FinalizeBlockRequest, txhash string, messageIndex int64, ern *ddexv1beta1.NewReleaseMessage, sender string) error {
-	// TODO: use a better nonce
-	nonce := txhash
-	// the ERN address is the location of the message on the chain
-	ernAddress := common.CreateAddress(ern, s.config.GenesisFile.ChainID, req.Height, txhash)
+	// Create address generator
+	gen := address.New(s.config.GenesisFile.ChainID, req.Height, txhash)
 
-	// Collect all addresses, all underlying objects use the same source ERN nonce
+	// Generate ERN address using message ID
+	messageID := ""
+	if ern.MessageHeader != nil && ern.MessageHeader.MessageId != "" {
+		messageID = ern.MessageHeader.MessageId
+	} else {
+		// Fallback to txhash + index if no message ID
+		messageID = fmt.Sprintf("%s:%d", txhash, messageIndex)
+	}
+	ernAddress := gen.ERN(messageID)
+
+	// Collect all addresses using deterministic references
 	partyAddresses := make([]string, len(ern.PartyList))
 	for i, party := range ern.PartyList {
-		partyAddresses[i] = common.CreateAddress(party, s.config.GenesisFile.ChainID, req.Height, nonce)
+		partyAddresses[i] = gen.Party(party.PartyReference)
 	}
 
 	resourceAddresses := make([]string, len(ern.ResourceList))
 	for i, resource := range ern.ResourceList {
-		resourceAddresses[i] = common.CreateAddress(resource, s.config.GenesisFile.ChainID, req.Height, nonce)
+		ref := ""
+		if sr := resource.GetSoundRecording(); sr != nil {
+			ref = sr.ResourceReference
+		} else if img := resource.GetImage(); img != nil {
+			ref = img.ResourceReference
+		}
+		resourceAddresses[i] = gen.Resource(ref)
 	}
 
 	releaseAddresses := make([]string, len(ern.ReleaseList))
 	for i, release := range ern.ReleaseList {
-		releaseAddresses[i] = common.CreateAddress(release, s.config.GenesisFile.ChainID, req.Height, nonce)
+		ref := ""
+		if mr := release.GetMainRelease(); mr != nil {
+			ref = mr.ReleaseReference
+		} else if tr := release.GetTrackRelease(); tr != nil {
+			ref = tr.ReleaseReference
+		}
+		releaseAddresses[i] = gen.Release(ref)
 	}
 
 	dealAddresses := make([]string, len(ern.DealList))
 	for i, deal := range ern.DealList {
-		dealAddresses[i] = common.CreateAddress(deal, s.config.GenesisFile.ChainID, req.Height, nonce)
+		dealAddresses[i] = gen.Deal(deal.DealReference)
 	}
 
 	rawMessage, err := proto.Marshal(ern)

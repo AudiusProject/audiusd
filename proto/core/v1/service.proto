@@ -24,4 +24,6 @@ service CoreService {
   rpc GetERN(GetERNRequest) returns (GetERNResponse) {}
   rpc GetMEAD(GetMEADRequest) returns (GetMEADResponse) {}
   rpc GetPIE(GetPIERequest) returns (GetPIEResponse) {}
+
+  rpc StreamERN(StreamERNRequest) returns (StreamERNResponse) {}
 }

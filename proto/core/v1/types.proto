@@ -482,3 +482,39 @@ message FileUpload {
   // mediorum specific upload id
   string upload_id = 4;
 }
+
+message StreamERNSignature {
+  // addresses to stream (can be ERN, release, or resource addresses)
+  repeated string addresses = 1;
+  google.protobuf.Timestamp expires_at = 2;
+}
+
+// requests stream urls from the content node
+// signature signed by owner of ERN
+message StreamERNRequest {
+  string signature = 1;
+  // addresses to stream (can be ERN, release, or resource addresses)
+  // - ERN address: returns all streamable resources in the ERN
+  // - release address: returns all resources associated with that release
+  // - resource address: returns that specific resource
+  // all addresses are resolved back to their parent ERN to verify ownership
+  repeated string addresses = 2;
+  google.protobuf.Timestamp expires_at = 3;
+}
+
+message StreamERNResponse {
+  message EntityStreamURLs {
+    // type of entity (ern, release, or resource)
+    string entity_type = 1;
+    // reference from the ERN (e.g., "R1" for release or "A1" for resource)
+    string entity_reference = 2;
+    // signed content URLs to stream the content
+    repeated string urls = 3;
+    // parent ERN address this entity belongs to
+    string ern_address = 4;
+  }
+
+  // Key is the entity address (ERN, release, or resource address)
+  // Value contains the streaming URLs and metadata for that entity
+  map<string, EntityStreamURLs> entity_stream_urls = 1;
+}
