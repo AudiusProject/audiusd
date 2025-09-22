@@ -245,15 +245,64 @@ func (s *Server) finalizeERNNewMessage(ctx context.Context, req *abcitypes.Final
 		Address:            ernAddress,
 		Sender:             sender,
 		MessageControlType: int16(*ern.MessageHeader.MessageControlType),
-		PartyAddresses:     partyAddresses,
-		ResourceAddresses:  resourceAddresses,
-		ReleaseAddresses:   releaseAddresses,
-		DealAddresses:      dealAddresses,
 		RawMessage:         rawMessage,
 		RawAcknowledgment:  rawAcknowledgment,
 		BlockHeight:        req.Height,
 	}); err != nil {
 		return fmt.Errorf("failed to insert ERN: %w", err)
+	}
+
+	// Insert normalized entity records
+	for i, partyAddress := range partyAddresses {
+		if err := qtx.InsertCoreParty(ctx, db.InsertCorePartyParams{
+			Address:     partyAddress,
+			ErnAddress:  ernAddress,
+			EntityType:  "party",
+			EntityIndex: int32(i + 1), // 1-indexed to match PostgreSQL array conventions
+			TxHash:      txhash,
+			BlockHeight: req.Height,
+		}); err != nil {
+			return fmt.Errorf("failed to insert party %d: %w", i, err)
+		}
+	}
+
+	for i, resourceAddress := range resourceAddresses {
+		if err := qtx.InsertCoreResource(ctx, db.InsertCoreResourceParams{
+			Address:     resourceAddress,
+			ErnAddress:  ernAddress,
+			EntityType:  "resource",
+			EntityIndex: int32(i + 1), // 1-indexed to match PostgreSQL array conventions
+			TxHash:      txhash,
+			BlockHeight: req.Height,
+		}); err != nil {
+			return fmt.Errorf("failed to insert resource %d: %w", i, err)
+		}
+	}
+
+	for i, releaseAddress := range releaseAddresses {
+		if err := qtx.InsertCoreRelease(ctx, db.InsertCoreReleaseParams{
+			Address:     releaseAddress,
+			ErnAddress:  ernAddress,
+			EntityType:  "release",
+			EntityIndex: int32(i + 1), // 1-indexed to match PostgreSQL array conventions
+			TxHash:      txhash,
+			BlockHeight: req.Height,
+		}); err != nil {
+			return fmt.Errorf("failed to insert release %d: %w", i, err)
+		}
+	}
+
+	for i, dealAddress := range dealAddresses {
+		if err := qtx.InsertCoreDeal(ctx, db.InsertCoreDealParams{
+			Address:     dealAddress,
+			ErnAddress:  ernAddress,
+			EntityType:  "deal",
+			EntityIndex: int32(i + 1), // 1-indexed to match PostgreSQL array conventions
+			TxHash:      txhash,
+			BlockHeight: req.Height,
+		}); err != nil {
+			return fmt.Errorf("failed to insert deal %d: %w", i, err)
+		}
 	}
 
 	return nil

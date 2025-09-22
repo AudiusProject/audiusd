@@ -75,6 +75,16 @@ type CoreBlock struct {
 	CreatedAt pgtype.Timestamp
 }
 
+type CoreDeal struct {
+	Address     string
+	ErnAddress  string
+	EntityType  string
+	EntityIndex int32
+	TxHash      string
+	BlockHeight int64
+	CreatedAt   pgtype.Timestamp
+}
+
 type CoreErn struct {
 	ID                 int64
 	Address            string
@@ -82,10 +92,6 @@ type CoreErn struct {
 	TxHash             string
 	Sender             string
 	MessageControlType int16
-	PartyAddresses     []string
-	ResourceAddresses  []string
-	ReleaseAddresses   []string
-	DealAddresses      []string
 	RawMessage         []byte
 	RawAcknowledgment  []byte
 	BlockHeight        int64
@@ -198,6 +204,16 @@ type CoreMead struct {
 	BlockHeight       int64
 }
 
+type CoreParty struct {
+	Address     string
+	ErnAddress  string
+	EntityType  string
+	EntityIndex int32
+	TxHash      string
+	BlockHeight int64
+	CreatedAt   pgtype.Timestamp
+}
+
 type CorePie struct {
 	ID                int64
 	Address           string
@@ -208,6 +224,26 @@ type CorePie struct {
 	RawMessage        []byte
 	RawAcknowledgment []byte
 	BlockHeight       int64
+}
+
+type CoreRelease struct {
+	Address     string
+	ErnAddress  string
+	EntityType  string
+	EntityIndex int32
+	TxHash      string
+	BlockHeight int64
+	CreatedAt   pgtype.Timestamp
+}
+
+type CoreResource struct {
+	Address     string
+	ErnAddress  string
+	EntityType  string
+	EntityIndex int32
+	TxHash      string
+	BlockHeight int64
+	CreatedAt   pgtype.Timestamp
 }
 
 type CoreTransaction struct {

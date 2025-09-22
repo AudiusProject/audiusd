@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"net/url"
 	"sort"
 	"strings"
 	"time"
@@ -1223,5 +1224,8 @@ func (c *CoreService) generateStreamURL(cid string) string {
 		return ""
 	}
 
-	return fmt.Sprintf("%s?signature=%s", baseURL, sigQueryString)
+	// URL encode the signature since it's a JSON string with special characters
+	encodedSig := url.QueryEscape(sigQueryString)
+
+	return fmt.Sprintf("%s?signature=%s", baseURL, encodedSig)
 }

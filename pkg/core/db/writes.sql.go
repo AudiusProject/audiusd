@@ -124,6 +124,38 @@ func (q *Queries) InsertAccessKey(ctx context.Context, arg InsertAccessKeyParams
 	return err
 }
 
+const insertCoreDeal = `-- name: InsertCoreDeal :exec
+insert into core_deals (
+    address,
+    ern_address,
+    entity_type,
+    entity_index,
+    tx_hash,
+    block_height
+) values ($1, $2, $3, $4, $5, $6)
+`
+
+type InsertCoreDealParams struct {
+	Address     string
+	ErnAddress  string
+	EntityType  string
+	EntityIndex int32
+	TxHash      string
+	BlockHeight int64
+}
+
+func (q *Queries) InsertCoreDeal(ctx context.Context, arg InsertCoreDealParams) error {
+	_, err := q.db.Exec(ctx, insertCoreDeal,
+		arg.Address,
+		arg.ErnAddress,
+		arg.EntityType,
+		arg.EntityIndex,
+		arg.TxHash,
+		arg.BlockHeight,
+	)
+	return err
+}
+
 const insertCoreERN = `-- name: InsertCoreERN :exec
 insert into core_ern (
     address,
@@ -131,14 +163,10 @@ insert into core_ern (
     index,
     sender,
     message_control_type,
-    party_addresses,
-    resource_addresses,
-    release_addresses,
-    deal_addresses,
     raw_message,
     raw_acknowledgment,
     block_height
-) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+) values ($1, $2, $3, $4, $5, $6, $7, $8)
 `
 
 type InsertCoreERNParams struct {
@@ -147,10 +175,6 @@ type InsertCoreERNParams struct {
 	Index              int64
 	Sender             string
 	MessageControlType int16
-	PartyAddresses     []string
-	ResourceAddresses  []string
-	ReleaseAddresses   []string
-	DealAddresses      []string
 	RawMessage         []byte
 	RawAcknowledgment  []byte
 	BlockHeight        int64
@@ -164,10 +188,6 @@ func (q *Queries) InsertCoreERN(ctx context.Context, arg InsertCoreERNParams) er
 		arg.Index,
 		arg.Sender,
 		arg.MessageControlType,
-		arg.PartyAddresses,
-		arg.ResourceAddresses,
-		arg.ReleaseAddresses,
-		arg.DealAddresses,
 		arg.RawMessage,
 		arg.RawAcknowledgment,
 		arg.BlockHeight,
@@ -249,6 +269,102 @@ func (q *Queries) InsertCorePIE(ctx context.Context, arg InsertCorePIEParams) er
 		arg.PartyAddresses,
 		arg.RawMessage,
 		arg.RawAcknowledgment,
+		arg.BlockHeight,
+	)
+	return err
+}
+
+const insertCoreParty = `-- name: InsertCoreParty :exec
+insert into core_parties (
+    address,
+    ern_address,
+    entity_type,
+    entity_index,
+    tx_hash,
+    block_height
+) values ($1, $2, $3, $4, $5, $6)
+`
+
+type InsertCorePartyParams struct {
+	Address     string
+	ErnAddress  string
+	EntityType  string
+	EntityIndex int32
+	TxHash      string
+	BlockHeight int64
+}
+
+func (q *Queries) InsertCoreParty(ctx context.Context, arg InsertCorePartyParams) error {
+	_, err := q.db.Exec(ctx, insertCoreParty,
+		arg.Address,
+		arg.ErnAddress,
+		arg.EntityType,
+		arg.EntityIndex,
+		arg.TxHash,
+		arg.BlockHeight,
+	)
+	return err
+}
+
+const insertCoreRelease = `-- name: InsertCoreRelease :exec
+insert into core_releases (
+    address,
+    ern_address,
+    entity_type,
+    entity_index,
+    tx_hash,
+    block_height
+) values ($1, $2, $3, $4, $5, $6)
+`
+
+type InsertCoreReleaseParams struct {
+	Address     string
+	ErnAddress  string
+	EntityType  string
+	EntityIndex int32
+	TxHash      string
+	BlockHeight int64
+}
+
+func (q *Queries) InsertCoreRelease(ctx context.Context, arg InsertCoreReleaseParams) error {
+	_, err := q.db.Exec(ctx, insertCoreRelease,
+		arg.Address,
+		arg.ErnAddress,
+		arg.EntityType,
+		arg.EntityIndex,
+		arg.TxHash,
+		arg.BlockHeight,
+	)
+	return err
+}
+
+const insertCoreResource = `-- name: InsertCoreResource :exec
+insert into core_resources (
+    address,
+    ern_address,
+    entity_type,
+    entity_index,
+    tx_hash,
+    block_height
+) values ($1, $2, $3, $4, $5, $6)
+`
+
+type InsertCoreResourceParams struct {
+	Address     string
+	ErnAddress  string
+	EntityType  string
+	EntityIndex int32
+	TxHash      string
+	BlockHeight int64
+}
+
+func (q *Queries) InsertCoreResource(ctx context.Context, arg InsertCoreResourceParams) error {
+	_, err := q.db.Exec(ctx, insertCoreResource,
+		arg.Address,
+		arg.ErnAddress,
+		arg.EntityType,
+		arg.EntityIndex,
+		arg.TxHash,
 		arg.BlockHeight,
 	)
 	return err

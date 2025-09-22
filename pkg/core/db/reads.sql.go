@@ -866,7 +866,7 @@ func (q *Queries) GetDecodedTxsByType(ctx context.Context, arg GetDecodedTxsByTy
 }
 
 const getERN = `-- name: GetERN :one
-select id, address, index, tx_hash, sender, message_control_type, party_addresses, resource_addresses, release_addresses, deal_addresses, raw_message, raw_acknowledgment, block_height from core_ern where address = $1 order by block_height desc limit 1
+select id, address, index, tx_hash, sender, message_control_type, raw_message, raw_acknowledgment, block_height from core_ern where address = $1 order by block_height desc limit 1
 `
 
 func (q *Queries) GetERN(ctx context.Context, address string) (CoreErn, error) {
@@ -879,10 +879,6 @@ func (q *Queries) GetERN(ctx context.Context, address string) (CoreErn, error) {
 		&i.TxHash,
 		&i.Sender,
 		&i.MessageControlType,
-		&i.PartyAddresses,
-		&i.ResourceAddresses,
-		&i.ReleaseAddresses,
-		&i.DealAddresses,
 		&i.RawMessage,
 		&i.RawAcknowledgment,
 		&i.BlockHeight,
@@ -892,33 +888,24 @@ func (q *Queries) GetERN(ctx context.Context, address string) (CoreErn, error) {
 
 const getERNContainingAddress = `-- name: GetERNContainingAddress :one
 SELECT
-    address as ern_address,
-    sender,
-    COALESCE(
-        CASE
-            WHEN $1::text = ANY(resource_addresses) THEN 'resource'
-            WHEN $1::text = ANY(release_addresses) THEN 'release'
-            WHEN $1::text = ANY(party_addresses) THEN 'party'
-            WHEN $1::text = ANY(deal_addresses) THEN 'deal'
-        END,
-        'unknown'
-    )::text as entity_type,
-    COALESCE(
-        CASE
-            WHEN $1::text = ANY(resource_addresses) THEN array_position(resource_addresses, $1::text)
-            WHEN $1::text = ANY(release_addresses) THEN array_position(release_addresses, $1::text)
-            WHEN $1::text = ANY(party_addresses) THEN array_position(party_addresses, $1::text)
-            WHEN $1::text = ANY(deal_addresses) THEN array_position(deal_addresses, $1::text)
-        END,
-        0
-    )::int as entity_index,
-    raw_message
-FROM core_ern
-WHERE $1::text = ANY(resource_addresses)
-   OR $1::text = ANY(release_addresses)
-   OR $1::text = ANY(party_addresses)
-   OR $1::text = ANY(deal_addresses)
-ORDER BY block_height DESC
+    ern.address as ern_address,
+    ern.sender,
+    CASE
+        WHEN r.address IS NOT NULL THEN 'resource'
+        WHEN rel.address IS NOT NULL THEN 'release'
+        WHEN p.address IS NOT NULL THEN 'party'
+        WHEN d.address IS NOT NULL THEN 'deal'
+        ELSE 'unknown'
+    END::text as entity_type,
+    COALESCE(r.entity_index, rel.entity_index, p.entity_index, d.entity_index, 0)::int as entity_index,
+    ern.raw_message
+FROM core_ern ern
+LEFT JOIN core_resources r ON r.address = $1::text AND r.ern_address = ern.address
+LEFT JOIN core_releases rel ON rel.address = $1::text AND rel.ern_address = ern.address
+LEFT JOIN core_parties p ON p.address = $1::text AND p.ern_address = ern.address
+LEFT JOIN core_deals d ON d.address = $1::text AND d.ern_address = ern.address
+WHERE r.address IS NOT NULL OR rel.address IS NOT NULL OR p.address IS NOT NULL OR d.address IS NOT NULL
+ORDER BY ern.block_height DESC
 LIMIT 1
 `
 
@@ -943,6 +930,70 @@ func (q *Queries) GetERNContainingAddress(ctx context.Context, dollar_1 string) 
 	return i, err
 }
 
+const getERNDeals = `-- name: GetERNDeals :many
+select address, ern_address, entity_type, entity_index, tx_hash, block_height, created_at from core_deals where ern_address = $1 order by entity_index
+`
+
+func (q *Queries) GetERNDeals(ctx context.Context, ernAddress string) ([]CoreDeal, error) {
+	rows, err := q.db.Query(ctx, getERNDeals, ernAddress)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CoreDeal
+	for rows.Next() {
+		var i CoreDeal
+		if err := rows.Scan(
+			&i.Address,
+			&i.ErnAddress,
+			&i.EntityType,
+			&i.EntityIndex,
+			&i.TxHash,
+			&i.BlockHeight,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getERNParties = `-- name: GetERNParties :many
+select address, ern_address, entity_type, entity_index, tx_hash, block_height, created_at from core_parties where ern_address = $1 order by entity_index
+`
+
+func (q *Queries) GetERNParties(ctx context.Context, ernAddress string) ([]CoreParty, error) {
+	rows, err := q.db.Query(ctx, getERNParties, ernAddress)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CoreParty
+	for rows.Next() {
+		var i CoreParty
+		if err := rows.Scan(
+			&i.Address,
+			&i.ErnAddress,
+			&i.EntityType,
+			&i.EntityIndex,
+			&i.TxHash,
+			&i.BlockHeight,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getERNReceipts = `-- name: GetERNReceipts :many
 select raw_acknowledgment, index from core_ern where tx_hash = $1
 `
@@ -962,6 +1013,70 @@ func (q *Queries) GetERNReceipts(ctx context.Context, txHash string) ([]GetERNRe
 	for rows.Next() {
 		var i GetERNReceiptsRow
 		if err := rows.Scan(&i.RawAcknowledgment, &i.Index); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getERNReleases = `-- name: GetERNReleases :many
+select address, ern_address, entity_type, entity_index, tx_hash, block_height, created_at from core_releases where ern_address = $1 order by entity_index
+`
+
+func (q *Queries) GetERNReleases(ctx context.Context, ernAddress string) ([]CoreRelease, error) {
+	rows, err := q.db.Query(ctx, getERNReleases, ernAddress)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CoreRelease
+	for rows.Next() {
+		var i CoreRelease
+		if err := rows.Scan(
+			&i.Address,
+			&i.ErnAddress,
+			&i.EntityType,
+			&i.EntityIndex,
+			&i.TxHash,
+			&i.BlockHeight,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getERNResources = `-- name: GetERNResources :many
+select address, ern_address, entity_type, entity_index, tx_hash, block_height, created_at from core_resources where ern_address = $1 order by entity_index
+`
+
+func (q *Queries) GetERNResources(ctx context.Context, ernAddress string) ([]CoreResource, error) {
+	rows, err := q.db.Query(ctx, getERNResources, ernAddress)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CoreResource
+	for rows.Next() {
+		var i CoreResource
+		if err := rows.Scan(
+			&i.Address,
+			&i.ErnAddress,
+			&i.EntityType,
+			&i.EntityIndex,
+			&i.TxHash,
+			&i.BlockHeight,
+			&i.CreatedAt,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
