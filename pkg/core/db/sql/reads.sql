@@ -554,3 +554,34 @@ order by b.height, t.created_at desc;
 
 -- name: GetCoreUpload :one
 select * from core_uploads where cid = $1;
+
+-- name: GetERNContainingAddress :one
+SELECT
+    address as ern_address,
+    sender,
+    COALESCE(
+        CASE
+            WHEN $1::text = ANY(resource_addresses) THEN 'resource'
+            WHEN $1::text = ANY(release_addresses) THEN 'release'
+            WHEN $1::text = ANY(party_addresses) THEN 'party'
+            WHEN $1::text = ANY(deal_addresses) THEN 'deal'
+        END,
+        'unknown'
+    )::text as entity_type,
+    COALESCE(
+        CASE
+            WHEN $1::text = ANY(resource_addresses) THEN array_position(resource_addresses, $1::text)
+            WHEN $1::text = ANY(release_addresses) THEN array_position(release_addresses, $1::text)
+            WHEN $1::text = ANY(party_addresses) THEN array_position(party_addresses, $1::text)
+            WHEN $1::text = ANY(deal_addresses) THEN array_position(deal_addresses, $1::text)
+        END,
+        0
+    )::int as entity_index,
+    raw_message
+FROM core_ern
+WHERE $1::text = ANY(resource_addresses)
+   OR $1::text = ANY(release_addresses)
+   OR $1::text = ANY(party_addresses)
+   OR $1::text = ANY(deal_addresses)
+ORDER BY block_height DESC
+LIMIT 1;

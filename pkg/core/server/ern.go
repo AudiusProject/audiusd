@@ -7,7 +7,6 @@ import (
 
 	corev1beta1 "github.com/AudiusProject/audiusd/pkg/api/core/v1beta1"
 	ddexv1beta1 "github.com/AudiusProject/audiusd/pkg/api/ddex/v1beta1"
-	"github.com/AudiusProject/audiusd/pkg/common"
 	"github.com/AudiusProject/audiusd/pkg/core/address"
 	"github.com/AudiusProject/audiusd/pkg/core/db"
 	abcitypes "github.com/cometbft/cometbft/abci/types"
@@ -217,9 +216,9 @@ func (s *Server) finalizeERNNewMessage(ctx context.Context, req *abcitypes.Final
 	}
 
 	dealAddresses := make([]string, len(ern.DealList))
-	for i, deal := range ern.DealList {
-		dealAddresses[i] = gen.Deal(deal.DealReference)
-	}
+	// for i, deal := range ern.DealList {
+	// 	dealAddresses[i] = gen.Deal(deal.GetReleaseDeal().GetDealReleaseReference())
+	// }
 
 	rawMessage, err := proto.Marshal(ern)
 	if err != nil {

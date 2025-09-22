@@ -4,7 +4,6 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
-	"io"
 	"os"
 	"testing"
 	"time"
@@ -13,11 +12,14 @@ import (
 	corev1 "github.com/AudiusProject/audiusd/pkg/api/core/v1"
 	corev1beta1 "github.com/AudiusProject/audiusd/pkg/api/core/v1beta1"
 	ddexv1beta1 "github.com/AudiusProject/audiusd/pkg/api/ddex/v1beta1"
-	v1storage "github.com/AudiusProject/audiusd/pkg/api/storage/v1"
+	"github.com/AudiusProject/audiusd/pkg/common"
+	"github.com/AudiusProject/audiusd/pkg/hashes"
 	"github.com/AudiusProject/audiusd/pkg/integration_tests/utils"
 	auds "github.com/AudiusProject/audiusd/pkg/sdk"
+	"github.com/AudiusProject/audiusd/pkg/sdk/mediorum"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -28,7 +30,7 @@ func TestUploadStream(t *testing.T) {
 
 	serverAddr := "node3.audiusd.devnet"
 	privKeyPath := "./assets/demo_key.txt"
-	// privKeyPath2 := "./assets/demo_key2.txt"
+	privKeyPath2 := "./assets/demo_key2.txt"
 
 	sdk := auds.NewAudiusdSDK(serverAddr)
 	if err := sdk.ReadPrivKey(privKeyPath); err != nil {
@@ -38,38 +40,47 @@ func TestUploadStream(t *testing.T) {
 	audioFile, err := os.Open("./assets/anxiety-upgrade.mp3")
 	require.Nil(t, err, "failed to open file")
 	defer audioFile.Close()
-	audioFileBytes, err := io.ReadAll(audioFile)
-	require.Nil(t, err, "failed to read file")
 
-	// upload the track
-	uploadFileRes, err := sdk.Storage.UploadFiles(ctx, &connect.Request[v1storage.UploadFilesRequest]{
-		Msg: &v1storage.UploadFilesRequest{
-			UserWallet: sdk.Address(),
-			Template:   "audio",
-			Files: []*v1storage.File{
-				{
-					Filename: "anxiety-upgrade.mp3",
-					Data:     audioFileBytes,
-				},
-			},
-		},
-	})
+	// Compute CID of the file to generate signature
+	audioCID, err := hashes.ComputeFileCID(audioFile)
+	require.Nil(t, err, "failed to compute file CID")
+
+	// Reset file position after computing CID
+	audioFile.Seek(0, 0)
+
+	// Generate upload signature for CID ownership
+	uploadSigData := &corev1.UploadSignature{
+		Cid: audioCID,
+	}
+	uploadSigBytes, err := proto.Marshal(uploadSigData)
+	require.Nil(t, err, "failed to marshal upload signature data")
+
+	uploadSignature, err := common.EthSign(sdk.PrivKey(), uploadSigBytes)
+	require.Nil(t, err, "failed to generate upload signature")
+
+	// Upload using Mediorum SDK with signature
+	mediorumClient := mediorum.New(fmt.Sprintf("http://%s", serverAddr))
+	uploadOpts := &mediorum.UploadOptions{
+		Template:  "audio",
+		Signature: uploadSignature,
+	}
+
+	uploads, err := mediorumClient.UploadFile(audioFile, "anxiety-upgrade.mp3", uploadOpts)
 	require.Nil(t, err, "failed to upload file")
-	require.EqualValues(t, 1, len(uploadFileRes.Msg.Uploads), "failed to upload file")
+	require.EqualValues(t, 1, len(uploads), "failed to upload file")
 
-	upload := uploadFileRes.Msg.Uploads[0]
+	upload := uploads[0]
 
-	// get the upload info
-	uploadRes, err := sdk.Storage.GetUpload(ctx, &connect.Request[v1storage.GetUploadRequest]{
-		Msg: &v1storage.GetUploadRequest{
-			Id: upload.Id,
-		},
-	})
-	require.Nil(t, err, "failed to get upload")
-	require.EqualValues(t, upload.Id, uploadRes.Msg.Upload.Id, "failed to get upload")
-	require.EqualValues(t, upload.UserWallet, uploadRes.Msg.Upload.UserWallet, "failed to get upload")
-	require.EqualValues(t, upload.OrigFileCid, uploadRes.Msg.Upload.OrigFileCid, "failed to get upload")
-	require.EqualValues(t, upload.OrigFilename, uploadRes.Msg.Upload.OrigFilename, "failed to get upload")
+	// Wait for upload to complete (we don't need transcoding for this test)
+	for upload.Status != "done" && upload.Status != "error" {
+		time.Sleep(1 * time.Second)
+		uploadStatus, err := mediorumClient.GetUpload(upload.ID)
+		require.Nil(t, err, "failed to get upload status")
+		upload = uploadStatus
+		t.Logf("Upload status: %s", upload.Status)
+	}
+	require.Equal(t, "done", upload.Status, "upload failed with error: %s", upload.Error)
+	require.NotEmpty(t, upload.OrigFileCID, "missing original file CID")
 
 	// release the track
 	title := "Anxiety Upgrade"
@@ -91,7 +102,12 @@ func TestUploadStream(t *testing.T) {
 							MessageId: fmt.Sprintf("upload_%s", uuid.New().String()),
 							MessageSender: &ddexv1beta1.MessageSender{
 								PartyId: &ddexv1beta1.Party_PartyId{
-									Dpid: sdk.Address(),
+									ProprietaryIds: []*ddexv1beta1.Party_ProprietaryId{
+										{
+											Namespace: "OAP",
+											Id:        sdk.Address(), // Must match upload signature address
+										},
+									},
 								},
 							},
 							MessageCreatedDateTime: timestamppb.Now(),
@@ -124,7 +140,7 @@ func TestUploadStream(t *testing.T) {
 												ProprietaryId: []*ddexv1beta1.Resource_ProprietaryId{
 													{
 														Namespace:     "audius",
-														ProprietaryId: upload.OrigFileCid,
+														ProprietaryId: upload.OrigFileCID,
 													},
 												},
 											},
@@ -138,10 +154,10 @@ func TestUploadStream(t *testing.T) {
 													BitsPerSample:        16,
 													IsProvidedInDelivery: true,
 													File: &ddexv1beta1.Resource_SoundRecording_SoundRecordingEdition_TechnicalDetails_DeliveryFile_File{
-														Uri: upload.TranscodeResults["320"], // Use transcoded file CID as URI
+														Uri: upload.OrigFileCID, // Use original file CID as URI
 														HashSum: &ddexv1beta1.Resource_SoundRecording_SoundRecordingEdition_TechnicalDetails_DeliveryFile_File_HashSum{
 															Algorithm:    "IPFS",
-															HashSumValue: upload.TranscodeResults["320"],
+															HashSumValue: upload.OrigFileCID,
 														},
 														FileSize: 1000000, // Placeholder file size
 													},
@@ -202,103 +218,132 @@ func TestUploadStream(t *testing.T) {
 
 	ernReceipt := submitRes.Msg.TransactionReceipt.MessageReceipts[0].GetErnAck()
 	require.NotNil(t, ernReceipt, "failed to get ern ack")
+	t.Logf("ERN created at address: %s", ernReceipt.ErnAddress)
+	t.Logf("Resource addresses: %v", ernReceipt.ResourceAddresses)
+	t.Logf("Release addresses: %v", ernReceipt.ReleaseAddresses)
 
-	// TODO: fix streaming test with signed stream URLs
-	// // use ern address as track id for now
-	// trackID := ernReceipt.ErnAddress
+	// Test streaming different entity types
+	// 1. Stream by ERN address (gets all resources)
+	// 2. Stream by specific resource address
+	// 3. Stream by release address (gets all resources in release)
 
-	// // create stream signature
-	// data := &v1storage.StreamTrackSignatureData{
-	// 	TrackId:   trackID,
-	// 	Timestamp: time.Now().Unix(),
-	// }
-	// sig, sigData, err := common.GeneratePlaySignature(sdk.PrivKey(), data)
-	// require.Nil(t, err, "failed to generate stream signature")
+	// Wait a moment for indexing
+	time.Sleep(2 * time.Second)
 
-	// // stream the file
-	// stream, err := sdk.Storage.StreamTrack(ctx, &connect.Request[v1storage.StreamTrackRequest]{
-	// 	Msg: &v1storage.StreamTrackRequest{
-	// 		Signature: &v1storage.StreamTrackSignature{
-	// 			Signature: sig,
-	// 			DataHash:  sigData,
-	// 			Data:      data,
-	// 		},
-	// 	},
-	// })
-	// require.Nil(t, err, "failed to stream file")
+	// Create stream signature for requesting stream URLs
+	streamExpiry := time.Now().Add(1 * time.Hour)
+	addressesToStream := []string{
+		ernReceipt.ErnAddress,           // ERN address - returns all resources
+		ernReceipt.ResourceAddresses[0], // Specific resource address
+		ernReceipt.ReleaseAddresses[0],  // Release address - returns resources in release
+	}
 
-	// var fileData bytes.Buffer
-	// for stream.Receive() {
-	// 	res := stream.Msg()
-	// 	if len(res.Data) > 0 {
-	// 		fileData.Write(res.Data)
-	// 	}
-	// }
-	// if err := stream.Err(); err != nil {
-	// 	log.Fatalf("stream error: %v", err)
-	// }
+	streamSigData := &corev1.StreamERNSignature{
+		Addresses: addressesToStream,
+		ExpiresAt: timestamppb.New(streamExpiry),
+	}
+	streamSigBytes, err := proto.Marshal(streamSigData)
+	require.Nil(t, err, "failed to marshal stream signature data")
 
-	// // verify another user can't stream the file
-	// sdk2 := auds.NewAudiusdSDK(serverAddr)
-	// if err := sdk2.ReadPrivKey(privKeyPath2); err != nil {
-	// 	require.Nil(t, err, "failed to read private key: %w", err)
-	// }
+	streamSignature, err := common.EthSign(sdk.PrivKey(), streamSigBytes)
+	require.Nil(t, err, "failed to generate stream signature")
 
-	// // use same data as first user
-	// sig2, sigData2, err := common.GeneratePlaySignature(sdk2.PrivKey(), data)
-	// require.Nil(t, err, "failed to generate stream signature")
+	// Request stream URLs from core
+	streamReq := &corev1.StreamERNRequest{
+		Signature: streamSignature,
+		Addresses: addressesToStream,
+		ExpiresAt: timestamppb.New(streamExpiry),
+	}
 
-	// stream2, err := sdk2.Storage.StreamTrack(ctx, &connect.Request[v1storage.StreamTrackRequest]{
-	// 	Msg: &v1storage.StreamTrackRequest{
-	// 		Signature: &v1storage.StreamTrackSignature{
-	// 			Signature: sig2,
-	// 			DataHash:  sigData2,
-	// 			Data:      data,
-	// 		},
-	// 	},
-	// })
+	streamRes, err := sdk.Core.StreamERN(ctx, connect.NewRequest(streamReq))
+	if err != nil {
+		t.Logf("StreamERN error: %v", err)
+		t.Logf("StreamERN error details: %+v", err)
+	}
+	require.Nil(t, err, "failed to get stream URLs")
+	require.NotNil(t, streamRes.Msg.EntityStreamUrls, "no stream URLs returned")
 
-	// // consume the stream
-	// for stream2.Receive() {
-	// }
-	// require.Nil(t, err)
-	// require.NotNil(t, stream2.Err(), "could not stream file")
+	// Log all stream URLs for manual testing
+	t.Log("=== STREAM URLS FOR MANUAL TESTING ===")
+	for address, entityUrls := range streamRes.Msg.EntityStreamUrls {
+		t.Logf("\nEntity Address: %s", address)
+		t.Logf("  Type: %s", entityUrls.EntityType)
+		t.Logf("  Reference: %s", entityUrls.EntityReference)
+		t.Logf("  Parent ERN: %s", entityUrls.ErnAddress)
+		for i, url := range entityUrls.Urls {
+			t.Logf("  Stream URL %d: %s", i+1, url)
+			t.Log("  You can test this URL with: curl -I \"" + url + "\"")
+		}
+	}
+	t.Log("=======================================")
 
-	// // get stream url
-	// streamURLRes, err := sdk.Storage.GetStreamURL(ctx, &connect.Request[v1storage.GetStreamURLRequest]{
-	// 	Msg: &v1storage.GetStreamURLRequest{
-	// 		Cid:         upload.OrigFileCid,
-	// 		ShouldCache: 1,
-	// 		TrackId:     1,
-	// 		UserId:      1,
-	// 	},
-	// })
-	// require.Nil(t, err, "failed to get stream url")
-	// require.EqualValues(t, 3, len(streamURLRes.Msg.Urls), "failed to get stream url")
+	// Verify we got URLs for all requested addresses
+	require.Len(t, streamRes.Msg.EntityStreamUrls, 3, "should have URLs for all 3 requested addresses")
 
-	// // stream via grpc a few more times
-	// for range 3 {
-	// 	// stream the file from the same node
-	// 	stream, err := sdk.Storage.StreamTrack(ctx, &connect.Request[v1storage.StreamTrackRequest]{
-	// 		Msg: &v1storage.StreamTrackRequest{
-	// 			Signature: &v1storage.StreamTrackSignature{
-	// 				Signature: sig,
-	// 				DataHash:  sigData,
-	// 				Data:      data,
-	// 			},
-	// 		},
-	// 	})
-	// 	require.Nil(t, err, "failed to stream file")
+	// Test ERN address returns stream URLs
+	ernUrls := streamRes.Msg.EntityStreamUrls[ernReceipt.ErnAddress]
+	require.NotNil(t, ernUrls, "should have URLs for ERN address")
+	require.Equal(t, "ern", ernUrls.EntityType)
+	require.NotEmpty(t, ernUrls.Urls, "ERN should have stream URLs")
+	t.Logf("ERN returned %d stream URLs", len(ernUrls.Urls))
 
-	// 	var fileData bytes.Buffer
-	// 	for stream.Receive() {
-	// 		res := stream.Msg()
-	// 		if len(res.Data) > 0 {
-	// 			fileData.Write(res.Data)
-	// 		}
-	// 	}
-	// 	if err := stream.Err(); err != nil {
-	// 		log.Fatalf("stream error: %v", err)
-	// 	}
-	// }
+	// Test resource address returns stream URLs
+	resourceUrls := streamRes.Msg.EntityStreamUrls[ernReceipt.ResourceAddresses[0]]
+	require.NotNil(t, resourceUrls, "should have URLs for resource address")
+	require.Equal(t, "resource", resourceUrls.EntityType)
+	require.NotEmpty(t, resourceUrls.Urls, "Resource should have stream URLs")
+	require.Equal(t, ernReceipt.ErnAddress, resourceUrls.ErnAddress, "Resource should reference parent ERN")
+	t.Logf("Resource returned %d stream URLs", len(resourceUrls.Urls))
+
+	// Test release address returns stream URLs
+	releaseUrls := streamRes.Msg.EntityStreamUrls[ernReceipt.ReleaseAddresses[0]]
+	require.NotNil(t, releaseUrls, "should have URLs for release address")
+	require.Equal(t, "release", releaseUrls.EntityType)
+	require.NotEmpty(t, releaseUrls.Urls, "Release should have stream URLs")
+	require.Equal(t, ernReceipt.ErnAddress, releaseUrls.ErnAddress, "Release should reference parent ERN")
+	t.Logf("Release returned %d stream URLs", len(releaseUrls.Urls))
+
+	// Test that non-owner cannot get stream URLs
+	t.Log("\n=== Testing access control ===")
+	sdk2 := auds.NewAudiusdSDK(serverAddr)
+	if err := sdk2.ReadPrivKey(privKeyPath2); err != nil {
+		require.Nil(t, err, "failed to read private key: %w", err)
+	}
+
+	// Try to stream with different wallet (should fail)
+	wrongStreamSig, err := common.EthSign(sdk2.PrivKey(), streamSigBytes)
+	require.Nil(t, err, "failed to generate wrong stream signature")
+
+	wrongStreamReq := &corev1.StreamERNRequest{
+		Signature: wrongStreamSig,
+		Addresses: addressesToStream,
+		ExpiresAt: timestamppb.New(streamExpiry),
+	}
+
+	wrongStreamRes, err := sdk2.Core.StreamERN(ctx, connect.NewRequest(wrongStreamReq))
+	require.Error(t, err, "non-owner should not be able to get stream URLs")
+	require.Nil(t, wrongStreamRes, "should not return stream URLs for non-owner")
+	t.Log("✓ Access control working: non-owner rejected")
+
+	// Test expired signature
+	expiredSigData := &corev1.StreamERNSignature{
+		Addresses: addressesToStream,
+		ExpiresAt: timestamppb.New(time.Now().Add(-1 * time.Hour)), // Already expired
+	}
+	expiredSigBytes, err := proto.Marshal(expiredSigData)
+	require.Nil(t, err, "failed to marshal expired signature data")
+
+	expiredSig, err := common.EthSign(sdk.PrivKey(), expiredSigBytes)
+	require.Nil(t, err, "failed to generate expired signature")
+
+	expiredReq := &corev1.StreamERNRequest{
+		Signature: expiredSig,
+		Addresses: addressesToStream,
+		ExpiresAt: timestamppb.New(time.Now().Add(-1 * time.Hour)),
+	}
+
+	expiredRes, err := sdk.Core.StreamERN(ctx, connect.NewRequest(expiredReq))
+	require.Error(t, err, "expired signature should be rejected")
+	require.Nil(t, expiredRes, "should not return stream URLs for expired signature")
+	t.Log("✓ Expired signature rejected")
 }

@@ -27,7 +27,7 @@ func New(baseURL string) *Mediorum {
 // Upload represents an upload response from mediorum
 type Upload struct {
 	ID                  string            `json:"id"`
-	UserWallet          string            `json:"user_wallet"`
+	UserWallet          interface{}       `json:"user_wallet"` // Can be string or object
 	Status              string            `json:"status"`
 	Template            string            `json:"template"`
 	OrigFileName        string            `json:"orig_file_name"`
@@ -49,6 +49,7 @@ type UploadOptions struct {
 	Template            string
 	PreviewStartSeconds string
 	PlacementHosts      string
+	Signature           string
 }
 
 func (m *Mediorum) UploadFile(file io.Reader, filename string, opts *UploadOptions) ([]*Upload, error) {
@@ -86,7 +87,14 @@ func (m *Mediorum) UploadFile(file io.Reader, filename string, opts *UploadOptio
 		return nil, fmt.Errorf("failed to close multipart writer: %w", err)
 	}
 
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s/uploads", m.baseURL), body)
+	url := fmt.Sprintf("%s/uploads", m.baseURL)
+
+	// Add signature as query parameter if provided
+	if opts != nil && opts.Signature != "" {
+		url = fmt.Sprintf("%s?sig=%s", url, opts.Signature)
+	}
+
+	req, err := http.NewRequest("POST", url, body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
