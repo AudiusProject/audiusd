@@ -2,17 +2,23 @@ package mediorum
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"time"
+
+	"connectrpc.com/connect"
+	corev1 "github.com/AudiusProject/audiusd/pkg/api/core/v1"
+	corev1connect "github.com/AudiusProject/audiusd/pkg/api/core/v1/v1connect"
 )
 
 type Mediorum struct {
 	baseURL    string
 	httpClient *http.Client
+	coreClient corev1connect.CoreServiceClient
 }
 
 func New(baseURL string) *Mediorum {
@@ -24,6 +30,16 @@ func New(baseURL string) *Mediorum {
 	}
 }
 
+func NewWithCore(baseURL string, coreClient corev1connect.CoreServiceClient) *Mediorum {
+	return &Mediorum{
+		baseURL: baseURL,
+		httpClient: &http.Client{
+			Timeout: 30 * time.Second,
+		},
+		coreClient: coreClient,
+	}
+}
+
 // Upload represents an upload response from mediorum
 type Upload struct {
 	ID                  string            `json:"id"`
@@ -32,7 +48,7 @@ type Upload struct {
 	Template            string            `json:"template"`
 	OrigFileName        string            `json:"orig_file_name"`
 	OrigFileCID         string            `json:"orig_file_cid"`
-	TranscodeResults    map[string]string `json:"transcode_results"`
+	TranscodeResults    map[string]string `json:"results"` // Fixed: actual field name is "results"
 	CreatedBy           string            `json:"created_by"`
 	CreatedAt           time.Time         `json:"created_at"`
 	UpdatedAt           time.Time         `json:"updated_at"`
@@ -45,14 +61,26 @@ type Upload struct {
 	AudioAnalysisStatus string            `json:"audio_analysis_status,omitempty"`
 }
 
+// GetTranscodedCID returns the transcoded CID for audio files (320kbps version)
+// Falls back to original CID if no transcoded version is available
+func (u *Upload) GetTranscodedCID() string {
+	if transcodedCID, ok := u.TranscodeResults["320"]; ok && transcodedCID != "" {
+		return transcodedCID
+	}
+	return u.OrigFileCID
+}
+
 type UploadOptions struct {
 	Template            string
 	PreviewStartSeconds string
 	PlacementHosts      string
 	Signature           string
+	WaitForTranscode    bool
+	WaitForFileUpload   bool
+	OriginalCID         string // Set internally after CID computation
 }
 
-func (m *Mediorum) UploadFile(file io.Reader, filename string, opts *UploadOptions) ([]*Upload, error) {
+func (m *Mediorum) UploadFile(ctx context.Context, file io.Reader, filename string, opts *UploadOptions) ([]*Upload, error) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 
@@ -115,6 +143,68 @@ func (m *Mediorum) UploadFile(file io.Reader, filename string, opts *UploadOptio
 	var uploads []*Upload
 	if err := json.NewDecoder(resp.Body).Decode(&uploads); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	// Start FileUpload polling if enabled and we have a core client
+	var fileUploadDone chan error
+	if opts != nil && opts.WaitForFileUpload && m.coreClient != nil && opts.OriginalCID != "" {
+		fileUploadDone = make(chan error, 1)
+		go func() {
+			for i := 0; i < 30; i++ { // Poll for up to 30 seconds
+				select {
+				case <-ctx.Done():
+					fileUploadDone <- ctx.Err()
+					return
+				default:
+				}
+
+				uploadResp, err := m.coreClient.GetUploadByCID(ctx, connect.NewRequest(&corev1.GetUploadByCIDRequest{
+					Cid: opts.OriginalCID,
+				}))
+				if err == nil && uploadResp.Msg.Exists {
+					fileUploadDone <- nil
+					return
+				}
+				time.Sleep(1 * time.Second)
+			}
+			fileUploadDone <- fmt.Errorf("FileUpload transaction not found after 30 seconds")
+		}()
+	}
+
+	// If WaitForTranscode is true and template is audio, poll until transcoding is complete
+	if opts != nil && opts.WaitForTranscode && opts.Template == "audio" {
+		for i, upload := range uploads {
+			// Poll until transcoding is complete (has 320 version) or error
+			for upload.Status != "error" {
+				// Check if we have the transcoded version
+				if _, ok := upload.TranscodeResults["320"]; ok {
+					break // Transcoding complete
+				}
+
+				// Wait before polling again
+				time.Sleep(1 * time.Second)
+
+				// Get updated status
+				updated, err := m.GetUpload(upload.ID)
+				if err != nil {
+					return nil, fmt.Errorf("failed to get upload status while waiting for transcode: %w", err)
+				}
+				upload = updated
+				uploads[i] = upload
+			}
+
+			// Check for error
+			if upload.Status == "error" {
+				return nil, fmt.Errorf("upload failed during transcoding: %s", upload.Error)
+			}
+		}
+	}
+
+	// Wait for FileUpload transaction if polling was started
+	if fileUploadDone != nil {
+		if err := <-fileUploadDone; err != nil {
+			return nil, fmt.Errorf("FileUpload transaction polling failed: %w", err)
+		}
 	}
 
 	return uploads, nil

@@ -26,4 +26,7 @@ service CoreService {
   rpc GetPIE(GetPIERequest) returns (GetPIEResponse) {}
 
   rpc StreamERN(StreamERNRequest) returns (StreamERNResponse) {}
+
+  // Check if upload exists by CID
+  rpc GetUploadByCID(GetUploadByCIDRequest) returns (GetUploadByCIDResponse) {}
 }

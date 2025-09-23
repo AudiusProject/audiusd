@@ -481,6 +481,12 @@ message FileUpload {
   string cid = 3;
   // mediorum specific upload id
   string upload_id = 4;
+  // transcoded cid (e.g., 320kbps version for audio)
+  string transcoded_cid = 5;
+  // validator address that processed the upload
+  string validator_address = 6;
+  // signature from the validator node
+  string validator_signature = 7;
 }
 
 message StreamERNSignature {
@@ -517,4 +523,15 @@ message StreamERNResponse {
   // Key is the entity address (ERN, release, or resource address)
   // Value contains the streaming URLs and metadata for that entity
   map<string, EntityStreamURLs> entity_stream_urls = 1;
+}
+
+message GetUploadByCIDRequest {
+  string cid = 1;
+}
+
+message GetUploadByCIDResponse {
+  bool exists = 1;
+  string uploader_address = 2;
+  string original_cid = 3;
+  string transcoded_cid = 4;
 }

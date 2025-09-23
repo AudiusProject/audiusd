@@ -738,28 +738,37 @@ const insertFileUpload = `-- name: InsertFileUpload :exec
 insert into core_uploads(
     uploader_address,
     cid,
+    transcoded_cid,
     upid,
     upload_signature,
+    validator_address,
+    validator_signature,
     tx_hash,
     block_height
-) values ($1, $2, $3, $4, $5, $6)
+) values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 `
 
 type InsertFileUploadParams struct {
-	UploaderAddress string
-	Cid             string
-	Upid            string
-	UploadSignature string
-	TxHash          string
-	BlockHeight     int64
+	UploaderAddress    string
+	Cid                string
+	TranscodedCid      string
+	Upid               string
+	UploadSignature    string
+	ValidatorAddress   string
+	ValidatorSignature string
+	TxHash             string
+	BlockHeight        int64
 }
 
 func (q *Queries) InsertFileUpload(ctx context.Context, arg InsertFileUploadParams) error {
 	_, err := q.db.Exec(ctx, insertFileUpload,
 		arg.UploaderAddress,
 		arg.Cid,
+		arg.TranscodedCid,
 		arg.Upid,
 		arg.UploadSignature,
+		arg.ValidatorAddress,
+		arg.ValidatorSignature,
 		arg.TxHash,
 		arg.BlockHeight,
 	)

@@ -320,8 +320,11 @@ insert into validator_history (
 insert into core_uploads(
     uploader_address,
     cid,
+    transcoded_cid,
     upid,
     upload_signature,
+    validator_address,
+    validator_signature,
     tx_hash,
     block_height
-) values ($1, $2, $3, $4, $5, $6);
+) values ($1, $2, $3, $4, $5, $6, $7, $8, $9);

@@ -37,165 +37,115 @@ func TestUploadStream(t *testing.T) {
 		require.Nil(t, err, "failed to read private key: %w", err)
 	}
 
+	// Initialize SDK to get chain ID
+	if err := sdk.Init(ctx); err != nil {
+		require.Nil(t, err, "failed to initialize SDK: %w", err)
+	}
+
 	audioFile, err := os.Open("./assets/anxiety-upgrade.mp3")
 	require.Nil(t, err, "failed to open file")
 	defer audioFile.Close()
-
-	// Compute CID of the file to generate signature
-	audioCID, err := hashes.ComputeFileCID(audioFile)
-	require.Nil(t, err, "failed to compute file CID")
-
-	// Reset file position after computing CID
-	audioFile.Seek(0, 0)
-
-	// Generate upload signature for CID ownership
-	uploadSigData := &corev1.UploadSignature{
-		Cid: audioCID,
-	}
-	uploadSigBytes, err := proto.Marshal(uploadSigData)
-	require.Nil(t, err, "failed to marshal upload signature data")
-
-	uploadSignature, err := common.EthSign(sdk.PrivKey(), uploadSigBytes)
-	require.Nil(t, err, "failed to generate upload signature")
-
-	// Upload using Mediorum SDK with signature
-	mediorumClient := mediorum.New(fmt.Sprintf("http://%s", serverAddr))
-	uploadOpts := &mediorum.UploadOptions{
-		Template:  "audio",
-		Signature: uploadSignature,
-	}
-
-	uploads, err := mediorumClient.UploadFile(audioFile, "anxiety-upgrade.mp3", uploadOpts)
-	require.Nil(t, err, "failed to upload file")
-	require.EqualValues(t, 1, len(uploads), "failed to upload file")
-
-	upload := uploads[0]
-
-	// Wait for upload to complete (we don't need transcoding for this test)
-	for upload.Status != "done" && upload.Status != "error" {
-		time.Sleep(1 * time.Second)
-		uploadStatus, err := mediorumClient.GetUpload(upload.ID)
-		require.Nil(t, err, "failed to get upload status")
-		upload = uploadStatus
-		t.Logf("Upload status: %s", upload.Status)
-	}
-	require.Equal(t, "done", upload.Status, "upload failed with error: %s", upload.Error)
-	require.NotEmpty(t, upload.OrigFileCID, "missing original file CID")
 
 	// release the track
 	title := "Anxiety Upgrade"
 	genre := "Electronic"
 
-	// create ERN track release with upload cid
-	envelope := &corev1beta1.Envelope{
-		Header: &corev1beta1.EnvelopeHeader{
-			ChainId:    "audius-devnet",
-			From:       sdk.Address(),
-			Nonce:      uuid.New().String(),
-			Expiration: time.Now().Add(time.Hour).Unix(),
+	// Create ERN message
+	ernMessage := &ddexv1beta1.NewReleaseMessage{
+		MessageHeader: &ddexv1beta1.MessageHeader{
+			MessageId: fmt.Sprintf("upload_%s", uuid.New().String()),
+			MessageSender: &ddexv1beta1.MessageSender{
+				PartyId: &ddexv1beta1.Party_PartyId{
+					ProprietaryIds: []*ddexv1beta1.Party_ProprietaryId{
+						{
+							Namespace: "OAP",
+							Id:        sdk.Address(), // Must match upload signature address
+						},
+					},
+				},
+			},
+			MessageCreatedDateTime: timestamppb.Now(),
+			MessageControlType:     ddexv1beta1.MessageControlType_MESSAGE_CONTROL_TYPE_NEW_MESSAGE.Enum(),
 		},
-		Messages: []*corev1beta1.Message{
+		PartyList: []*ddexv1beta1.Party{
 			{
-				Message: &corev1beta1.Message_Ern{
-					Ern: &ddexv1beta1.NewReleaseMessage{
-						MessageHeader: &ddexv1beta1.MessageHeader{
-							MessageId: fmt.Sprintf("upload_%s", uuid.New().String()),
-							MessageSender: &ddexv1beta1.MessageSender{
-								PartyId: &ddexv1beta1.Party_PartyId{
-									ProprietaryIds: []*ddexv1beta1.Party_ProprietaryId{
+				PartyReference: "P_UPLOADER",
+				PartyId: &ddexv1beta1.Party_PartyId{
+					Dpid: sdk.Address(),
+				},
+				PartyName: &ddexv1beta1.Party_PartyName{
+					FullName: "Test Uploader",
+				},
+			},
+		},
+		ResourceList: []*ddexv1beta1.Resource{
+			{
+				Resource: &ddexv1beta1.Resource_SoundRecording_{
+					SoundRecording: &ddexv1beta1.Resource_SoundRecording{
+						ResourceReference:     "A1",
+						Type:                  "MusicalWorkSoundRecording",
+						DisplayTitleText:      title,
+						DisplayArtistName:     "Test Artist",
+						VersionType:           "OriginalVersion",
+						LanguageOfPerformance: "en",
+						SoundRecordingEdition: &ddexv1beta1.Resource_SoundRecording_SoundRecordingEdition{
+							Type: "NonImmersiveEdition",
+							ResourceId: &ddexv1beta1.Resource_ResourceId{
+								ProprietaryId: []*ddexv1beta1.Resource_ProprietaryId{
+									{
+										Namespace:     "audius",
+										ProprietaryId: "{{TRANSCODED_CID}}", // Will be replaced by SDK
+									},
+								},
+							},
+							TechnicalDetails: &ddexv1beta1.Resource_SoundRecording_SoundRecordingEdition_TechnicalDetails{
+								TechnicalResourceDetailsReference: "T1",
+								DeliveryFile: &ddexv1beta1.Resource_SoundRecording_SoundRecordingEdition_TechnicalDetails_DeliveryFile{
+									Type:                 "AudioFile",
+									AudioCodecType:       "MP3",
+									NumberOfChannels:     2,
+									SamplingRate:         48.0, // 48kHz as per transcoding
+									BitsPerSample:        16,
+									IsProvidedInDelivery: true,
+									File: &ddexv1beta1.Resource_SoundRecording_SoundRecordingEdition_TechnicalDetails_DeliveryFile_File{
+										Uri: "{{TRANSCODED_CID}}", // Will be replaced by SDK
+										HashSum: &ddexv1beta1.Resource_SoundRecording_SoundRecordingEdition_TechnicalDetails_DeliveryFile_File_HashSum{
+											Algorithm:    "IPFS",
+											HashSumValue: "{{TRANSCODED_CID}}", // Will be replaced by SDK
+										},
+										FileSize: 1000000, // Placeholder file size
+									},
+								},
+								IsClip: false,
+							},
+						},
+					},
+				},
+			},
+		},
+		ReleaseList: []*ddexv1beta1.Release{
+			{
+				Release: &ddexv1beta1.Release_MainRelease{
+					MainRelease: &ddexv1beta1.Release_Release{
+						ReleaseReference:      "R1",
+						ReleaseType:           "Single",
+						DisplayTitleText:      title,
+						DisplayArtistName:     "Test Artist",
+						ReleaseLabelReference: "P_UPLOADER",
+						OriginalReleaseDate:   time.Now().Format("2006-01-02"),
+						ParentalWarningType:   "NotExplicit",
+						Genre: &ddexv1beta1.Release_Release_Genre{
+							GenreText: genre,
+						},
+						ResourceGroup: &ddexv1beta1.Release_Release_ResourceGroup{
+							ResourceGroup: []*ddexv1beta1.Release_Release_ResourceGroup_ResourceGroup{
+								{
+									ResourceGroupType: "Audio",
+									SequenceNumber:    "1",
+									ResourceGroupContentItem: []*ddexv1beta1.Release_Release_ResourceGroup_ResourceGroup_ResourceGroupContentItem{
 										{
-											Namespace: "OAP",
-											Id:        sdk.Address(), // Must match upload signature address
-										},
-									},
-								},
-							},
-							MessageCreatedDateTime: timestamppb.Now(),
-							MessageControlType:     ddexv1beta1.MessageControlType_MESSAGE_CONTROL_TYPE_NEW_MESSAGE.Enum(),
-						},
-						PartyList: []*ddexv1beta1.Party{
-							{
-								PartyReference: "P_UPLOADER",
-								PartyId: &ddexv1beta1.Party_PartyId{
-									Dpid: sdk.Address(),
-								},
-								PartyName: &ddexv1beta1.Party_PartyName{
-									FullName: "Test Uploader",
-								},
-							},
-						},
-						ResourceList: []*ddexv1beta1.Resource{
-							{
-								Resource: &ddexv1beta1.Resource_SoundRecording_{
-									SoundRecording: &ddexv1beta1.Resource_SoundRecording{
-										ResourceReference:     "A1",
-										Type:                  "MusicalWorkSoundRecording",
-										DisplayTitleText:      title,
-										DisplayArtistName:     "Test Artist",
-										VersionType:           "OriginalVersion",
-										LanguageOfPerformance: "en",
-										SoundRecordingEdition: &ddexv1beta1.Resource_SoundRecording_SoundRecordingEdition{
-											Type: "NonImmersiveEdition",
-											ResourceId: &ddexv1beta1.Resource_ResourceId{
-												ProprietaryId: []*ddexv1beta1.Resource_ProprietaryId{
-													{
-														Namespace:     "audius",
-														ProprietaryId: upload.OrigFileCID,
-													},
-												},
-											},
-											TechnicalDetails: &ddexv1beta1.Resource_SoundRecording_SoundRecordingEdition_TechnicalDetails{
-												TechnicalResourceDetailsReference: "T1",
-												DeliveryFile: &ddexv1beta1.Resource_SoundRecording_SoundRecordingEdition_TechnicalDetails_DeliveryFile{
-													Type:                 "AudioFile",
-													AudioCodecType:       "MP3",
-													NumberOfChannels:     2,
-													SamplingRate:         48.0, // 48kHz as per transcoding
-													BitsPerSample:        16,
-													IsProvidedInDelivery: true,
-													File: &ddexv1beta1.Resource_SoundRecording_SoundRecordingEdition_TechnicalDetails_DeliveryFile_File{
-														Uri: upload.OrigFileCID, // Use original file CID as URI
-														HashSum: &ddexv1beta1.Resource_SoundRecording_SoundRecordingEdition_TechnicalDetails_DeliveryFile_File_HashSum{
-															Algorithm:    "IPFS",
-															HashSumValue: upload.OrigFileCID,
-														},
-														FileSize: 1000000, // Placeholder file size
-													},
-												},
-												IsClip: false,
-											},
-										},
-									},
-								},
-							},
-						},
-						ReleaseList: []*ddexv1beta1.Release{
-							{
-								Release: &ddexv1beta1.Release_MainRelease{
-									MainRelease: &ddexv1beta1.Release_Release{
-										ReleaseReference:      "R1",
-										ReleaseType:           "Single",
-										DisplayTitleText:      title,
-										DisplayArtistName:     "Test Artist",
-										ReleaseLabelReference: "P_UPLOADER",
-										OriginalReleaseDate:   time.Now().Format("2006-01-02"),
-										ParentalWarningType:   "NotExplicit",
-										Genre: &ddexv1beta1.Release_Release_Genre{
-											GenreText: genre,
-										},
-										ResourceGroup: &ddexv1beta1.Release_Release_ResourceGroup{
-											ResourceGroup: []*ddexv1beta1.Release_Release_ResourceGroup_ResourceGroup{
-												{
-													ResourceGroupType: "Audio",
-													SequenceNumber:    "1",
-													ResourceGroupContentItem: []*ddexv1beta1.Release_Release_ResourceGroup_ResourceGroup_ResourceGroupContentItem{
-														{
-															ResourceGroupContentItemType: "Track",
-															ResourceGroupContentItemText: "A1",
-														},
-													},
-												},
-											},
+											ResourceGroupContentItemType: "Track",
+											ResourceGroupContentItemText: "A1",
 										},
 									},
 								},
@@ -207,17 +157,99 @@ func TestUploadStream(t *testing.T) {
 		},
 	}
 
-	transaction := &corev1beta1.Transaction{
-		Envelope: envelope,
+	// Upload options
+	uploadOpts := &mediorum.UploadOptions{
+		Template: "audio",
 	}
+
+	// Step 1: Upload file via mediorum
+	t.Log("Starting file upload...")
+
+	// Compute CID and generate upload signature
+	fileCID, err := hashes.ComputeFileCID(audioFile)
+	require.NoError(t, err, "failed to compute file CID")
+	audioFile.Seek(0, 0) // Reset file position
+
+	uploadSigData := &corev1.UploadSignature{Cid: fileCID}
+	uploadSigBytes, err := proto.Marshal(uploadSigData)
+	require.NoError(t, err, "failed to marshal upload signature")
+
+	uploadSignature, err := common.EthSign(sdk.PrivKey(), uploadSigBytes)
+	require.NoError(t, err, "failed to generate upload signature")
+
+	uploadOpts.Signature = uploadSignature
+	uploadOpts.WaitForTranscode = true
+	uploadOpts.WaitForFileUpload = true
+	uploadOpts.OriginalCID = fileCID
+
+	uploads, err := sdk.Mediorum.UploadFile(ctx, audioFile, "anxiety-upgrade.mp3", uploadOpts)
+	require.NoError(t, err, "failed to upload file")
+	require.NotEmpty(t, uploads, "no uploads returned")
+
+	upload := uploads[0]
+	require.Equal(t, "done", upload.Status, "upload failed: %s", upload.Error)
+
+	transcodedCID := upload.GetTranscodedCID()
+	t.Logf("File uploaded successfully!")
+	t.Logf("Original CID: %s", upload.OrigFileCID)
+	t.Logf("Transcoded CID: %s", transcodedCID)
+
+	// Step 2: Replace placeholder CIDs in ERN message with actual transcoded CID
+	for _, resource := range ernMessage.ResourceList {
+		if soundRecording := resource.GetSoundRecording(); soundRecording != nil {
+			if edition := soundRecording.SoundRecordingEdition; edition != nil {
+				if resourceId := edition.ResourceId; resourceId != nil {
+					for _, propId := range resourceId.ProprietaryId {
+						if propId.ProprietaryId == "{{TRANSCODED_CID}}" {
+							propId.ProprietaryId = transcodedCID
+						}
+					}
+				}
+				if techDetails := edition.TechnicalDetails; techDetails != nil {
+					if deliveryFile := techDetails.DeliveryFile; deliveryFile != nil {
+						if file := deliveryFile.File; file != nil {
+							if file.Uri == "{{TRANSCODED_CID}}" {
+								file.Uri = transcodedCID
+							}
+							if hashSum := file.HashSum; hashSum != nil && hashSum.HashSumValue == "{{TRANSCODED_CID}}" {
+								hashSum.HashSumValue = transcodedCID
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// Step 3: Send ERN transaction via core
+	t.Log("Sending ERN transaction...")
+	envelope := &corev1beta1.Envelope{
+		Header: &corev1beta1.EnvelopeHeader{
+			ChainId:    sdk.ChainID(),
+			From:       sdk.Address(),
+			Nonce:      upload.ID, // Use upload ID as nonce
+			Expiration: time.Now().Add(time.Hour).Unix(),
+		},
+		Messages: []*corev1beta1.Message{
+			{
+				Message: &corev1beta1.Message_Ern{
+					Ern: ernMessage,
+				},
+			},
+		},
+	}
+
+	transaction := &corev1beta1.Transaction{Envelope: envelope}
 
 	submitRes, err := sdk.Core.SendTransaction(ctx, connect.NewRequest(&corev1.SendTransactionRequest{
 		Transactionv2: transaction,
 	}))
-	require.NoError(t, err)
+	require.NoError(t, err, "failed to send ERN transaction")
 
 	ernReceipt := submitRes.Msg.TransactionReceipt.MessageReceipts[0].GetErnAck()
-	require.NotNil(t, ernReceipt, "failed to get ern ack")
+	require.NotNil(t, ernReceipt, "failed to get ERN receipt")
+
+	t.Log("ERN transaction completed!")
 	t.Logf("ERN created at address: %s", ernReceipt.ErnAddress)
 	t.Logf("Resource addresses: %v", ernReceipt.ResourceAddresses)
 	t.Logf("Release addresses: %v", ernReceipt.ReleaseAddresses)

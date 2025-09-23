@@ -157,7 +157,7 @@ func (s *Server) validateERNNewMessage(ctx context.Context, msg *ddexv1beta1.New
 			continue
 		}
 
-		// in core this can be a CID
+		// in core this can be a CID (either original or transcoded)
 		uri := f.Uri
 		upload, err := s.db.GetCoreUpload(ctx, uri)
 		if err != nil {
@@ -166,7 +166,7 @@ func (s *Server) validateERNNewMessage(ctx context.Context, msg *ddexv1beta1.New
 
 		uploader := upload.UploaderAddress
 		if uploader != oapAddress {
-			return errors.New("sender doesn't match uploader")
+			return fmt.Errorf("sender %s doesn't match uploader %s for CID %s", oapAddress, uploader, uri)
 		}
 	}
 

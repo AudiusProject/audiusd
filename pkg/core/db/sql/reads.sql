@@ -553,7 +553,7 @@ where b.height = any($1::bigint[])
 order by b.height, t.created_at desc;
 
 -- name: GetCoreUpload :one
-select * from core_uploads where cid = $1;
+select * from core_uploads where cid = $1 OR transcoded_cid = $1;
 
 -- name: GetERNContainingAddress :one
 SELECT

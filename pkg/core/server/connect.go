@@ -16,6 +16,8 @@ import (
 	"github.com/AudiusProject/audiusd/pkg/api/core/v1/v1connect"
 	v1beta1 "github.com/AudiusProject/audiusd/pkg/api/core/v1beta1"
 	ddexv1beta1 "github.com/AudiusProject/audiusd/pkg/api/ddex/v1beta1"
+	storagev1 "github.com/AudiusProject/audiusd/pkg/api/storage/v1"
+	storagev1connect "github.com/AudiusProject/audiusd/pkg/api/storage/v1/v1connect"
 	"github.com/AudiusProject/audiusd/pkg/common"
 	"github.com/AudiusProject/audiusd/pkg/mediorum/server/signature"
 	"github.com/AudiusProject/audiusd/pkg/rewards"
@@ -26,7 +28,8 @@ import (
 )
 
 type CoreService struct {
-	core *Server
+	core           *Server
+	storageService storagev1connect.StorageServiceHandler
 }
 
 func NewCoreService() *CoreService {
@@ -36,6 +39,10 @@ func NewCoreService() *CoreService {
 func (c *CoreService) SetCore(core *Server) {
 	c.core = core
 	c.core.setSelf(c)
+}
+
+func (c *CoreService) SetStorageService(storageService storagev1connect.StorageServiceHandler) {
+	c.storageService = storageService
 }
 
 var _ v1connect.CoreServiceHandler = (*CoreService)(nil)
@@ -1037,6 +1044,24 @@ func (c *CoreService) StreamERN(ctx context.Context, req *connect.Request[v1.Str
 	}), nil
 }
 
+// GetUploadByCID implements v1connect.CoreServiceHandler.
+func (c *CoreService) GetUploadByCID(ctx context.Context, req *connect.Request[v1.GetUploadByCIDRequest]) (*connect.Response[v1.GetUploadByCIDResponse], error) {
+	upload, err := c.core.db.GetCoreUpload(ctx, req.Msg.Cid)
+	if err != nil {
+		// Return exists=false if not found instead of error
+		return connect.NewResponse(&v1.GetUploadByCIDResponse{
+			Exists: false,
+		}), nil
+	}
+
+	return connect.NewResponse(&v1.GetUploadByCIDResponse{
+		Exists:          true,
+		UploaderAddress: upload.UploaderAddress,
+		OriginalCid:     upload.Cid,
+		TranscodedCid:   upload.TranscodedCid,
+	}), nil
+}
+
 // Helper function to get entity reference by index
 func (c *CoreService) getEntityReference(ern *ddexv1beta1.NewReleaseMessage, entityType string, index int) string {
 	// Arrays are 1-indexed in PostgreSQL, adjust to 0-indexed
@@ -1079,11 +1104,9 @@ func (c *CoreService) extractStreamURLsFromERN(ern *ddexv1beta1.NewReleaseMessag
 				if td := sre.GetTechnicalDetails(); td != nil {
 					if df := td.GetDeliveryFile(); df != nil {
 						if f := df.GetFile(); f != nil && f.Uri != "" {
-							// Generate signed streaming URL for the CID
-							streamURL := c.generateStreamURL(f.Uri)
-							if streamURL != "" {
-								urls = append(urls, streamURL)
-							}
+							// Generate signed streaming URLs for the CID from multiple hosts
+							streamURLs := c.generateStreamURLs(f.Uri)
+							urls = append(urls, streamURLs...)
 						}
 					}
 				}
@@ -1107,10 +1130,8 @@ func (c *CoreService) getEntityStreamURLs(ern *ddexv1beta1.NewReleaseMessage, en
 					if td := sre.GetTechnicalDetails(); td != nil {
 						if df := td.GetDeliveryFile(); df != nil {
 							if f := df.GetFile(); f != nil && f.Uri != "" {
-								streamURL := c.generateStreamURL(f.Uri)
-								if streamURL != "" {
-									urls = append(urls, streamURL)
-								}
+								streamURLs := c.generateStreamURLs(f.Uri)
+								urls = append(urls, streamURLs...)
 							}
 						}
 					}
@@ -1158,10 +1179,8 @@ func (c *CoreService) getResourceURLsFromRelease(ern *ddexv1beta1.NewReleaseMess
 							if td := sre.GetTechnicalDetails(); td != nil {
 								if df := td.GetDeliveryFile(); df != nil {
 									if f := df.GetFile(); f != nil && f.Uri != "" {
-										streamURL := c.generateStreamURL(f.Uri)
-										if streamURL != "" {
-											urls = append(urls, streamURL)
-										}
+										streamURLs := c.generateStreamURLs(f.Uri)
+										urls = append(urls, streamURLs...)
 									}
 								}
 							}
@@ -1188,10 +1207,8 @@ func (c *CoreService) getResourceURLsFromReleaseTrack(ern *ddexv1beta1.NewReleas
 					if td := sre.GetTechnicalDetails(); td != nil {
 						if df := td.GetDeliveryFile(); df != nil {
 							if f := df.GetFile(); f != nil && f.Uri != "" {
-								streamURL := c.generateStreamURL(f.Uri)
-								if streamURL != "" {
-									urls = append(urls, streamURL)
-								}
+								streamURLs := c.generateStreamURLs(f.Uri)
+								urls = append(urls, streamURLs...)
 							}
 						}
 					}
@@ -1207,14 +1224,14 @@ func (c *CoreService) getResourceURLsFromReleaseTrack(ern *ddexv1beta1.NewReleas
 func (c *CoreService) generateStreamURL(cid string) string {
 	// Generate a time-limited signed URL for streaming
 	// Using mediorum's streaming endpoint
-	baseURL := fmt.Sprintf("https://%s/tracks/cidstream/%s", c.core.config.NodeEndpoint, cid)
+	baseURL := fmt.Sprintf("%s/tracks/cidstream/%s", c.core.config.NodeEndpoint, cid)
 
-	// Create signature data in the format mediorum expects
+	// Create signature data matching production format exactly
 	sigData := &signature.SignatureData{
-		Cid:         cid,
-		Timestamp:   time.Now().UnixMilli(), // mediorum expects milliseconds
-		ShouldCache: 1,
-		// UploadID, TrackId, and UserID can be left empty for ERN streaming
+		Cid:       cid,
+		Timestamp: time.Now().UnixMilli(), // mediorum expects milliseconds
+		// Don't set ShouldCache, UploadID - let them be zero values to match production
+		// TrackId and UserId will be 0 for ERN streaming
 	}
 
 	// Generate the signature query string using mediorum's helper
@@ -1228,4 +1245,59 @@ func (c *CoreService) generateStreamURL(cid string) string {
 	encodedSig := url.QueryEscape(sigQueryString)
 
 	return fmt.Sprintf("%s?signature=%s", baseURL, encodedSig)
+}
+
+// generateStreamURLs generates signed streaming URLs for a CID from multiple hosts using rendezvous hashing
+func (c *CoreService) generateStreamURLs(cid string) []string {
+	ctx := context.Background()
+
+	// If storage service is available, use it to get rendezvous nodes
+	if c.storageService != nil {
+		req := &storagev1.GetRendezvousNodesRequest{
+			Cid:                cid,
+			ReplicationFactor:  3, // Default replication factor
+		}
+
+		resp, err := c.storageService.GetRendezvousNodes(ctx, connect.NewRequest(req))
+		if err == nil && len(resp.Msg.Nodes) > 0 {
+			// Generate signed URLs for each node
+			urls := make([]string, 0, len(resp.Msg.Nodes))
+			for _, endpoint := range resp.Msg.Nodes {
+				// Generate signed URL for this host
+				baseURL := fmt.Sprintf("%s/tracks/cidstream/%s", endpoint, cid)
+
+				sigData := &signature.SignatureData{
+					Cid:       cid,
+					Timestamp: time.Now().UnixMilli(),
+					// Don't set ShouldCache - match production format
+				}
+
+				sigQueryString, err := signature.GenerateQueryStringFromSignatureData(sigData, c.core.config.EthereumKey)
+				if err != nil {
+					c.core.logger.Error("failed to generate stream signature for endpoint",
+						zap.String("endpoint", endpoint),
+						zap.Error(err))
+					continue
+				}
+
+				encodedSig := url.QueryEscape(sigQueryString)
+				streamURL := fmt.Sprintf("%s?signature=%s", baseURL, encodedSig)
+				urls = append(urls, streamURL)
+			}
+
+			if len(urls) > 0 {
+				return urls
+			}
+		} else if err != nil {
+			c.core.logger.Debug("could not get rendezvous nodes from storage service",
+				zap.String("cid", cid),
+				zap.Error(err))
+		}
+	}
+
+	// Fall back to single URL from current node
+	if url := c.generateStreamURL(cid); url != "" {
+		return []string{url}
+	}
+	return []string{}
 }

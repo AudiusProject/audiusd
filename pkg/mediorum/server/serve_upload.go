@@ -310,9 +310,8 @@ func (ss *MediorumServer) postUpload(c echo.Context) error {
 	}
 
 	for _, upload := range uploads {
-		// maybe put in a worker pool?
-		// multiple files can be uploaded?
-		go func(c echo.Context) {
+		// Send FileUpload transaction after transcoding completes
+		go func(c echo.Context, upload *Upload) {
 			uploadSig := c.QueryParam("sig")
 			if uploadSig == "" {
 				return
@@ -323,11 +322,66 @@ func (ss *MediorumServer) postUpload(c echo.Context) error {
 			}
 			sigDataBytes, err := proto.Marshal(sigData)
 			if err != nil {
+				ss.logger.Error("failed to marshal upload signature", zap.Error(err))
 				return
 			}
 
 			_, address, err := common.EthRecover(uploadSig, sigDataBytes)
 			if err != nil {
+				ss.logger.Error("failed to recover address from signature", zap.Error(err))
+				return
+			}
+
+			// For audio uploads, wait for transcoding to complete
+			transcodedCID := upload.OrigFileCID // Default to original
+			if upload.Template == JobTemplateAudio {
+				// Poll for transcoded CID (max 5 minutes)
+				timeout := time.After(5 * time.Minute)
+				ticker := time.NewTicker(2 * time.Second)
+				defer ticker.Stop()
+
+				for {
+					select {
+					case <-timeout:
+						ss.logger.Warn("timeout waiting for transcode", zap.String("uploadID", upload.ID))
+						goto SendTransaction
+					case <-ticker.C:
+						var currentUpload Upload
+						err := ss.crud.DB.First(&currentUpload, "id = ?", upload.ID).Error
+						if err != nil {
+							ss.logger.Error("failed to poll upload status", zap.Error(err))
+							goto SendTransaction
+						}
+
+						// Check if transcoding is complete
+						if tc, ok := currentUpload.TranscodeResults["320"]; ok && tc != "" {
+							transcodedCID = tc
+							goto SendTransaction
+						}
+
+						// Check for error status
+						if currentUpload.Status == JobStatusError {
+							ss.logger.Error("upload failed during transcoding", zap.String("error", currentUpload.Error))
+							return
+						}
+					}
+				}
+			}
+
+		SendTransaction:
+			// Generate validator signature for the transcoded CID
+			validatorSigData := &v1.UploadSignature{
+				Cid: transcodedCID,
+			}
+			validatorSigBytes, err := proto.Marshal(validatorSigData)
+			if err != nil {
+				ss.logger.Error("failed to marshal validator signature", zap.Error(err))
+				return
+			}
+
+			validatorSig, err := common.EthSign(ss.Config.privateKey, validatorSigBytes)
+			if err != nil {
+				ss.logger.Error("failed to generate validator signature", zap.Error(err))
 				return
 			}
 
@@ -336,10 +390,13 @@ func (ss *MediorumServer) postUpload(c echo.Context) error {
 					Transaction: &v1.SignedTransaction{
 						Transaction: &v1.SignedTransaction_FileUpload{
 							FileUpload: &v1.FileUpload{
-								UploaderAddress: address,
-								UploadSignature: uploadSig,
-								UploadId:        upload.ID,
-								Cid:             upload.OrigFileCID,
+								UploaderAddress:    address,
+								UploadSignature:    uploadSig,
+								UploadId:           upload.ID,
+								Cid:                upload.OrigFileCID,
+								TranscodedCid:      transcodedCID,
+								ValidatorAddress:   ss.Config.Self.Wallet,
+								ValidatorSignature: validatorSig,
 							},
 						},
 					},
@@ -348,7 +405,7 @@ func (ss *MediorumServer) postUpload(c echo.Context) error {
 			if err != nil {
 				ss.logger.Error("could not send FileUpload tx", zap.Error(err))
 			}
-		}(c)
+		}(c, upload)
 	}
 
 	return c.JSON(status, uploads)

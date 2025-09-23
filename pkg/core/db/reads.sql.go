@@ -392,7 +392,7 @@ func (q *Queries) GetBlocksWithTransactions(ctx context.Context, dollar_1 []int6
 }
 
 const getCoreUpload = `-- name: GetCoreUpload :one
-select id, uploader_address, cid, upid, upload_signature, tx_hash, block_height from core_uploads where cid = $1
+select id, uploader_address, cid, transcoded_cid, upid, upload_signature, validator_address, validator_signature, tx_hash, block_height from core_uploads where cid = $1 OR transcoded_cid = $1
 `
 
 func (q *Queries) GetCoreUpload(ctx context.Context, cid string) (CoreUpload, error) {
@@ -402,8 +402,11 @@ func (q *Queries) GetCoreUpload(ctx context.Context, cid string) (CoreUpload, er
 		&i.ID,
 		&i.UploaderAddress,
 		&i.Cid,
+		&i.TranscodedCid,
 		&i.Upid,
 		&i.UploadSignature,
+		&i.ValidatorAddress,
+		&i.ValidatorSignature,
 		&i.TxHash,
 		&i.BlockHeight,
 	)

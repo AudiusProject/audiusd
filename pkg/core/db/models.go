@@ -264,13 +264,16 @@ type CoreTxStat struct {
 }
 
 type CoreUpload struct {
-	ID              int64
-	UploaderAddress string
-	Cid             string
-	Upid            string
-	UploadSignature string
-	TxHash          string
-	BlockHeight     int64
+	ID                 int64
+	UploaderAddress    string
+	Cid                string
+	TranscodedCid      string
+	Upid               string
+	UploadSignature    string
+	ValidatorAddress   string
+	ValidatorSignature string
+	TxHash             string
+	BlockHeight        int64
 }
 
 type CoreValidator struct {
