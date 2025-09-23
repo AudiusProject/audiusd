@@ -4,7 +4,7 @@ This example demonstrates **Programmable Distribution** - a powerful feature tha
 
 ## What is Programmable Distribution?
 
-With programmable distribution, the uploader/releaser of an ERN (Entertainment Resource Name) holds the cryptographic keys that define who can stream their content. When they hand out streaming signatures, they can apply any filtering logic:
+With programmable distribution, the uploader/releaser of an ERN (Electronic Release Notification) holds the cryptographic keys that define who can stream their content. When they hand out streaming signatures, they can apply any filtering logic:
 
 - **Geolocation-based**: Only allow streaming from specific cities or regions
 - **Time-based**: Restrict access to certain hours or dates
