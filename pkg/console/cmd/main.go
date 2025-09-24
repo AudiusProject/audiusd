@@ -14,6 +14,7 @@ import (
 	"github.com/AudiusProject/audiusd/pkg/sdk"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
+	"go.uber.org/zap"
 )
 
 func main() {
@@ -33,7 +34,7 @@ func main() {
 
 	auds := sdk.NewAudiusdSDK("rpc.audius.engineering")
 
-	etl := etl.NewETLService(auds.Core, logger)
+	etl := etl.NewETLService(auds.Core, zap.NewNop())
 	etl.SetDBURL(dbURL)
 	etl.SetCheckReadiness(false)
 

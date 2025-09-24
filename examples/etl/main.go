@@ -12,6 +12,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
+	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -29,7 +30,7 @@ func main() {
 	auds := sdk.NewAudiusdSDK("audius-content-12.cultur3stake.com")
 
 	// pass core client to etl service
-	etl := etl.NewETLService(auds.Core, logger)
+	etl := etl.NewETLService(auds.Core, zap.NewNop())
 	etl.SetDBURL(dbURL)
 	etl.SetRunDownMigrations(true)
 	// index 500 blocks
