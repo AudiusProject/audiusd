@@ -72,13 +72,19 @@ func (c *CoreService) ForwardTransaction(ctx context.Context, req *connect.Reque
 
 	var mempoolKey common.TxHash
 	var err error
+	// Use consistent hashing by marshaling to bytes first, matching abci.go behavior
 	if req.Msg.Transactionv2 != nil {
-		mempoolKey, err = common.ToTxHash(req.Msg.Transactionv2)
+		txBytes, marshalErr := proto.Marshal(req.Msg.Transactionv2)
+		if marshalErr != nil {
+			return nil, fmt.Errorf("could not marshal transaction: %v", marshalErr)
+		}
+		mempoolKey = common.ToTxHashFromBytes(txBytes)
 	} else {
-		mempoolKey, err = common.ToTxHash(req.Msg.Transaction)
-	}
-	if err != nil {
-		return nil, fmt.Errorf("could not get tx hash of signed tx: %v", err)
+		txBytes, marshalErr := proto.Marshal(req.Msg.Transaction)
+		if marshalErr != nil {
+			return nil, fmt.Errorf("could not marshal transaction: %v", marshalErr)
+		}
+		mempoolKey = common.ToTxHashFromBytes(txBytes)
 	}
 
 	if req.Msg.Transactionv2 != nil {
@@ -454,20 +460,24 @@ func (c *CoreService) SendTransaction(ctx context.Context, req *connect.Request[
 			return nil, connect.NewError(connect.CodeUnimplemented, errors.New("tx v2 in development"))
 		}
 
-		txhash, err = common.ToTxHash(req.Msg.Transactionv2)
-		if err != nil {
-			return nil, fmt.Errorf("could not get tx hash of signed tx: %v", err)
+		// Use consistent hashing by marshaling to bytes first, matching abci.go behavior
+		txBytes, marshalErr := proto.Marshal(req.Msg.Transactionv2)
+		if marshalErr != nil {
+			return nil, fmt.Errorf("could not marshal transaction: %v", marshalErr)
 		}
+		txhash = common.ToTxHashFromBytes(txBytes)
 
 		err = c.core.validateV2Transaction(ctx, c.core.cache.currentHeight.Load(), req.Msg.Transactionv2)
 		if err != nil {
 			return nil, fmt.Errorf("transactionv2 validation failed: %v", err)
 		}
 	} else {
-		txhash, err = common.ToTxHash(req.Msg.Transaction)
-	}
-	if err != nil {
-		return nil, fmt.Errorf("could not get tx hash of signed tx: %v", err)
+		// Use consistent hashing by marshaling to bytes first, matching abci.go behavior
+		txBytes, marshalErr := proto.Marshal(req.Msg.Transaction)
+		if marshalErr != nil {
+			return nil, fmt.Errorf("could not marshal transaction: %v", marshalErr)
+		}
+		txhash = common.ToTxHashFromBytes(txBytes)
 	}
 
 	// create mempool transaction for both v1 and v2
@@ -635,7 +645,7 @@ func (c *CoreService) getBlockRpcFallback(ctx context.Context, height int64) (*c
 			return nil, err
 		}
 		txs = append(txs, &v1.Transaction{
-			Hash:        c.core.toTxHash(&transaction),
+			Hash:        common.ToTxHashFromBytes(tx),
 			BlockHash:   block.BlockID.Hash.String(),
 			ChainId:     c.core.config.GenesisFile.ChainID,
 			Height:      block.Block.Height,
@@ -1254,8 +1264,8 @@ func (c *CoreService) generateStreamURLs(cid string) []string {
 	// If storage service is available, use it to get rendezvous nodes
 	if c.storageService != nil {
 		req := &storagev1.GetRendezvousNodesRequest{
-			Cid:                cid,
-			ReplicationFactor:  3, // Default replication factor
+			Cid:               cid,
+			ReplicationFactor: 3, // Default replication factor
 		}
 
 		resp, err := c.storageService.GetRendezvousNodes(ctx, connect.NewRequest(req))
@@ -1300,4 +1310,32 @@ func (c *CoreService) generateStreamURLs(cid string) []string {
 		return []string{url}
 	}
 	return []string{}
+}
+
+func (c *CoreService) GetSlashAttestation(ctx context.Context, req *connect.Request[v1.GetSlashAttestationRequest]) (*connect.Response[v1.GetSlashAttestationResponse], error) {
+	signature, err := c.core.getSlashAttestation(ctx, req.Msg.Data)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	return connect.NewResponse(&v1.GetSlashAttestationResponse{
+		Signature: signature,
+		Endpoint:  c.core.config.NodeEndpoint,
+	}), nil
+}
+
+func (c *CoreService) GetSlashAttestations(ctx context.Context, req *connect.Request[v1.GetSlashAttestationsRequest]) (*connect.Response[v1.GetSlashAttestationsResponse], error) {
+	attestations, err := c.core.gatherSlashAttestations(ctx, req.Msg.Request.Data)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	attestationResponses := make([]*v1.GetSlashAttestationResponse, 0, len(attestations))
+	for endpoint, signature := range attestations {
+		attestationResponses = append(
+			attestationResponses,
+			&v1.GetSlashAttestationResponse{Signature: signature, Endpoint: endpoint},
+		)
+	}
+	return connect.NewResponse(&v1.GetSlashAttestationsResponse{
+		Attestations: attestationResponses,
+	}), nil
 }
