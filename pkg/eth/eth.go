@@ -772,7 +772,7 @@ func DecodeSlashProposalArguments(callData string) (address ethcommon.Address, a
 	data := ethcommon.FromHex(callData)
 	method, ok := parsedABI.Methods["slash"]
 	if !ok {
-		return address, amount, errors.New("failed to get slash method DelegateManager contract")
+		return address, amount, errors.New("failed to get slash method from DelegateManager contract")
 	}
 
 	// Decode arguments
