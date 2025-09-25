@@ -12,9 +12,9 @@ import (
 )
 
 const getActiveRewards = `-- name: GetActiveRewards :many
-select distinct on (address) id, address, index, tx_hash, sender, reward_id, name, amount, claim_authorities, raw_message, block_height, created_at, updated_at
+select id, address, index, tx_hash, sender, reward_id, name, amount, claim_authorities, raw_message, block_height, created_at, updated_at
 from core_rewards
-order by address, block_height desc
+order by address
 `
 
 func (q *Queries) GetActiveRewards(ctx context.Context) ([]CoreReward, error) {
@@ -1768,14 +1768,14 @@ func (q *Queries) GetRewardByTxHash(ctx context.Context, txHash string) (CoreRew
 }
 
 const getRewardsByClaimAuthority = `-- name: GetRewardsByClaimAuthority :many
-select distinct on (address) id, address, index, tx_hash, sender, reward_id, name, amount, claim_authorities, raw_message, block_height, created_at, updated_at
+select id, address, index, tx_hash, sender, reward_id, name, amount, claim_authorities, raw_message, block_height, created_at, updated_at
 from core_rewards
-where $1 = any(claim_authorities)
-order by address, block_height desc
+where $1::text = any(claim_authorities)
+order by address
 `
 
-func (q *Queries) GetRewardsByClaimAuthority(ctx context.Context, claimAuthorities []string) ([]CoreReward, error) {
-	rows, err := q.db.Query(ctx, getRewardsByClaimAuthority, claimAuthorities)
+func (q *Queries) GetRewardsByClaimAuthority(ctx context.Context, dollar_1 string) ([]CoreReward, error) {
+	rows, err := q.db.Query(ctx, getRewardsByClaimAuthority, dollar_1)
 	if err != nil {
 		return nil, err
 	}

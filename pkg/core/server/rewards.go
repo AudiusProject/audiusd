@@ -231,18 +231,15 @@ func (s *Server) finalizeUpdateReward(ctx context.Context, req *abcitypes.Finali
 	}
 
 	qtx := s.getDb()
-	if err := qtx.InsertCoreReward(ctx, db.InsertCoreRewardParams{
-		TxHash:           txhash,
-		Index:            messageIndex,
+	if err := qtx.UpdateCoreReward(ctx, db.UpdateCoreRewardParams{
 		Address:          updateReward.Address,
-		Sender:           signer, // Use verified signer instead of passed sender
 		Name:             updateReward.Name,
 		Amount:           int64(updateReward.Amount),
 		ClaimAuthorities: claimAuthorities,
 		RawMessage:       rawMessage,
 		BlockHeight:      req.Height,
 	}); err != nil {
-		return fmt.Errorf("failed to insert reward update: %w", err)
+		return fmt.Errorf("failed to update reward: %w", err)
 	}
 
 	return nil
@@ -274,22 +271,9 @@ func (s *Server) finalizeDeleteReward(ctx context.Context, req *abcitypes.Finali
 		return fmt.Errorf("signer %s not authorized to delete reward %s", signer, deleteReward.Address)
 	}
 
-	// Marshal the raw message
-	rawMessage, err := proto.Marshal(deleteReward)
-	if err != nil {
-		return fmt.Errorf("failed to marshal delete reward message: %w", err)
-	}
-
 	qtx := s.getDb()
-	if err := qtx.InsertCoreReward(ctx, db.InsertCoreRewardParams{
-		TxHash:      txhash,
-		Index:       messageIndex,
-		Address:     deleteReward.Address,
-		Sender:      signer, // Use verified signer instead of passed sender
-		RawMessage:  rawMessage,
-		BlockHeight: req.Height,
-	}); err != nil {
-		return fmt.Errorf("failed to insert reward deletion: %w", err)
+	if err := qtx.DeleteCoreReward(ctx, deleteReward.Address); err != nil {
+		return fmt.Errorf("failed to delete reward: %w", err)
 	}
 
 	return nil

@@ -390,7 +390,9 @@ message Reward {
   repeated ClaimAuthority claim_authorities = 4;
 }
 
-message GetRewardsRequest {}
+message GetRewardsRequest {
+  string claim_authority = 1;
+}
 
 message GetRewardsResponse {
   repeated GetRewardResponse rewards = 1;
@@ -526,6 +528,7 @@ message DeleteReward {
 
 message GetRewardRequest {
   string address = 1; // The deployed reward address
+  string txhash = 2;
 }
 
 message GetRewardResponse {

@@ -5,18 +5,16 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
-	corev1 "github.com/AudiusProject/audiusd/pkg/api/core/v1"
+	v1 "github.com/AudiusProject/audiusd/pkg/api/core/v1"
 	"github.com/AudiusProject/audiusd/pkg/common"
 	"github.com/AudiusProject/audiusd/pkg/integration_tests/utils"
+	"github.com/AudiusProject/audiusd/pkg/sdk"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/google/uuid"
-	protob "google.golang.org/protobuf/proto"
 )
 
 func TestRewardsLifecycle(t *testing.T) {
 	ctx := context.Background()
-	sdk := utils.DiscoveryOne
+	nodeUrl := utils.DiscoveryOneRPC
 
 	// Wait for devnet to be ready
 	if err := utils.WaitForDevnetHealthy(30 * time.Second); err != nil {
@@ -25,326 +23,216 @@ func TestRewardsLifecycle(t *testing.T) {
 
 	t.Run("Create, Update, Delete, and Query Rewards", func(t *testing.T) {
 		// Generate random private keys for claim authorities
-		oracleKey, err := crypto.GenerateKey()
+		creatorKey, err := crypto.GenerateKey()
 		if err != nil {
 			t.Fatalf("Failed to generate oracle key: %v", err)
 		}
-		oracleAddr := common.PrivKeyToAddress(oracleKey)
+		creatorAddr := common.PrivKeyToAddress(creatorKey)
+		creator := sdk.NewAudiusdSDK(nodeUrl)
+		creator.SetPrivKey(creatorKey)
 
-		backupKey, err := crypto.GenerateKey()
+		updaterKey, err := crypto.GenerateKey()
 		if err != nil {
 			t.Fatalf("Failed to generate backup key: %v", err)
 		}
-		backupAddr := common.PrivKeyToAddress(backupKey)
+		updaterAddr := common.PrivKeyToAddress(updaterKey)
+		updater := sdk.NewAudiusdSDK(nodeUrl)
+		updater.SetPrivKey(updaterKey)
 
-		// Get current block height for deadline
-		status, err := sdk.Core.GetStatus(ctx, connect.NewRequest(&corev1.GetStatusRequest{}))
+		deleterKey, err := crypto.GenerateKey()
 		if err != nil {
-			t.Fatalf("Failed to get status: %v", err)
+			t.Fatalf("Failed to generate backup key: %v", err)
 		}
-		currentHeight := status.Msg.ChainInfo.CurrentHeight
-		deadlineHeight := currentHeight + 100 // 100 block buffer
+		deleterAddr := common.PrivKeyToAddress(deleterKey)
+		deleter := sdk.NewAudiusdSDK(nodeUrl)
+		deleter.SetPrivKey(deleterKey)
 
-		// Test 1: Create a new reward using SendTransaction
-		rewardID := "test_reward_" + uuid.NewString()
+		t.Logf("creator key: %s", creatorAddr)
+		t.Logf("updater key: %s", updaterAddr)
+		t.Logf("deleter key: %s", deleterAddr)
 
-		// Create the reward with signature and deadline
-		createReward := &corev1.CreateReward{
-			RewardId: rewardID,
-			Name:     "Test Integration Reward",
-			Amount:   100,
-			ClaimAuthorities: []*corev1.ClaimAuthority{
-				{
-					Address: oracleAddr,
-					Name:    "Test Oracle",
-				},
-				{
-					Address: backupAddr,
-					Name:    "Backup Oracle",
-				},
+		// Step 2: Create three rewards with different claim authorities
+		// Reward 1: creator and updater as claim authorities
+		reward1, err := creator.Rewards.CreateReward(ctx, &v1.CreateReward{
+			RewardId: "reward1",
+			Name:     "Test Reward 1",
+			Amount:   1000,
+			ClaimAuthorities: []*v1.ClaimAuthority{
+				{Address: creatorAddr, Name: "Creator"},
+				{Address: updaterAddr, Name: "Updater"},
 			},
-			DeadlineBlockHeight: deadlineHeight,
-		}
-
-		// Sign the create reward using deterministic signing
-		createSignature, err := common.SignCreateReward(oracleKey, createReward)
+			DeadlineBlockHeight: 999999,
+		})
 		if err != nil {
-			t.Fatalf("Failed to sign create reward: %v", err)
+			t.Fatalf("Failed to create reward1: %v", err)
 		}
-		createReward.Signature = createSignature
+		t.Logf("Created reward1 at address: %s", reward1.Address)
 
-		// Create the reward message
-		createRewardMsg := &corev1.RewardMessage{
-			Action: &corev1.RewardMessage_Create{
-				Create: createReward,
+		// Reward 2: only creator as claim authority
+		reward2, err := creator.Rewards.CreateReward(ctx, &v1.CreateReward{
+			RewardId: "reward2",
+			Name:     "Test Reward 2",
+			Amount:   2000,
+			ClaimAuthorities: []*v1.ClaimAuthority{
+				{Address: creatorAddr, Name: "Creator"},
 			},
+			DeadlineBlockHeight: 999999,
+		})
+		if err != nil {
+			t.Fatalf("Failed to create reward2: %v", err)
 		}
+		t.Logf("Created reward2 at address: %s", reward2.Address)
 
-		// Create signed transaction
-		signedTx := &corev1.SignedTransaction{
-			Transaction: &corev1.SignedTransaction_Reward{
-				Reward: createRewardMsg,
+		// Reward 3: creator and deleter as claim authorities
+		reward3, err := creator.Rewards.CreateReward(ctx, &v1.CreateReward{
+			RewardId: "reward3",
+			Name:     "Test Reward 3",
+			Amount:   3000,
+			ClaimAuthorities: []*v1.ClaimAuthority{
+				{Address: creatorAddr, Name: "Creator"},
+				{Address: deleterAddr, Name: "Deleter"},
 			},
-		}
-
-		// Send via SendTransaction
-		createRes, err := sdk.Core.SendTransaction(ctx, connect.NewRequest(&corev1.SendTransactionRequest{
-			Transaction: signedTx,
-		}))
+			DeadlineBlockHeight: 999999,
+		})
 		if err != nil {
-			t.Fatalf("Failed to create reward: %v", err)
+			t.Fatalf("Failed to create reward3: %v", err)
 		}
+		t.Logf("Created reward3 at address: %s", reward3.Address)
 
-		createTxHash := createRes.Msg.Transaction.Hash
-		t.Logf("Created reward transaction hash: %s", createTxHash)
-
-		// Wait for transaction to be processed
-		time.Sleep(3 * time.Second)
-
-		// Test 2: Query all rewards to find our created reward
-		getAllRewardsRes, err := sdk.Core.GetRewards(ctx, connect.NewRequest(&corev1.GetRewardsRequest{}))
+		// Step 3: Query GetRewards for each user and verify correct rewards show up
+		// Creator should see all three rewards
+		creatorRewards, err := creator.Rewards.GetRewards(ctx, creatorAddr)
 		if err != nil {
-			t.Fatalf("Failed to get all rewards: %v", err)
+			t.Fatalf("Failed to get creator rewards: %v", err)
 		}
+		if len(creatorRewards.Rewards) != 3 {
+			t.Fatalf("Expected creator to have 3 rewards, got %d", len(creatorRewards.Rewards))
+		}
+		t.Logf("Creator has %d rewards", len(creatorRewards.Rewards))
 
-		var createdReward *corev1.GetRewardResponse
-		for _, reward := range getAllRewardsRes.Msg.Rewards {
-			if reward.RewardId == rewardID {
-				createdReward = reward
-				break
-			}
-		}
-
-		if createdReward == nil {
-			t.Fatalf("Created reward not found in rewards list")
-		}
-
-		rewardAddress := createdReward.Address
-		t.Logf("Created reward at address: %s", rewardAddress)
-
-		// Verify reward details
-		if createdReward.Name != "Test Integration Reward" {
-			t.Errorf("Expected name 'Test Integration Reward', got %s", createdReward.Name)
-		}
-		if createdReward.Amount != 100 {
-			t.Errorf("Expected amount 100, got %d", createdReward.Amount)
-		}
-		if len(createdReward.ClaimAuthorities) != 2 {
-			t.Errorf("Expected 2 claim authorities, got %d", len(createdReward.ClaimAuthorities))
-		}
-
-		// Test 3: Query specific reward by address
-		getRewardRes, err := sdk.Core.GetReward(ctx, connect.NewRequest(&corev1.GetRewardRequest{
-			Address: rewardAddress,
-		}))
+		// Updater should see only reward1
+		updaterRewards, err := updater.Rewards.GetRewards(ctx, updaterAddr)
 		if err != nil {
-			t.Fatalf("Failed to get specific reward: %v", err)
+			t.Fatalf("Failed to get updater rewards: %v", err)
 		}
-
-		if getRewardRes.Msg.RewardId != rewardID {
-			t.Errorf("Expected reward_id %s, got %s", rewardID, getRewardRes.Msg.RewardId)
+		if len(updaterRewards.Rewards) != 1 {
+			t.Fatalf("Expected updater to have 1 reward, got %d", len(updaterRewards.Rewards))
 		}
+		if updaterRewards.Rewards[0].Address != reward1.Address {
+			t.Fatalf("Expected updater to have reward1, got different reward")
+		}
+		t.Logf("Updater has %d rewards", len(updaterRewards.Rewards))
 
-		// Test 4: Update the reward using SendTransaction
-		// Generate a new authority key
-		newAuthorityKey, err := crypto.GenerateKey()
+		// Deleter should see only reward3
+		deleterRewards, err := deleter.Rewards.GetRewards(ctx, deleterAddr)
 		if err != nil {
-			t.Fatalf("Failed to generate new authority key: %v", err)
+			t.Fatalf("Failed to get deleter rewards: %v", err)
 		}
-		newAuthorityAddr := common.PrivKeyToAddress(newAuthorityKey)
+		if len(deleterRewards.Rewards) != 1 {
+			t.Fatalf("Expected deleter to have 1 reward, got %d", len(deleterRewards.Rewards))
+		}
+		if deleterRewards.Rewards[0].Address != reward3.Address {
+			t.Fatalf("Expected deleter to have reward3, got different reward")
+		}
+		t.Logf("Deleter has %d rewards", len(deleterRewards.Rewards))
 
-		// Create the update reward with signature and deadline
-		updateReward := &corev1.UpdateReward{
-			Address: rewardAddress,
-			Name:    "Updated Test Reward",
-			Amount:  150,
-			ClaimAuthorities: []*corev1.ClaimAuthority{
-				{
-					Address: oracleAddr,
-					Name:    "Test Oracle",
-				},
-				{
-					Address: newAuthorityAddr,
-					Name:    "New Authority",
-				},
+		// Step 4: Updater updates reward1 to remove creator as claim authority
+		_, err = updater.Rewards.UpdateReward(ctx, &v1.UpdateReward{
+			Address: reward1.Address,
+			Name:    "Test Reward 1 Updated",
+			Amount:  1500,
+			ClaimAuthorities: []*v1.ClaimAuthority{
+				{Address: updaterAddr, Name: "Updater"},
 			},
-			DeadlineBlockHeight: deadlineHeight,
-		}
-
-		// Sign the update reward using deterministic signing
-		updateSignature, err := common.SignUpdateReward(oracleKey, updateReward)
+			DeadlineBlockHeight: 999999,
+		})
 		if err != nil {
-			t.Fatalf("Failed to sign update reward: %v", err)
+			t.Fatalf("Failed to update reward1: %v", err)
 		}
-		updateReward.Signature = updateSignature
+		t.Logf("Updated reward1 to remove creator")
 
-		// Create the reward message
-		updateRewardMsg := &corev1.RewardMessage{
-			Action: &corev1.RewardMessage_Update{
-				Update: updateReward,
+		// Step 5: Test GetRewards after update
+		// Creator should now see only 2 rewards (reward2 and reward3)
+		creatorRewardsAfterUpdate, err := creator.Rewards.GetRewards(ctx, creatorAddr)
+		if err != nil {
+			t.Fatalf("Failed to get creator rewards after update: %v", err)
+		}
+		if len(creatorRewardsAfterUpdate.Rewards) != 2 {
+			t.Fatalf("Expected creator to have 2 rewards after update, got %d", len(creatorRewardsAfterUpdate.Rewards))
+		}
+		t.Logf("Creator has %d rewards after update", len(creatorRewardsAfterUpdate.Rewards))
+
+		// Updater should still see 1 reward (the updated reward1)
+		updaterRewardsAfterUpdate, err := updater.Rewards.GetRewards(ctx, updaterAddr)
+		if err != nil {
+			t.Fatalf("Failed to get updater rewards after update: %v", err)
+		}
+		if len(updaterRewardsAfterUpdate.Rewards) != 1 {
+			t.Fatalf("Expected updater to have 1 reward after update, got %d", len(updaterRewardsAfterUpdate.Rewards))
+		}
+		if updaterRewardsAfterUpdate.Rewards[0].Address != reward1.Address {
+			t.Fatalf("Expected updater to still have reward1 after update")
+		}
+		t.Logf("Updater has %d rewards after update", len(updaterRewardsAfterUpdate.Rewards))
+
+		// Step 6: Creator attempts to update reward1 and should fail
+		// First, let's verify what the current state of reward1 is
+		currentReward1, err := creator.Rewards.GetReward(ctx, reward1.Address)
+		if err != nil {
+			t.Fatalf("Failed to get current reward1 state: %v", err)
+		}
+		t.Logf("Current reward1 claim authorities: %v", currentReward1.ClaimAuthorities)
+		t.Logf("Creator address: %s", creatorAddr)
+		t.Logf("Updater address: %s", updaterAddr)
+
+		_, err = creator.Rewards.UpdateReward(ctx, &v1.UpdateReward{
+			Address: reward1.Address,
+			Name:    "Should Fail Update",
+			Amount:  9999,
+			ClaimAuthorities: []*v1.ClaimAuthority{
+				{Address: creatorAddr, Name: "Creator"},
 			},
+			DeadlineBlockHeight: 999999,
+		})
+		if err == nil {
+			t.Fatalf("Expected creator update to fail, but it succeeded")
 		}
+		t.Logf("Creator correctly failed to update reward1: %v", err)
 
-		// Create signed transaction
-		updateSignedTx := &corev1.SignedTransaction{
-			Transaction: &corev1.SignedTransaction_Reward{
-				Reward: updateRewardMsg,
-			},
-		}
-
-		// Send via SendTransaction
-		updateRes, err := sdk.Core.SendTransaction(ctx, connect.NewRequest(&corev1.SendTransactionRequest{
-			Transaction: updateSignedTx,
-		}))
+		// Step 7: Deleter deletes reward3
+		_, err = deleter.Rewards.DeleteReward(ctx, &v1.DeleteReward{
+			Address:             reward3.Address,
+			DeadlineBlockHeight: 999999,
+		})
 		if err != nil {
-			t.Fatalf("Failed to update reward: %v", err)
+			t.Fatalf("Failed to delete reward3: %v", err)
 		}
+		t.Logf("Deleter successfully deleted reward3")
 
-		updateTxHash := updateRes.Msg.Transaction.Hash
-		t.Logf("Updated reward transaction hash: %s", updateTxHash)
-
-		// Wait for update to be processed
-		time.Sleep(3 * time.Second)
-
-		// Verify update was applied
-		getUpdatedRewardRes, err := sdk.Core.GetReward(ctx, connect.NewRequest(&corev1.GetRewardRequest{
-			Address: rewardAddress,
-		}))
+		// Step 8: Verify reward3 no longer shows up in relevant GetRewards queries
+		// Creator should now see only 1 reward (reward2)
+		creatorRewardsAfterDelete, err := creator.Rewards.GetRewards(ctx, creatorAddr)
 		if err != nil {
-			t.Fatalf("Failed to get updated reward: %v", err)
+			t.Fatalf("Failed to get creator rewards after delete: %v", err)
 		}
+		if len(creatorRewardsAfterDelete.Rewards) != 1 {
+			t.Fatalf("Expected creator to have 1 reward after delete, got %d", len(creatorRewardsAfterDelete.Rewards))
+		}
+		if creatorRewardsAfterDelete.Rewards[0].Address != reward2.Address {
+			t.Fatalf("Expected creator to have only reward2 after delete")
+		}
+		t.Logf("Creator has %d rewards after delete", len(creatorRewardsAfterDelete.Rewards))
 
-		if getUpdatedRewardRes.Msg.Name != "Updated Test Reward" {
-			t.Errorf("Expected updated name 'Updated Test Reward', got %s", getUpdatedRewardRes.Msg.Name)
-		}
-		if getUpdatedRewardRes.Msg.Amount != 150 {
-			t.Errorf("Expected updated amount 150, got %d", getUpdatedRewardRes.Msg.Amount)
-		}
-
-		// Test 5: Delete the reward using SendTransaction
-		// Create the delete reward with signature and deadline
-		deleteReward := &corev1.DeleteReward{
-			Address:             rewardAddress,
-			DeadlineBlockHeight: deadlineHeight,
-		}
-
-		// Sign the delete reward using deterministic signing
-		deleteSignature, err := common.SignDeleteReward(oracleKey, deleteReward)
+		// Deleter should now see 0 rewards
+		deleterRewardsAfterDelete, err := deleter.Rewards.GetRewards(ctx, deleterAddr)
 		if err != nil {
-			t.Fatalf("Failed to sign delete reward: %v", err)
+			t.Fatalf("Failed to get deleter rewards after delete: %v", err)
 		}
-		deleteReward.Signature = deleteSignature
-
-		// Create the reward message
-		deleteRewardMsg := &corev1.RewardMessage{
-			Action: &corev1.RewardMessage_Delete{
-				Delete: deleteReward,
-			},
+		if len(deleterRewardsAfterDelete.Rewards) != 0 {
+			t.Fatalf("Expected deleter to have 0 rewards after delete, got %d", len(deleterRewardsAfterDelete.Rewards))
 		}
+		t.Logf("Deleter has %d rewards after delete", len(deleterRewardsAfterDelete.Rewards))
 
-		// Create signed transaction
-		deleteSignedTx := &corev1.SignedTransaction{
-			Transaction: &corev1.SignedTransaction_Reward{
-				Reward: deleteRewardMsg,
-			},
-		}
-
-		// Send via SendTransaction
-		deleteRes, err := sdk.Core.SendTransaction(ctx, connect.NewRequest(&corev1.SendTransactionRequest{
-			Transaction: deleteSignedTx,
-		}))
-		if err != nil {
-			t.Fatalf("Failed to delete reward: %v", err)
-		}
-
-		deleteTxHash := deleteRes.Msg.Transaction.Hash
-		t.Logf("Deleted reward transaction hash: %s", deleteTxHash)
-
-		// Test 6: Verify transactions can be retrieved
-		time.Sleep(2 * time.Second)
-
-		// Just verify that the transactions can be retrieved by hash
-		createTxRes, err := sdk.Core.GetTransaction(ctx, connect.NewRequest(&corev1.GetTransactionRequest{
-			TxHash: createTxHash,
-		}))
-		if err != nil {
-			t.Fatalf("Failed to retrieve create transaction: %v", err)
-		}
-		if createTxRes.Msg.Transaction.Hash != createTxHash {
-			t.Errorf("Expected create transaction hash %s, got %s", createTxHash, createTxRes.Msg.Transaction.Hash)
-		}
-
-		updateTxRes, err := sdk.Core.GetTransaction(ctx, connect.NewRequest(&corev1.GetTransactionRequest{
-			TxHash: updateTxHash,
-		}))
-		if err != nil {
-			t.Fatalf("Failed to retrieve update transaction: %v", err)
-		}
-		if updateTxRes.Msg.Transaction.Hash != updateTxHash {
-			t.Errorf("Expected update transaction hash %s, got %s", updateTxHash, updateTxRes.Msg.Transaction.Hash)
-		}
-
-		deleteTxRes, err := sdk.Core.GetTransaction(ctx, connect.NewRequest(&corev1.GetTransactionRequest{
-			TxHash: deleteTxHash,
-		}))
-		if err != nil {
-			t.Fatalf("Failed to retrieve delete transaction: %v", err)
-		}
-		if deleteTxRes.Msg.Transaction.Hash != deleteTxHash {
-			t.Errorf("Expected delete transaction hash %s, got %s", deleteTxHash, deleteTxRes.Msg.Transaction.Hash)
-		}
-
-		t.Logf("Successfully completed rewards lifecycle test")
-		t.Logf("Create TX: %s", createTxHash)
-		t.Logf("Update TX: %s", updateTxHash)
-		t.Logf("Delete TX: %s", deleteTxHash)
-		t.Logf("Reward Address: %s", rewardAddress)
-	})
-}
-
-func TestRewardTransactionHashing(t *testing.T) {
-	t.Run("should produce consistent transaction hashes", func(t *testing.T) {
-		rewardMsg := &corev1.RewardMessage{
-			Action: &corev1.RewardMessage_Create{
-				Create: &corev1.CreateReward{
-					RewardId: "test_hash_reward",
-					Name:     "Test Hash Reward",
-					Amount:   50,
-					ClaimAuthorities: []*corev1.ClaimAuthority{
-						{
-							Address: "0x1234567890123456789012345678901234567890",
-							Name:    "Test Oracle",
-						},
-					},
-				},
-			},
-		}
-
-		tx := &corev1.SignedTransaction{
-			Signature: "test_signature",
-			Transaction: &corev1.SignedTransaction_Reward{
-				Reward: rewardMsg,
-			},
-		}
-
-		// Marshal twice to ensure consistent hashing
-		txBytes1, err := protob.Marshal(tx)
-		if err != nil {
-			t.Fatalf("Failed to marshal transaction first time: %v", err)
-		}
-
-		txBytes2, err := protob.Marshal(tx)
-		if err != nil {
-			t.Fatalf("Failed to marshal transaction second time: %v", err)
-		}
-
-		txHash1 := common.ToTxHashFromBytes(txBytes1)
-		txHash2 := common.ToTxHashFromBytes(txBytes2)
-
-		if txHash1 != txHash2 {
-			t.Errorf("Transaction hashes should be consistent: %s != %s", txHash1, txHash2)
-		}
-
-		t.Logf("Consistent transaction hash: %s", txHash1)
+		t.Logf("All reward lifecycle tests passed successfully!")
 	})
 }

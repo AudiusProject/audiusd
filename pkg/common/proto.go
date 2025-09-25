@@ -23,7 +23,7 @@ func ToTxHashFromBytes(txBytes []byte) TxHash {
 // WARNING: This should only be used when sending transactions and not replaying them
 // as it's not safe from protobuf evolution. The message structure could change
 // between versions, making signatures invalid.
-func ProtoTxSign(pkey *ecdsa.PrivateKey, msg proto.Message) (string, error) {
+func ProtoSign(pkey *ecdsa.PrivateKey, msg proto.Message) (string, error) {
 	msgBytes, err := proto.Marshal(msg)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal protobuf message: %w", err)
@@ -36,7 +36,7 @@ func ProtoTxSign(pkey *ecdsa.PrivateKey, msg proto.Message) (string, error) {
 // WARNING: This should only be used when verifying transactions and not replaying them
 // as it's not safe from protobuf evolution. The message structure could change
 // between versions, making signatures invalid.
-func ProtoTxRecover(msg proto.Message, signature string) (string, error) {
+func ProtoRecover(msg proto.Message, signature string) (string, error) {
 	msgBytes, err := proto.Marshal(msg)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal protobuf message: %w", err)

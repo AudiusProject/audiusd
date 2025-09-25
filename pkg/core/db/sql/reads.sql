@@ -579,12 +579,12 @@ where address in (
 order by block_height desc;
 
 -- name: GetActiveRewards :many
-select distinct on (address) *
+select *
 from core_rewards
-order by address, block_height desc;
+order by address;
 
 -- name: GetRewardsByClaimAuthority :many
-select distinct on (address) *
+select *
 from core_rewards
-where $1 = any(claim_authorities)
-order by address, block_height desc;
+where $1::text = any(claim_authorities)
+order by address;
