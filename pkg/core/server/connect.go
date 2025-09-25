@@ -781,12 +781,10 @@ func (c *CoreService) GetRewardAttestation(ctx context.Context, req *connect.Req
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("eth_recipient_address is required"))
 	}
 
-	// Support both legacy reward_id and new reward_address parameters
+	// Only support programmatic rewards via reward_address
 	rewardAddress := req.Msg.RewardAddress
-	legacyRewardID := req.Msg.RewardId
-
-	if rewardAddress == "" && legacyRewardID == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("either reward_address or reward_id is required"))
+	if rewardAddress == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("reward_address is required"))
 	}
 
 	specifier := req.Msg.Specifier
@@ -806,72 +804,41 @@ func (c *CoreService) GetRewardAttestation(ctx context.Context, req *connect.Req
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("amount is required"))
 	}
 
-	var rewardID string
-
-	if rewardAddress != "" {
-		// New flow: Get programmatic reward by deployed address
-		reward, err := c.core.db.GetReward(ctx, rewardAddress)
-		if err != nil {
-			return nil, connect.NewError(connect.CodeNotFound, errors.New("programmatic reward not found"))
-		}
-
-		// Verify oracle is authorized to sign for this reward
-		authorized := false
-		for _, auth := range reward.ClaimAuthorities {
-			if auth == oracleAddress {
-				authorized = true
-				break
-			}
-		}
-		if !authorized {
-			return nil, connect.NewError(connect.CodePermissionDenied, errors.New("oracle not authorized for this programmatic reward"))
-		}
-
-		rewardID = reward.RewardID
-	} else {
-		// Legacy flow: Use hardcoded rewards system
-		rewardID = legacyRewardID
-
-		// For legacy rewards, check if it exists in hardcoded rewards
-		found := false
-		for _, hardcodedReward := range c.core.rewards.Rewards {
-			if hardcodedReward.RewardId == legacyRewardID {
-				found = true
-				// For legacy rewards, check if oracle is in the claim authorities
-				authorized := false
-				for _, auth := range hardcodedReward.ClaimAuthorities {
-					if auth.Address == oracleAddress {
-						authorized = true
-						break
-					}
-				}
-				if !authorized {
-					return nil, connect.NewError(connect.CodePermissionDenied, errors.New("oracle not authorized for this legacy reward"))
-				}
-				break
-			}
-		}
-		if !found {
-			return nil, connect.NewError(connect.CodeNotFound, errors.New("legacy reward not found"))
-		}
+	// Get programmatic reward by deployed address
+	reward, err := c.core.db.GetReward(ctx, rewardAddress)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeNotFound, errors.New("programmatic reward not found"))
 	}
 
+	// Verify oracle is authorized to sign for this reward
+	authorized := false
+	for _, auth := range reward.ClaimAuthorities {
+		if auth == oracleAddress {
+			authorized = true
+			break
+		}
+	}
+	if !authorized {
+		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("oracle not authorized for this programmatic reward"))
+	}
+
+	rewardID := reward.RewardID
+
+	// For programmatic rewards, include the reward address in signature validation
+	// to prevent cross-reward attestation attacks
+	err = c.authenticateProgrammaticRewardClaim(ethRecipientAddress, amount, rewardAddress, rewardID, specifier, oracleAddress, signature)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeUnauthenticated, err)
+	}
+
+	// For attestation generation, we still use the legacy claim structure
+	// since the reward claiming infrastructure expects the original format
 	claim := rewards.RewardClaim{
 		RecipientEthAddress:       ethRecipientAddress,
 		Amount:                    amount,
 		RewardID:                  rewardID,
 		Specifier:                 specifier,
 		AntiAbuseOracleEthAddress: oracleAddress,
-	}
-
-	err := c.core.rewards.Validate(claim)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
-	}
-
-	err = c.core.rewards.Authenticate(claim, signature)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeUnauthenticated, err)
 	}
 
 	_, attestation, err := c.core.rewards.Attest(claim)
@@ -1184,4 +1151,45 @@ func (c *CoreService) DeleteReward(ctx context.Context, req *connect.Request[v1.
 		Address: req.Msg.Address,
 		TxHash:  sendResp.Msg.Transaction.Hash,
 	}), nil
+}
+
+// authenticateProgrammaticRewardClaim validates signatures for programmatic rewards
+// using the structured protobuf signature format to prevent cross-reward attacks
+func (c *CoreService) authenticateProgrammaticRewardClaim(
+	ethRecipientAddress string,
+	amount uint64,
+	rewardAddress string,
+	rewardID string,
+	specifier string,
+	oracleAddress string,
+	signature string,
+) error {
+	// Create the structured signature payload that oracles must sign
+	sigPayload := &v1.RewardAttestationSignature{
+		EthRecipientAddress: ethRecipientAddress,
+		Amount:              amount,
+		RewardAddress:       rewardAddress, // This prevents cross-reward signature reuse
+		RewardId:            rewardID,
+		Specifier:           specifier,
+		OracleAddress:       oracleAddress,
+	}
+
+	// Marshal the protobuf message to get the bytes that should be signed
+	sigBytes, err := proto.Marshal(sigPayload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal signature payload: %w", err)
+	}
+
+	// Verify the signature using the common signature verification
+	_, sender, err := common.EthRecover(signature, sigBytes)
+	if err != nil {
+		return fmt.Errorf("failed to recover signature: %w", err)
+	}
+
+	// Ensure the recovered address matches the oracle address
+	if !strings.EqualFold(sender, oracleAddress) {
+		return fmt.Errorf("signature sender %s does not match oracle address %s", sender, oracleAddress)
+	}
+
+	return nil
 }

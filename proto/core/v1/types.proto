@@ -597,3 +597,12 @@ message DeleteRewardResponse {
   string address = 1;
   string tx_hash = 2;
 }
+
+message RewardAttestationSignature {
+  string eth_recipient_address = 1;
+  uint64 amount = 2;
+  string reward_address = 3; // Binds signature to specific deployed reward
+  string reward_id = 4;
+  string specifier = 5;
+  string oracle_address = 6;
+}

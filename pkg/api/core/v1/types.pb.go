@@ -5169,6 +5169,93 @@ func (x *DeleteRewardResponse) GetTxHash() string {
 	return ""
 }
 
+type RewardAttestationSignature struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	EthRecipientAddress string `protobuf:"bytes,1,opt,name=eth_recipient_address,json=ethRecipientAddress,proto3" json:"eth_recipient_address,omitempty"`
+	Amount              uint64 `protobuf:"varint,2,opt,name=amount,proto3" json:"amount,omitempty"`
+	RewardAddress       string `protobuf:"bytes,3,opt,name=reward_address,json=rewardAddress,proto3" json:"reward_address,omitempty"` // Binds signature to specific deployed reward
+	RewardId            string `protobuf:"bytes,4,opt,name=reward_id,json=rewardId,proto3" json:"reward_id,omitempty"`
+	Specifier           string `protobuf:"bytes,5,opt,name=specifier,proto3" json:"specifier,omitempty"`
+	OracleAddress       string `protobuf:"bytes,6,opt,name=oracle_address,json=oracleAddress,proto3" json:"oracle_address,omitempty"`
+}
+
+func (x *RewardAttestationSignature) Reset() {
+	*x = RewardAttestationSignature{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_core_v1_types_proto_msgTypes[81]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *RewardAttestationSignature) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RewardAttestationSignature) ProtoMessage() {}
+
+func (x *RewardAttestationSignature) ProtoReflect() protoreflect.Message {
+	mi := &file_core_v1_types_proto_msgTypes[81]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RewardAttestationSignature.ProtoReflect.Descriptor instead.
+func (*RewardAttestationSignature) Descriptor() ([]byte, []int) {
+	return file_core_v1_types_proto_rawDescGZIP(), []int{81}
+}
+
+func (x *RewardAttestationSignature) GetEthRecipientAddress() string {
+	if x != nil {
+		return x.EthRecipientAddress
+	}
+	return ""
+}
+
+func (x *RewardAttestationSignature) GetAmount() uint64 {
+	if x != nil {
+		return x.Amount
+	}
+	return 0
+}
+
+func (x *RewardAttestationSignature) GetRewardAddress() string {
+	if x != nil {
+		return x.RewardAddress
+	}
+	return ""
+}
+
+func (x *RewardAttestationSignature) GetRewardId() string {
+	if x != nil {
+		return x.RewardId
+	}
+	return ""
+}
+
+func (x *RewardAttestationSignature) GetSpecifier() string {
+	if x != nil {
+		return x.Specifier
+	}
+	return ""
+}
+
+func (x *RewardAttestationSignature) GetOracleAddress() string {
+	if x != nil {
+		return x.OracleAddress
+	}
+	return ""
+}
+
 type GetStatusResponse_ProcessInfo struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -5189,7 +5276,7 @@ type GetStatusResponse_ProcessInfo struct {
 func (x *GetStatusResponse_ProcessInfo) Reset() {
 	*x = GetStatusResponse_ProcessInfo{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_core_v1_types_proto_msgTypes[81]
+		mi := &file_core_v1_types_proto_msgTypes[82]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -5202,7 +5289,7 @@ func (x *GetStatusResponse_ProcessInfo) String() string {
 func (*GetStatusResponse_ProcessInfo) ProtoMessage() {}
 
 func (x *GetStatusResponse_ProcessInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_core_v1_types_proto_msgTypes[81]
+	mi := &file_core_v1_types_proto_msgTypes[82]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5302,7 +5389,7 @@ type GetStatusResponse_NodeInfo struct {
 func (x *GetStatusResponse_NodeInfo) Reset() {
 	*x = GetStatusResponse_NodeInfo{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_core_v1_types_proto_msgTypes[82]
+		mi := &file_core_v1_types_proto_msgTypes[83]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -5315,7 +5402,7 @@ func (x *GetStatusResponse_NodeInfo) String() string {
 func (*GetStatusResponse_NodeInfo) ProtoMessage() {}
 
 func (x *GetStatusResponse_NodeInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_core_v1_types_proto_msgTypes[82]
+	mi := &file_core_v1_types_proto_msgTypes[83]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5373,7 +5460,7 @@ type GetStatusResponse_ChainInfo struct {
 func (x *GetStatusResponse_ChainInfo) Reset() {
 	*x = GetStatusResponse_ChainInfo{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_core_v1_types_proto_msgTypes[83]
+		mi := &file_core_v1_types_proto_msgTypes[84]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -5386,7 +5473,7 @@ func (x *GetStatusResponse_ChainInfo) String() string {
 func (*GetStatusResponse_ChainInfo) ProtoMessage() {}
 
 func (x *GetStatusResponse_ChainInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_core_v1_types_proto_msgTypes[83]
+	mi := &file_core_v1_types_proto_msgTypes[84]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5446,7 +5533,7 @@ type GetStatusResponse_SyncInfo struct {
 func (x *GetStatusResponse_SyncInfo) Reset() {
 	*x = GetStatusResponse_SyncInfo{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_core_v1_types_proto_msgTypes[84]
+		mi := &file_core_v1_types_proto_msgTypes[85]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -5459,7 +5546,7 @@ func (x *GetStatusResponse_SyncInfo) String() string {
 func (*GetStatusResponse_SyncInfo) ProtoMessage() {}
 
 func (x *GetStatusResponse_SyncInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_core_v1_types_proto_msgTypes[84]
+	mi := &file_core_v1_types_proto_msgTypes[85]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5532,7 +5619,7 @@ type GetStatusResponse_PruningInfo struct {
 func (x *GetStatusResponse_PruningInfo) Reset() {
 	*x = GetStatusResponse_PruningInfo{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_core_v1_types_proto_msgTypes[85]
+		mi := &file_core_v1_types_proto_msgTypes[86]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -5545,7 +5632,7 @@ func (x *GetStatusResponse_PruningInfo) String() string {
 func (*GetStatusResponse_PruningInfo) ProtoMessage() {}
 
 func (x *GetStatusResponse_PruningInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_core_v1_types_proto_msgTypes[85]
+	mi := &file_core_v1_types_proto_msgTypes[86]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5599,7 +5686,7 @@ type GetStatusResponse_ResourceInfo struct {
 func (x *GetStatusResponse_ResourceInfo) Reset() {
 	*x = GetStatusResponse_ResourceInfo{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_core_v1_types_proto_msgTypes[86]
+		mi := &file_core_v1_types_proto_msgTypes[87]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -5612,7 +5699,7 @@ func (x *GetStatusResponse_ResourceInfo) String() string {
 func (*GetStatusResponse_ResourceInfo) ProtoMessage() {}
 
 func (x *GetStatusResponse_ResourceInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_core_v1_types_proto_msgTypes[86]
+	mi := &file_core_v1_types_proto_msgTypes[87]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5691,7 +5778,7 @@ type GetStatusResponse_MempoolInfo struct {
 func (x *GetStatusResponse_MempoolInfo) Reset() {
 	*x = GetStatusResponse_MempoolInfo{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_core_v1_types_proto_msgTypes[87]
+		mi := &file_core_v1_types_proto_msgTypes[88]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -5704,7 +5791,7 @@ func (x *GetStatusResponse_MempoolInfo) String() string {
 func (*GetStatusResponse_MempoolInfo) ProtoMessage() {}
 
 func (x *GetStatusResponse_MempoolInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_core_v1_types_proto_msgTypes[87]
+	mi := &file_core_v1_types_proto_msgTypes[88]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5760,7 +5847,7 @@ type GetStatusResponse_SnapshotInfo struct {
 func (x *GetStatusResponse_SnapshotInfo) Reset() {
 	*x = GetStatusResponse_SnapshotInfo{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_core_v1_types_proto_msgTypes[88]
+		mi := &file_core_v1_types_proto_msgTypes[89]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -5773,7 +5860,7 @@ func (x *GetStatusResponse_SnapshotInfo) String() string {
 func (*GetStatusResponse_SnapshotInfo) ProtoMessage() {}
 
 func (x *GetStatusResponse_SnapshotInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_core_v1_types_proto_msgTypes[88]
+	mi := &file_core_v1_types_proto_msgTypes[89]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5814,7 +5901,7 @@ type GetStatusResponse_PeerInfo struct {
 func (x *GetStatusResponse_PeerInfo) Reset() {
 	*x = GetStatusResponse_PeerInfo{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_core_v1_types_proto_msgTypes[89]
+		mi := &file_core_v1_types_proto_msgTypes[90]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -5827,7 +5914,7 @@ func (x *GetStatusResponse_PeerInfo) String() string {
 func (*GetStatusResponse_PeerInfo) ProtoMessage() {}
 
 func (x *GetStatusResponse_PeerInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_core_v1_types_proto_msgTypes[89]
+	mi := &file_core_v1_types_proto_msgTypes[90]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5865,7 +5952,7 @@ type GetStatusResponse_ProcessInfo_ProcessStateInfo struct {
 func (x *GetStatusResponse_ProcessInfo_ProcessStateInfo) Reset() {
 	*x = GetStatusResponse_ProcessInfo_ProcessStateInfo{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_core_v1_types_proto_msgTypes[90]
+		mi := &file_core_v1_types_proto_msgTypes[91]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -5878,7 +5965,7 @@ func (x *GetStatusResponse_ProcessInfo_ProcessStateInfo) String() string {
 func (*GetStatusResponse_ProcessInfo_ProcessStateInfo) ProtoMessage() {}
 
 func (x *GetStatusResponse_ProcessInfo_ProcessStateInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_core_v1_types_proto_msgTypes[90]
+	mi := &file_core_v1_types_proto_msgTypes[91]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5945,7 +6032,7 @@ type GetStatusResponse_SyncInfo_StateSyncInfo struct {
 func (x *GetStatusResponse_SyncInfo_StateSyncInfo) Reset() {
 	*x = GetStatusResponse_SyncInfo_StateSyncInfo{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_core_v1_types_proto_msgTypes[91]
+		mi := &file_core_v1_types_proto_msgTypes[92]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -5958,7 +6045,7 @@ func (x *GetStatusResponse_SyncInfo_StateSyncInfo) String() string {
 func (*GetStatusResponse_SyncInfo_StateSyncInfo) ProtoMessage() {}
 
 func (x *GetStatusResponse_SyncInfo_StateSyncInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_core_v1_types_proto_msgTypes[91]
+	mi := &file_core_v1_types_proto_msgTypes[92]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6032,7 +6119,7 @@ type GetStatusResponse_SyncInfo_BlockSyncInfo struct {
 func (x *GetStatusResponse_SyncInfo_BlockSyncInfo) Reset() {
 	*x = GetStatusResponse_SyncInfo_BlockSyncInfo{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_core_v1_types_proto_msgTypes[92]
+		mi := &file_core_v1_types_proto_msgTypes[93]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -6045,7 +6132,7 @@ func (x *GetStatusResponse_SyncInfo_BlockSyncInfo) String() string {
 func (*GetStatusResponse_SyncInfo_BlockSyncInfo) ProtoMessage() {}
 
 func (x *GetStatusResponse_SyncInfo_BlockSyncInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_core_v1_types_proto_msgTypes[92]
+	mi := &file_core_v1_types_proto_msgTypes[93]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6123,7 +6210,7 @@ type GetStatusResponse_PeerInfo_Peer struct {
 func (x *GetStatusResponse_PeerInfo_Peer) Reset() {
 	*x = GetStatusResponse_PeerInfo_Peer{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_core_v1_types_proto_msgTypes[93]
+		mi := &file_core_v1_types_proto_msgTypes[94]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -6136,7 +6223,7 @@ func (x *GetStatusResponse_PeerInfo_Peer) String() string {
 func (*GetStatusResponse_PeerInfo_Peer) ProtoMessage() {}
 
 func (x *GetStatusResponse_PeerInfo_Peer) ProtoReflect() protoreflect.Message {
-	mi := &file_core_v1_types_proto_msgTypes[93]
+	mi := &file_core_v1_types_proto_msgTypes[94]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7119,11 +7206,26 @@ var file_core_v1_types_proto_rawDesc = []byte{
 	0x77, 0x61, 0x72, 0x64, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x18, 0x0a, 0x07,
 	0x61, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x61,
 	0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x12, 0x17, 0x0a, 0x07, 0x74, 0x78, 0x5f, 0x68, 0x61, 0x73,
-	0x68, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x74, 0x78, 0x48, 0x61, 0x73, 0x68, 0x42,
-	0x32, 0x5a, 0x30, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x41, 0x75,
-	0x64, 0x69, 0x75, 0x73, 0x50, 0x72, 0x6f, 0x6a, 0x65, 0x63, 0x74, 0x2f, 0x61, 0x75, 0x64, 0x69,
-	0x75, 0x73, 0x64, 0x2f, 0x70, 0x6b, 0x67, 0x2f, 0x61, 0x70, 0x69, 0x2f, 0x63, 0x6f, 0x72, 0x65,
-	0x2f, 0x76, 0x31, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x68, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x74, 0x78, 0x48, 0x61, 0x73, 0x68, 0x22,
+	0xf1, 0x01, 0x0a, 0x1a, 0x52, 0x65, 0x77, 0x61, 0x72, 0x64, 0x41, 0x74, 0x74, 0x65, 0x73, 0x74,
+	0x61, 0x74, 0x69, 0x6f, 0x6e, 0x53, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65, 0x12, 0x32,
+	0x0a, 0x15, 0x65, 0x74, 0x68, 0x5f, 0x72, 0x65, 0x63, 0x69, 0x70, 0x69, 0x65, 0x6e, 0x74, 0x5f,
+	0x61, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x13, 0x65,
+	0x74, 0x68, 0x52, 0x65, 0x63, 0x69, 0x70, 0x69, 0x65, 0x6e, 0x74, 0x41, 0x64, 0x64, 0x72, 0x65,
+	0x73, 0x73, 0x12, 0x16, 0x0a, 0x06, 0x61, 0x6d, 0x6f, 0x75, 0x6e, 0x74, 0x18, 0x02, 0x20, 0x01,
+	0x28, 0x04, 0x52, 0x06, 0x61, 0x6d, 0x6f, 0x75, 0x6e, 0x74, 0x12, 0x25, 0x0a, 0x0e, 0x72, 0x65,
+	0x77, 0x61, 0x72, 0x64, 0x5f, 0x61, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x18, 0x03, 0x20, 0x01,
+	0x28, 0x09, 0x52, 0x0d, 0x72, 0x65, 0x77, 0x61, 0x72, 0x64, 0x41, 0x64, 0x64, 0x72, 0x65, 0x73,
+	0x73, 0x12, 0x1b, 0x0a, 0x09, 0x72, 0x65, 0x77, 0x61, 0x72, 0x64, 0x5f, 0x69, 0x64, 0x18, 0x04,
+	0x20, 0x01, 0x28, 0x09, 0x52, 0x08, 0x72, 0x65, 0x77, 0x61, 0x72, 0x64, 0x49, 0x64, 0x12, 0x1c,
+	0x0a, 0x09, 0x73, 0x70, 0x65, 0x63, 0x69, 0x66, 0x69, 0x65, 0x72, 0x18, 0x05, 0x20, 0x01, 0x28,
+	0x09, 0x52, 0x09, 0x73, 0x70, 0x65, 0x63, 0x69, 0x66, 0x69, 0x65, 0x72, 0x12, 0x25, 0x0a, 0x0e,
+	0x6f, 0x72, 0x61, 0x63, 0x6c, 0x65, 0x5f, 0x61, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x18, 0x06,
+	0x20, 0x01, 0x28, 0x09, 0x52, 0x0d, 0x6f, 0x72, 0x61, 0x63, 0x6c, 0x65, 0x41, 0x64, 0x64, 0x72,
+	0x65, 0x73, 0x73, 0x42, 0x32, 0x5a, 0x30, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f,
+	0x6d, 0x2f, 0x41, 0x75, 0x64, 0x69, 0x75, 0x73, 0x50, 0x72, 0x6f, 0x6a, 0x65, 0x63, 0x74, 0x2f,
+	0x61, 0x75, 0x64, 0x69, 0x75, 0x73, 0x64, 0x2f, 0x70, 0x6b, 0x67, 0x2f, 0x61, 0x70, 0x69, 0x2f,
+	0x63, 0x6f, 0x72, 0x65, 0x2f, 0x76, 0x31, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -7139,7 +7241,7 @@ func file_core_v1_types_proto_rawDescGZIP() []byte {
 }
 
 var file_core_v1_types_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_core_v1_types_proto_msgTypes = make([]protoimpl.MessageInfo, 95)
+var file_core_v1_types_proto_msgTypes = make([]protoimpl.MessageInfo, 96)
 var file_core_v1_types_proto_goTypes = []interface{}{
 	(GetStatusResponse_ProcessInfo_ProcessState)(0),     // 0: core.v1.GetStatusResponse.ProcessInfo.ProcessState
 	(GetStatusResponse_SyncInfo_StateSyncInfo_Phase)(0), // 1: core.v1.GetStatusResponse.SyncInfo.StateSyncInfo.Phase
@@ -7224,59 +7326,60 @@ var file_core_v1_types_proto_goTypes = []interface{}{
 	(*UpdateRewardResponse)(nil),                           // 80: core.v1.UpdateRewardResponse
 	(*DeleteRewardRequest)(nil),                            // 81: core.v1.DeleteRewardRequest
 	(*DeleteRewardResponse)(nil),                           // 82: core.v1.DeleteRewardResponse
-	(*GetStatusResponse_ProcessInfo)(nil),                  // 83: core.v1.GetStatusResponse.ProcessInfo
-	(*GetStatusResponse_NodeInfo)(nil),                     // 84: core.v1.GetStatusResponse.NodeInfo
-	(*GetStatusResponse_ChainInfo)(nil),                    // 85: core.v1.GetStatusResponse.ChainInfo
-	(*GetStatusResponse_SyncInfo)(nil),                     // 86: core.v1.GetStatusResponse.SyncInfo
-	(*GetStatusResponse_PruningInfo)(nil),                  // 87: core.v1.GetStatusResponse.PruningInfo
-	(*GetStatusResponse_ResourceInfo)(nil),                 // 88: core.v1.GetStatusResponse.ResourceInfo
-	(*GetStatusResponse_MempoolInfo)(nil),                  // 89: core.v1.GetStatusResponse.MempoolInfo
-	(*GetStatusResponse_SnapshotInfo)(nil),                 // 90: core.v1.GetStatusResponse.SnapshotInfo
-	(*GetStatusResponse_PeerInfo)(nil),                     // 91: core.v1.GetStatusResponse.PeerInfo
-	(*GetStatusResponse_ProcessInfo_ProcessStateInfo)(nil), // 92: core.v1.GetStatusResponse.ProcessInfo.ProcessStateInfo
-	(*GetStatusResponse_SyncInfo_StateSyncInfo)(nil),       // 93: core.v1.GetStatusResponse.SyncInfo.StateSyncInfo
-	(*GetStatusResponse_SyncInfo_BlockSyncInfo)(nil),       // 94: core.v1.GetStatusResponse.SyncInfo.BlockSyncInfo
-	(*GetStatusResponse_PeerInfo_Peer)(nil),                // 95: core.v1.GetStatusResponse.PeerInfo.Peer
-	nil,                                                    // 96: core.v1.GetBlocksResponse.BlocksEntry
-	(*v1beta1.Transaction)(nil),                            // 97: core.v1beta1.Transaction
-	(*v1beta1.TransactionReceipt)(nil),                     // 98: core.v1beta1.TransactionReceipt
-	(*timestamppb.Timestamp)(nil),                          // 99: google.protobuf.Timestamp
-	(*v1beta11.NewReleaseMessage)(nil),                     // 100: ddex.v1beta1.NewReleaseMessage
-	(*v1beta11.Party)(nil),                                 // 101: ddex.v1beta1.Party
-	(*v1beta11.Resource)(nil),                              // 102: ddex.v1beta1.Resource
-	(*v1beta11.Release)(nil),                               // 103: ddex.v1beta1.Release
-	(*v1beta11.Deal)(nil),                                  // 104: ddex.v1beta1.Deal
-	(*v1beta11.MeadMessage)(nil),                           // 105: ddex.v1beta1.MeadMessage
-	(*v1beta11.PieMessage)(nil),                            // 106: ddex.v1beta1.PieMessage
+	(*RewardAttestationSignature)(nil),                     // 83: core.v1.RewardAttestationSignature
+	(*GetStatusResponse_ProcessInfo)(nil),                  // 84: core.v1.GetStatusResponse.ProcessInfo
+	(*GetStatusResponse_NodeInfo)(nil),                     // 85: core.v1.GetStatusResponse.NodeInfo
+	(*GetStatusResponse_ChainInfo)(nil),                    // 86: core.v1.GetStatusResponse.ChainInfo
+	(*GetStatusResponse_SyncInfo)(nil),                     // 87: core.v1.GetStatusResponse.SyncInfo
+	(*GetStatusResponse_PruningInfo)(nil),                  // 88: core.v1.GetStatusResponse.PruningInfo
+	(*GetStatusResponse_ResourceInfo)(nil),                 // 89: core.v1.GetStatusResponse.ResourceInfo
+	(*GetStatusResponse_MempoolInfo)(nil),                  // 90: core.v1.GetStatusResponse.MempoolInfo
+	(*GetStatusResponse_SnapshotInfo)(nil),                 // 91: core.v1.GetStatusResponse.SnapshotInfo
+	(*GetStatusResponse_PeerInfo)(nil),                     // 92: core.v1.GetStatusResponse.PeerInfo
+	(*GetStatusResponse_ProcessInfo_ProcessStateInfo)(nil), // 93: core.v1.GetStatusResponse.ProcessInfo.ProcessStateInfo
+	(*GetStatusResponse_SyncInfo_StateSyncInfo)(nil),       // 94: core.v1.GetStatusResponse.SyncInfo.StateSyncInfo
+	(*GetStatusResponse_SyncInfo_BlockSyncInfo)(nil),       // 95: core.v1.GetStatusResponse.SyncInfo.BlockSyncInfo
+	(*GetStatusResponse_PeerInfo_Peer)(nil),                // 96: core.v1.GetStatusResponse.PeerInfo.Peer
+	nil,                                                    // 97: core.v1.GetBlocksResponse.BlocksEntry
+	(*v1beta1.Transaction)(nil),                            // 98: core.v1beta1.Transaction
+	(*v1beta1.TransactionReceipt)(nil),                     // 99: core.v1beta1.TransactionReceipt
+	(*timestamppb.Timestamp)(nil),                          // 100: google.protobuf.Timestamp
+	(*v1beta11.NewReleaseMessage)(nil),                     // 101: ddex.v1beta1.NewReleaseMessage
+	(*v1beta11.Party)(nil),                                 // 102: ddex.v1beta1.Party
+	(*v1beta11.Resource)(nil),                              // 103: ddex.v1beta1.Resource
+	(*v1beta11.Release)(nil),                               // 104: ddex.v1beta1.Release
+	(*v1beta11.Deal)(nil),                                  // 105: ddex.v1beta1.Deal
+	(*v1beta11.MeadMessage)(nil),                           // 106: ddex.v1beta1.MeadMessage
+	(*v1beta11.PieMessage)(nil),                            // 107: ddex.v1beta1.PieMessage
 }
 var file_core_v1_types_proto_depIdxs = []int32{
-	84,  // 0: core.v1.GetStatusResponse.node_info:type_name -> core.v1.GetStatusResponse.NodeInfo
-	85,  // 1: core.v1.GetStatusResponse.chain_info:type_name -> core.v1.GetStatusResponse.ChainInfo
-	86,  // 2: core.v1.GetStatusResponse.sync_info:type_name -> core.v1.GetStatusResponse.SyncInfo
-	87,  // 3: core.v1.GetStatusResponse.pruning_info:type_name -> core.v1.GetStatusResponse.PruningInfo
-	88,  // 4: core.v1.GetStatusResponse.resource_info:type_name -> core.v1.GetStatusResponse.ResourceInfo
-	89,  // 5: core.v1.GetStatusResponse.mempool_info:type_name -> core.v1.GetStatusResponse.MempoolInfo
-	91,  // 6: core.v1.GetStatusResponse.peers:type_name -> core.v1.GetStatusResponse.PeerInfo
-	90,  // 7: core.v1.GetStatusResponse.snapshot_info:type_name -> core.v1.GetStatusResponse.SnapshotInfo
-	83,  // 8: core.v1.GetStatusResponse.process_info:type_name -> core.v1.GetStatusResponse.ProcessInfo
+	85,  // 0: core.v1.GetStatusResponse.node_info:type_name -> core.v1.GetStatusResponse.NodeInfo
+	86,  // 1: core.v1.GetStatusResponse.chain_info:type_name -> core.v1.GetStatusResponse.ChainInfo
+	87,  // 2: core.v1.GetStatusResponse.sync_info:type_name -> core.v1.GetStatusResponse.SyncInfo
+	88,  // 3: core.v1.GetStatusResponse.pruning_info:type_name -> core.v1.GetStatusResponse.PruningInfo
+	89,  // 4: core.v1.GetStatusResponse.resource_info:type_name -> core.v1.GetStatusResponse.ResourceInfo
+	90,  // 5: core.v1.GetStatusResponse.mempool_info:type_name -> core.v1.GetStatusResponse.MempoolInfo
+	92,  // 6: core.v1.GetStatusResponse.peers:type_name -> core.v1.GetStatusResponse.PeerInfo
+	91,  // 7: core.v1.GetStatusResponse.snapshot_info:type_name -> core.v1.GetStatusResponse.SnapshotInfo
+	84,  // 8: core.v1.GetStatusResponse.process_info:type_name -> core.v1.GetStatusResponse.ProcessInfo
 	24,  // 9: core.v1.GetBlockResponse.block:type_name -> core.v1.Block
-	96,  // 10: core.v1.GetBlocksResponse.blocks:type_name -> core.v1.GetBlocksResponse.BlocksEntry
+	97,  // 10: core.v1.GetBlocksResponse.blocks:type_name -> core.v1.GetBlocksResponse.BlocksEntry
 	25,  // 11: core.v1.GetTransactionResponse.transaction:type_name -> core.v1.Transaction
 	26,  // 12: core.v1.SendTransactionRequest.transaction:type_name -> core.v1.SignedTransaction
-	97,  // 13: core.v1.SendTransactionRequest.transactionv2:type_name -> core.v1beta1.Transaction
+	98,  // 13: core.v1.SendTransactionRequest.transactionv2:type_name -> core.v1beta1.Transaction
 	25,  // 14: core.v1.SendTransactionResponse.transaction:type_name -> core.v1.Transaction
-	98,  // 15: core.v1.SendTransactionResponse.transaction_receipt:type_name -> core.v1beta1.TransactionReceipt
+	99,  // 15: core.v1.SendTransactionResponse.transaction_receipt:type_name -> core.v1beta1.TransactionReceipt
 	26,  // 16: core.v1.ForwardTransactionRequest.transaction:type_name -> core.v1.SignedTransaction
-	97,  // 17: core.v1.ForwardTransactionRequest.transactionv2:type_name -> core.v1beta1.Transaction
+	98,  // 17: core.v1.ForwardTransactionRequest.transactionv2:type_name -> core.v1beta1.Transaction
 	37,  // 18: core.v1.GetRegistrationAttestationRequest.registration:type_name -> core.v1.ValidatorRegistration
 	37,  // 19: core.v1.GetRegistrationAttestationResponse.registration:type_name -> core.v1.ValidatorRegistration
 	38,  // 20: core.v1.GetDeregistrationAttestationRequest.deregistration:type_name -> core.v1.ValidatorDeregistration
 	38,  // 21: core.v1.GetDeregistrationAttestationResponse.deregistration:type_name -> core.v1.ValidatorDeregistration
-	99,  // 22: core.v1.Block.timestamp:type_name -> google.protobuf.Timestamp
+	100, // 22: core.v1.Block.timestamp:type_name -> google.protobuf.Timestamp
 	25,  // 23: core.v1.Block.transactions:type_name -> core.v1.Transaction
 	26,  // 24: core.v1.Transaction.transaction:type_name -> core.v1.SignedTransaction
-	99,  // 25: core.v1.Transaction.timestamp:type_name -> google.protobuf.Timestamp
-	97,  // 26: core.v1.Transaction.transactionv2:type_name -> core.v1beta1.Transaction
+	100, // 25: core.v1.Transaction.timestamp:type_name -> google.protobuf.Timestamp
+	98,  // 26: core.v1.Transaction.transactionv2:type_name -> core.v1beta1.Transaction
 	27,  // 27: core.v1.SignedTransaction.plays:type_name -> core.v1.TrackPlays
 	28,  // 28: core.v1.SignedTransaction.validator_registration:type_name -> core.v1.ValidatorRegistrationLegacy
 	30,  // 29: core.v1.SignedTransaction.sla_rollup:type_name -> core.v1.SlaRollup
@@ -7285,29 +7388,29 @@ var file_core_v1_types_proto_depIdxs = []int32{
 	34,  // 32: core.v1.SignedTransaction.storage_proof:type_name -> core.v1.StorageProof
 	35,  // 33: core.v1.SignedTransaction.storage_proof_verification:type_name -> core.v1.StorageProofVerification
 	36,  // 34: core.v1.SignedTransaction.attestation:type_name -> core.v1.Attestation
-	100, // 35: core.v1.SignedTransaction.release:type_name -> ddex.v1beta1.NewReleaseMessage
+	101, // 35: core.v1.SignedTransaction.release:type_name -> ddex.v1beta1.NewReleaseMessage
 	67,  // 36: core.v1.SignedTransaction.reward:type_name -> core.v1.RewardMessage
 	29,  // 37: core.v1.TrackPlays.plays:type_name -> core.v1.TrackPlay
-	99,  // 38: core.v1.TrackPlay.timestamp:type_name -> google.protobuf.Timestamp
-	99,  // 39: core.v1.SlaRollup.timestamp:type_name -> google.protobuf.Timestamp
+	100, // 38: core.v1.TrackPlay.timestamp:type_name -> google.protobuf.Timestamp
+	100, // 39: core.v1.SlaRollup.timestamp:type_name -> google.protobuf.Timestamp
 	31,  // 40: core.v1.SlaRollup.reports:type_name -> core.v1.SlaNodeReport
 	37,  // 41: core.v1.Attestation.validator_registration:type_name -> core.v1.ValidatorRegistration
 	38,  // 42: core.v1.Attestation.validator_deregistration:type_name -> core.v1.ValidatorDeregistration
 	41,  // 43: core.v1.GetStoredSnapshotsResponse.snapshots:type_name -> core.v1.SnapshotMetadata
 	42,  // 44: core.v1.Reward.claim_authorities:type_name -> core.v1.ClaimAuthority
 	72,  // 45: core.v1.GetRewardsResponse.rewards:type_name -> core.v1.GetRewardResponse
-	99,  // 46: core.v1.SlashRecommendation.start:type_name -> google.protobuf.Timestamp
-	99,  // 47: core.v1.SlashRecommendation.end:type_name -> google.protobuf.Timestamp
+	100, // 46: core.v1.SlashRecommendation.start:type_name -> google.protobuf.Timestamp
+	100, // 47: core.v1.SlashRecommendation.end:type_name -> google.protobuf.Timestamp
 	48,  // 48: core.v1.GetSlashAttestationRequest.data:type_name -> core.v1.SlashRecommendation
 	49,  // 49: core.v1.GetSlashAttestationsRequest.request:type_name -> core.v1.GetSlashAttestationRequest
 	50,  // 50: core.v1.GetSlashAttestationsResponse.attestations:type_name -> core.v1.GetSlashAttestationResponse
-	100, // 51: core.v1.GetERNResponse.ern:type_name -> ddex.v1beta1.NewReleaseMessage
-	101, // 52: core.v1.GetPartyResponse.party:type_name -> ddex.v1beta1.Party
-	102, // 53: core.v1.GetResourceResponse.resource:type_name -> ddex.v1beta1.Resource
-	103, // 54: core.v1.GetReleaseResponse.release:type_name -> ddex.v1beta1.Release
-	104, // 55: core.v1.GetDealResponse.deal:type_name -> ddex.v1beta1.Deal
-	105, // 56: core.v1.GetMEADResponse.mead:type_name -> ddex.v1beta1.MeadMessage
-	106, // 57: core.v1.GetPIEResponse.pie:type_name -> ddex.v1beta1.PieMessage
+	101, // 51: core.v1.GetERNResponse.ern:type_name -> ddex.v1beta1.NewReleaseMessage
+	102, // 52: core.v1.GetPartyResponse.party:type_name -> ddex.v1beta1.Party
+	103, // 53: core.v1.GetResourceResponse.resource:type_name -> ddex.v1beta1.Resource
+	104, // 54: core.v1.GetReleaseResponse.release:type_name -> ddex.v1beta1.Release
+	105, // 55: core.v1.GetDealResponse.deal:type_name -> ddex.v1beta1.Deal
+	106, // 56: core.v1.GetMEADResponse.mead:type_name -> ddex.v1beta1.MeadMessage
+	107, // 57: core.v1.GetPIEResponse.pie:type_name -> ddex.v1beta1.PieMessage
 	68,  // 58: core.v1.RewardMessage.create:type_name -> core.v1.CreateReward
 	69,  // 59: core.v1.RewardMessage.update:type_name -> core.v1.UpdateReward
 	70,  // 60: core.v1.RewardMessage.delete:type_name -> core.v1.DeleteReward
@@ -7318,30 +7421,30 @@ var file_core_v1_types_proto_depIdxs = []int32{
 	76,  // 65: core.v1.RewardEvent.deleted:type_name -> core.v1.RewardDeletedEvent
 	42,  // 66: core.v1.CreateRewardRequest.claim_authorities:type_name -> core.v1.ClaimAuthority
 	42,  // 67: core.v1.UpdateRewardRequest.claim_authorities:type_name -> core.v1.ClaimAuthority
-	92,  // 68: core.v1.GetStatusResponse.ProcessInfo.abci:type_name -> core.v1.GetStatusResponse.ProcessInfo.ProcessStateInfo
-	92,  // 69: core.v1.GetStatusResponse.ProcessInfo.registry_bridge:type_name -> core.v1.GetStatusResponse.ProcessInfo.ProcessStateInfo
-	92,  // 70: core.v1.GetStatusResponse.ProcessInfo.echo_server:type_name -> core.v1.GetStatusResponse.ProcessInfo.ProcessStateInfo
-	92,  // 71: core.v1.GetStatusResponse.ProcessInfo.sync_tasks:type_name -> core.v1.GetStatusResponse.ProcessInfo.ProcessStateInfo
-	92,  // 72: core.v1.GetStatusResponse.ProcessInfo.peer_manager:type_name -> core.v1.GetStatusResponse.ProcessInfo.ProcessStateInfo
-	92,  // 73: core.v1.GetStatusResponse.ProcessInfo.data_companion:type_name -> core.v1.GetStatusResponse.ProcessInfo.ProcessStateInfo
-	92,  // 74: core.v1.GetStatusResponse.ProcessInfo.cache:type_name -> core.v1.GetStatusResponse.ProcessInfo.ProcessStateInfo
-	92,  // 75: core.v1.GetStatusResponse.ProcessInfo.log_sync:type_name -> core.v1.GetStatusResponse.ProcessInfo.ProcessStateInfo
-	92,  // 76: core.v1.GetStatusResponse.ProcessInfo.state_sync:type_name -> core.v1.GetStatusResponse.ProcessInfo.ProcessStateInfo
-	92,  // 77: core.v1.GetStatusResponse.ProcessInfo.mempool_cache:type_name -> core.v1.GetStatusResponse.ProcessInfo.ProcessStateInfo
-	93,  // 78: core.v1.GetStatusResponse.SyncInfo.state_sync:type_name -> core.v1.GetStatusResponse.SyncInfo.StateSyncInfo
-	94,  // 79: core.v1.GetStatusResponse.SyncInfo.block_sync:type_name -> core.v1.GetStatusResponse.SyncInfo.BlockSyncInfo
+	93,  // 68: core.v1.GetStatusResponse.ProcessInfo.abci:type_name -> core.v1.GetStatusResponse.ProcessInfo.ProcessStateInfo
+	93,  // 69: core.v1.GetStatusResponse.ProcessInfo.registry_bridge:type_name -> core.v1.GetStatusResponse.ProcessInfo.ProcessStateInfo
+	93,  // 70: core.v1.GetStatusResponse.ProcessInfo.echo_server:type_name -> core.v1.GetStatusResponse.ProcessInfo.ProcessStateInfo
+	93,  // 71: core.v1.GetStatusResponse.ProcessInfo.sync_tasks:type_name -> core.v1.GetStatusResponse.ProcessInfo.ProcessStateInfo
+	93,  // 72: core.v1.GetStatusResponse.ProcessInfo.peer_manager:type_name -> core.v1.GetStatusResponse.ProcessInfo.ProcessStateInfo
+	93,  // 73: core.v1.GetStatusResponse.ProcessInfo.data_companion:type_name -> core.v1.GetStatusResponse.ProcessInfo.ProcessStateInfo
+	93,  // 74: core.v1.GetStatusResponse.ProcessInfo.cache:type_name -> core.v1.GetStatusResponse.ProcessInfo.ProcessStateInfo
+	93,  // 75: core.v1.GetStatusResponse.ProcessInfo.log_sync:type_name -> core.v1.GetStatusResponse.ProcessInfo.ProcessStateInfo
+	93,  // 76: core.v1.GetStatusResponse.ProcessInfo.state_sync:type_name -> core.v1.GetStatusResponse.ProcessInfo.ProcessStateInfo
+	93,  // 77: core.v1.GetStatusResponse.ProcessInfo.mempool_cache:type_name -> core.v1.GetStatusResponse.ProcessInfo.ProcessStateInfo
+	94,  // 78: core.v1.GetStatusResponse.SyncInfo.state_sync:type_name -> core.v1.GetStatusResponse.SyncInfo.StateSyncInfo
+	95,  // 79: core.v1.GetStatusResponse.SyncInfo.block_sync:type_name -> core.v1.GetStatusResponse.SyncInfo.BlockSyncInfo
 	41,  // 80: core.v1.GetStatusResponse.SnapshotInfo.snapshots:type_name -> core.v1.SnapshotMetadata
-	95,  // 81: core.v1.GetStatusResponse.PeerInfo.peers:type_name -> core.v1.GetStatusResponse.PeerInfo.Peer
+	96,  // 81: core.v1.GetStatusResponse.PeerInfo.peers:type_name -> core.v1.GetStatusResponse.PeerInfo.Peer
 	0,   // 82: core.v1.GetStatusResponse.ProcessInfo.ProcessStateInfo.state:type_name -> core.v1.GetStatusResponse.ProcessInfo.ProcessState
-	99,  // 83: core.v1.GetStatusResponse.ProcessInfo.ProcessStateInfo.started_at:type_name -> google.protobuf.Timestamp
-	99,  // 84: core.v1.GetStatusResponse.ProcessInfo.ProcessStateInfo.completed_at:type_name -> google.protobuf.Timestamp
+	100, // 83: core.v1.GetStatusResponse.ProcessInfo.ProcessStateInfo.started_at:type_name -> google.protobuf.Timestamp
+	100, // 84: core.v1.GetStatusResponse.ProcessInfo.ProcessStateInfo.completed_at:type_name -> google.protobuf.Timestamp
 	1,   // 85: core.v1.GetStatusResponse.SyncInfo.StateSyncInfo.phase:type_name -> core.v1.GetStatusResponse.SyncInfo.StateSyncInfo.Phase
 	41,  // 86: core.v1.GetStatusResponse.SyncInfo.StateSyncInfo.snapshot:type_name -> core.v1.SnapshotMetadata
-	99,  // 87: core.v1.GetStatusResponse.SyncInfo.StateSyncInfo.started_at:type_name -> google.protobuf.Timestamp
-	99,  // 88: core.v1.GetStatusResponse.SyncInfo.StateSyncInfo.completed_at:type_name -> google.protobuf.Timestamp
-	84,  // 89: core.v1.GetStatusResponse.SyncInfo.BlockSyncInfo.head_source:type_name -> core.v1.GetStatusResponse.NodeInfo
-	99,  // 90: core.v1.GetStatusResponse.SyncInfo.BlockSyncInfo.started_at:type_name -> google.protobuf.Timestamp
-	99,  // 91: core.v1.GetStatusResponse.SyncInfo.BlockSyncInfo.completed_at:type_name -> google.protobuf.Timestamp
+	100, // 87: core.v1.GetStatusResponse.SyncInfo.StateSyncInfo.started_at:type_name -> google.protobuf.Timestamp
+	100, // 88: core.v1.GetStatusResponse.SyncInfo.StateSyncInfo.completed_at:type_name -> google.protobuf.Timestamp
+	85,  // 89: core.v1.GetStatusResponse.SyncInfo.BlockSyncInfo.head_source:type_name -> core.v1.GetStatusResponse.NodeInfo
+	100, // 90: core.v1.GetStatusResponse.SyncInfo.BlockSyncInfo.started_at:type_name -> google.protobuf.Timestamp
+	100, // 91: core.v1.GetStatusResponse.SyncInfo.BlockSyncInfo.completed_at:type_name -> google.protobuf.Timestamp
 	24,  // 92: core.v1.GetBlocksResponse.BlocksEntry.value:type_name -> core.v1.Block
 	93,  // [93:93] is the sub-list for method output_type
 	93,  // [93:93] is the sub-list for method input_type
@@ -8329,7 +8432,7 @@ func file_core_v1_types_proto_init() {
 			}
 		}
 		file_core_v1_types_proto_msgTypes[81].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetStatusResponse_ProcessInfo); i {
+			switch v := v.(*RewardAttestationSignature); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -8341,7 +8444,7 @@ func file_core_v1_types_proto_init() {
 			}
 		}
 		file_core_v1_types_proto_msgTypes[82].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetStatusResponse_NodeInfo); i {
+			switch v := v.(*GetStatusResponse_ProcessInfo); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -8353,7 +8456,7 @@ func file_core_v1_types_proto_init() {
 			}
 		}
 		file_core_v1_types_proto_msgTypes[83].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetStatusResponse_ChainInfo); i {
+			switch v := v.(*GetStatusResponse_NodeInfo); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -8365,7 +8468,7 @@ func file_core_v1_types_proto_init() {
 			}
 		}
 		file_core_v1_types_proto_msgTypes[84].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetStatusResponse_SyncInfo); i {
+			switch v := v.(*GetStatusResponse_ChainInfo); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -8377,7 +8480,7 @@ func file_core_v1_types_proto_init() {
 			}
 		}
 		file_core_v1_types_proto_msgTypes[85].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetStatusResponse_PruningInfo); i {
+			switch v := v.(*GetStatusResponse_SyncInfo); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -8389,7 +8492,7 @@ func file_core_v1_types_proto_init() {
 			}
 		}
 		file_core_v1_types_proto_msgTypes[86].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetStatusResponse_ResourceInfo); i {
+			switch v := v.(*GetStatusResponse_PruningInfo); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -8401,7 +8504,7 @@ func file_core_v1_types_proto_init() {
 			}
 		}
 		file_core_v1_types_proto_msgTypes[87].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetStatusResponse_MempoolInfo); i {
+			switch v := v.(*GetStatusResponse_ResourceInfo); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -8413,7 +8516,7 @@ func file_core_v1_types_proto_init() {
 			}
 		}
 		file_core_v1_types_proto_msgTypes[88].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetStatusResponse_SnapshotInfo); i {
+			switch v := v.(*GetStatusResponse_MempoolInfo); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -8425,7 +8528,7 @@ func file_core_v1_types_proto_init() {
 			}
 		}
 		file_core_v1_types_proto_msgTypes[89].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetStatusResponse_PeerInfo); i {
+			switch v := v.(*GetStatusResponse_SnapshotInfo); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -8437,7 +8540,7 @@ func file_core_v1_types_proto_init() {
 			}
 		}
 		file_core_v1_types_proto_msgTypes[90].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetStatusResponse_ProcessInfo_ProcessStateInfo); i {
+			switch v := v.(*GetStatusResponse_PeerInfo); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -8449,7 +8552,7 @@ func file_core_v1_types_proto_init() {
 			}
 		}
 		file_core_v1_types_proto_msgTypes[91].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetStatusResponse_SyncInfo_StateSyncInfo); i {
+			switch v := v.(*GetStatusResponse_ProcessInfo_ProcessStateInfo); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -8461,7 +8564,7 @@ func file_core_v1_types_proto_init() {
 			}
 		}
 		file_core_v1_types_proto_msgTypes[92].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetStatusResponse_SyncInfo_BlockSyncInfo); i {
+			switch v := v.(*GetStatusResponse_SyncInfo_StateSyncInfo); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -8473,6 +8576,18 @@ func file_core_v1_types_proto_init() {
 			}
 		}
 		file_core_v1_types_proto_msgTypes[93].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*GetStatusResponse_SyncInfo_BlockSyncInfo); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_core_v1_types_proto_msgTypes[94].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetStatusResponse_PeerInfo_Peer); i {
 			case 0:
 				return &v.state
@@ -8511,7 +8626,7 @@ func file_core_v1_types_proto_init() {
 		(*RewardEvent_Updated)(nil),
 		(*RewardEvent_Deleted)(nil),
 	}
-	file_core_v1_types_proto_msgTypes[84].OneofWrappers = []interface{}{
+	file_core_v1_types_proto_msgTypes[85].OneofWrappers = []interface{}{
 		(*GetStatusResponse_SyncInfo_StateSync)(nil),
 		(*GetStatusResponse_SyncInfo_BlockSync)(nil),
 	}
@@ -8521,7 +8636,7 @@ func file_core_v1_types_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_core_v1_types_proto_rawDesc,
 			NumEnums:      2,
-			NumMessages:   95,
+			NumMessages:   96,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

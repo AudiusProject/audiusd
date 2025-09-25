@@ -139,14 +139,93 @@ create index idx_core_rewards_claim_authorities on core_rewards using gin (claim
 
 ## API Endpoints
 
-### GetRewards
+### Reward Management RPCs
+
+#### CreateReward
+Creates a new reward with a deterministic address and returns the address immediately.
+
+```protobuf
+rpc CreateReward(CreateRewardRequest) returns (CreateRewardResponse)
+```
+
+**Request:**
+```protobuf
+message CreateRewardRequest {
+  string reward_id = 1;
+  string name = 2;
+  uint64 amount = 3;
+  repeated ClaimAuthority claim_authorities = 4;
+  string signature = 5; // Signature over the reward data
+}
+```
+
+**Response:**
+```protobuf
+message CreateRewardResponse {
+  string address = 1; // The deployed reward address
+  string tx_hash = 2;
+}
+```
+
+#### UpdateReward
+Updates an existing reward by its deployed address.
+
+```protobuf
+rpc UpdateReward(UpdateRewardRequest) returns (UpdateRewardResponse)
+```
+
+**Request:**
+```protobuf
+message UpdateRewardRequest {
+  string address = 1; // The deployed reward address
+  string name = 2;
+  uint64 amount = 3;
+  repeated ClaimAuthority claim_authorities = 4;
+  string signature = 5; // Signature over the update data
+}
+```
+
+**Response:**
+```protobuf
+message UpdateRewardResponse {
+  string address = 1;
+  string tx_hash = 2;
+}
+```
+
+#### DeleteReward
+Marks a reward as deleted by its deployed address.
+
+```protobuf
+rpc DeleteReward(DeleteRewardRequest) returns (DeleteRewardResponse)
+```
+
+**Request:**
+```protobuf
+message DeleteRewardRequest {
+  string address = 1; // The deployed reward address
+  string signature = 2; // Signature over the delete request
+}
+```
+
+**Response:**
+```protobuf
+message DeleteRewardResponse {
+  string address = 1;
+  string tx_hash = 2;
+}
+```
+
+### Reward Query RPCs
+
+#### GetRewards
 Returns all active rewards (latest version of each reward).
 
 ```protobuf
 rpc GetRewards(GetRewardsRequest) returns (GetRewardsResponse)
 ```
 
-### GetReward
+#### GetReward
 Returns a specific reward by its deployed address.
 
 ```protobuf
@@ -238,9 +317,33 @@ GET /core/rewards/attestation?
 
 ## Complete Reward Lifecycle
 
-### 1. Reward Deployment
+### 1. Reward Deployment (RPC Method)
 ```go
-// Deploy a new reward on-chain
+// Deploy a new reward using the dedicated RPC
+createReq := &corev1.CreateRewardRequest{
+    RewardId: "weekly_listener_bonus",
+    Name: "Weekly Listener Bonus",
+    Amount: 50,
+    ClaimAuthorities: []*corev1.ClaimAuthority{
+        {Address: "0xOracle1", Name: "Primary Oracle"},
+        {Address: "0xOracle2", Name: "Backup Oracle"},
+    },
+    Signature: signature, // Signature over the reward data
+}
+
+createResp, err := client.CreateReward(ctx, connect.NewRequest(createReq))
+if err != nil {
+    return err
+}
+
+// Immediately get the deployed address and transaction hash
+rewardAddress := createResp.Msg.Address  // e.g., "0xABC123..."
+txHash := createResp.Msg.TxHash
+```
+
+### 1. Reward Deployment (Transaction Method)
+```go
+// Alternative: Deploy using direct transaction submission
 rewardTx := &corev1.SignedTransaction{
     Signature: signature,
     Transaction: &corev1.SignedTransaction_Reward{
@@ -259,7 +362,7 @@ rewardTx := &corev1.SignedTransaction{
         },
     },
 }
-// Result: Reward gets deterministic address 0xABC123...
+// Result: Reward gets deterministic address (must be calculated separately)
 ```
 
 ### 2. Reward Discovery
@@ -292,9 +395,31 @@ GET /api/v1/rewards/attestation?
 }
 ```
 
-### 4. Reward Updates
+### 4. Reward Updates (RPC Method)
 ```go
-// Update reward (only claim authorities can do this)
+// Update reward using the dedicated RPC (only claim authorities can do this)
+updateReq := &corev1.UpdateRewardRequest{
+    Address: "0xABC123...", // Deployed reward address from CreateReward
+    Name: "Updated Weekly Bonus",
+    Amount: 75, // Increased amount
+    ClaimAuthorities: []*corev1.ClaimAuthority{
+        {Address: "0xOracle1", Name: "Primary Oracle"},
+        {Address: "0xOracle3", Name: "New Oracle"}, // Can add/remove authorities
+    },
+    Signature: oracleSignature, // Must be signed by existing claim authority
+}
+
+updateResp, err := client.UpdateReward(ctx, connect.NewRequest(updateReq))
+if err != nil {
+    return err
+}
+
+txHash := updateResp.Msg.TxHash
+```
+
+### 4. Reward Updates (Transaction Method)
+```go
+// Alternative: Update using direct transaction submission
 updateTx := &corev1.SignedTransaction{
     Signature: oracleSignature,
     Transaction: &corev1.SignedTransaction_Reward{
@@ -310,6 +435,22 @@ updateTx := &corev1.SignedTransaction{
         },
     },
 }
+```
+
+### 5. Reward Deletion (RPC Method)
+```go
+// Delete reward using the dedicated RPC (only claim authorities can do this)
+deleteReq := &corev1.DeleteRewardRequest{
+    Address: "0xABC123...", // Deployed reward address
+    Signature: oracleSignature, // Must be signed by claim authority
+}
+
+deleteResp, err := client.DeleteReward(ctx, connect.NewRequest(deleteReq))
+if err != nil {
+    return err
+}
+
+txHash := deleteResp.Msg.TxHash
 ```
 
 ## SQL Queries
@@ -391,6 +532,9 @@ ORDER BY block_height DESC;
 6. **Integrated Attestation**: Seamless integration with existing reward claiming infrastructure
 7. **Oracle Authorization**: Only authorized claim authorities can generate reward attestations
 8. **Backward Compatibility**: Existing reward claiming flows work with programmatic rewards
+9. **Dual API Design**: Choose between simple RPC endpoints or direct transaction submission
+10. **Immediate Address Discovery**: CreateReward RPC returns the deployed address instantly
+11. **Developer-Friendly**: Clean API endpoints reduce complexity for common operations
 
 ## Testing
 
