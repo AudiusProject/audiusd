@@ -270,6 +270,7 @@ message SignedTransaction {
     StorageProofVerification storage_proof_verification = 1006;
     Attestation attestation = 1007;
     ddex.v1beta1.NewReleaseMessage release = 1008;
+    RewardMessage reward = 1009;
   }
 }
 
@@ -392,16 +393,17 @@ message Reward {
 message GetRewardsRequest {}
 
 message GetRewardsResponse {
-  repeated Reward rewards = 1;
+  repeated GetRewardResponse rewards = 1;
 }
 
 message GetRewardAttestationRequest {
   string eth_recipient_address = 1;
-  string reward_id = 2;
+  string reward_address = 2; // The deployed reward address (new programmatic rewards)
   string specifier = 3;
   string oracle_address = 4;
   string signature = 5;
   uint64 amount = 6;
+  string reward_id = 7; // Legacy reward_id (for backwards compatibility)
 }
 
 message GetRewardAttestationResponse {
@@ -488,4 +490,110 @@ message GetPIERequest {
 
 message GetPIEResponse {
   ddex.v1beta1.PieMessage pie = 1;
+}
+
+message RewardMessage {
+  oneof action {
+    CreateReward create = 1000;
+    UpdateReward update = 1001;
+    DeleteReward delete = 1002;
+  }
+}
+
+message CreateReward {
+  string reward_id = 1;
+  string name = 2;
+  uint64 amount = 3;
+  repeated ClaimAuthority claim_authorities = 4;
+}
+
+message UpdateReward {
+  string address = 1; // The deployed reward address
+  string name = 2;
+  uint64 amount = 3;
+  repeated ClaimAuthority claim_authorities = 4;
+}
+
+message DeleteReward {
+  string address = 1; // The deployed reward address
+}
+
+message GetRewardRequest {
+  string address = 1; // The deployed reward address
+}
+
+message GetRewardResponse {
+  string address = 1;
+  string reward_id = 2;
+  string name = 3;
+  uint64 amount = 4;
+  repeated string claim_authorities = 5;
+  string sender = 6;
+  int64 block_height = 7;
+}
+
+message RewardEvent {
+  oneof event {
+    RewardCreatedEvent created = 1000;
+    RewardUpdatedEvent updated = 1001;
+    RewardDeletedEvent deleted = 1002;
+  }
+}
+
+message RewardCreatedEvent {
+  string address = 1;
+  string reward_id = 2;
+  string name = 3;
+  uint64 amount = 4;
+  repeated string claim_authorities = 5;
+  string sender = 6;
+}
+
+message RewardUpdatedEvent {
+  string address = 1;
+  string name = 2;
+  uint64 amount = 3;
+  repeated string claim_authorities = 4;
+  string sender = 5;
+}
+
+message RewardDeletedEvent {
+  string address = 1;
+  string sender = 2;
+}
+
+message CreateRewardRequest {
+  string reward_id = 1;
+  string name = 2;
+  uint64 amount = 3;
+  repeated ClaimAuthority claim_authorities = 4;
+  string signature = 5; // Signature over the reward data
+}
+
+message CreateRewardResponse {
+  string address = 1; // The deployed reward address
+  string tx_hash = 2;
+}
+
+message UpdateRewardRequest {
+  string address = 1; // The deployed reward address
+  string name = 2;
+  uint64 amount = 3;
+  repeated ClaimAuthority claim_authorities = 4;
+  string signature = 5; // Signature over the update data
+}
+
+message UpdateRewardResponse {
+  string address = 1;
+  string tx_hash = 2;
+}
+
+message DeleteRewardRequest {
+  string address = 1; // The deployed reward address
+  string signature = 2; // Signature over the delete request
+}
+
+message DeleteRewardResponse {
+  string address = 1;
+  string tx_hash = 2;
 }

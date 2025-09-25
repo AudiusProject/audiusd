@@ -711,6 +711,12 @@ func (s *Server) validateBlockTx(ctx context.Context, blockTime time.Time, block
 			s.logger.Error("Invalid block: invalid release tx", zap.Error(err))
 			return false, nil
 		}
+	case *v1.SignedTransaction_Reward:
+		// Basic validation for reward transactions
+		if signedTx.GetReward() == nil {
+			s.logger.Error("Invalid block: reward transaction is nil")
+			return false, nil
+		}
 	}
 	return true, nil
 }
@@ -736,6 +742,17 @@ func (s *Server) finalizeTransaction(ctx context.Context, req *abcitypes.Finaliz
 		return s.finalizeStorageProofVerification(ctx, msg, blockHeight)
 	case *v1.SignedTransaction_Release:
 		return s.finalizeRelease(ctx, msg, txHash)
+	case *v1.SignedTransaction_Reward:
+		// Recover sender address from signature
+		rewardBytes, err := proto.Marshal(msg.GetReward())
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal reward for signature verification: %w", err)
+		}
+		_, sender, err := common.EthRecover(msg.Signature, rewardBytes)
+		if err != nil {
+			return nil, fmt.Errorf("failed to recover sender from signature: %w", err)
+		}
+		return s.finalizeRewardTransaction(ctx, req, msg.GetReward(), txHash, sender)
 	default:
 		return nil, fmt.Errorf("unhandled proto event: %v %T", msg, t)
 	}

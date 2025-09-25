@@ -780,10 +780,15 @@ func (c *CoreService) GetRewardAttestation(ctx context.Context, req *connect.Req
 	if ethRecipientAddress == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("eth_recipient_address is required"))
 	}
-	rewardID := req.Msg.RewardId
-	if rewardID == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("reward_id is required"))
+
+	// Support both legacy reward_id and new reward_address parameters
+	rewardAddress := req.Msg.RewardAddress
+	legacyRewardID := req.Msg.RewardId
+
+	if rewardAddress == "" && legacyRewardID == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("either reward_address or reward_id is required"))
 	}
+
 	specifier := req.Msg.Specifier
 	if specifier == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("specifier is required"))
@@ -799,6 +804,56 @@ func (c *CoreService) GetRewardAttestation(ctx context.Context, req *connect.Req
 	amount := req.Msg.Amount
 	if amount == 0 {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("amount is required"))
+	}
+
+	var rewardID string
+
+	if rewardAddress != "" {
+		// New flow: Get programmatic reward by deployed address
+		reward, err := c.core.db.GetReward(ctx, rewardAddress)
+		if err != nil {
+			return nil, connect.NewError(connect.CodeNotFound, errors.New("programmatic reward not found"))
+		}
+
+		// Verify oracle is authorized to sign for this reward
+		authorized := false
+		for _, auth := range reward.ClaimAuthorities {
+			if auth == oracleAddress {
+				authorized = true
+				break
+			}
+		}
+		if !authorized {
+			return nil, connect.NewError(connect.CodePermissionDenied, errors.New("oracle not authorized for this programmatic reward"))
+		}
+
+		rewardID = reward.RewardID
+	} else {
+		// Legacy flow: Use hardcoded rewards system
+		rewardID = legacyRewardID
+
+		// For legacy rewards, check if it exists in hardcoded rewards
+		found := false
+		for _, hardcodedReward := range c.core.rewards.Rewards {
+			if hardcodedReward.RewardId == legacyRewardID {
+				found = true
+				// For legacy rewards, check if oracle is in the claim authorities
+				authorized := false
+				for _, auth := range hardcodedReward.ClaimAuthorities {
+					if auth.Address == oracleAddress {
+						authorized = true
+						break
+					}
+				}
+				if !authorized {
+					return nil, connect.NewError(connect.CodePermissionDenied, errors.New("oracle not authorized for this legacy reward"))
+				}
+				break
+			}
+		}
+		if !found {
+			return nil, connect.NewError(connect.CodeNotFound, errors.New("legacy reward not found"))
+		}
 	}
 
 	claim := rewards.RewardClaim{
@@ -833,26 +888,74 @@ func (c *CoreService) GetRewardAttestation(ctx context.Context, req *connect.Req
 }
 
 // GetRewards implements v1connect.CoreServiceHandler.
-func (c *CoreService) GetRewards(context.Context, *connect.Request[v1.GetRewardsRequest]) (*connect.Response[v1.GetRewardsResponse], error) {
-	rewards := c.core.rewards.Rewards
-	rewardResponses := make([]*v1.Reward, 0, len(rewards))
-	for _, reward := range rewards {
-		claimAuthorities := make([]*v1.ClaimAuthority, 0, len(reward.ClaimAuthorities))
-		for _, claimAuthority := range reward.ClaimAuthorities {
-			claimAuthorities = append(claimAuthorities, &v1.ClaimAuthority{
-				Address: claimAuthority.Address,
-			})
-		}
-		rewardResponses = append(rewardResponses, &v1.Reward{
-			RewardId:         reward.RewardId,
-			Amount:           reward.Amount,
+func (c *CoreService) GetRewards(ctx context.Context, _ *connect.Request[v1.GetRewardsRequest]) (*connect.Response[v1.GetRewardsResponse], error) {
+	// Get programmatic rewards
+	programmaticRewards, err := c.core.db.GetActiveRewards(ctx)
+	if err != nil {
+		c.core.logger.Error("error getting programmatic rewards", zap.Error(err))
+	}
+
+	// Convert programmatic rewards to response format
+	rewardResponses := make([]*v1.GetRewardResponse, 0, len(programmaticRewards))
+	for _, reward := range programmaticRewards {
+		rewardResponses = append(rewardResponses, &v1.GetRewardResponse{
+			Address:          reward.Address,
+			RewardId:         reward.RewardID,
 			Name:             reward.Name,
+			Amount:           uint64(reward.Amount),
+			ClaimAuthorities: reward.ClaimAuthorities,
+			Sender:           reward.Sender,
+			BlockHeight:      reward.BlockHeight,
+		})
+	}
+
+	// Also include legacy hardcoded rewards for backwards compatibility
+	for _, reward := range c.core.rewards.Rewards {
+		claimAuthorities := make([]string, 0, len(reward.ClaimAuthorities))
+		for _, claimAuthority := range reward.ClaimAuthorities {
+			claimAuthorities = append(claimAuthorities, claimAuthority.Address)
+		}
+		rewardResponses = append(rewardResponses, &v1.GetRewardResponse{
+			Address:          "", // Legacy rewards don't have addresses
+			RewardId:         reward.RewardId,
+			Name:             reward.Name,
+			Amount:           reward.Amount,
 			ClaimAuthorities: claimAuthorities,
+			Sender:           "hardcoded", // Indicate this is a legacy reward
+			BlockHeight:      0,           // Legacy rewards have no block height
 		})
 	}
 
 	res := &v1.GetRewardsResponse{
 		Rewards: rewardResponses,
+	}
+
+	return connect.NewResponse(res), nil
+}
+
+// GetReward implements v1connect.CoreServiceHandler.
+func (c *CoreService) GetReward(ctx context.Context, req *connect.Request[v1.GetRewardRequest]) (*connect.Response[v1.GetRewardResponse], error) {
+	address := req.Msg.Address
+	if address == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("address is required"))
+	}
+
+	reward, err := c.core.db.GetReward(ctx, address)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("reward not found for address: %s", address))
+		}
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get reward: %w", err))
+	}
+
+	res := &v1.GetRewardResponse{
+		Address:          reward.Address,
+		RewardId:         reward.RewardID,
+		Name:             reward.Name,
+		Amount:           uint64(reward.Amount),
+		ClaimAuthorities: reward.ClaimAuthorities,
+		Sender:           reward.Sender,
+		BlockHeight:      reward.BlockHeight,
 	}
 
 	return connect.NewResponse(res), nil
@@ -958,5 +1061,127 @@ func (c *CoreService) GetSlashAttestations(ctx context.Context, req *connect.Req
 	}
 	return connect.NewResponse(&v1.GetSlashAttestationsResponse{
 		Attestations: attestationResponses,
+	}), nil
+}
+
+func (c *CoreService) CreateReward(ctx context.Context, req *connect.Request[v1.CreateRewardRequest]) (*connect.Response[v1.CreateRewardResponse], error) {
+	// Create the reward message
+	createReward := &v1.CreateReward{
+		RewardId:         req.Msg.RewardId,
+		Name:             req.Msg.Name,
+		Amount:           req.Msg.Amount,
+		ClaimAuthorities: req.Msg.ClaimAuthorities,
+	}
+
+	rewardMsg := &v1.RewardMessage{
+		Action: &v1.RewardMessage_Create{
+			Create: createReward,
+		},
+	}
+
+	// Create the signed transaction
+	signedTx := &v1.SignedTransaction{
+		Signature: req.Msg.Signature,
+		Transaction: &v1.SignedTransaction_Reward{
+			Reward: rewardMsg,
+		},
+	}
+
+	// Submit the transaction
+	sendReq := &v1.SendTransactionRequest{
+		Transaction: signedTx,
+	}
+
+	sendResp, err := c.SendTransaction(ctx, connect.NewRequest(sendReq))
+	if err != nil {
+		return nil, err
+	}
+
+	// Generate deterministic address to return
+	txBytes, marshalErr := proto.Marshal(signedTx)
+	if marshalErr != nil {
+		return nil, fmt.Errorf("could not marshal transaction for address generation: %v", marshalErr)
+	}
+	txHash := common.ToTxHashFromBytes(txBytes)
+	rewardAddress := common.CreateAddress(createReward, c.core.config.GenesisFile.ChainID, c.core.cache.currentHeight.Load(), txHash)
+
+	return connect.NewResponse(&v1.CreateRewardResponse{
+		Address: rewardAddress,
+		TxHash:  sendResp.Msg.Transaction.Hash,
+	}), nil
+}
+
+func (c *CoreService) UpdateReward(ctx context.Context, req *connect.Request[v1.UpdateRewardRequest]) (*connect.Response[v1.UpdateRewardResponse], error) {
+	// Create the update reward message
+	updateReward := &v1.UpdateReward{
+		Address:          req.Msg.Address,
+		Name:             req.Msg.Name,
+		Amount:           req.Msg.Amount,
+		ClaimAuthorities: req.Msg.ClaimAuthorities,
+	}
+
+	rewardMsg := &v1.RewardMessage{
+		Action: &v1.RewardMessage_Update{
+			Update: updateReward,
+		},
+	}
+
+	// Create the signed transaction
+	signedTx := &v1.SignedTransaction{
+		Signature: req.Msg.Signature,
+		Transaction: &v1.SignedTransaction_Reward{
+			Reward: rewardMsg,
+		},
+	}
+
+	// Submit the transaction
+	sendReq := &v1.SendTransactionRequest{
+		Transaction: signedTx,
+	}
+
+	sendResp, err := c.SendTransaction(ctx, connect.NewRequest(sendReq))
+	if err != nil {
+		return nil, err
+	}
+
+	return connect.NewResponse(&v1.UpdateRewardResponse{
+		Address: req.Msg.Address,
+		TxHash:  sendResp.Msg.Transaction.Hash,
+	}), nil
+}
+
+func (c *CoreService) DeleteReward(ctx context.Context, req *connect.Request[v1.DeleteRewardRequest]) (*connect.Response[v1.DeleteRewardResponse], error) {
+	// Create the delete reward message
+	deleteReward := &v1.DeleteReward{
+		Address: req.Msg.Address,
+	}
+
+	rewardMsg := &v1.RewardMessage{
+		Action: &v1.RewardMessage_Delete{
+			Delete: deleteReward,
+		},
+	}
+
+	// Create the signed transaction
+	signedTx := &v1.SignedTransaction{
+		Signature: req.Msg.Signature,
+		Transaction: &v1.SignedTransaction_Reward{
+			Reward: rewardMsg,
+		},
+	}
+
+	// Submit the transaction
+	sendReq := &v1.SendTransactionRequest{
+		Transaction: signedTx,
+	}
+
+	sendResp, err := c.SendTransaction(ctx, connect.NewRequest(sendReq))
+	if err != nil {
+		return nil, err
+	}
+
+	return connect.NewResponse(&v1.DeleteRewardResponse{
+		Address: req.Msg.Address,
+		TxHash:  sendResp.Msg.Transaction.Hash,
 	}), nil
 }

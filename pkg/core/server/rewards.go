@@ -1,11 +1,19 @@
 package server
 
 import (
+	"context"
+	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 
+	corev1 "github.com/AudiusProject/audiusd/pkg/api/core/v1"
+	"github.com/AudiusProject/audiusd/pkg/common"
+	"github.com/AudiusProject/audiusd/pkg/core/db"
 	"github.com/AudiusProject/audiusd/pkg/rewards"
+	abcitypes "github.com/cometbft/cometbft/abci/types"
 	"github.com/labstack/echo/v4"
+	"google.golang.org/protobuf/proto"
 )
 
 func (s *Server) getRewards(c echo.Context) error {
@@ -70,4 +78,172 @@ func (s *Server) getRewardAttestation(c echo.Context) error {
 		"attestation": attestation,
 	}
 	return c.JSON(http.StatusOK, res)
+}
+
+var (
+	ErrRewardMessageValidation   = errors.New("reward message validation failed")
+	ErrRewardMessageFinalization = errors.New("reward message finalization failed")
+)
+
+func (s *Server) finalizeRewardTransaction(ctx context.Context, req *abcitypes.FinalizeBlockRequest, rewardMsg *corev1.RewardMessage, txhash string, sender string) (proto.Message, error) {
+	// Use messageIndex of 0 for single reward transactions
+	err := s.finalizeRewards(ctx, req, txhash, 0, rewardMsg, sender)
+	if err != nil {
+		return nil, err
+	}
+	return rewardMsg, nil
+}
+
+func (s *Server) finalizeRewards(ctx context.Context, req *abcitypes.FinalizeBlockRequest, txhash string, messageIndex int64, rewardMsg *corev1.RewardMessage, sender string) error {
+	if rewardMsg == nil {
+		return fmt.Errorf("tx: %s, message index: %d, reward message not found", txhash, messageIndex)
+	}
+
+	switch action := rewardMsg.Action.(type) {
+	case *corev1.RewardMessage_Create:
+		if err := s.finalizeCreateReward(ctx, req, txhash, messageIndex, action.Create, sender); err != nil {
+			return errors.Join(ErrRewardMessageFinalization, err)
+		}
+		return nil
+
+	case *corev1.RewardMessage_Update:
+		if err := s.finalizeUpdateReward(ctx, req, txhash, messageIndex, action.Update, sender); err != nil {
+			return errors.Join(ErrRewardMessageFinalization, err)
+		}
+		return nil
+
+	case *corev1.RewardMessage_Delete:
+		if err := s.finalizeDeleteReward(ctx, req, txhash, messageIndex, action.Delete, sender); err != nil {
+			return errors.Join(ErrRewardMessageFinalization, err)
+		}
+		return nil
+
+	default:
+		return fmt.Errorf("tx: %s, message index: %d, unsupported reward action type", txhash, messageIndex)
+	}
+}
+
+func (s *Server) finalizeCreateReward(ctx context.Context, req *abcitypes.FinalizeBlockRequest, txhash string, messageIndex int64, createReward *corev1.CreateReward, sender string) error {
+	// Generate deterministic address for the new reward
+	nonce := txhash
+	rewardAddress := common.CreateAddress(createReward, s.config.GenesisFile.ChainID, req.Height, nonce)
+
+	// Convert claim authorities to string array
+	claimAuthorities := make([]string, len(createReward.ClaimAuthorities))
+	for i, auth := range createReward.ClaimAuthorities {
+		claimAuthorities[i] = auth.Address
+	}
+
+	// Marshal the raw message
+	rawMessage, err := proto.Marshal(createReward)
+	if err != nil {
+		return fmt.Errorf("failed to marshal create reward message: %w", err)
+	}
+
+	qtx := s.getDb()
+	if err := qtx.InsertCoreReward(ctx, db.InsertCoreRewardParams{
+		TxHash:           txhash,
+		Index:            messageIndex,
+		Address:          rewardAddress,
+		Sender:           sender,
+		RewardID:         createReward.RewardId,
+		Name:             createReward.Name,
+		Amount:           int64(createReward.Amount),
+		ClaimAuthorities: claimAuthorities,
+		RawMessage:       rawMessage,
+		BlockHeight:      req.Height,
+	}); err != nil {
+		return fmt.Errorf("failed to insert reward: %w", err)
+	}
+
+	return nil
+}
+
+func (s *Server) finalizeUpdateReward(ctx context.Context, req *abcitypes.FinalizeBlockRequest, txhash string, messageIndex int64, updateReward *corev1.UpdateReward, sender string) error {
+	// Verify sender is authorized to update this reward
+	existingReward, err := s.db.GetReward(ctx, updateReward.Address)
+	if err != nil {
+		return fmt.Errorf("failed to get existing reward: %w", err)
+	}
+
+	// Check if sender is in the claim authorities
+	authorized := false
+	for _, auth := range existingReward.ClaimAuthorities {
+		if auth == sender {
+			authorized = true
+			break
+		}
+	}
+	if !authorized {
+		return fmt.Errorf("sender %s not authorized to update reward %s", sender, updateReward.Address)
+	}
+
+	// Convert claim authorities to string array
+	claimAuthorities := make([]string, len(updateReward.ClaimAuthorities))
+	for i, auth := range updateReward.ClaimAuthorities {
+		claimAuthorities[i] = auth.Address
+	}
+
+	// Marshal the raw message
+	rawMessage, err := proto.Marshal(updateReward)
+	if err != nil {
+		return fmt.Errorf("failed to marshal update reward message: %w", err)
+	}
+
+	qtx := s.getDb()
+	if err := qtx.InsertCoreReward(ctx, db.InsertCoreRewardParams{
+		TxHash:           txhash,
+		Index:            messageIndex,
+		Address:          updateReward.Address,
+		Sender:           sender,
+		Name:             updateReward.Name,
+		Amount:           int64(updateReward.Amount),
+		ClaimAuthorities: claimAuthorities,
+		RawMessage:       rawMessage,
+		BlockHeight:      req.Height,
+	}); err != nil {
+		return fmt.Errorf("failed to insert reward update: %w", err)
+	}
+
+	return nil
+}
+
+func (s *Server) finalizeDeleteReward(ctx context.Context, req *abcitypes.FinalizeBlockRequest, txhash string, messageIndex int64, deleteReward *corev1.DeleteReward, sender string) error {
+	// Verify sender is authorized to delete this reward
+	existingReward, err := s.db.GetReward(ctx, deleteReward.Address)
+	if err != nil {
+		return fmt.Errorf("failed to get existing reward: %w", err)
+	}
+
+	// Check if sender is in the claim authorities
+	authorized := false
+	for _, auth := range existingReward.ClaimAuthorities {
+		if auth == sender {
+			authorized = true
+			break
+		}
+	}
+	if !authorized {
+		return fmt.Errorf("sender %s not authorized to delete reward %s", sender, deleteReward.Address)
+	}
+
+	// Marshal the raw message
+	rawMessage, err := proto.Marshal(deleteReward)
+	if err != nil {
+		return fmt.Errorf("failed to marshal delete reward message: %w", err)
+	}
+
+	qtx := s.getDb()
+	if err := qtx.InsertCoreReward(ctx, db.InsertCoreRewardParams{
+		TxHash:      txhash,
+		Index:       messageIndex,
+		Address:     deleteReward.Address,
+		Sender:      sender,
+		RawMessage:  rawMessage,
+		BlockHeight: req.Height,
+	}); err != nil {
+		return fmt.Errorf("failed to insert reward deletion: %w", err)
+	}
+
+	return nil
 }
