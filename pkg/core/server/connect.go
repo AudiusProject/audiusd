@@ -71,6 +71,11 @@ func (c *CoreService) ForwardTransaction(ctx context.Context, req *connect.Reque
 		}
 		mempoolKey = common.ToTxHashFromBytes(txBytes)
 	} else {
+		tx := req.Msg.Transaction
+		em := tx.GetManageEntity()
+		if strings.TrimSpace(em.Signer) == "" {
+			InjectSigner(c.core.config, em)
+		}
 		txBytes, marshalErr := proto.Marshal(req.Msg.Transaction)
 		if marshalErr != nil {
 			return nil, fmt.Errorf("could not marshal transaction: %v", marshalErr)
@@ -475,6 +480,11 @@ func (c *CoreService) SendTransaction(ctx context.Context, req *connect.Request[
 	var mempoolTx *MempoolTransaction
 	deadline := c.core.cache.currentHeight.Load() + 10
 	if req.Msg.Transaction != nil {
+		tx := req.Msg.Transaction
+		em := tx.GetManageEntity()
+		if em != nil {
+			InjectSigner(c.core.config, em)
+		}
 		mempoolTx = &MempoolTransaction{
 			Tx:       req.Msg.Transaction,
 			Deadline: deadline,
