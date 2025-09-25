@@ -2,10 +2,12 @@ package server
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	corev1 "github.com/AudiusProject/audiusd/pkg/api/core/v1"
 	"github.com/AudiusProject/audiusd/pkg/common"
@@ -83,7 +85,31 @@ func (s *Server) getRewardAttestation(c echo.Context) error {
 var (
 	ErrRewardMessageValidation   = errors.New("reward message validation failed")
 	ErrRewardMessageFinalization = errors.New("reward message finalization failed")
+	ErrRewardSignatureInvalid    = errors.New("reward signature invalid")
+	ErrRewardExpired             = errors.New("reward transaction expired")
 )
+
+// validateRewardSignature validates the signature and expiry for reward messages
+func (s *Server) validateRewardSignature(currentHeight int64, signature string, deadlineHeight int64, signatureData string) (string, error) {
+	// Check expiry
+	if currentHeight > deadlineHeight {
+		return "", fmt.Errorf("%w: current height %d > deadline %d", ErrRewardExpired, currentHeight, deadlineHeight)
+	}
+
+	// Convert hex data to bytes for signing
+	dataBytes, err := hex.DecodeString(signatureData)
+	if err != nil {
+		return "", fmt.Errorf("%w: invalid hex data: %v", ErrRewardSignatureInvalid, err)
+	}
+
+	// Recover signer from signature
+	_, signer, err := common.EthRecover(signature, dataBytes)
+	if err != nil {
+		return "", fmt.Errorf("%w: failed to recover signer: %v", ErrRewardSignatureInvalid, err)
+	}
+
+	return signer, nil
+}
 
 func (s *Server) finalizeRewardTransaction(ctx context.Context, req *abcitypes.FinalizeBlockRequest, rewardMsg *corev1.RewardMessage, txhash string, sender string) (proto.Message, error) {
 	// Use messageIndex of 0 for single reward transactions
@@ -124,6 +150,13 @@ func (s *Server) finalizeRewards(ctx context.Context, req *abcitypes.FinalizeBlo
 }
 
 func (s *Server) finalizeCreateReward(ctx context.Context, req *abcitypes.FinalizeBlockRequest, txhash string, messageIndex int64, createReward *corev1.CreateReward, sender string) error {
+	// Validate signature and get signer
+	signatureData := common.CreateDeterministicCreateRewardData(createReward)
+	signer, err := s.validateRewardSignature(req.Height, createReward.Signature, createReward.DeadlineBlockHeight, signatureData)
+	if err != nil {
+		return fmt.Errorf("create reward signature validation failed: %w", err)
+	}
+
 	// Generate deterministic address for the new reward
 	nonce := txhash
 	rewardAddress := common.CreateAddress(createReward, s.config.GenesisFile.ChainID, req.Height, nonce)
@@ -145,7 +178,7 @@ func (s *Server) finalizeCreateReward(ctx context.Context, req *abcitypes.Finali
 		TxHash:           txhash,
 		Index:            messageIndex,
 		Address:          rewardAddress,
-		Sender:           sender,
+		Sender:           signer, // Use verified signer instead of passed sender
 		RewardID:         createReward.RewardId,
 		Name:             createReward.Name,
 		Amount:           int64(createReward.Amount),
@@ -160,22 +193,29 @@ func (s *Server) finalizeCreateReward(ctx context.Context, req *abcitypes.Finali
 }
 
 func (s *Server) finalizeUpdateReward(ctx context.Context, req *abcitypes.FinalizeBlockRequest, txhash string, messageIndex int64, updateReward *corev1.UpdateReward, sender string) error {
-	// Verify sender is authorized to update this reward
+	// Validate signature and get signer
+	signatureData := common.CreateDeterministicUpdateRewardData(updateReward)
+	signer, err := s.validateRewardSignature(req.Height, updateReward.Signature, updateReward.DeadlineBlockHeight, signatureData)
+	if err != nil {
+		return fmt.Errorf("update reward signature validation failed: %w", err)
+	}
+
+	// Verify signer is authorized to update this reward
 	existingReward, err := s.db.GetReward(ctx, updateReward.Address)
 	if err != nil {
 		return fmt.Errorf("failed to get existing reward: %w", err)
 	}
 
-	// Check if sender is in the claim authorities
+	// Check if signer is in the claim authorities (case insensitive)
 	authorized := false
 	for _, auth := range existingReward.ClaimAuthorities {
-		if auth == sender {
+		if strings.EqualFold(auth, signer) {
 			authorized = true
 			break
 		}
 	}
 	if !authorized {
-		return fmt.Errorf("sender %s not authorized to update reward %s", sender, updateReward.Address)
+		return fmt.Errorf("signer %s not authorized to update reward %s", signer, updateReward.Address)
 	}
 
 	// Convert claim authorities to string array
@@ -195,7 +235,7 @@ func (s *Server) finalizeUpdateReward(ctx context.Context, req *abcitypes.Finali
 		TxHash:           txhash,
 		Index:            messageIndex,
 		Address:          updateReward.Address,
-		Sender:           sender,
+		Sender:           signer, // Use verified signer instead of passed sender
 		Name:             updateReward.Name,
 		Amount:           int64(updateReward.Amount),
 		ClaimAuthorities: claimAuthorities,
@@ -209,22 +249,29 @@ func (s *Server) finalizeUpdateReward(ctx context.Context, req *abcitypes.Finali
 }
 
 func (s *Server) finalizeDeleteReward(ctx context.Context, req *abcitypes.FinalizeBlockRequest, txhash string, messageIndex int64, deleteReward *corev1.DeleteReward, sender string) error {
-	// Verify sender is authorized to delete this reward
+	// Validate signature and get signer
+	signatureData := common.CreateDeterministicDeleteRewardData(deleteReward)
+	signer, err := s.validateRewardSignature(req.Height, deleteReward.Signature, deleteReward.DeadlineBlockHeight, signatureData)
+	if err != nil {
+		return fmt.Errorf("delete reward signature validation failed: %w", err)
+	}
+
+	// Verify signer is authorized to delete this reward
 	existingReward, err := s.db.GetReward(ctx, deleteReward.Address)
 	if err != nil {
 		return fmt.Errorf("failed to get existing reward: %w", err)
 	}
 
-	// Check if sender is in the claim authorities
+	// Check if signer is in the claim authorities (case insensitive)
 	authorized := false
 	for _, auth := range existingReward.ClaimAuthorities {
-		if auth == sender {
+		if strings.EqualFold(auth, signer) {
 			authorized = true
 			break
 		}
 	}
 	if !authorized {
-		return fmt.Errorf("sender %s not authorized to delete reward %s", sender, deleteReward.Address)
+		return fmt.Errorf("signer %s not authorized to delete reward %s", signer, deleteReward.Address)
 	}
 
 	// Marshal the raw message
@@ -238,7 +285,7 @@ func (s *Server) finalizeDeleteReward(ctx context.Context, req *abcitypes.Finali
 		TxHash:      txhash,
 		Index:       messageIndex,
 		Address:     deleteReward.Address,
-		Sender:      sender,
+		Sender:      signer, // Use verified signer instead of passed sender
 		RawMessage:  rawMessage,
 		BlockHeight: req.Height,
 	}); err != nil {

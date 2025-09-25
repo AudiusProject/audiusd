@@ -82,15 +82,6 @@ const (
 	CoreServiceGetPIEProcedure = "/core.v1.CoreService/GetPIE"
 	// CoreServiceGetRewardProcedure is the fully-qualified name of the CoreService's GetReward RPC.
 	CoreServiceGetRewardProcedure = "/core.v1.CoreService/GetReward"
-	// CoreServiceCreateRewardProcedure is the fully-qualified name of the CoreService's CreateReward
-	// RPC.
-	CoreServiceCreateRewardProcedure = "/core.v1.CoreService/CreateReward"
-	// CoreServiceUpdateRewardProcedure is the fully-qualified name of the CoreService's UpdateReward
-	// RPC.
-	CoreServiceUpdateRewardProcedure = "/core.v1.CoreService/UpdateReward"
-	// CoreServiceDeleteRewardProcedure is the fully-qualified name of the CoreService's DeleteReward
-	// RPC.
-	CoreServiceDeleteRewardProcedure = "/core.v1.CoreService/DeleteReward"
 )
 
 // CoreServiceClient is a client for the core.v1.CoreService service.
@@ -115,9 +106,6 @@ type CoreServiceClient interface {
 	GetMEAD(context.Context, *connect.Request[v1.GetMEADRequest]) (*connect.Response[v1.GetMEADResponse], error)
 	GetPIE(context.Context, *connect.Request[v1.GetPIERequest]) (*connect.Response[v1.GetPIEResponse], error)
 	GetReward(context.Context, *connect.Request[v1.GetRewardRequest]) (*connect.Response[v1.GetRewardResponse], error)
-	CreateReward(context.Context, *connect.Request[v1.CreateRewardRequest]) (*connect.Response[v1.CreateRewardResponse], error)
-	UpdateReward(context.Context, *connect.Request[v1.UpdateRewardRequest]) (*connect.Response[v1.UpdateRewardResponse], error)
-	DeleteReward(context.Context, *connect.Request[v1.DeleteRewardRequest]) (*connect.Response[v1.DeleteRewardResponse], error)
 }
 
 // NewCoreServiceClient constructs a client for the core.v1.CoreService service. By default, it uses
@@ -251,24 +239,6 @@ func NewCoreServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(coreServiceMethods.ByName("GetReward")),
 			connect.WithClientOptions(opts...),
 		),
-		createReward: connect.NewClient[v1.CreateRewardRequest, v1.CreateRewardResponse](
-			httpClient,
-			baseURL+CoreServiceCreateRewardProcedure,
-			connect.WithSchema(coreServiceMethods.ByName("CreateReward")),
-			connect.WithClientOptions(opts...),
-		),
-		updateReward: connect.NewClient[v1.UpdateRewardRequest, v1.UpdateRewardResponse](
-			httpClient,
-			baseURL+CoreServiceUpdateRewardProcedure,
-			connect.WithSchema(coreServiceMethods.ByName("UpdateReward")),
-			connect.WithClientOptions(opts...),
-		),
-		deleteReward: connect.NewClient[v1.DeleteRewardRequest, v1.DeleteRewardResponse](
-			httpClient,
-			baseURL+CoreServiceDeleteRewardProcedure,
-			connect.WithSchema(coreServiceMethods.ByName("DeleteReward")),
-			connect.WithClientOptions(opts...),
-		),
 	}
 }
 
@@ -294,9 +264,6 @@ type coreServiceClient struct {
 	getMEAD                      *connect.Client[v1.GetMEADRequest, v1.GetMEADResponse]
 	getPIE                       *connect.Client[v1.GetPIERequest, v1.GetPIEResponse]
 	getReward                    *connect.Client[v1.GetRewardRequest, v1.GetRewardResponse]
-	createReward                 *connect.Client[v1.CreateRewardRequest, v1.CreateRewardResponse]
-	updateReward                 *connect.Client[v1.UpdateRewardRequest, v1.UpdateRewardResponse]
-	deleteReward                 *connect.Client[v1.DeleteRewardRequest, v1.DeleteRewardResponse]
 }
 
 // Ping calls core.v1.CoreService.Ping.
@@ -399,21 +366,6 @@ func (c *coreServiceClient) GetReward(ctx context.Context, req *connect.Request[
 	return c.getReward.CallUnary(ctx, req)
 }
 
-// CreateReward calls core.v1.CoreService.CreateReward.
-func (c *coreServiceClient) CreateReward(ctx context.Context, req *connect.Request[v1.CreateRewardRequest]) (*connect.Response[v1.CreateRewardResponse], error) {
-	return c.createReward.CallUnary(ctx, req)
-}
-
-// UpdateReward calls core.v1.CoreService.UpdateReward.
-func (c *coreServiceClient) UpdateReward(ctx context.Context, req *connect.Request[v1.UpdateRewardRequest]) (*connect.Response[v1.UpdateRewardResponse], error) {
-	return c.updateReward.CallUnary(ctx, req)
-}
-
-// DeleteReward calls core.v1.CoreService.DeleteReward.
-func (c *coreServiceClient) DeleteReward(ctx context.Context, req *connect.Request[v1.DeleteRewardRequest]) (*connect.Response[v1.DeleteRewardResponse], error) {
-	return c.deleteReward.CallUnary(ctx, req)
-}
-
 // CoreServiceHandler is an implementation of the core.v1.CoreService service.
 type CoreServiceHandler interface {
 	Ping(context.Context, *connect.Request[v1.PingRequest]) (*connect.Response[v1.PingResponse], error)
@@ -436,9 +388,6 @@ type CoreServiceHandler interface {
 	GetMEAD(context.Context, *connect.Request[v1.GetMEADRequest]) (*connect.Response[v1.GetMEADResponse], error)
 	GetPIE(context.Context, *connect.Request[v1.GetPIERequest]) (*connect.Response[v1.GetPIEResponse], error)
 	GetReward(context.Context, *connect.Request[v1.GetRewardRequest]) (*connect.Response[v1.GetRewardResponse], error)
-	CreateReward(context.Context, *connect.Request[v1.CreateRewardRequest]) (*connect.Response[v1.CreateRewardResponse], error)
-	UpdateReward(context.Context, *connect.Request[v1.UpdateRewardRequest]) (*connect.Response[v1.UpdateRewardResponse], error)
-	DeleteReward(context.Context, *connect.Request[v1.DeleteRewardRequest]) (*connect.Response[v1.DeleteRewardResponse], error)
 }
 
 // NewCoreServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -568,24 +517,6 @@ func NewCoreServiceHandler(svc CoreServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(coreServiceMethods.ByName("GetReward")),
 		connect.WithHandlerOptions(opts...),
 	)
-	coreServiceCreateRewardHandler := connect.NewUnaryHandler(
-		CoreServiceCreateRewardProcedure,
-		svc.CreateReward,
-		connect.WithSchema(coreServiceMethods.ByName("CreateReward")),
-		connect.WithHandlerOptions(opts...),
-	)
-	coreServiceUpdateRewardHandler := connect.NewUnaryHandler(
-		CoreServiceUpdateRewardProcedure,
-		svc.UpdateReward,
-		connect.WithSchema(coreServiceMethods.ByName("UpdateReward")),
-		connect.WithHandlerOptions(opts...),
-	)
-	coreServiceDeleteRewardHandler := connect.NewUnaryHandler(
-		CoreServiceDeleteRewardProcedure,
-		svc.DeleteReward,
-		connect.WithSchema(coreServiceMethods.ByName("DeleteReward")),
-		connect.WithHandlerOptions(opts...),
-	)
 	return "/core.v1.CoreService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case CoreServicePingProcedure:
@@ -628,12 +559,6 @@ func NewCoreServiceHandler(svc CoreServiceHandler, opts ...connect.HandlerOption
 			coreServiceGetPIEHandler.ServeHTTP(w, r)
 		case CoreServiceGetRewardProcedure:
 			coreServiceGetRewardHandler.ServeHTTP(w, r)
-		case CoreServiceCreateRewardProcedure:
-			coreServiceCreateRewardHandler.ServeHTTP(w, r)
-		case CoreServiceUpdateRewardProcedure:
-			coreServiceUpdateRewardHandler.ServeHTTP(w, r)
-		case CoreServiceDeleteRewardProcedure:
-			coreServiceDeleteRewardHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -721,16 +646,4 @@ func (UnimplementedCoreServiceHandler) GetPIE(context.Context, *connect.Request[
 
 func (UnimplementedCoreServiceHandler) GetReward(context.Context, *connect.Request[v1.GetRewardRequest]) (*connect.Response[v1.GetRewardResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("core.v1.CoreService.GetReward is not implemented"))
-}
-
-func (UnimplementedCoreServiceHandler) CreateReward(context.Context, *connect.Request[v1.CreateRewardRequest]) (*connect.Response[v1.CreateRewardResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("core.v1.CoreService.CreateReward is not implemented"))
-}
-
-func (UnimplementedCoreServiceHandler) UpdateReward(context.Context, *connect.Request[v1.UpdateRewardRequest]) (*connect.Response[v1.UpdateRewardResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("core.v1.CoreService.UpdateReward is not implemented"))
-}
-
-func (UnimplementedCoreServiceHandler) DeleteReward(context.Context, *connect.Request[v1.DeleteRewardRequest]) (*connect.Response[v1.DeleteRewardResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("core.v1.CoreService.DeleteReward is not implemented"))
 }

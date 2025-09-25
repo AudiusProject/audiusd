@@ -722,6 +722,8 @@ func (s *Server) validateBlockTx(ctx context.Context, blockTime time.Time, block
 }
 
 func (s *Server) finalizeTransaction(ctx context.Context, req *abcitypes.FinalizeBlockRequest, msg *v1.SignedTransaction, txHash string, blockHeight int64) (proto.Message, error) {
+	// ignore error for now as not all clients are sending signatures yet
+	_, sender, _ := common.TxHashRecover(txHash, msg.Signature)
 	misbehavior := req.Misbehavior
 	switch t := msg.Transaction.(type) {
 	case *v1.SignedTransaction_Plays:
@@ -743,15 +745,6 @@ func (s *Server) finalizeTransaction(ctx context.Context, req *abcitypes.Finaliz
 	case *v1.SignedTransaction_Release:
 		return s.finalizeRelease(ctx, msg, txHash)
 	case *v1.SignedTransaction_Reward:
-		// Recover sender address from signature
-		rewardBytes, err := proto.Marshal(msg.GetReward())
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal reward for signature verification: %w", err)
-		}
-		_, sender, err := common.EthRecover(msg.Signature, rewardBytes)
-		if err != nil {
-			return nil, fmt.Errorf("failed to recover sender from signature: %w", err)
-		}
 		return s.finalizeRewardTransaction(ctx, req, msg.GetReward(), txHash, sender)
 	default:
 		return nil, fmt.Errorf("unhandled proto event: %v %T", msg, t)
@@ -788,8 +781,6 @@ func (s *Server) serializeAppState(prevHash []byte, txs [][]byte) []byte {
 	newAppHashBytes := sha256.Sum256(combinedHash)
 	return newAppHashBytes[:]
 }
-
-
 
 func setupNodeLogger() *common.Logger {
 	var slogLevel slog.Level

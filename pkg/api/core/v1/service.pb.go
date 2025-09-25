@@ -25,7 +25,7 @@ var file_core_v1_service_proto_rawDesc = []byte{
 	0x0a, 0x15, 0x63, 0x6f, 0x72, 0x65, 0x2f, 0x76, 0x31, 0x2f, 0x73, 0x65, 0x72, 0x76, 0x69, 0x63,
 	0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x12, 0x07, 0x63, 0x6f, 0x72, 0x65, 0x2e, 0x76, 0x31,
 	0x1a, 0x13, 0x63, 0x6f, 0x72, 0x65, 0x2f, 0x76, 0x31, 0x2f, 0x74, 0x79, 0x70, 0x65, 0x73, 0x2e,
-	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x32, 0xf4, 0x0e, 0x0a, 0x0b, 0x43, 0x6f, 0x72, 0x65, 0x53, 0x65,
+	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x32, 0x87, 0x0d, 0x0a, 0x0b, 0x43, 0x6f, 0x72, 0x65, 0x53, 0x65,
 	0x72, 0x76, 0x69, 0x63, 0x65, 0x12, 0x35, 0x0a, 0x04, 0x50, 0x69, 0x6e, 0x67, 0x12, 0x14, 0x2e,
 	0x63, 0x6f, 0x72, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x50, 0x69, 0x6e, 0x67, 0x52, 0x65, 0x71, 0x75,
 	0x65, 0x73, 0x74, 0x1a, 0x15, 0x2e, 0x63, 0x6f, 0x72, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x50, 0x69,
@@ -129,26 +129,11 @@ var file_core_v1_service_proto_rawDesc = []byte{
 	0x52, 0x65, 0x77, 0x61, 0x72, 0x64, 0x12, 0x19, 0x2e, 0x63, 0x6f, 0x72, 0x65, 0x2e, 0x76, 0x31,
 	0x2e, 0x47, 0x65, 0x74, 0x52, 0x65, 0x77, 0x61, 0x72, 0x64, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73,
 	0x74, 0x1a, 0x1a, 0x2e, 0x63, 0x6f, 0x72, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x47, 0x65, 0x74, 0x52,
-	0x65, 0x77, 0x61, 0x72, 0x64, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x00, 0x12,
-	0x4d, 0x0a, 0x0c, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x52, 0x65, 0x77, 0x61, 0x72, 0x64, 0x12,
-	0x1c, 0x2e, 0x63, 0x6f, 0x72, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65,
-	0x52, 0x65, 0x77, 0x61, 0x72, 0x64, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x1d, 0x2e,
-	0x63, 0x6f, 0x72, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x52, 0x65,
-	0x77, 0x61, 0x72, 0x64, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x00, 0x12, 0x4d,
-	0x0a, 0x0c, 0x55, 0x70, 0x64, 0x61, 0x74, 0x65, 0x52, 0x65, 0x77, 0x61, 0x72, 0x64, 0x12, 0x1c,
-	0x2e, 0x63, 0x6f, 0x72, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x55, 0x70, 0x64, 0x61, 0x74, 0x65, 0x52,
-	0x65, 0x77, 0x61, 0x72, 0x64, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x1d, 0x2e, 0x63,
-	0x6f, 0x72, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x55, 0x70, 0x64, 0x61, 0x74, 0x65, 0x52, 0x65, 0x77,
-	0x61, 0x72, 0x64, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x00, 0x12, 0x4d, 0x0a,
-	0x0c, 0x44, 0x65, 0x6c, 0x65, 0x74, 0x65, 0x52, 0x65, 0x77, 0x61, 0x72, 0x64, 0x12, 0x1c, 0x2e,
-	0x63, 0x6f, 0x72, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x44, 0x65, 0x6c, 0x65, 0x74, 0x65, 0x52, 0x65,
-	0x77, 0x61, 0x72, 0x64, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x1d, 0x2e, 0x63, 0x6f,
-	0x72, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x44, 0x65, 0x6c, 0x65, 0x74, 0x65, 0x52, 0x65, 0x77, 0x61,
-	0x72, 0x64, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x00, 0x42, 0x32, 0x5a, 0x30,
-	0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x41, 0x75, 0x64, 0x69, 0x75,
-	0x73, 0x50, 0x72, 0x6f, 0x6a, 0x65, 0x63, 0x74, 0x2f, 0x61, 0x75, 0x64, 0x69, 0x75, 0x73, 0x64,
-	0x2f, 0x70, 0x6b, 0x67, 0x2f, 0x61, 0x70, 0x69, 0x2f, 0x63, 0x6f, 0x72, 0x65, 0x2f, 0x76, 0x31,
-	0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x65, 0x77, 0x61, 0x72, 0x64, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x00, 0x42,
+	0x32, 0x5a, 0x30, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x41, 0x75,
+	0x64, 0x69, 0x75, 0x73, 0x50, 0x72, 0x6f, 0x6a, 0x65, 0x63, 0x74, 0x2f, 0x61, 0x75, 0x64, 0x69,
+	0x75, 0x73, 0x64, 0x2f, 0x70, 0x6b, 0x67, 0x2f, 0x61, 0x70, 0x69, 0x2f, 0x63, 0x6f, 0x72, 0x65,
+	0x2f, 0x76, 0x31, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var file_core_v1_service_proto_goTypes = []interface{}{
@@ -172,32 +157,26 @@ var file_core_v1_service_proto_goTypes = []interface{}{
 	(*GetMEADRequest)(nil),                       // 17: core.v1.GetMEADRequest
 	(*GetPIERequest)(nil),                        // 18: core.v1.GetPIERequest
 	(*GetRewardRequest)(nil),                     // 19: core.v1.GetRewardRequest
-	(*CreateRewardRequest)(nil),                  // 20: core.v1.CreateRewardRequest
-	(*UpdateRewardRequest)(nil),                  // 21: core.v1.UpdateRewardRequest
-	(*DeleteRewardRequest)(nil),                  // 22: core.v1.DeleteRewardRequest
-	(*PingResponse)(nil),                         // 23: core.v1.PingResponse
-	(*GetHealthResponse)(nil),                    // 24: core.v1.GetHealthResponse
-	(*GetStatusResponse)(nil),                    // 25: core.v1.GetStatusResponse
-	(*GetNodeInfoResponse)(nil),                  // 26: core.v1.GetNodeInfoResponse
-	(*GetBlockResponse)(nil),                     // 27: core.v1.GetBlockResponse
-	(*GetBlocksResponse)(nil),                    // 28: core.v1.GetBlocksResponse
-	(*GetTransactionResponse)(nil),               // 29: core.v1.GetTransactionResponse
-	(*SendTransactionResponse)(nil),              // 30: core.v1.SendTransactionResponse
-	(*ForwardTransactionResponse)(nil),           // 31: core.v1.ForwardTransactionResponse
-	(*GetRegistrationAttestationResponse)(nil),   // 32: core.v1.GetRegistrationAttestationResponse
-	(*GetDeregistrationAttestationResponse)(nil), // 33: core.v1.GetDeregistrationAttestationResponse
-	(*GetStoredSnapshotsResponse)(nil),           // 34: core.v1.GetStoredSnapshotsResponse
-	(*GetRewardsResponse)(nil),                   // 35: core.v1.GetRewardsResponse
-	(*GetRewardAttestationResponse)(nil),         // 36: core.v1.GetRewardAttestationResponse
-	(*GetSlashAttestationResponse)(nil),          // 37: core.v1.GetSlashAttestationResponse
-	(*GetSlashAttestationsResponse)(nil),         // 38: core.v1.GetSlashAttestationsResponse
-	(*GetERNResponse)(nil),                       // 39: core.v1.GetERNResponse
-	(*GetMEADResponse)(nil),                      // 40: core.v1.GetMEADResponse
-	(*GetPIEResponse)(nil),                       // 41: core.v1.GetPIEResponse
-	(*GetRewardResponse)(nil),                    // 42: core.v1.GetRewardResponse
-	(*CreateRewardResponse)(nil),                 // 43: core.v1.CreateRewardResponse
-	(*UpdateRewardResponse)(nil),                 // 44: core.v1.UpdateRewardResponse
-	(*DeleteRewardResponse)(nil),                 // 45: core.v1.DeleteRewardResponse
+	(*PingResponse)(nil),                         // 20: core.v1.PingResponse
+	(*GetHealthResponse)(nil),                    // 21: core.v1.GetHealthResponse
+	(*GetStatusResponse)(nil),                    // 22: core.v1.GetStatusResponse
+	(*GetNodeInfoResponse)(nil),                  // 23: core.v1.GetNodeInfoResponse
+	(*GetBlockResponse)(nil),                     // 24: core.v1.GetBlockResponse
+	(*GetBlocksResponse)(nil),                    // 25: core.v1.GetBlocksResponse
+	(*GetTransactionResponse)(nil),               // 26: core.v1.GetTransactionResponse
+	(*SendTransactionResponse)(nil),              // 27: core.v1.SendTransactionResponse
+	(*ForwardTransactionResponse)(nil),           // 28: core.v1.ForwardTransactionResponse
+	(*GetRegistrationAttestationResponse)(nil),   // 29: core.v1.GetRegistrationAttestationResponse
+	(*GetDeregistrationAttestationResponse)(nil), // 30: core.v1.GetDeregistrationAttestationResponse
+	(*GetStoredSnapshotsResponse)(nil),           // 31: core.v1.GetStoredSnapshotsResponse
+	(*GetRewardsResponse)(nil),                   // 32: core.v1.GetRewardsResponse
+	(*GetRewardAttestationResponse)(nil),         // 33: core.v1.GetRewardAttestationResponse
+	(*GetSlashAttestationResponse)(nil),          // 34: core.v1.GetSlashAttestationResponse
+	(*GetSlashAttestationsResponse)(nil),         // 35: core.v1.GetSlashAttestationsResponse
+	(*GetERNResponse)(nil),                       // 36: core.v1.GetERNResponse
+	(*GetMEADResponse)(nil),                      // 37: core.v1.GetMEADResponse
+	(*GetPIEResponse)(nil),                       // 38: core.v1.GetPIEResponse
+	(*GetRewardResponse)(nil),                    // 39: core.v1.GetRewardResponse
 }
 var file_core_v1_service_proto_depIdxs = []int32{
 	0,  // 0: core.v1.CoreService.Ping:input_type -> core.v1.PingRequest
@@ -220,34 +199,28 @@ var file_core_v1_service_proto_depIdxs = []int32{
 	17, // 17: core.v1.CoreService.GetMEAD:input_type -> core.v1.GetMEADRequest
 	18, // 18: core.v1.CoreService.GetPIE:input_type -> core.v1.GetPIERequest
 	19, // 19: core.v1.CoreService.GetReward:input_type -> core.v1.GetRewardRequest
-	20, // 20: core.v1.CoreService.CreateReward:input_type -> core.v1.CreateRewardRequest
-	21, // 21: core.v1.CoreService.UpdateReward:input_type -> core.v1.UpdateRewardRequest
-	22, // 22: core.v1.CoreService.DeleteReward:input_type -> core.v1.DeleteRewardRequest
-	23, // 23: core.v1.CoreService.Ping:output_type -> core.v1.PingResponse
-	24, // 24: core.v1.CoreService.GetHealth:output_type -> core.v1.GetHealthResponse
-	25, // 25: core.v1.CoreService.GetStatus:output_type -> core.v1.GetStatusResponse
-	26, // 26: core.v1.CoreService.GetNodeInfo:output_type -> core.v1.GetNodeInfoResponse
-	27, // 27: core.v1.CoreService.GetBlock:output_type -> core.v1.GetBlockResponse
-	28, // 28: core.v1.CoreService.GetBlocks:output_type -> core.v1.GetBlocksResponse
-	29, // 29: core.v1.CoreService.GetTransaction:output_type -> core.v1.GetTransactionResponse
-	30, // 30: core.v1.CoreService.SendTransaction:output_type -> core.v1.SendTransactionResponse
-	31, // 31: core.v1.CoreService.ForwardTransaction:output_type -> core.v1.ForwardTransactionResponse
-	32, // 32: core.v1.CoreService.GetRegistrationAttestation:output_type -> core.v1.GetRegistrationAttestationResponse
-	33, // 33: core.v1.CoreService.GetDeregistrationAttestation:output_type -> core.v1.GetDeregistrationAttestationResponse
-	34, // 34: core.v1.CoreService.GetStoredSnapshots:output_type -> core.v1.GetStoredSnapshotsResponse
-	35, // 35: core.v1.CoreService.GetRewards:output_type -> core.v1.GetRewardsResponse
-	36, // 36: core.v1.CoreService.GetRewardAttestation:output_type -> core.v1.GetRewardAttestationResponse
-	37, // 37: core.v1.CoreService.GetSlashAttestation:output_type -> core.v1.GetSlashAttestationResponse
-	38, // 38: core.v1.CoreService.GetSlashAttestations:output_type -> core.v1.GetSlashAttestationsResponse
-	39, // 39: core.v1.CoreService.GetERN:output_type -> core.v1.GetERNResponse
-	40, // 40: core.v1.CoreService.GetMEAD:output_type -> core.v1.GetMEADResponse
-	41, // 41: core.v1.CoreService.GetPIE:output_type -> core.v1.GetPIEResponse
-	42, // 42: core.v1.CoreService.GetReward:output_type -> core.v1.GetRewardResponse
-	43, // 43: core.v1.CoreService.CreateReward:output_type -> core.v1.CreateRewardResponse
-	44, // 44: core.v1.CoreService.UpdateReward:output_type -> core.v1.UpdateRewardResponse
-	45, // 45: core.v1.CoreService.DeleteReward:output_type -> core.v1.DeleteRewardResponse
-	23, // [23:46] is the sub-list for method output_type
-	0,  // [0:23] is the sub-list for method input_type
+	20, // 20: core.v1.CoreService.Ping:output_type -> core.v1.PingResponse
+	21, // 21: core.v1.CoreService.GetHealth:output_type -> core.v1.GetHealthResponse
+	22, // 22: core.v1.CoreService.GetStatus:output_type -> core.v1.GetStatusResponse
+	23, // 23: core.v1.CoreService.GetNodeInfo:output_type -> core.v1.GetNodeInfoResponse
+	24, // 24: core.v1.CoreService.GetBlock:output_type -> core.v1.GetBlockResponse
+	25, // 25: core.v1.CoreService.GetBlocks:output_type -> core.v1.GetBlocksResponse
+	26, // 26: core.v1.CoreService.GetTransaction:output_type -> core.v1.GetTransactionResponse
+	27, // 27: core.v1.CoreService.SendTransaction:output_type -> core.v1.SendTransactionResponse
+	28, // 28: core.v1.CoreService.ForwardTransaction:output_type -> core.v1.ForwardTransactionResponse
+	29, // 29: core.v1.CoreService.GetRegistrationAttestation:output_type -> core.v1.GetRegistrationAttestationResponse
+	30, // 30: core.v1.CoreService.GetDeregistrationAttestation:output_type -> core.v1.GetDeregistrationAttestationResponse
+	31, // 31: core.v1.CoreService.GetStoredSnapshots:output_type -> core.v1.GetStoredSnapshotsResponse
+	32, // 32: core.v1.CoreService.GetRewards:output_type -> core.v1.GetRewardsResponse
+	33, // 33: core.v1.CoreService.GetRewardAttestation:output_type -> core.v1.GetRewardAttestationResponse
+	34, // 34: core.v1.CoreService.GetSlashAttestation:output_type -> core.v1.GetSlashAttestationResponse
+	35, // 35: core.v1.CoreService.GetSlashAttestations:output_type -> core.v1.GetSlashAttestationsResponse
+	36, // 36: core.v1.CoreService.GetERN:output_type -> core.v1.GetERNResponse
+	37, // 37: core.v1.CoreService.GetMEAD:output_type -> core.v1.GetMEADResponse
+	38, // 38: core.v1.CoreService.GetPIE:output_type -> core.v1.GetPIEResponse
+	39, // 39: core.v1.CoreService.GetReward:output_type -> core.v1.GetRewardResponse
+	20, // [20:40] is the sub-list for method output_type
+	0,  // [0:20] is the sub-list for method input_type
 	0,  // [0:0] is the sub-list for extension type_name
 	0,  // [0:0] is the sub-list for extension extendee
 	0,  // [0:0] is the sub-list for field type_name

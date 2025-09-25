@@ -9,6 +9,7 @@ import (
 	corev1 "github.com/AudiusProject/audiusd/pkg/api/core/v1"
 	"github.com/AudiusProject/audiusd/pkg/common"
 	"github.com/AudiusProject/audiusd/pkg/integration_tests/utils"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/google/uuid"
 	protob "google.golang.org/protobuf/proto"
 )
@@ -23,34 +24,78 @@ func TestRewardsLifecycle(t *testing.T) {
 	}
 
 	t.Run("Create, Update, Delete, and Query Rewards", func(t *testing.T) {
-		// Test 1: Create a new reward using the dedicated RPC
+		// Generate random private keys for claim authorities
+		oracleKey, err := crypto.GenerateKey()
+		if err != nil {
+			t.Fatalf("Failed to generate oracle key: %v", err)
+		}
+		oracleAddr := common.PrivKeyToAddress(oracleKey)
+
+		backupKey, err := crypto.GenerateKey()
+		if err != nil {
+			t.Fatalf("Failed to generate backup key: %v", err)
+		}
+		backupAddr := common.PrivKeyToAddress(backupKey)
+
+		// Get current block height for deadline
+		status, err := sdk.Core.GetStatus(ctx, connect.NewRequest(&corev1.GetStatusRequest{}))
+		if err != nil {
+			t.Fatalf("Failed to get status: %v", err)
+		}
+		currentHeight := status.Msg.ChainInfo.CurrentHeight
+		deadlineHeight := currentHeight + 100 // 100 block buffer
+
+		// Test 1: Create a new reward using SendTransaction
 		rewardID := "test_reward_" + uuid.NewString()
 
-		createReq := &corev1.CreateRewardRequest{
+		// Create the reward with signature and deadline
+		createReward := &corev1.CreateReward{
 			RewardId: rewardID,
 			Name:     "Test Integration Reward",
 			Amount:   100,
 			ClaimAuthorities: []*corev1.ClaimAuthority{
 				{
-					Address: "0x1234567890123456789012345678901234567890",
+					Address: oracleAddr,
 					Name:    "Test Oracle",
 				},
 				{
-					Address: "0x0987654321098765432109876543210987654321",
+					Address: backupAddr,
 					Name:    "Backup Oracle",
 				},
 			},
-			Signature: "placeholder_signature_" + uuid.NewString(), // In real implementation, this would be a proper signature
+			DeadlineBlockHeight: deadlineHeight,
 		}
 
-		createRes, err := sdk.Core.CreateReward(ctx, connect.NewRequest(createReq))
+		// Sign the create reward using deterministic signing
+		createSignature, err := common.SignCreateReward(oracleKey, createReward)
+		if err != nil {
+			t.Fatalf("Failed to sign create reward: %v", err)
+		}
+		createReward.Signature = createSignature
+
+		// Create the reward message
+		createRewardMsg := &corev1.RewardMessage{
+			Action: &corev1.RewardMessage_Create{
+				Create: createReward,
+			},
+		}
+
+		// Create signed transaction
+		signedTx := &corev1.SignedTransaction{
+			Transaction: &corev1.SignedTransaction_Reward{
+				Reward: createRewardMsg,
+			},
+		}
+
+		// Send via SendTransaction
+		createRes, err := sdk.Core.SendTransaction(ctx, connect.NewRequest(&corev1.SendTransactionRequest{
+			Transaction: signedTx,
+		}))
 		if err != nil {
 			t.Fatalf("Failed to create reward: %v", err)
 		}
 
-		rewardAddress := createRes.Msg.Address
-		createTxHash := createRes.Msg.TxHash
-		t.Logf("Created reward at address: %s", rewardAddress)
+		createTxHash := createRes.Msg.Transaction.Hash
 		t.Logf("Created reward transaction hash: %s", createTxHash)
 
 		// Wait for transaction to be processed
@@ -74,10 +119,8 @@ func TestRewardsLifecycle(t *testing.T) {
 			t.Fatalf("Created reward not found in rewards list")
 		}
 
-		// Verify the address matches what was returned from CreateReward
-		if createdReward.Address != rewardAddress {
-			t.Errorf("Expected address %s, got %s", rewardAddress, createdReward.Address)
-		}
+		rewardAddress := createdReward.Address
+		t.Logf("Created reward at address: %s", rewardAddress)
 
 		// Verify reward details
 		if createdReward.Name != "Test Integration Reward" {
@@ -102,31 +145,62 @@ func TestRewardsLifecycle(t *testing.T) {
 			t.Errorf("Expected reward_id %s, got %s", rewardID, getRewardRes.Msg.RewardId)
 		}
 
-		// Test 4: Update the reward using the dedicated RPC
-		updateReq := &corev1.UpdateRewardRequest{
+		// Test 4: Update the reward using SendTransaction
+		// Generate a new authority key
+		newAuthorityKey, err := crypto.GenerateKey()
+		if err != nil {
+			t.Fatalf("Failed to generate new authority key: %v", err)
+		}
+		newAuthorityAddr := common.PrivKeyToAddress(newAuthorityKey)
+
+		// Create the update reward with signature and deadline
+		updateReward := &corev1.UpdateReward{
 			Address: rewardAddress,
 			Name:    "Updated Test Reward",
 			Amount:  150,
 			ClaimAuthorities: []*corev1.ClaimAuthority{
 				{
-					Address: "0x1234567890123456789012345678901234567890",
+					Address: oracleAddr,
 					Name:    "Test Oracle",
 				},
-				// Added a new authority
 				{
-					Address: "0x1111111111111111111111111111111111111111",
+					Address: newAuthorityAddr,
 					Name:    "New Authority",
 				},
 			},
-			Signature: "placeholder_signature_" + uuid.NewString(), // Should be signed by claim authority
+			DeadlineBlockHeight: deadlineHeight,
 		}
 
-		updateRes, err := sdk.Core.UpdateReward(ctx, connect.NewRequest(updateReq))
+		// Sign the update reward using deterministic signing
+		updateSignature, err := common.SignUpdateReward(oracleKey, updateReward)
+		if err != nil {
+			t.Fatalf("Failed to sign update reward: %v", err)
+		}
+		updateReward.Signature = updateSignature
+
+		// Create the reward message
+		updateRewardMsg := &corev1.RewardMessage{
+			Action: &corev1.RewardMessage_Update{
+				Update: updateReward,
+			},
+		}
+
+		// Create signed transaction
+		updateSignedTx := &corev1.SignedTransaction{
+			Transaction: &corev1.SignedTransaction_Reward{
+				Reward: updateRewardMsg,
+			},
+		}
+
+		// Send via SendTransaction
+		updateRes, err := sdk.Core.SendTransaction(ctx, connect.NewRequest(&corev1.SendTransactionRequest{
+			Transaction: updateSignedTx,
+		}))
 		if err != nil {
 			t.Fatalf("Failed to update reward: %v", err)
 		}
 
-		updateTxHash := updateRes.Msg.TxHash
+		updateTxHash := updateRes.Msg.Transaction.Hash
 		t.Logf("Updated reward transaction hash: %s", updateTxHash)
 
 		// Wait for update to be processed
@@ -147,18 +221,43 @@ func TestRewardsLifecycle(t *testing.T) {
 			t.Errorf("Expected updated amount 150, got %d", getUpdatedRewardRes.Msg.Amount)
 		}
 
-		// Test 5: Delete the reward using the dedicated RPC
-		deleteReq := &corev1.DeleteRewardRequest{
-			Address:   rewardAddress,
-			Signature: "placeholder_signature_" + uuid.NewString(), // Should be signed by claim authority
+		// Test 5: Delete the reward using SendTransaction
+		// Create the delete reward with signature and deadline
+		deleteReward := &corev1.DeleteReward{
+			Address:             rewardAddress,
+			DeadlineBlockHeight: deadlineHeight,
 		}
 
-		deleteRes, err := sdk.Core.DeleteReward(ctx, connect.NewRequest(deleteReq))
+		// Sign the delete reward using deterministic signing
+		deleteSignature, err := common.SignDeleteReward(oracleKey, deleteReward)
+		if err != nil {
+			t.Fatalf("Failed to sign delete reward: %v", err)
+		}
+		deleteReward.Signature = deleteSignature
+
+		// Create the reward message
+		deleteRewardMsg := &corev1.RewardMessage{
+			Action: &corev1.RewardMessage_Delete{
+				Delete: deleteReward,
+			},
+		}
+
+		// Create signed transaction
+		deleteSignedTx := &corev1.SignedTransaction{
+			Transaction: &corev1.SignedTransaction_Reward{
+				Reward: deleteRewardMsg,
+			},
+		}
+
+		// Send via SendTransaction
+		deleteRes, err := sdk.Core.SendTransaction(ctx, connect.NewRequest(&corev1.SendTransactionRequest{
+			Transaction: deleteSignedTx,
+		}))
 		if err != nil {
 			t.Fatalf("Failed to delete reward: %v", err)
 		}
 
-		deleteTxHash := deleteRes.Msg.TxHash
+		deleteTxHash := deleteRes.Msg.Transaction.Hash
 		t.Logf("Deleted reward transaction hash: %s", deleteTxHash)
 
 		// Test 6: Verify transactions can be retrieved

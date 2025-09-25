@@ -505,6 +505,8 @@ message CreateReward {
   string name = 2;
   uint64 amount = 3;
   repeated ClaimAuthority claim_authorities = 4;
+  int64 deadline_block_height = 5;
+  string signature = 6; // Signature over deterministic reward data
 }
 
 message UpdateReward {
@@ -512,10 +514,14 @@ message UpdateReward {
   string name = 2;
   uint64 amount = 3;
   repeated ClaimAuthority claim_authorities = 4;
+  int64 deadline_block_height = 5;
+  string signature = 6; // Signature over deterministic update data
 }
 
 message DeleteReward {
   string address = 1; // The deployed reward address
+  int64 deadline_block_height = 2;
+  string signature = 3; // Signature over deterministic delete data
 }
 
 message GetRewardRequest {
@@ -530,72 +536,6 @@ message GetRewardResponse {
   repeated string claim_authorities = 5;
   string sender = 6;
   int64 block_height = 7;
-}
-
-message RewardEvent {
-  oneof event {
-    RewardCreatedEvent created = 1000;
-    RewardUpdatedEvent updated = 1001;
-    RewardDeletedEvent deleted = 1002;
-  }
-}
-
-message RewardCreatedEvent {
-  string address = 1;
-  string reward_id = 2;
-  string name = 3;
-  uint64 amount = 4;
-  repeated string claim_authorities = 5;
-  string sender = 6;
-}
-
-message RewardUpdatedEvent {
-  string address = 1;
-  string name = 2;
-  uint64 amount = 3;
-  repeated string claim_authorities = 4;
-  string sender = 5;
-}
-
-message RewardDeletedEvent {
-  string address = 1;
-  string sender = 2;
-}
-
-message CreateRewardRequest {
-  string reward_id = 1;
-  string name = 2;
-  uint64 amount = 3;
-  repeated ClaimAuthority claim_authorities = 4;
-  string signature = 5; // Signature over the reward data
-}
-
-message CreateRewardResponse {
-  string address = 1; // The deployed reward address
-  string tx_hash = 2;
-}
-
-message UpdateRewardRequest {
-  string address = 1; // The deployed reward address
-  string name = 2;
-  uint64 amount = 3;
-  repeated ClaimAuthority claim_authorities = 4;
-  string signature = 5; // Signature over the update data
-}
-
-message UpdateRewardResponse {
-  string address = 1;
-  string tx_hash = 2;
-}
-
-message DeleteRewardRequest {
-  string address = 1; // The deployed reward address
-  string signature = 2; // Signature over the delete request
-}
-
-message DeleteRewardResponse {
-  string address = 1;
-  string tx_hash = 2;
 }
 
 message RewardAttestationSignature {

@@ -564,6 +564,12 @@ where reward_id = $1
 order by block_height desc
 limit 1;
 
+-- name: GetRewardByTxHash :one
+select * from core_rewards
+where tx_hash = $1
+order by block_height desc
+limit 1;
+
 -- name: GetAllRewards :many
 select * from core_rewards
 where address in (

@@ -28,8 +28,4 @@ service CoreService {
   rpc GetPIE(GetPIERequest) returns (GetPIEResponse) {}
 
   rpc GetReward(GetRewardRequest) returns (GetRewardResponse) {}
-
-  rpc CreateReward(CreateRewardRequest) returns (CreateRewardResponse) {}
-  rpc UpdateReward(UpdateRewardRequest) returns (UpdateRewardResponse) {}
-  rpc DeleteReward(DeleteRewardRequest) returns (DeleteRewardResponse) {}
 }

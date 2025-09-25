@@ -1739,6 +1739,34 @@ func (q *Queries) GetRewardByID(ctx context.Context, rewardID string) (CoreRewar
 	return i, err
 }
 
+const getRewardByTxHash = `-- name: GetRewardByTxHash :one
+select id, address, index, tx_hash, sender, reward_id, name, amount, claim_authorities, raw_message, block_height, created_at, updated_at from core_rewards
+where tx_hash = $1
+order by block_height desc
+limit 1
+`
+
+func (q *Queries) GetRewardByTxHash(ctx context.Context, txHash string) (CoreReward, error) {
+	row := q.db.QueryRow(ctx, getRewardByTxHash, txHash)
+	var i CoreReward
+	err := row.Scan(
+		&i.ID,
+		&i.Address,
+		&i.Index,
+		&i.TxHash,
+		&i.Sender,
+		&i.RewardID,
+		&i.Name,
+		&i.Amount,
+		&i.ClaimAuthorities,
+		&i.RawMessage,
+		&i.BlockHeight,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getRewardsByClaimAuthority = `-- name: GetRewardsByClaimAuthority :many
 select distinct on (address) id, address, index, tx_hash, sender, reward_id, name, amount, claim_authorities, raw_message, block_height, created_at, updated_at
 from core_rewards
