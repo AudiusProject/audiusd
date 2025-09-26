@@ -711,11 +711,19 @@ func (s *Server) validateBlockTx(ctx context.Context, blockTime time.Time, block
 			s.logger.Error("Invalid block: invalid release tx", zap.Error(err))
 			return false, nil
 		}
+	case *v1.SignedTransaction_Reward:
+		// Basic validation for reward transactions
+		if signedTx.GetReward() == nil {
+			s.logger.Error("Invalid block: reward transaction is nil")
+			return false, nil
+		}
 	}
 	return true, nil
 }
 
 func (s *Server) finalizeTransaction(ctx context.Context, req *abcitypes.FinalizeBlockRequest, msg *v1.SignedTransaction, txHash string, blockHeight int64) (proto.Message, error) {
+	// ignore error for now as not all clients are sending signatures yet
+	_, sender, _ := common.TxHashRecover(txHash, msg.Signature)
 	misbehavior := req.Misbehavior
 	switch t := msg.Transaction.(type) {
 	case *v1.SignedTransaction_Plays:
@@ -736,6 +744,8 @@ func (s *Server) finalizeTransaction(ctx context.Context, req *abcitypes.Finaliz
 		return s.finalizeStorageProofVerification(ctx, msg, blockHeight)
 	case *v1.SignedTransaction_Release:
 		return s.finalizeRelease(ctx, msg, txHash)
+	case *v1.SignedTransaction_Reward:
+		return s.finalizeRewardTransaction(ctx, req, msg.GetReward(), txHash, sender)
 	default:
 		return nil, fmt.Errorf("unhandled proto event: %v %T", msg, t)
 	}
