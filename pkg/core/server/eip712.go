@@ -81,7 +81,7 @@ func RecoverPubkeyFromCoreTx(config *config.Config, em *v1.ManageEntityLegacy) (
 			Name:              "Entity Manager",
 			Version:           "1",
 			ChainId:           math.NewHexOrDecimal256(int64(chainId)),
-			VerifyingContract: strings.ToLower(contractAddress),
+			VerifyingContract: contractAddress,
 		},
 		PrimaryType: "ManageEntity",
 		Message: map[string]interface{}{
@@ -204,7 +204,7 @@ func SignManageEntity(config *config.Config, em *v1.ManageEntityLegacy, privateK
 			Name:              "Entity Manager",
 			Version:           "1",
 			ChainId:           math.NewHexOrDecimal256(int64(chainId)),
-			VerifyingContract: strings.ToLower(contractAddress),
+			VerifyingContract: contractAddress,
 		},
 		PrimaryType: "ManageEntity",
 		Message: map[string]interface{}{
