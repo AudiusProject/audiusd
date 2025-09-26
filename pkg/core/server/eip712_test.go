@@ -56,13 +56,13 @@ func TestEIP712(t *testing.T) {
 
 	t.Run("no metadata", func(t *testing.T) {
 		tx := &v1.ManageEntityLegacy{
-			UserId:     30344603,
+			UserId:     713621629,
 			EntityType: "Track",
-			EntityId:   30344603,
+			EntityId:   2114101946,
 			Action:     "Save",
 			Metadata:   "",
-			Signature:  "0x5b4572f678f1925300c8628128937d107a80dec9daa0971336851dc221da08a3629329040e3740879d3ab11a5257edff95697ec857fd0c35fa58e74fe836a5cf1b",
-			Nonce:      "0x8b945b9aa6fac028c5ba3c96ce1e6514eff26cee3a33bf05a996142c3779356a",
+			Signature:  "0xe4a03a4d1c508ba62191151f1082a8696fc7a6c6fafd40d675e519c72299449e50fa5326f69ac2bccea2b3625f4ffb6b3ffb03d90868d096521f9c60302c1e9f1c",
+			Nonce:      "0xef60d06c56264964f035eb0aee2bb62cca88f04ffff038b0b70dcb6efdcc2787",
 		}
 
 		config := &config.Config{
