@@ -53,4 +53,26 @@ func TestEIP712(t *testing.T) {
 		t.Logf("recovered address: %s", address)
 		require.Equal(t, "0x494388e8be6eb2af88ef0d999a07d9665bd00379", strings.ToLower(address))
 	})
+
+	t.Run("no metadata", func(t *testing.T) {
+		tx := &v1.ManageEntityLegacy{
+			UserId:     30344603,
+			EntityType: "Track",
+			EntityId:   30344603,
+			Action:     "Save",
+			Metadata:   "",
+			Signature:  "0x5b4572f678f1925300c8628128937d107a80dec9daa0971336851dc221da08a3629329040e3740879d3ab11a5257edff95697ec857fd0c35fa58e74fe836a5cf1b",
+			Nonce:      "0x8b945b9aa6fac028c5ba3c96ce1e6514eff26cee3a33bf05a996142c3779356a",
+		}
+
+		config := &config.Config{
+			AcdcChainID:              config.ProdAcdcChainID,
+			AcdcEntityManagerAddress: config.ProdAcdcAddress,
+		}
+
+		address, _, err := RecoverPubkeyFromCoreTx(config, tx)
+		require.Nil(t, err)
+		t.Logf("recovered address: %s", address)
+		require.Equal(t, "0x570d5bd4d4dbcc3f896ba095f4002a2545e5e5f6", strings.ToLower(address))
+	})
 }

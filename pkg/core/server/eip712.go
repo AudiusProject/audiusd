@@ -122,7 +122,22 @@ func recoverPublicKey(signature []byte, typedData apitypes.TypedData) ([]byte, e
 		return nil, fmt.Errorf("eip712domain hash struct: %w", err)
 	}
 
-	typedDataHash, err := typedData.HashStruct(typedData.PrimaryType, typedData.Message)
+	// For empty metadata, we need to ensure it's handled the same way as viem
+	// viem always includes the metadata field even when empty, and hashes it as keccak256("")
+	message := make(map[string]interface{})
+	for k, v := range typedData.Message {
+		message[k] = v
+	}
+
+	// Ensure metadata is always present as a string (even if empty)
+	if metadata, exists := message["metadata"]; exists {
+		if metadataStr, ok := metadata.(string); ok && metadataStr == "" {
+			// Keep it as empty string - viem includes and hashes empty strings
+			message["metadata"] = ""
+		}
+	}
+
+	typedDataHash, err := typedData.HashStruct(typedData.PrimaryType, message)
 	if err != nil {
 		return nil, fmt.Errorf("primary type hash struct: %w", err)
 	}
@@ -133,11 +148,15 @@ func recoverPublicKey(signature []byte, typedData apitypes.TypedData) ([]byte, e
 
 	// update the recovery id
 	// https://github.com/ethereum/go-ethereum/blob/55599ee95d4151a2502465e0afc7c47bd1acba77/internal/ethapi/api.go#L442
-	if len(signature) > 64 {
-		signature[64] -= 27
+	// Make a copy to avoid modifying the original signature slice (thread safety)
+	sigCopy := make([]byte, len(signature))
+	copy(sigCopy, signature)
+
+	if len(sigCopy) > 64 {
+		sigCopy[64] -= 27
 	}
 
-	return crypto.Ecrecover(sighash, signature)
+	return crypto.Ecrecover(sighash, sigCopy)
 
 }
 

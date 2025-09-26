@@ -74,10 +74,14 @@ func (c *CoreService) ForwardTransaction(ctx context.Context, req *connect.Reque
 		tx := req.Msg.Transaction
 		em := tx.GetManageEntity()
 		if em != nil {
-			err := InjectSigner(c.core.config, em)
+			// Create a deep copy to avoid protobuf memory reuse issues
+			emCopy := proto.Clone(em).(*v1.ManageEntityLegacy)
+			err := InjectSigner(c.core.config, emCopy)
 			if err != nil {
 				return nil, connect.NewError(connect.CodeInvalidArgument, errors.Join(errors.New("signer not recoverable"), err))
 			}
+			// Update the original with the signer
+			em.Signer = emCopy.Signer
 		}
 		txBytes, marshalErr := proto.Marshal(req.Msg.Transaction)
 		if marshalErr != nil {
