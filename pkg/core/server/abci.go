@@ -711,6 +711,11 @@ func (s *Server) validateBlockTx(ctx context.Context, blockTime time.Time, block
 			s.logger.Error("Invalid block: invalid release tx", zap.Error(err))
 			return false, nil
 		}
+	case *v1.SignedTransaction_FileUpload:
+		if err := s.isValidFileUpload(ctx, signedTx); err != nil {
+			s.logger.Error("Invalid block: invalid file upload tx", zap.Error(err))
+			return false, nil
+		}
 	}
 	return true, nil
 }
@@ -736,6 +741,8 @@ func (s *Server) finalizeTransaction(ctx context.Context, req *abcitypes.Finaliz
 		return s.finalizeStorageProofVerification(ctx, msg, blockHeight)
 	case *v1.SignedTransaction_Release:
 		return s.finalizeRelease(ctx, msg, txHash)
+	case *v1.SignedTransaction_FileUpload:
+		return s.finalizeFileUpload(ctx, msg, txHash, req.Height)
 	default:
 		return nil, fmt.Errorf("unhandled proto event: %v %T", msg, t)
 	}

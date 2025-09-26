@@ -80,6 +80,11 @@ const (
 	CoreServiceGetMEADProcedure = "/core.v1.CoreService/GetMEAD"
 	// CoreServiceGetPIEProcedure is the fully-qualified name of the CoreService's GetPIE RPC.
 	CoreServiceGetPIEProcedure = "/core.v1.CoreService/GetPIE"
+	// CoreServiceStreamERNProcedure is the fully-qualified name of the CoreService's StreamERN RPC.
+	CoreServiceStreamERNProcedure = "/core.v1.CoreService/StreamERN"
+	// CoreServiceGetUploadByCIDProcedure is the fully-qualified name of the CoreService's
+	// GetUploadByCID RPC.
+	CoreServiceGetUploadByCIDProcedure = "/core.v1.CoreService/GetUploadByCID"
 )
 
 // CoreServiceClient is a client for the core.v1.CoreService service.
@@ -103,6 +108,8 @@ type CoreServiceClient interface {
 	GetERN(context.Context, *connect.Request[v1.GetERNRequest]) (*connect.Response[v1.GetERNResponse], error)
 	GetMEAD(context.Context, *connect.Request[v1.GetMEADRequest]) (*connect.Response[v1.GetMEADResponse], error)
 	GetPIE(context.Context, *connect.Request[v1.GetPIERequest]) (*connect.Response[v1.GetPIEResponse], error)
+	StreamERN(context.Context, *connect.Request[v1.StreamERNRequest]) (*connect.Response[v1.StreamERNResponse], error)
+	GetUploadByCID(context.Context, *connect.Request[v1.GetUploadByCIDRequest]) (*connect.Response[v1.GetUploadByCIDResponse], error)
 }
 
 // NewCoreServiceClient constructs a client for the core.v1.CoreService service. By default, it uses
@@ -230,6 +237,18 @@ func NewCoreServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(coreServiceMethods.ByName("GetPIE")),
 			connect.WithClientOptions(opts...),
 		),
+		streamERN: connect.NewClient[v1.StreamERNRequest, v1.StreamERNResponse](
+			httpClient,
+			baseURL+CoreServiceStreamERNProcedure,
+			connect.WithSchema(coreServiceMethods.ByName("StreamERN")),
+			connect.WithClientOptions(opts...),
+		),
+		getUploadByCID: connect.NewClient[v1.GetUploadByCIDRequest, v1.GetUploadByCIDResponse](
+			httpClient,
+			baseURL+CoreServiceGetUploadByCIDProcedure,
+			connect.WithSchema(coreServiceMethods.ByName("GetUploadByCID")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -254,6 +273,8 @@ type coreServiceClient struct {
 	getERN                       *connect.Client[v1.GetERNRequest, v1.GetERNResponse]
 	getMEAD                      *connect.Client[v1.GetMEADRequest, v1.GetMEADResponse]
 	getPIE                       *connect.Client[v1.GetPIERequest, v1.GetPIEResponse]
+	streamERN                    *connect.Client[v1.StreamERNRequest, v1.StreamERNResponse]
+	getUploadByCID               *connect.Client[v1.GetUploadByCIDRequest, v1.GetUploadByCIDResponse]
 }
 
 // Ping calls core.v1.CoreService.Ping.
@@ -351,6 +372,16 @@ func (c *coreServiceClient) GetPIE(ctx context.Context, req *connect.Request[v1.
 	return c.getPIE.CallUnary(ctx, req)
 }
 
+// StreamERN calls core.v1.CoreService.StreamERN.
+func (c *coreServiceClient) StreamERN(ctx context.Context, req *connect.Request[v1.StreamERNRequest]) (*connect.Response[v1.StreamERNResponse], error) {
+	return c.streamERN.CallUnary(ctx, req)
+}
+
+// GetUploadByCID calls core.v1.CoreService.GetUploadByCID.
+func (c *coreServiceClient) GetUploadByCID(ctx context.Context, req *connect.Request[v1.GetUploadByCIDRequest]) (*connect.Response[v1.GetUploadByCIDResponse], error) {
+	return c.getUploadByCID.CallUnary(ctx, req)
+}
+
 // CoreServiceHandler is an implementation of the core.v1.CoreService service.
 type CoreServiceHandler interface {
 	Ping(context.Context, *connect.Request[v1.PingRequest]) (*connect.Response[v1.PingResponse], error)
@@ -372,6 +403,8 @@ type CoreServiceHandler interface {
 	GetERN(context.Context, *connect.Request[v1.GetERNRequest]) (*connect.Response[v1.GetERNResponse], error)
 	GetMEAD(context.Context, *connect.Request[v1.GetMEADRequest]) (*connect.Response[v1.GetMEADResponse], error)
 	GetPIE(context.Context, *connect.Request[v1.GetPIERequest]) (*connect.Response[v1.GetPIEResponse], error)
+	StreamERN(context.Context, *connect.Request[v1.StreamERNRequest]) (*connect.Response[v1.StreamERNResponse], error)
+	GetUploadByCID(context.Context, *connect.Request[v1.GetUploadByCIDRequest]) (*connect.Response[v1.GetUploadByCIDResponse], error)
 }
 
 // NewCoreServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -495,6 +528,18 @@ func NewCoreServiceHandler(svc CoreServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(coreServiceMethods.ByName("GetPIE")),
 		connect.WithHandlerOptions(opts...),
 	)
+	coreServiceStreamERNHandler := connect.NewUnaryHandler(
+		CoreServiceStreamERNProcedure,
+		svc.StreamERN,
+		connect.WithSchema(coreServiceMethods.ByName("StreamERN")),
+		connect.WithHandlerOptions(opts...),
+	)
+	coreServiceGetUploadByCIDHandler := connect.NewUnaryHandler(
+		CoreServiceGetUploadByCIDProcedure,
+		svc.GetUploadByCID,
+		connect.WithSchema(coreServiceMethods.ByName("GetUploadByCID")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/core.v1.CoreService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case CoreServicePingProcedure:
@@ -535,6 +580,10 @@ func NewCoreServiceHandler(svc CoreServiceHandler, opts ...connect.HandlerOption
 			coreServiceGetMEADHandler.ServeHTTP(w, r)
 		case CoreServiceGetPIEProcedure:
 			coreServiceGetPIEHandler.ServeHTTP(w, r)
+		case CoreServiceStreamERNProcedure:
+			coreServiceStreamERNHandler.ServeHTTP(w, r)
+		case CoreServiceGetUploadByCIDProcedure:
+			coreServiceGetUploadByCIDHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -618,4 +667,12 @@ func (UnimplementedCoreServiceHandler) GetMEAD(context.Context, *connect.Request
 
 func (UnimplementedCoreServiceHandler) GetPIE(context.Context, *connect.Request[v1.GetPIERequest]) (*connect.Response[v1.GetPIEResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("core.v1.CoreService.GetPIE is not implemented"))
+}
+
+func (UnimplementedCoreServiceHandler) StreamERN(context.Context, *connect.Request[v1.StreamERNRequest]) (*connect.Response[v1.StreamERNResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("core.v1.CoreService.StreamERN is not implemented"))
+}
+
+func (UnimplementedCoreServiceHandler) GetUploadByCID(context.Context, *connect.Request[v1.GetUploadByCIDRequest]) (*connect.Response[v1.GetUploadByCIDResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("core.v1.CoreService.GetUploadByCID is not implemented"))
 }

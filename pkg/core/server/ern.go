@@ -7,9 +7,10 @@ import (
 
 	corev1beta1 "github.com/AudiusProject/audiusd/pkg/api/core/v1beta1"
 	ddexv1beta1 "github.com/AudiusProject/audiusd/pkg/api/ddex/v1beta1"
-	"github.com/AudiusProject/audiusd/pkg/common"
+	"github.com/AudiusProject/audiusd/pkg/core/address"
 	"github.com/AudiusProject/audiusd/pkg/core/db"
 	abcitypes "github.com/cometbft/cometbft/abci/types"
+	ethcommon "github.com/ethereum/go-ethereum/common"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -83,38 +84,141 @@ func (s *Server) finalizeERN(ctx context.Context, req *abcitypes.FinalizeBlockRe
 
 /** ERN New Message */
 
+func getERNOAPMessageSender(msg *ddexv1beta1.NewReleaseMessage) string {
+	oapAddress := ""
+
+	mh := msg.GetMessageHeader()
+	if mh == nil {
+		return oapAddress
+	}
+
+	ms := mh.GetMessageSender()
+	if ms == nil {
+		return oapAddress
+	}
+
+	pi := ms.GetPartyId()
+	if pi == nil {
+		return oapAddress
+	}
+
+	pis := pi.GetProprietaryIds()
+	if len(pis) == 0 {
+		return oapAddress
+	}
+
+	for _, pri := range pis {
+		if pri.Namespace == "OAP" {
+			if ethcommon.IsHexAddress(pri.Id) {
+				oapAddress = pri.Id
+			}
+		}
+	}
+
+	return oapAddress
+}
+
 // Validate an ERN message that's expected to be a NEW_MESSAGE, expects that the transaction header is valid
-func (s *Server) validateERNNewMessage(_ context.Context, _ *ddexv1beta1.NewReleaseMessage) error {
-	// TODO: add ERN level validation for conflicts and duplicates
+func (s *Server) validateERNNewMessage(ctx context.Context, msg *ddexv1beta1.NewReleaseMessage) error {
+	resourceList := msg.GetResourceList()
+	if resourceList == nil {
+		return nil
+	}
+
+	if len(resourceList) == 0 {
+		return nil
+	}
+
+	oapAddress := getERNOAPMessageSender(msg)
+
+	for _, resource := range resourceList {
+		sr := resource.GetSoundRecording()
+		if sr == nil {
+			continue
+		}
+
+		sre := sr.GetSoundRecordingEdition()
+		if sre == nil {
+			continue
+		}
+
+		td := sre.GetTechnicalDetails()
+		if td == nil {
+			continue
+		}
+
+		df := td.GetDeliveryFile()
+		if df == nil {
+			continue
+		}
+
+		f := df.GetFile()
+		if f == nil {
+			continue
+		}
+
+		// in core this can be a CID (either original or transcoded)
+		uri := f.Uri
+		upload, err := s.db.GetCoreUpload(ctx, uri)
+		if err != nil {
+			return fmt.Errorf("file doesn't exist with cid %s: %v", uri, err)
+		}
+
+		uploader := upload.UploaderAddress
+		if uploader != oapAddress {
+			return fmt.Errorf("sender %s doesn't match uploader %s for CID %s", oapAddress, uploader, uri)
+		}
+	}
+
 	return nil
 }
 
 func (s *Server) finalizeERNNewMessage(ctx context.Context, req *abcitypes.FinalizeBlockRequest, txhash string, messageIndex int64, ern *ddexv1beta1.NewReleaseMessage, sender string) error {
-	// TODO: use a better nonce
-	nonce := txhash
-	// the ERN address is the location of the message on the chain
-	ernAddress := common.CreateAddress(ern, s.config.GenesisFile.ChainID, req.Height, txhash)
+	// Create address generator
+	gen := address.New(s.config.GenesisFile.ChainID, req.Height, txhash)
 
-	// Collect all addresses, all underlying objects use the same source ERN nonce
+	// Generate ERN address using message ID
+	messageID := ""
+	if ern.MessageHeader != nil && ern.MessageHeader.MessageId != "" {
+		messageID = ern.MessageHeader.MessageId
+	} else {
+		// Fallback to txhash + index if no message ID
+		messageID = fmt.Sprintf("%s:%d", txhash, messageIndex)
+	}
+	ernAddress := gen.ERN(messageID)
+
+	// Collect all addresses using deterministic references
 	partyAddresses := make([]string, len(ern.PartyList))
 	for i, party := range ern.PartyList {
-		partyAddresses[i] = common.CreateAddress(party, s.config.GenesisFile.ChainID, req.Height, nonce)
+		partyAddresses[i] = gen.Party(party.PartyReference)
 	}
 
 	resourceAddresses := make([]string, len(ern.ResourceList))
 	for i, resource := range ern.ResourceList {
-		resourceAddresses[i] = common.CreateAddress(resource, s.config.GenesisFile.ChainID, req.Height, nonce)
+		ref := ""
+		if sr := resource.GetSoundRecording(); sr != nil {
+			ref = sr.ResourceReference
+		} else if img := resource.GetImage(); img != nil {
+			ref = img.ResourceReference
+		}
+		resourceAddresses[i] = gen.Resource(ref)
 	}
 
 	releaseAddresses := make([]string, len(ern.ReleaseList))
 	for i, release := range ern.ReleaseList {
-		releaseAddresses[i] = common.CreateAddress(release, s.config.GenesisFile.ChainID, req.Height, nonce)
+		ref := ""
+		if mr := release.GetMainRelease(); mr != nil {
+			ref = mr.ReleaseReference
+		} else if tr := release.GetTrackRelease(); tr != nil {
+			ref = tr.ReleaseReference
+		}
+		releaseAddresses[i] = gen.Release(ref)
 	}
 
 	dealAddresses := make([]string, len(ern.DealList))
-	for i, deal := range ern.DealList {
-		dealAddresses[i] = common.CreateAddress(deal, s.config.GenesisFile.ChainID, req.Height, nonce)
-	}
+	// for i, deal := range ern.DealList {
+	// 	dealAddresses[i] = gen.Deal(deal.GetReleaseDeal().GetDealReleaseReference())
+	// }
 
 	rawMessage, err := proto.Marshal(ern)
 	if err != nil {
@@ -141,15 +245,64 @@ func (s *Server) finalizeERNNewMessage(ctx context.Context, req *abcitypes.Final
 		Address:            ernAddress,
 		Sender:             sender,
 		MessageControlType: int16(*ern.MessageHeader.MessageControlType),
-		PartyAddresses:     partyAddresses,
-		ResourceAddresses:  resourceAddresses,
-		ReleaseAddresses:   releaseAddresses,
-		DealAddresses:      dealAddresses,
 		RawMessage:         rawMessage,
 		RawAcknowledgment:  rawAcknowledgment,
 		BlockHeight:        req.Height,
 	}); err != nil {
 		return fmt.Errorf("failed to insert ERN: %w", err)
+	}
+
+	// Insert normalized entity records
+	for i, partyAddress := range partyAddresses {
+		if err := qtx.InsertCoreParty(ctx, db.InsertCorePartyParams{
+			Address:     partyAddress,
+			ErnAddress:  ernAddress,
+			EntityType:  "party",
+			EntityIndex: int32(i + 1), // 1-indexed to match PostgreSQL array conventions
+			TxHash:      txhash,
+			BlockHeight: req.Height,
+		}); err != nil {
+			return fmt.Errorf("failed to insert party %d: %w", i, err)
+		}
+	}
+
+	for i, resourceAddress := range resourceAddresses {
+		if err := qtx.InsertCoreResource(ctx, db.InsertCoreResourceParams{
+			Address:     resourceAddress,
+			ErnAddress:  ernAddress,
+			EntityType:  "resource",
+			EntityIndex: int32(i + 1), // 1-indexed to match PostgreSQL array conventions
+			TxHash:      txhash,
+			BlockHeight: req.Height,
+		}); err != nil {
+			return fmt.Errorf("failed to insert resource %d: %w", i, err)
+		}
+	}
+
+	for i, releaseAddress := range releaseAddresses {
+		if err := qtx.InsertCoreRelease(ctx, db.InsertCoreReleaseParams{
+			Address:     releaseAddress,
+			ErnAddress:  ernAddress,
+			EntityType:  "release",
+			EntityIndex: int32(i + 1), // 1-indexed to match PostgreSQL array conventions
+			TxHash:      txhash,
+			BlockHeight: req.Height,
+		}); err != nil {
+			return fmt.Errorf("failed to insert release %d: %w", i, err)
+		}
+	}
+
+	for i, dealAddress := range dealAddresses {
+		if err := qtx.InsertCoreDeal(ctx, db.InsertCoreDealParams{
+			Address:     dealAddress,
+			ErnAddress:  ernAddress,
+			EntityType:  "deal",
+			EntityIndex: int32(i + 1), // 1-indexed to match PostgreSQL array conventions
+			TxHash:      txhash,
+			BlockHeight: req.Height,
+		}); err != nil {
+			return fmt.Errorf("failed to insert deal %d: %w", i, err)
+		}
 	}
 
 	return nil
