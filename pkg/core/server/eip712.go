@@ -133,11 +133,15 @@ func recoverPublicKey(signature []byte, typedData apitypes.TypedData) ([]byte, e
 
 	// update the recovery id
 	// https://github.com/ethereum/go-ethereum/blob/55599ee95d4151a2502465e0afc7c47bd1acba77/internal/ethapi/api.go#L442
-	if len(signature) > 64 {
-		signature[64] -= 27
+	// Make a copy to avoid modifying the original signature slice (thread safety)
+	sigCopy := make([]byte, len(signature))
+	copy(sigCopy, signature)
+
+	if len(sigCopy) > 64 {
+		sigCopy[64] -= 27
 	}
 
-	return crypto.Ecrecover(sighash, signature)
+	return crypto.Ecrecover(sighash, sigCopy)
 
 }
 
