@@ -712,9 +712,8 @@ func (s *Server) validateBlockTx(ctx context.Context, blockTime time.Time, block
 			return false, nil
 		}
 	case *v1.SignedTransaction_Reward:
-		// Basic validation for reward transactions
-		if signedTx.GetReward() == nil {
-			s.logger.Error("Invalid block: reward transaction is nil")
+		if err := s.isValidRewardTransaction(ctx, signedTx, blockHeight); err != nil {
+			s.logger.Error("Invalid block: invalid reward tx", zap.Error(err))
 			return false, nil
 		}
 	}

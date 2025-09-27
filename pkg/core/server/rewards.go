@@ -87,7 +87,87 @@ var (
 	ErrRewardMessageFinalization = errors.New("reward message finalization failed")
 	ErrRewardSignatureInvalid    = errors.New("reward signature invalid")
 	ErrRewardExpired             = errors.New("reward transaction expired")
+	ErrRewardUnauthorized        = errors.New("reward transaction unauthorized")
 )
+
+func (s *Server) isValidRewardTransaction(ctx context.Context, signedTx *corev1.SignedTransaction, blockHeight int64) error {
+	rewardMsg := signedTx.GetReward()
+	if rewardMsg == nil {
+		return fmt.Errorf("%w: reward message is nil", ErrRewardMessageValidation)
+	}
+
+	switch action := rewardMsg.Action.(type) {
+	case *corev1.RewardMessage_Create:
+		return s.validateCreateReward(ctx, action.Create, blockHeight)
+	case *corev1.RewardMessage_Update:
+		return s.validateUpdateReward(ctx, action.Update, blockHeight)
+	case *corev1.RewardMessage_Delete:
+		return s.validateDeleteReward(ctx, action.Delete, blockHeight)
+	default:
+		return fmt.Errorf("%w: unsupported reward action type", ErrRewardMessageValidation)
+	}
+}
+
+func (s *Server) validateCreateReward(ctx context.Context, createReward *corev1.CreateReward, blockHeight int64) error {
+	signatureData := common.CreateDeterministicCreateRewardData(createReward)
+	_, err := s.validateRewardSignature(blockHeight, createReward.Signature, createReward.DeadlineBlockHeight, signatureData)
+	if err != nil {
+		return fmt.Errorf("create reward validation failed: %w", err)
+	}
+	return nil
+}
+
+func (s *Server) validateUpdateReward(ctx context.Context, updateReward *corev1.UpdateReward, blockHeight int64) error {
+	signatureData := common.CreateDeterministicUpdateRewardData(updateReward)
+	signer, err := s.validateRewardSignature(blockHeight, updateReward.Signature, updateReward.DeadlineBlockHeight, signatureData)
+	if err != nil {
+		return fmt.Errorf("update reward validation failed: %w", err)
+	}
+
+	existingReward, err := s.db.GetReward(ctx, updateReward.Address)
+	if err != nil {
+		return fmt.Errorf("failed to get existing reward for validation: %w", err)
+	}
+
+	authorized := false
+	for _, auth := range existingReward.ClaimAuthorities {
+		if strings.EqualFold(auth, signer) {
+			authorized = true
+			break
+		}
+	}
+	if !authorized {
+		return fmt.Errorf("%w: signer %s not authorized to update reward %s", ErrRewardUnauthorized, signer, updateReward.Address)
+	}
+
+	return nil
+}
+
+func (s *Server) validateDeleteReward(ctx context.Context, deleteReward *corev1.DeleteReward, blockHeight int64) error {
+	signatureData := common.CreateDeterministicDeleteRewardData(deleteReward)
+	signer, err := s.validateRewardSignature(blockHeight, deleteReward.Signature, deleteReward.DeadlineBlockHeight, signatureData)
+	if err != nil {
+		return fmt.Errorf("delete reward validation failed: %w", err)
+	}
+
+	existingReward, err := s.db.GetReward(ctx, deleteReward.Address)
+	if err != nil {
+		return fmt.Errorf("failed to get existing reward for validation: %w", err)
+	}
+
+	authorized := false
+	for _, auth := range existingReward.ClaimAuthorities {
+		if strings.EqualFold(auth, signer) {
+			authorized = true
+			break
+		}
+	}
+	if !authorized {
+		return fmt.Errorf("%w: signer %s not authorized to delete reward %s", ErrRewardUnauthorized, signer, deleteReward.Address)
+	}
+
+	return nil
+}
 
 // validateRewardSignature validates the signature and expiry for reward messages
 func (s *Server) validateRewardSignature(currentHeight int64, signature string, deadlineHeight int64, signatureData string) (string, error) {
