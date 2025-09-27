@@ -461,13 +461,19 @@ func (c *CoreService) SendTransaction(ctx context.Context, req *connect.Request[
 		if err != nil {
 			return nil, fmt.Errorf("transactionv2 validation failed: %v", err)
 		}
-	} else {
+	} else if req.Msg.Transaction != nil {
 		// Use consistent hashing by marshaling to bytes first, matching abci.go behavior
 		txBytes, marshalErr := proto.Marshal(req.Msg.Transaction)
 		if marshalErr != nil {
 			return nil, fmt.Errorf("could not marshal transaction: %v", marshalErr)
 		}
 		txhash = common.ToTxHashFromBytes(txBytes)
+
+		// Validate v1 transactions
+		err = c.core.validateV1Transaction(ctx, c.core.cache.currentHeight.Load(), req.Msg.Transaction)
+		if err != nil {
+			return nil, fmt.Errorf("transaction validation failed: %v", err)
+		}
 	}
 
 	// create mempool transaction for both v1 and v2

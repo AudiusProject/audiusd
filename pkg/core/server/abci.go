@@ -720,6 +720,16 @@ func (s *Server) validateBlockTx(ctx context.Context, blockTime time.Time, block
 	return true, nil
 }
 
+func (s *Server) validateV1Transaction(ctx context.Context, currentHeight int64, signedTx *v1.SignedTransaction) error {
+	switch signedTx.Transaction.(type) {
+	case *v1.SignedTransaction_Reward:
+		return s.isValidRewardTransaction(ctx, signedTx, currentHeight)
+	default:
+		// For other transaction types, no validation needed during SendTransaction
+		return nil
+	}
+}
+
 func (s *Server) finalizeTransaction(ctx context.Context, req *abcitypes.FinalizeBlockRequest, msg *v1.SignedTransaction, txHash string, blockHeight int64) (proto.Message, error) {
 	// ignore error for now as not all clients are sending signatures yet
 	_, sender, _ := common.TxHashRecover(txHash, msg.Signature)
