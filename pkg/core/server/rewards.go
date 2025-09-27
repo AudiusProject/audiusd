@@ -108,7 +108,7 @@ func (s *Server) isValidRewardTransaction(ctx context.Context, signedTx *corev1.
 	}
 }
 
-func (s *Server) validateCreateReward(ctx context.Context, createReward *corev1.CreateReward, blockHeight int64) error {
+func (s *Server) validateCreateReward(_ context.Context, createReward *corev1.CreateReward, blockHeight int64) error {
 	signatureData := common.CreateDeterministicCreateRewardData(createReward)
 	_, err := s.validateRewardSignature(blockHeight, createReward.Signature, createReward.DeadlineBlockHeight, signatureData)
 	if err != nil {
@@ -281,7 +281,7 @@ func (s *Server) finalizeUpdateReward(ctx context.Context, req *abcitypes.Finali
 	}
 
 	// Verify signer is authorized to update this reward
-	existingReward, err := s.db.GetReward(ctx, updateReward.Address)
+	existingReward, err := s.getDb().GetReward(ctx, updateReward.Address)
 	if err != nil {
 		return fmt.Errorf("failed to get existing reward: %w", err)
 	}
@@ -334,7 +334,7 @@ func (s *Server) finalizeDeleteReward(ctx context.Context, req *abcitypes.Finali
 	}
 
 	// Verify signer is authorized to delete this reward
-	existingReward, err := s.db.GetReward(ctx, deleteReward.Address)
+	existingReward, err := s.getDb().GetReward(ctx, deleteReward.Address)
 	if err != nil {
 		return fmt.Errorf("failed to get existing reward: %w", err)
 	}

@@ -200,14 +200,14 @@ func TestRewardsLifecycle(t *testing.T) {
 		t.Logf("Creator correctly failed to update reward1: %v", err)
 
 		// Step 7: Deleter deletes reward3
-		_, err = deleter.Rewards.DeleteReward(ctx, &v1.DeleteReward{
+		deleteHash, err := deleter.Rewards.DeleteReward(ctx, &v1.DeleteReward{
 			Address:             reward3.Address,
 			DeadlineBlockHeight: 999999,
 		})
 		if err != nil {
 			t.Fatalf("Failed to delete reward3: %v", err)
 		}
-		t.Logf("Deleter successfully deleted reward3")
+		t.Logf("Deleter successfully deleted reward3: %s", deleteHash)
 
 		// Step 8: Verify reward3 no longer shows up in relevant GetRewards queries
 		// Creator should now see only 1 reward (reward2)

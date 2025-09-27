@@ -93,10 +93,10 @@ func (r *Rewards) UpdateReward(ctx context.Context, ur *v1.UpdateReward) (*v1.Ge
 	return reward.Msg, nil
 }
 
-func (r *Rewards) DeleteReward(ctx context.Context, dr *v1.DeleteReward) (*v1.GetRewardResponse, error) {
+func (r *Rewards) DeleteReward(ctx context.Context, dr *v1.DeleteReward) (string, error) {
 	sig, err := common.SignDeleteReward(r.privKey, dr)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	dr.Signature = sig
 
@@ -111,19 +111,13 @@ func (r *Rewards) DeleteReward(ctx context.Context, dr *v1.DeleteReward) (*v1.Ge
 	}
 
 	req := connect.NewRequest(tx)
-	_, err = r.core.SendTransaction(ctx, req)
+	deleteRes, err := r.core.SendTransaction(ctx, req)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	reward, err := r.core.GetReward(ctx, connect.NewRequest(&v1.GetRewardRequest{
-		Address: dr.Address,
-	}))
-	if err != nil {
-		return nil, err
-	}
-
-	return reward.Msg, nil
+	txhash := deleteRes.Msg.GetTransaction().GetHash()
+	return txhash, nil
 }
 
 func (r *Rewards) GetReward(ctx context.Context, address string) (*v1.GetRewardResponse, error) {

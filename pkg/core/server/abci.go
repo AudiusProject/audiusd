@@ -238,6 +238,10 @@ func (s *Server) PrepareProposal(ctx context.Context, proposal *abcitypes.Prepar
 		}
 		proposalTxs = append(proposalTxs, txBytes)
 	}
+
+	// Order all transactions by type to ensure dependencies are handled correctly
+	proposalTxs = OrderTransactionBytes(proposalTxs)
+
 	return &abcitypes.PrepareProposalResponse{Txs: proposalTxs}, nil
 }
 
