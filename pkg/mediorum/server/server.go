@@ -87,11 +87,12 @@ type MediorumServer struct {
 	g                registrar.PeerProvider
 
 	// stats
-	statsMutex       sync.RWMutex
-	transcodeStats   *TranscodeStats
-	mediorumPathUsed uint64
-	mediorumPathSize uint64
-	mediorumPathFree uint64
+	statsMutex         sync.RWMutex
+	transcodeStats     *TranscodeStats
+	mediorumPathUsed   uint64
+	mediorumPathSize   uint64
+	mediorumPathFree   uint64
+	storageExpectation uint64
 
 	databaseSize          uint64
 	dbSizeErr             string
@@ -369,6 +370,11 @@ func New(lc *lifecycle.Lifecycle, logger *zap.Logger, config MediorumConfig, pro
 	routes.GET("/ip_check", func(c echo.Context) error {
 		return c.JSON(http.StatusOK, map[string]string{
 			"data": c.RealIP(), // client/requestor IP
+		})
+	})
+	routes.GET("/storage_expectation", func(c echo.Context) error {
+		return c.JSON(http.StatusOK, map[string]uint64{
+			"data": ss.storageExpectation,
 		})
 	})
 
