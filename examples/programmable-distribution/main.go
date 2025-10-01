@@ -35,7 +35,7 @@ func NewGeolocationHandler(privateKey *ecdsa.PrivateKey, allowedCity string, aud
 func main() {
 	ctx := context.Background()
 
-	validatorEndpoint := flag.String("validator", "creatornode11.staging.audius.co", "Validator endpoint URL")
+	validatorEndpoint := flag.String("validator", "node3.audiusd.devnet", "Validator endpoint URL")
 	serverPort := flag.String("port", "8080", "Server port")
 	flag.Parse()
 

@@ -11,12 +11,12 @@ This example demonstrates geolocation-based content distribution using the OpenA
 ## Usage
 
 ```bash
-go run . -validator http://localhost:8000 -port 8080
+go run . -validator node3.audiusd.devnet -port 8080
 ```
 
 ### Flags
 
-- `-validator` - Validator endpoint URL (default: `creatornode11.staging.audius.co`)
+- `-validator` - Validator endpoint URL (default: `node3.audiusd.devnet`)
 - `-port` - Server port (default: `8080`)
 
 ## Testing
