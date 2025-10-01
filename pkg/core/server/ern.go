@@ -7,6 +7,7 @@ import (
 
 	corev1beta1 "github.com/AudiusProject/audiusd/pkg/api/core/v1beta1"
 	ddexv1beta1 "github.com/AudiusProject/audiusd/pkg/api/ddex/v1beta1"
+	"github.com/AudiusProject/audiusd/pkg/common"
 	"github.com/AudiusProject/audiusd/pkg/core/address"
 	"github.com/AudiusProject/audiusd/pkg/core/db"
 	abcitypes "github.com/cometbft/cometbft/abci/types"
@@ -108,7 +109,7 @@ func getERNOAPMessageSender(msg *ddexv1beta1.NewReleaseMessage) string {
 	}
 
 	for _, pri := range pis {
-		if pri.Namespace == "OAP" {
+		if pri.Namespace == common.OAPNamespace {
 			if ethcommon.IsHexAddress(pri.Id) {
 				oapAddress = pri.Id
 			}
@@ -129,7 +130,7 @@ func (s *Server) validateERNNewMessage(ctx context.Context, msg *ddexv1beta1.New
 		return nil
 	}
 
-	oapAddress := getERNOAPMessageSender(msg)
+	ernSender := getERNOAPMessageSender(msg)
 
 	for _, resource := range resourceList {
 		sr := resource.GetSoundRecording()
@@ -165,8 +166,8 @@ func (s *Server) validateERNNewMessage(ctx context.Context, msg *ddexv1beta1.New
 		}
 
 		uploader := upload.UploaderAddress
-		if uploader != oapAddress {
-			return fmt.Errorf("sender %s doesn't match uploader %s for CID %s", oapAddress, uploader, uri)
+		if uploader != ernSender {
+			return fmt.Errorf("sender %s doesn't match uploader %s for CID %s", ernSender, uploader, uri)
 		}
 	}
 

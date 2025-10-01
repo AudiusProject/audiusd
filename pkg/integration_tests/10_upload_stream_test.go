@@ -58,7 +58,7 @@ func TestUploadStream(t *testing.T) {
 				PartyId: &ddexv1beta1.Party_PartyId{
 					ProprietaryIds: []*ddexv1beta1.Party_ProprietaryId{
 						{
-							Namespace: "OAP",
+							Namespace: common.OAPNamespace,
 							Id:        sdk.Address(), // Must match upload signature address
 						},
 					},

@@ -79,7 +79,7 @@ func uploadTrackExample(ctx context.Context, auds *sdk.AudiusdSDK, handler *Geol
 				PartyId: &ddexv1beta1.Party_PartyId{
 					ProprietaryIds: []*ddexv1beta1.Party_ProprietaryId{
 						{
-							Namespace: "OAP",
+							Namespace: common.OAPNamespace,
 							Id:        auds.Address(),
 						},
 					},
@@ -114,7 +114,7 @@ func uploadTrackExample(ctx context.Context, auds *sdk.AudiusdSDK, handler *Geol
 							ResourceId: &ddexv1beta1.Resource_ResourceId{
 								ProprietaryId: []*ddexv1beta1.Resource_ProprietaryId{
 									{
-										Namespace:     "OAP",
+										Namespace:     common.OAPNamespace,
 										ProprietaryId: transcodedCID,
 									},
 								},
