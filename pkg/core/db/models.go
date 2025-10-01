@@ -246,6 +246,22 @@ type CoreResource struct {
 	CreatedAt   pgtype.Timestamp
 }
 
+type CoreReward struct {
+	ID               int64
+	Address          string
+	Index            int64
+	TxHash           string
+	Sender           string
+	RewardID         string
+	Name             string
+	Amount           int64
+	ClaimAuthorities []string
+	RawMessage       []byte
+	BlockHeight      int64
+	CreatedAt        pgtype.Timestamptz
+	UpdatedAt        pgtype.Timestamptz
+}
+
 type CoreTransaction struct {
 	Rowid       int64
 	BlockID     int64

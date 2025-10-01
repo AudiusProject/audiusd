@@ -8,7 +8,6 @@ import (
 	corev1beta1 "github.com/AudiusProject/audiusd/pkg/api/core/v1beta1"
 	ddexv1beta1 "github.com/AudiusProject/audiusd/pkg/api/ddex/v1beta1"
 	"github.com/AudiusProject/audiusd/pkg/common"
-	"github.com/AudiusProject/audiusd/pkg/core/address"
 	"github.com/AudiusProject/audiusd/pkg/core/db"
 	abcitypes "github.com/cometbft/cometbft/abci/types"
 	ethcommon "github.com/ethereum/go-ethereum/common"
@@ -180,8 +179,13 @@ func (s *Server) validateERNNewMessage(ctx context.Context, msg *ddexv1beta1.New
 }
 
 func (s *Server) finalizeERNNewMessage(ctx context.Context, req *abcitypes.FinalizeBlockRequest, txhash string, messageIndex int64, ern *ddexv1beta1.NewReleaseMessage, sender string) error {
-	// Create address generator
-	gen := address.New(s.config.GenesisFile.ChainID, req.Height, txhash)
+	// Convert txhash to bytes for address generation
+	txhashBytes, err := common.HexToBytes(txhash)
+	if err != nil {
+		return fmt.Errorf("failed to decode txhash: %w", err)
+	}
+
+	chainID := s.config.GenesisFile.ChainID
 
 	// Generate ERN address using message ID
 	messageID := ""
@@ -191,12 +195,12 @@ func (s *Server) finalizeERNNewMessage(ctx context.Context, req *abcitypes.Final
 		// Fallback to txhash + index if no message ID
 		messageID = fmt.Sprintf("%s:%d", txhash, messageIndex)
 	}
-	ernAddress := gen.ERN(messageID)
+	ernAddress := common.CreateERNAddress(txhashBytes, chainID, req.Height, messageIndex, messageID)
 
 	// Collect all addresses using deterministic references
 	partyAddresses := make([]string, len(ern.PartyList))
 	for i, party := range ern.PartyList {
-		partyAddresses[i] = gen.Party(party.PartyReference)
+		partyAddresses[i] = common.CreatePartyAddress(txhashBytes, chainID, req.Height, messageIndex, party.PartyReference)
 	}
 
 	resourceAddresses := make([]string, len(ern.ResourceList))
@@ -207,7 +211,7 @@ func (s *Server) finalizeERNNewMessage(ctx context.Context, req *abcitypes.Final
 		} else if img := resource.GetImage(); img != nil {
 			ref = img.ResourceReference
 		}
-		resourceAddresses[i] = gen.Resource(ref)
+		resourceAddresses[i] = common.CreateResourceAddress(txhashBytes, chainID, req.Height, messageIndex, ref)
 	}
 
 	releaseAddresses := make([]string, len(ern.ReleaseList))
@@ -218,12 +222,12 @@ func (s *Server) finalizeERNNewMessage(ctx context.Context, req *abcitypes.Final
 		} else if tr := release.GetTrackRelease(); tr != nil {
 			ref = tr.ReleaseReference
 		}
-		releaseAddresses[i] = gen.Release(ref)
+		releaseAddresses[i] = common.CreateReleaseAddress(txhashBytes, chainID, req.Height, messageIndex, ref)
 	}
 
 	dealAddresses := make([]string, len(ern.DealList))
 	for i, deal := range ern.DealList {
-		dealAddresses[i] = gen.Deal(deal.String())
+		dealAddresses[i] = common.CreateDealAddress(txhashBytes, chainID, req.Height, messageIndex, deal.String())
 	}
 
 	rawMessage, err := proto.Marshal(ern)

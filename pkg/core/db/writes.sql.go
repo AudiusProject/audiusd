@@ -100,6 +100,16 @@ func (q *Queries) CommitSlaRollup(ctx context.Context, arg CommitSlaRollupParams
 	return id, err
 }
 
+const deleteCoreReward = `-- name: DeleteCoreReward :exec
+delete from core_rewards
+where address = $1
+`
+
+func (q *Queries) DeleteCoreReward(ctx context.Context, address string) error {
+	_, err := q.db.Exec(ctx, deleteCoreReward, address)
+	return err
+}
+
 const deleteRegisteredNode = `-- name: DeleteRegisteredNode :exec
 delete from core_validators
 where comet_address = $1
@@ -365,6 +375,50 @@ func (q *Queries) InsertCoreResource(ctx context.Context, arg InsertCoreResource
 		arg.EntityType,
 		arg.EntityIndex,
 		arg.TxHash,
+		arg.BlockHeight,
+	)
+	return err
+}
+
+const insertCoreReward = `-- name: InsertCoreReward :exec
+insert into core_rewards (
+    address,
+    tx_hash,
+    index,
+    sender,
+    reward_id,
+    name,
+    amount,
+    claim_authorities,
+    raw_message,
+    block_height
+) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+`
+
+type InsertCoreRewardParams struct {
+	Address          string
+	TxHash           string
+	Index            int64
+	Sender           string
+	RewardID         string
+	Name             string
+	Amount           int64
+	ClaimAuthorities []string
+	RawMessage       []byte
+	BlockHeight      int64
+}
+
+func (q *Queries) InsertCoreReward(ctx context.Context, arg InsertCoreRewardParams) error {
+	_, err := q.db.Exec(ctx, insertCoreReward,
+		arg.Address,
+		arg.TxHash,
+		arg.Index,
+		arg.Sender,
+		arg.RewardID,
+		arg.Name,
+		arg.Amount,
+		arg.ClaimAuthorities,
+		arg.RawMessage,
 		arg.BlockHeight,
 	)
 	return err
@@ -956,6 +1010,38 @@ func (q *Queries) StoreTransaction(ctx context.Context, arg StoreTransactionPara
 		arg.TxHash,
 		arg.Transaction,
 		arg.CreatedAt,
+	)
+	return err
+}
+
+const updateCoreReward = `-- name: UpdateCoreReward :exec
+update core_rewards
+set name = $2,
+    amount = $3,
+    claim_authorities = $4,
+    raw_message = $5,
+    block_height = $6,
+    updated_at = now()
+where address = $1
+`
+
+type UpdateCoreRewardParams struct {
+	Address          string
+	Name             string
+	Amount           int64
+	ClaimAuthorities []string
+	RawMessage       []byte
+	BlockHeight      int64
+}
+
+func (q *Queries) UpdateCoreReward(ctx context.Context, arg UpdateCoreRewardParams) error {
+	_, err := q.db.Exec(ctx, updateCoreReward,
+		arg.Address,
+		arg.Name,
+		arg.Amount,
+		arg.ClaimAuthorities,
+		arg.RawMessage,
+		arg.BlockHeight,
 	)
 	return err
 }
