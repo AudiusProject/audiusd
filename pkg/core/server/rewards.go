@@ -99,8 +99,6 @@ func (s *Server) isValidRewardTransaction(ctx context.Context, signedTx *corev1.
 	switch action := rewardMsg.Action.(type) {
 	case *corev1.RewardMessage_Create:
 		return s.validateCreateReward(ctx, action.Create, blockHeight)
-	case *corev1.RewardMessage_Update:
-		return s.validateUpdateReward(ctx, action.Update, blockHeight)
 	case *corev1.RewardMessage_Delete:
 		return s.validateDeleteReward(ctx, action.Delete, blockHeight)
 	default:
@@ -114,32 +112,6 @@ func (s *Server) validateCreateReward(_ context.Context, createReward *corev1.Cr
 	if err != nil {
 		return fmt.Errorf("create reward validation failed: %w", err)
 	}
-	return nil
-}
-
-func (s *Server) validateUpdateReward(ctx context.Context, updateReward *corev1.UpdateReward, blockHeight int64) error {
-	signatureData := common.CreateDeterministicUpdateRewardData(updateReward)
-	signer, err := s.validateRewardSignature(blockHeight, updateReward.Signature, updateReward.DeadlineBlockHeight, signatureData)
-	if err != nil {
-		return fmt.Errorf("update reward validation failed: %w", err)
-	}
-
-	existingReward, err := s.db.GetReward(ctx, updateReward.Address)
-	if err != nil {
-		return fmt.Errorf("failed to get existing reward for validation: %w", err)
-	}
-
-	authorized := false
-	for _, auth := range existingReward.ClaimAuthorities {
-		if strings.EqualFold(auth, signer) {
-			authorized = true
-			break
-		}
-	}
-	if !authorized {
-		return fmt.Errorf("%w: signer %s not authorized to update reward %s", ErrRewardUnauthorized, signer, updateReward.Address)
-	}
-
 	return nil
 }
 
@@ -212,12 +184,6 @@ func (s *Server) finalizeRewards(ctx context.Context, req *abcitypes.FinalizeBlo
 		}
 		return nil
 
-	case *corev1.RewardMessage_Update:
-		if err := s.finalizeUpdateReward(ctx, req, txhash, messageIndex, action.Update, sender); err != nil {
-			return errors.Join(ErrRewardMessageFinalization, err)
-		}
-		return nil
-
 	case *corev1.RewardMessage_Delete:
 		if err := s.finalizeDeleteReward(ctx, req, txhash, messageIndex, action.Delete, sender); err != nil {
 			return errors.Join(ErrRewardMessageFinalization, err)
@@ -267,59 +233,6 @@ func (s *Server) finalizeCreateReward(ctx context.Context, req *abcitypes.Finali
 		BlockHeight:      req.Height,
 	}); err != nil {
 		return fmt.Errorf("failed to insert reward: %w", err)
-	}
-
-	return nil
-}
-
-func (s *Server) finalizeUpdateReward(ctx context.Context, req *abcitypes.FinalizeBlockRequest, txhash string, messageIndex int64, updateReward *corev1.UpdateReward, sender string) error {
-	// Validate signature and get signer
-	signatureData := common.CreateDeterministicUpdateRewardData(updateReward)
-	signer, err := s.validateRewardSignature(req.Height, updateReward.Signature, updateReward.DeadlineBlockHeight, signatureData)
-	if err != nil {
-		return fmt.Errorf("update reward signature validation failed: %w", err)
-	}
-
-	// Verify signer is authorized to update this reward
-	existingReward, err := s.getDb().GetReward(ctx, updateReward.Address)
-	if err != nil {
-		return fmt.Errorf("failed to get existing reward: %w", err)
-	}
-
-	// Check if signer is in the claim authorities (case insensitive)
-	authorized := false
-	for _, auth := range existingReward.ClaimAuthorities {
-		if strings.EqualFold(auth, signer) {
-			authorized = true
-			break
-		}
-	}
-	if !authorized {
-		return fmt.Errorf("signer %s not authorized to update reward %s", signer, updateReward.Address)
-	}
-
-	// Convert claim authorities to string array
-	claimAuthorities := make([]string, len(updateReward.ClaimAuthorities))
-	for i, auth := range updateReward.ClaimAuthorities {
-		claimAuthorities[i] = auth.Address
-	}
-
-	// Marshal the raw message
-	rawMessage, err := proto.Marshal(updateReward)
-	if err != nil {
-		return fmt.Errorf("failed to marshal update reward message: %w", err)
-	}
-
-	qtx := s.getDb()
-	if err := qtx.UpdateCoreReward(ctx, db.UpdateCoreRewardParams{
-		Address:          updateReward.Address,
-		Name:             updateReward.Name,
-		Amount:           int64(updateReward.Amount),
-		ClaimAuthorities: claimAuthorities,
-		RawMessage:       rawMessage,
-		BlockHeight:      req.Height,
-	}); err != nil {
-		return fmt.Errorf("failed to update reward: %w", err)
 	}
 
 	return nil

@@ -497,8 +497,7 @@ message GetPIEResponse {
 message RewardMessage {
   oneof action {
     CreateReward create = 1000;
-    UpdateReward update = 1001;
-    DeleteReward delete = 1002;
+    DeleteReward delete = 1001;
   }
 }
 
@@ -509,15 +508,6 @@ message CreateReward {
   repeated ClaimAuthority claim_authorities = 4;
   int64 deadline_block_height = 5;
   string signature = 6; // Signature over deterministic reward data
-}
-
-message UpdateReward {
-  string address = 1; // The deployed reward address
-  string name = 2;
-  uint64 amount = 3;
-  repeated ClaimAuthority claim_authorities = 4;
-  int64 deadline_block_height = 5;
-  string signature = 6; // Signature over deterministic update data
 }
 
 message DeleteReward {
