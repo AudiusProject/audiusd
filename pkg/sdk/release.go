@@ -31,7 +31,7 @@ type UploadAndReleaseResult struct {
 	TxHash string
 
 	// Stream URLs
-	StreamURLs map[string]*corev1.StreamERNResponse_EntityStreamURLs
+	StreamURLs map[string]*corev1.GetStreamURLsResponse_EntityStreamURLs
 }
 
 func (s *AudiusdSDK) UploadAndRelease(

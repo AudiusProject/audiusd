@@ -61,6 +61,8 @@ func main() {
 	mux := http.NewServeMux()
 	mux.Handle("/stream-access", handler)
 
+	fmt.Println("server starting")
+
 	if err := http.ListenAndServe(":"+*serverPort, mux); err != nil {
 		log.Fatalf("Server error: %v", err)
 	}

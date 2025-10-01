@@ -270,7 +270,7 @@ func TestUploadStream(t *testing.T) {
 		ernReceipt.ReleaseAddresses[0],  // Release address - returns resources in release
 	}
 
-	streamSigData := &corev1.StreamERNSignature{
+	streamSigData := &corev1.GetStreamURLsSignature{
 		Addresses: addressesToStream,
 		ExpiresAt: timestamppb.New(streamExpiry),
 	}
@@ -281,16 +281,16 @@ func TestUploadStream(t *testing.T) {
 	require.Nil(t, err, "failed to generate stream signature")
 
 	// Request stream URLs from core
-	streamReq := &corev1.StreamERNRequest{
+	streamReq := &corev1.GetStreamURLsRequest{
 		Signature: streamSignature,
 		Addresses: addressesToStream,
 		ExpiresAt: timestamppb.New(streamExpiry),
 	}
 
-	streamRes, err := sdk.Core.StreamERN(ctx, connect.NewRequest(streamReq))
+	streamRes, err := sdk.Core.GetStreamURLs(ctx, connect.NewRequest(streamReq))
 	if err != nil {
-		t.Logf("StreamERN error: %v", err)
-		t.Logf("StreamERN error details: %+v", err)
+		t.Logf("GetStreamURLs error: %v", err)
+		t.Logf("GetStreamURLs error details: %+v", err)
 	}
 	require.Nil(t, err, "failed to get stream URLs")
 	require.NotNil(t, streamRes.Msg.EntityStreamUrls, "no stream URLs returned")
@@ -346,19 +346,19 @@ func TestUploadStream(t *testing.T) {
 	wrongStreamSig, err := common.EthSign(sdk2.PrivKey(), streamSigBytes)
 	require.Nil(t, err, "failed to generate wrong stream signature")
 
-	wrongStreamReq := &corev1.StreamERNRequest{
+	wrongStreamReq := &corev1.GetStreamURLsRequest{
 		Signature: wrongStreamSig,
 		Addresses: addressesToStream,
 		ExpiresAt: timestamppb.New(streamExpiry),
 	}
 
-	wrongStreamRes, err := sdk2.Core.StreamERN(ctx, connect.NewRequest(wrongStreamReq))
+	wrongStreamRes, err := sdk2.Core.GetStreamURLs(ctx, connect.NewRequest(wrongStreamReq))
 	require.Error(t, err, "non-owner should not be able to get stream URLs")
 	require.Nil(t, wrongStreamRes, "should not return stream URLs for non-owner")
 	t.Log("✓ Access control working: non-owner rejected")
 
 	// Test expired signature
-	expiredSigData := &corev1.StreamERNSignature{
+	expiredSigData := &corev1.GetStreamURLsSignature{
 		Addresses: addressesToStream,
 		ExpiresAt: timestamppb.New(time.Now().Add(-1 * time.Hour)), // Already expired
 	}
@@ -368,13 +368,13 @@ func TestUploadStream(t *testing.T) {
 	expiredSig, err := common.EthSign(sdk.PrivKey(), expiredSigBytes)
 	require.Nil(t, err, "failed to generate expired signature")
 
-	expiredReq := &corev1.StreamERNRequest{
+	expiredReq := &corev1.GetStreamURLsRequest{
 		Signature: expiredSig,
 		Addresses: addressesToStream,
 		ExpiresAt: timestamppb.New(time.Now().Add(-1 * time.Hour)),
 	}
 
-	expiredRes, err := sdk.Core.StreamERN(ctx, connect.NewRequest(expiredReq))
+	expiredRes, err := sdk.Core.GetStreamURLs(ctx, connect.NewRequest(expiredReq))
 	require.Error(t, err, "expired signature should be rejected")
 	require.Nil(t, expiredRes, "should not return stream URLs for expired signature")
 	t.Log("✓ Expired signature rejected")

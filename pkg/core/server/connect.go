@@ -958,8 +958,8 @@ func (c *CoreService) GetPIE(ctx context.Context, req *connect.Request[v1.GetPIE
 	}), nil
 }
 
-// StreamERN implements v1connect.CoreServiceHandler.
-func (c *CoreService) StreamERN(ctx context.Context, req *connect.Request[v1.StreamERNRequest]) (*connect.Response[v1.StreamERNResponse], error) {
+// GetStreamURLs implements v1connect.CoreServiceHandler.
+func (c *CoreService) GetStreamURLs(ctx context.Context, req *connect.Request[v1.GetStreamURLsRequest]) (*connect.Response[v1.GetStreamURLsResponse], error) {
 	// Validate request
 	if req.Msg.Signature == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("signature is required"))
@@ -978,7 +978,7 @@ func (c *CoreService) StreamERN(ctx context.Context, req *connect.Request[v1.Str
 	}
 
 	// Construct signature data to verify
-	sigData := &v1.StreamERNSignature{
+	sigData := &v1.GetStreamURLsSignature{
 		Addresses: req.Msg.Addresses,
 		ExpiresAt: req.Msg.ExpiresAt,
 	}
@@ -994,7 +994,7 @@ func (c *CoreService) StreamERN(ctx context.Context, req *connect.Request[v1.Str
 	}
 
 	// Process each requested address
-	entityStreamURLs := make(map[string]*v1.StreamERNResponse_EntityStreamURLs)
+	entityStreamURLs := make(map[string]*v1.GetStreamURLsResponse_EntityStreamURLs)
 
 	for _, address := range req.Msg.Addresses {
 		// First try to get it as an ERN directly
@@ -1017,7 +1017,7 @@ func (c *CoreService) StreamERN(ctx context.Context, req *connect.Request[v1.Str
 			// Get all streamable resources from the ERN
 			streamURLs := c.extractStreamURLsFromERN(&ern)
 			if len(streamURLs) > 0 {
-				entityStreamURLs[address] = &v1.StreamERNResponse_EntityStreamURLs{
+				entityStreamURLs[address] = &v1.GetStreamURLsResponse_EntityStreamURLs{
 					EntityType:      "ern",
 					EntityReference: "",
 					Urls:            streamURLs,
@@ -1053,7 +1053,7 @@ func (c *CoreService) StreamERN(ctx context.Context, req *connect.Request[v1.Str
 			streamURLs := c.getEntityStreamURLs(&ern, result.EntityType, entityRef)
 
 			if len(streamURLs) > 0 {
-				entityStreamURLs[address] = &v1.StreamERNResponse_EntityStreamURLs{
+				entityStreamURLs[address] = &v1.GetStreamURLsResponse_EntityStreamURLs{
 					EntityType:      result.EntityType,
 					EntityReference: entityRef,
 					Urls:            streamURLs,
@@ -1065,7 +1065,7 @@ func (c *CoreService) StreamERN(ctx context.Context, req *connect.Request[v1.Str
 		}
 	}
 
-	return connect.NewResponse(&v1.StreamERNResponse{
+	return connect.NewResponse(&v1.GetStreamURLsResponse{
 		EntityStreamUrls: entityStreamURLs,
 	}), nil
 }

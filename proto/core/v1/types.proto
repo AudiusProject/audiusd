@@ -514,7 +514,7 @@ message FileUpload {
   string validator_signature = 7;
 }
 
-message StreamERNSignature {
+message GetStreamURLsSignature {
   // addresses to stream (can be ERN, release, or resource addresses)
   repeated string addresses = 1;
   google.protobuf.Timestamp expires_at = 2;
@@ -522,7 +522,7 @@ message StreamERNSignature {
 
 // requests stream urls from the content node
 // signature signed by owner of ERN
-message StreamERNRequest {
+message GetStreamURLsRequest {
   string signature = 1;
   // addresses to stream (can be ERN, release, or resource addresses)
   // - ERN address: returns all streamable resources in the ERN
@@ -533,7 +533,7 @@ message StreamERNRequest {
   google.protobuf.Timestamp expires_at = 3;
 }
 
-message StreamERNResponse {
+message GetStreamURLsResponse {
   message EntityStreamURLs {
     // type of entity (ern, release, or resource)
     string entity_type = 1;

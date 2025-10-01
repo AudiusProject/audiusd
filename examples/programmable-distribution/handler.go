@@ -52,7 +52,7 @@ func (h *GeolocationHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Create signature with 1 hour expiration
 	expiry := time.Now().Add(1 * time.Hour)
-	sig := &v1.StreamERNSignature{
+	sig := &v1.GetStreamURLsSignature{
 		Addresses: addresses,
 		ExpiresAt: timestamppb.New(expiry),
 	}
@@ -71,7 +71,7 @@ func (h *GeolocationHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	res, err := h.auds.Core.StreamERN(r.Context(), connect.NewRequest(&v1.StreamERNRequest{
+	res, err := h.auds.Core.GetStreamURLs(r.Context(), connect.NewRequest(&v1.GetStreamURLsRequest{
 		Signature: streamSignature,
 		Addresses: addresses,
 		ExpiresAt: timestamppb.New(expiry),
