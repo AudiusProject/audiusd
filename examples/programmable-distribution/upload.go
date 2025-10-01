@@ -20,7 +20,7 @@ import (
 )
 
 func uploadTrackExample(ctx context.Context, auds *sdk.AudiusdSDK, handler *GeolocationHandler) error {
-	audioFile, err := os.Open("./assets/anxiety-upgrade.mp3")
+	audioFile, err := os.Open("../../pkg/integration_tests/assets/anxiety-upgrade.mp3")
 	if err != nil {
 		return fmt.Errorf("failed to open audio file: %w", err)
 	}

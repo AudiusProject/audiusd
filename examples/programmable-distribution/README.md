@@ -8,16 +8,33 @@ This example demonstrates geolocation-based content distribution using the OpenA
 2. Runs an HTTP server that filters stream access by geolocation
 3. Returns stream URLs only to requests from the allowed city
 
-## Usage
+## Setup
+
+Start the local devnet:
 
 ```bash
-go run . -validator node3.audiusd.devnet -port 8080
+make up
+```
+
+## Usage
+
+Run the example:
+
+```bash
+make example/programmable-distribution
+```
+
+Or run directly with custom flags:
+
+```bash
+cd examples/programmable-distribution
+go run . -validator node3.audiusd.devnet -port 8800
 ```
 
 ### Flags
 
 - `-validator` - Validator endpoint URL (default: `node3.audiusd.devnet`)
-- `-port` - Server port (default: `8080`)
+- `-port` - Server port (default: `8800`)
 
 ## Testing
 
@@ -25,21 +42,13 @@ Access the streaming endpoint with a city parameter:
 
 ```bash
 # Allowed city (Bozeman)
-curl "http://localhost:8080/stream-access?city=Bozeman"
+curl "http://localhost:8800/stream-access?city=Bozeman"
 
 # Blocked city
-curl "http://localhost:8080/stream-access?city=Seattle"
-```
-
-## Setup
-
-Copy the demo audio file:
-
-```bash
-mkdir -p assets
-cp ../../pkg/integration_tests/assets/anxiety-upgrade.mp3 ./assets/
+curl "http://localhost:8800/stream-access?city=Seattle"
 ```
 
 ## Requirements
 
 - Running Audius validator endpoint
+- Demo audio file is read from `../../pkg/integration_tests/assets/anxiety-upgrade.mp3`

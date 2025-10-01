@@ -36,7 +36,7 @@ func main() {
 	ctx := context.Background()
 
 	validatorEndpoint := flag.String("validator", "node3.audiusd.devnet", "Validator endpoint URL")
-	serverPort := flag.String("port", "8080", "Server port")
+	serverPort := flag.String("port", "8800", "Server port")
 	flag.Parse()
 
 	privateKey, err := crypto.GenerateKey()
