@@ -60,39 +60,6 @@ func (r *Rewards) CreateReward(ctx context.Context, cr *v1.CreateReward) (*v1.Ge
 	return reward.Msg, nil
 }
 
-func (r *Rewards) UpdateReward(ctx context.Context, ur *v1.UpdateReward) (*v1.GetRewardResponse, error) {
-	sig, err := common.SignUpdateReward(r.privKey, ur)
-	if err != nil {
-		return nil, err
-	}
-	ur.Signature = sig
-
-	tx := &v1.SendTransactionRequest{
-		Transaction: &v1.SignedTransaction{
-			Transaction: &v1.SignedTransaction_Reward{
-				Reward: &v1.RewardMessage{
-					Action: &v1.RewardMessage_Update{Update: ur},
-				},
-			},
-		},
-	}
-
-	req := connect.NewRequest(tx)
-	_, err = r.core.SendTransaction(ctx, req)
-	if err != nil {
-		return nil, err
-	}
-
-	reward, err := r.core.GetReward(ctx, connect.NewRequest(&v1.GetRewardRequest{
-		Address: ur.Address,
-	}))
-	if err != nil {
-		return nil, err
-	}
-
-	return reward.Msg, nil
-}
-
 func (r *Rewards) DeleteReward(ctx context.Context, dr *v1.DeleteReward) (string, error) {
 	sig, err := common.SignDeleteReward(r.privKey, dr)
 	if err != nil {
