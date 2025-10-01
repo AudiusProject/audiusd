@@ -20,21 +20,18 @@ import (
 )
 
 func uploadTrackExample(ctx context.Context, auds *sdk.AudiusdSDK, handler *GeolocationHandler) error {
-	// Open the actual audio file
 	audioFile, err := os.Open("./assets/anxiety-upgrade.mp3")
 	if err != nil {
 		return fmt.Errorf("failed to open audio file: %w", err)
 	}
 	defer audioFile.Close()
 
-	// Compute original file CID
 	fileCID, err := hashes.ComputeFileCID(audioFile)
 	if err != nil {
 		return fmt.Errorf("failed to compute file CID: %w", err)
 	}
 	audioFile.Seek(0, 0) // Reset file position
 
-	// Generate upload signature
 	uploadSigData := &corev1.UploadSignature{Cid: fileCID}
 	uploadSigBytes, err := proto.Marshal(uploadSigData)
 	if err != nil {
@@ -218,7 +215,6 @@ func uploadTrackExample(ctx context.Context, auds *sdk.AudiusdSDK, handler *Geol
 	handler.resourceAddresses = ernReceipt.ResourceAddresses
 	handler.releaseAddresses = ernReceipt.ReleaseAddresses
 
-	fmt.Printf("✅ Track uploaded successfully!\n")
 	fmt.Printf("ERN Address: %s\n", ernReceipt.ErnAddress)
 	fmt.Printf("Resource Address: %s\n", ernReceipt.ResourceAddresses[0])
 	fmt.Printf("Release Address: %s\n", ernReceipt.ReleaseAddresses[0])
