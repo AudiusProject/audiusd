@@ -312,6 +312,11 @@ func (ss *MediorumServer) postUpload(c echo.Context) error {
 	for _, upload := range uploads {
 		// Send FileUpload transaction after transcoding completes
 		go func(c echo.Context, upload *Upload) {
+			// Skip FileUpload transaction if programmable distribution is disabled
+			if !ss.Config.ProgrammableDistributionEnabled {
+				return
+			}
+
 			uploadSig := c.QueryParam("sig")
 			if uploadSig == "" {
 				return

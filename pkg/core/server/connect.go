@@ -66,6 +66,21 @@ func (c *CoreService) GetNodeInfo(ctx context.Context, req *connect.Request[v1.G
 
 // ForwardTransaction implements v1connect.CoreServiceHandler.
 func (c *CoreService) ForwardTransaction(ctx context.Context, req *connect.Request[v1.ForwardTransactionRequest]) (*connect.Response[v1.ForwardTransactionResponse], error) {
+	// Check feature flag for programmable distribution features
+	if !c.core.config.ProgrammableDistributionEnabled {
+		// Check if transaction uses programmable distribution features
+		if req.Msg != nil && req.Msg.Transaction != nil && req.Msg.Transaction.GetFileUpload() != nil {
+			return nil, connect.NewError(connect.CodeUnimplemented, errors.New("programmable distribution is not enabled in this environment"))
+		}
+		if req.Msg != nil && req.Msg.Transactionv2 != nil && req.Msg.Transactionv2.Envelope != nil {
+			for _, msg := range req.Msg.Transactionv2.Envelope.Messages {
+				if msg != nil && msg.GetErn() != nil {
+					return nil, connect.NewError(connect.CodeUnimplemented, errors.New("programmable distribution is not enabled in this environment"))
+				}
+			}
+		}
+	}
+
 	// TODO: check signature from known node
 
 	// TODO: validate transaction in same way as send transaction
@@ -459,6 +474,21 @@ func (c *CoreService) Ping(context.Context, *connect.Request[v1.PingRequest]) (*
 
 // SendTransaction implements v1connect.CoreServiceHandler.
 func (c *CoreService) SendTransaction(ctx context.Context, req *connect.Request[v1.SendTransactionRequest]) (*connect.Response[v1.SendTransactionResponse], error) {
+	// Check feature flag for programmable distribution features
+	if !c.core.config.ProgrammableDistributionEnabled {
+		// Check if transaction uses programmable distribution features
+		if req.Msg != nil && req.Msg.Transaction != nil && req.Msg.Transaction.GetFileUpload() != nil {
+			return nil, connect.NewError(connect.CodeUnimplemented, errors.New("programmable distribution is not enabled in this environment"))
+		}
+		if req.Msg != nil && req.Msg.Transactionv2 != nil && req.Msg.Transactionv2.Envelope != nil {
+			for _, msg := range req.Msg.Transactionv2.Envelope.Messages {
+				if msg != nil && msg.GetErn() != nil {
+					return nil, connect.NewError(connect.CodeUnimplemented, errors.New("programmable distribution is not enabled in this environment"))
+				}
+			}
+		}
+	}
+
 	// TODO: do validation check
 	var txhash common.TxHash
 	var err error
@@ -960,6 +990,11 @@ func (c *CoreService) GetPIE(ctx context.Context, req *connect.Request[v1.GetPIE
 
 // GetStreamURLs implements v1connect.CoreServiceHandler.
 func (c *CoreService) GetStreamURLs(ctx context.Context, req *connect.Request[v1.GetStreamURLsRequest]) (*connect.Response[v1.GetStreamURLsResponse], error) {
+	// Check feature flag
+	if !c.core.config.ProgrammableDistributionEnabled {
+		return nil, connect.NewError(connect.CodeUnimplemented, errors.New("programmable distribution is not enabled in this environment"))
+	}
+
 	// Validate request
 	if req.Msg.Signature == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("signature is required"))
@@ -1072,6 +1107,11 @@ func (c *CoreService) GetStreamURLs(ctx context.Context, req *connect.Request[v1
 
 // GetUploadByCID implements v1connect.CoreServiceHandler.
 func (c *CoreService) GetUploadByCID(ctx context.Context, req *connect.Request[v1.GetUploadByCIDRequest]) (*connect.Response[v1.GetUploadByCIDResponse], error) {
+	// Check feature flag
+	if !c.core.config.ProgrammableDistributionEnabled {
+		return nil, connect.NewError(connect.CodeUnimplemented, errors.New("programmable distribution is not enabled in this environment"))
+	}
+
 	upload, err := c.core.db.GetCoreUpload(ctx, req.Msg.Cid)
 	if err != nil {
 		// Return exists=false if not found instead of error

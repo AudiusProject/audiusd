@@ -14,6 +14,11 @@ import (
 )
 
 func (s *Server) isValidFileUpload(ctx context.Context, tx *v1.SignedTransaction) error {
+	// Check feature flag
+	if !s.config.ProgrammableDistributionEnabled {
+		return errors.New("programmable distribution is not enabled in this environment")
+	}
+
 	fu := tx.GetFileUpload()
 	if fu == nil {
 		return errors.New("file upload not present")
@@ -110,6 +115,11 @@ func (s *Server) isValidFileUpload(ctx context.Context, tx *v1.SignedTransaction
 }
 
 func (s *Server) finalizeFileUpload(ctx context.Context, tx *v1.SignedTransaction, txHash string, blockHeight int64) (proto.Message, error) {
+	// Check feature flag
+	if !s.config.ProgrammableDistributionEnabled {
+		return nil, errors.New("programmable distribution is not enabled in this environment")
+	}
+
 	if err := s.isValidFileUpload(ctx, tx); err != nil {
 		s.logger.Error("Invalid file upload:", zap.Error(err))
 		return nil, err
