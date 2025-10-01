@@ -3,10 +3,10 @@ package main
 import (
 	"context"
 	"crypto/ecdsa"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/AudiusProject/audiusd/pkg/sdk"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -35,15 +35,16 @@ func NewGeolocationHandler(privateKey *ecdsa.PrivateKey, allowedCity string, aud
 func main() {
 	ctx := context.Background()
 
-	validatorEndpoint := os.Getenv("validatorEndpoint")
-	serverPort := fmt.Sprintf(":%s", os.Getenv("serverPort"))
+	validatorEndpoint := flag.String("validator", "creatornode11.staging.audius.co", "Validator endpoint URL")
+	serverPort := flag.String("port", "8080", "Server port")
+	flag.Parse()
 
 	privateKey, err := crypto.GenerateKey()
 	if err != nil {
 		log.Fatalf("Failed to generate private key: %v", err)
 	}
 
-	auds := sdk.NewAudiusdSDK(validatorEndpoint)
+	auds := sdk.NewAudiusdSDK(*validatorEndpoint)
 	auds.Init(ctx)
 	auds.SetPrivKey(privateKey)
 
@@ -60,7 +61,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.Handle("/stream-access", handler)
 
-	if err := http.ListenAndServe(serverPort, mux); err != nil {
+	if err := http.ListenAndServe(":"+*serverPort, mux); err != nil {
 		log.Fatalf("Server error: %v", err)
 	}
 }
