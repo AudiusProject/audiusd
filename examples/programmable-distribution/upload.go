@@ -67,7 +67,6 @@ func uploadTrackExample(ctx context.Context, auds *sdk.AudiusdSDK, handler *Geol
 
 	// Get the transcoded CID (this is what we use in the ERN)
 	transcodedCID := upload.GetTranscodedCID()
-	fmt.Printf("📤 File uploaded! Original CID: %s, Transcoded CID: %s\n", fileCID, transcodedCID)
 
 	// Create ERN message
 	title := "Programmable Distribution Demo"
