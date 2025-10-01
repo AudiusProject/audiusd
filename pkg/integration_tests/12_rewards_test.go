@@ -192,7 +192,7 @@ func TestRewardsLifecycle(t *testing.T) {
 			RewardAddress:       reward.Address,
 			RewardId:            "attestation_test_reward",
 			Specifier:           specifier,
-			OracleAddress:       authority1Addr,
+			ClaimAuthority:      authority1Addr,
 		})
 		if err != nil {
 			t.Fatalf("authority1 should be able to get attestation: %v", err)
@@ -206,7 +206,7 @@ func TestRewardsLifecycle(t *testing.T) {
 			RewardAddress:       reward.Address,
 			RewardId:            "attestation_test_reward",
 			Specifier:           specifier,
-			OracleAddress:       authority2Addr,
+			ClaimAuthority:      authority2Addr,
 		})
 		if err != nil {
 			t.Fatalf("authority2 should be able to get attestation: %v", err)
@@ -220,7 +220,7 @@ func TestRewardsLifecycle(t *testing.T) {
 			RewardAddress:       reward.Address,
 			RewardId:            "attestation_test_reward",
 			Specifier:           specifier,
-			OracleAddress:       unauthorizedAddr,
+			ClaimAuthority:      unauthorizedAddr,
 		})
 		if err == nil {
 			t.Fatalf("unauthorized user should NOT be able to get attestation, but it succeeded")
@@ -250,7 +250,7 @@ func TestRewardsLifecycle(t *testing.T) {
 			RewardAddress:       reward2.Address,
 			RewardId:            "attestation_test_reward_2",
 			Specifier:           specifier,
-			OracleAddress:       authority1Addr,
+			ClaimAuthority:      authority1Addr,
 		})
 		if err == nil {
 			t.Fatalf("authority1 should NOT be able to get attestation for reward2, but it succeeded")

@@ -119,7 +119,7 @@ func (r *Rewards) GetRewardAttestation(ctx context.Context, req *v1.GetRewardAtt
 		RewardAddress:       req.RewardAddress,
 		RewardId:            req.RewardId,
 		Specifier:           req.Specifier,
-		OracleAddress:       req.OracleAddress,
+		ClaimAuthority:      req.ClaimAuthority,
 	}
 
 	sig, err := common.ProtoSign(r.privKey, sigData)

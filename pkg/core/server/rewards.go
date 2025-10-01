@@ -204,8 +204,11 @@ func (s *Server) finalizeCreateReward(ctx context.Context, req *abcitypes.Finali
 	}
 
 	// Generate deterministic address for the new reward
-	nonce := txhash
-	rewardAddress := common.CreateAddress(createReward, s.config.GenesisFile.ChainID, req.Height, nonce)
+	txhashBytes, err := common.HexToBytes(txhash)
+	if err != nil {
+		return fmt.Errorf("invalid txhash: %w", err)
+	}
+	rewardAddress := common.CreateAddress(txhashBytes, s.config.GenesisFile.ChainID, req.Height, messageIndex, "")
 
 	// Convert claim authorities to string array
 	claimAuthorities := make([]string, len(createReward.ClaimAuthorities))

@@ -796,9 +796,9 @@ func (c *CoreService) GetRewardAttestation(ctx context.Context, req *connect.Req
 	if specifier == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("specifier is required"))
 	}
-	oracleAddress := req.Msg.OracleAddress
-	if oracleAddress == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("oracle_address is required"))
+	claimAuthority := req.Msg.ClaimAuthority
+	if claimAuthority == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("claim_authority is required"))
 	}
 	signature := req.Msg.Signature
 	if signature == "" {
@@ -821,7 +821,7 @@ func (c *CoreService) GetRewardAttestation(ctx context.Context, req *connect.Req
 		RewardAddress:       req.Msg.RewardAddress,
 		RewardId:            req.Msg.RewardId,
 		Specifier:           req.Msg.Specifier,
-		OracleAddress:       req.Msg.OracleAddress,
+		ClaimAuthority:      req.Msg.ClaimAuthority,
 	}
 
 	signer, err := common.ProtoRecover(sigData, req.Msg.Signature)
@@ -829,16 +829,20 @@ func (c *CoreService) GetRewardAttestation(ctx context.Context, req *connect.Req
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("signature recovery failure"))
 	}
 
-	// Verify oracle is authorized to sign for this reward
+	// Verify claim authority is authorized to sign for this reward
 	authorized := false
-	for _, claimAuthority := range reward.ClaimAuthorities {
-		if strings.EqualFold(claimAuthority, signer) {
+	for _, ca := range reward.ClaimAuthorities {
+		if strings.EqualFold(ca, signer) {
 			authorized = true
 			break
 		}
 	}
 	if !authorized {
-		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("oracle not authorized for this programmatic reward"))
+		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("claim authority not authorized for this programmatic reward"))
+	}
+
+	if !strings.EqualFold(req.Msg.GetClaimAuthority(), signer) {
+		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("claim authority and signer mismatch"))
 	}
 
 	attestation, err := common.ProtoSign(c.core.config.EthereumKey, sigData)
@@ -1050,17 +1054,17 @@ func (c *CoreService) authenticateProgrammaticRewardClaim(
 	rewardAddress string,
 	rewardID string,
 	specifier string,
-	oracleAddress string,
+	claimAuthority string,
 	signature string,
 ) error {
-	// Create the structured signature payload that oracles must sign
+	// Create the structured signature payload that claim authorities must sign
 	sigPayload := &v1.RewardAttestationSignature{
 		EthRecipientAddress: ethRecipientAddress,
 		Amount:              amount,
 		RewardAddress:       rewardAddress, // This prevents cross-reward signature reuse
 		RewardId:            rewardID,
 		Specifier:           specifier,
-		OracleAddress:       oracleAddress,
+		ClaimAuthority:      claimAuthority,
 	}
 
 	// Marshal the protobuf message to get the bytes that should be signed
@@ -1075,9 +1079,9 @@ func (c *CoreService) authenticateProgrammaticRewardClaim(
 		return fmt.Errorf("failed to recover signature: %w", err)
 	}
 
-	// Ensure the recovered address matches the oracle address
-	if !strings.EqualFold(sender, oracleAddress) {
-		return fmt.Errorf("signature sender %s does not match oracle address %s", sender, oracleAddress)
+	// Ensure the recovered address matches the claim authority address
+	if !strings.EqualFold(sender, claimAuthority) {
+		return fmt.Errorf("signature sender %s does not match claim authority %s", sender, claimAuthority)
 	}
 
 	return nil

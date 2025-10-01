@@ -402,7 +402,7 @@ message GetRewardAttestationRequest {
   string eth_recipient_address = 1;
   string reward_address = 2; // The deployed reward address (new programmatic rewards)
   string specifier = 3;
-  string oracle_address = 4;
+  string claim_authority = 4;
   string signature = 5;
   uint64 amount = 6;
   string reward_id = 7; // Legacy reward_id (for backwards compatibility)
@@ -537,5 +537,5 @@ message RewardAttestationSignature {
   string reward_address = 3; // Binds signature to specific deployed reward
   string reward_id = 4;
   string specifier = 5;
-  string oracle_address = 6;
+  string claim_authority = 6;
 }
