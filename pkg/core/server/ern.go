@@ -217,9 +217,9 @@ func (s *Server) finalizeERNNewMessage(ctx context.Context, req *abcitypes.Final
 	}
 
 	dealAddresses := make([]string, len(ern.DealList))
-	// for i, deal := range ern.DealList {
-	// 	dealAddresses[i] = gen.Deal(deal.GetReleaseDeal().GetDealReleaseReference())
-	// }
+	for i, deal := range ern.DealList {
+		dealAddresses[i] = gen.Deal(deal.String())
+	}
 
 	rawMessage, err := proto.Marshal(ern)
 	if err != nil {
