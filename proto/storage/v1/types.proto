@@ -137,3 +137,9 @@ message GetIPDataResponse {
   float latitude = 6;
   float longitude = 7;
 }
+
+message GetStatusRequest {}
+
+message GetStatusResponse {
+  int64 storage_expectation = 1;
+}

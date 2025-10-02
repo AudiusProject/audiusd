@@ -372,11 +372,6 @@ func New(lc *lifecycle.Lifecycle, logger *zap.Logger, config MediorumConfig, pro
 			"data": c.RealIP(), // client/requestor IP
 		})
 	})
-	routes.GET("/storage_expectation", func(c echo.Context) error {
-		return c.JSON(http.StatusOK, map[string]uint64{
-			"data": ss.storageExpectation,
-		})
-	})
 
 	routes.GET("/delist_status/track/:trackCid", ss.serveTrackDelistStatus)
 	routes.GET("/delist_status/user/:userId", ss.serveUserDelistStatus)
