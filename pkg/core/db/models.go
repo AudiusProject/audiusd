@@ -75,6 +75,16 @@ type CoreBlock struct {
 	CreatedAt pgtype.Timestamp
 }
 
+type CoreDeal struct {
+	Address     string
+	ErnAddress  string
+	EntityType  string
+	EntityIndex int32
+	TxHash      string
+	BlockHeight int64
+	CreatedAt   pgtype.Timestamp
+}
+
 type CoreErn struct {
 	ID                 int64
 	Address            string
@@ -82,10 +92,6 @@ type CoreErn struct {
 	TxHash             string
 	Sender             string
 	MessageControlType int16
-	PartyAddresses     []string
-	ResourceAddresses  []string
-	ReleaseAddresses   []string
-	DealAddresses      []string
 	RawMessage         []byte
 	RawAcknowledgment  []byte
 	BlockHeight        int64
@@ -198,6 +204,16 @@ type CoreMead struct {
 	BlockHeight       int64
 }
 
+type CoreParty struct {
+	Address     string
+	ErnAddress  string
+	EntityType  string
+	EntityIndex int32
+	TxHash      string
+	BlockHeight int64
+	CreatedAt   pgtype.Timestamp
+}
+
 type CorePie struct {
 	ID                int64
 	Address           string
@@ -208,6 +224,42 @@ type CorePie struct {
 	RawMessage        []byte
 	RawAcknowledgment []byte
 	BlockHeight       int64
+}
+
+type CoreRelease struct {
+	Address     string
+	ErnAddress  string
+	EntityType  string
+	EntityIndex int32
+	TxHash      string
+	BlockHeight int64
+	CreatedAt   pgtype.Timestamp
+}
+
+type CoreResource struct {
+	Address     string
+	ErnAddress  string
+	EntityType  string
+	EntityIndex int32
+	TxHash      string
+	BlockHeight int64
+	CreatedAt   pgtype.Timestamp
+}
+
+type CoreReward struct {
+	ID               int64
+	Address          string
+	Index            int64
+	TxHash           string
+	Sender           string
+	RewardID         string
+	Name             string
+	Amount           int64
+	ClaimAuthorities []string
+	RawMessage       []byte
+	BlockHeight      int64
+	CreatedAt        pgtype.Timestamptz
+	UpdatedAt        pgtype.Timestamptz
 }
 
 type CoreTransaction struct {
@@ -225,6 +277,19 @@ type CoreTxStat struct {
 	TxHash      string
 	BlockHeight int64
 	CreatedAt   pgtype.Timestamp
+}
+
+type CoreUpload struct {
+	ID                 int64
+	UploaderAddress    string
+	Cid                string
+	TranscodedCid      string
+	Upid               string
+	UploadSignature    string
+	ValidatorAddress   string
+	ValidatorSignature string
+	TxHash             string
+	BlockHeight        int64
 }
 
 type CoreValidator struct {

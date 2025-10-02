@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"net/url"
 	"sort"
 	"strings"
 	"time"
@@ -15,8 +16,10 @@ import (
 	"github.com/AudiusProject/audiusd/pkg/api/core/v1/v1connect"
 	v1beta1 "github.com/AudiusProject/audiusd/pkg/api/core/v1beta1"
 	ddexv1beta1 "github.com/AudiusProject/audiusd/pkg/api/ddex/v1beta1"
+	storagev1 "github.com/AudiusProject/audiusd/pkg/api/storage/v1"
+	storagev1connect "github.com/AudiusProject/audiusd/pkg/api/storage/v1/v1connect"
 	"github.com/AudiusProject/audiusd/pkg/common"
-	"github.com/AudiusProject/audiusd/pkg/rewards"
+	"github.com/AudiusProject/audiusd/pkg/mediorum/server/signature"
 	"github.com/jackc/pgx/v5"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/proto"
@@ -24,7 +27,8 @@ import (
 )
 
 type CoreService struct {
-	core *Server
+	core           *Server
+	storageService storagev1connect.StorageServiceHandler
 }
 
 func NewCoreService() *CoreService {
@@ -34,6 +38,10 @@ func NewCoreService() *CoreService {
 func (c *CoreService) SetCore(core *Server) {
 	c.core = core
 	c.core.setSelf(c)
+}
+
+func (c *CoreService) SetStorageService(storageService storagev1connect.StorageServiceHandler) {
+	c.storageService = storageService
 }
 
 var _ v1connect.CoreServiceHandler = (*CoreService)(nil)
@@ -57,6 +65,21 @@ func (c *CoreService) GetNodeInfo(ctx context.Context, req *connect.Request[v1.G
 
 // ForwardTransaction implements v1connect.CoreServiceHandler.
 func (c *CoreService) ForwardTransaction(ctx context.Context, req *connect.Request[v1.ForwardTransactionRequest]) (*connect.Response[v1.ForwardTransactionResponse], error) {
+	// Check feature flag for programmable distribution features
+	if !c.core.config.ProgrammableDistributionEnabled {
+		// Check if transaction uses programmable distribution features
+		if req.Msg != nil && req.Msg.Transaction != nil && req.Msg.Transaction.GetFileUpload() != nil {
+			return nil, connect.NewError(connect.CodeUnimplemented, errors.New("programmable distribution is not enabled in this environment"))
+		}
+		if req.Msg != nil && req.Msg.Transactionv2 != nil && req.Msg.Transactionv2.Envelope != nil {
+			for _, msg := range req.Msg.Transactionv2.Envelope.Messages {
+				if msg != nil && msg.GetErn() != nil {
+					return nil, connect.NewError(connect.CodeUnimplemented, errors.New("programmable distribution is not enabled in this environment"))
+				}
+			}
+		}
+	}
+
 	// TODO: check signature from known node
 
 	// TODO: validate transaction in same way as send transaction
@@ -450,6 +473,21 @@ func (c *CoreService) Ping(context.Context, *connect.Request[v1.PingRequest]) (*
 
 // SendTransaction implements v1connect.CoreServiceHandler.
 func (c *CoreService) SendTransaction(ctx context.Context, req *connect.Request[v1.SendTransactionRequest]) (*connect.Response[v1.SendTransactionResponse], error) {
+	// Check feature flag for programmable distribution features
+	if !c.core.config.ProgrammableDistributionEnabled {
+		// Check if transaction uses programmable distribution features
+		if req.Msg != nil && req.Msg.Transaction != nil && req.Msg.Transaction.GetFileUpload() != nil {
+			return nil, connect.NewError(connect.CodeUnimplemented, errors.New("programmable distribution is not enabled in this environment"))
+		}
+		if req.Msg != nil && req.Msg.Transactionv2 != nil && req.Msg.Transactionv2.Envelope != nil {
+			for _, msg := range req.Msg.Transactionv2.Envelope.Messages {
+				if msg != nil && msg.GetErn() != nil {
+					return nil, connect.NewError(connect.CodeUnimplemented, errors.New("programmable distribution is not enabled in this environment"))
+				}
+			}
+		}
+	}
+
 	// TODO: do validation check
 	var txhash common.TxHash
 	var err error
@@ -485,6 +523,12 @@ func (c *CoreService) SendTransaction(ctx context.Context, req *connect.Request[
 			return nil, fmt.Errorf("could not marshal transaction: %v", marshalErr)
 		}
 		txhash = common.ToTxHashFromBytes(txBytes)
+
+		// Validate v1 transactions
+		err = c.core.validateV1Transaction(ctx, c.core.cache.currentHeight.Load(), req.Msg.Transaction)
+		if err != nil {
+			return nil, fmt.Errorf("transaction validation failed: %v", err)
+		}
 	}
 
 	// create mempool transaction for both v1 and v2
@@ -796,17 +840,20 @@ func (c *CoreService) GetRewardAttestation(ctx context.Context, req *connect.Req
 	if ethRecipientAddress == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("eth_recipient_address is required"))
 	}
-	rewardID := req.Msg.RewardId
-	if rewardID == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("reward_id is required"))
+
+	// Only support programmatic rewards via reward_address
+	rewardAddress := req.Msg.RewardAddress
+	if rewardAddress == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("reward_address is required"))
 	}
+
 	specifier := req.Msg.Specifier
 	if specifier == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("specifier is required"))
 	}
-	oracleAddress := req.Msg.OracleAddress
-	if oracleAddress == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("oracle_address is required"))
+	claimAuthority := req.Msg.ClaimAuthority
+	if claimAuthority == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("claim_authority is required"))
 	}
 	signature := req.Msg.Signature
 	if signature == "" {
@@ -817,27 +864,45 @@ func (c *CoreService) GetRewardAttestation(ctx context.Context, req *connect.Req
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("amount is required"))
 	}
 
-	claim := rewards.RewardClaim{
-		RecipientEthAddress:       ethRecipientAddress,
-		Amount:                    amount,
-		RewardID:                  rewardID,
-		Specifier:                 specifier,
-		AntiAbuseOracleEthAddress: oracleAddress,
+	// Get programmatic reward by deployed address
+	reward, err := c.core.db.GetReward(ctx, rewardAddress)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeNotFound, errors.New("programmatic reward not found"))
 	}
 
-	err := c.core.rewards.Validate(claim)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	sigData := &v1.RewardAttestationSignature{
+		EthRecipientAddress: req.Msg.EthRecipientAddress,
+		Amount:              req.Msg.Amount,
+		RewardAddress:       req.Msg.RewardAddress,
+		RewardId:            req.Msg.RewardId,
+		Specifier:           req.Msg.Specifier,
+		ClaimAuthority:      req.Msg.ClaimAuthority,
 	}
 
-	err = c.core.rewards.Authenticate(claim, signature)
+	signer, err := common.ProtoRecover(sigData, req.Msg.Signature)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeUnauthenticated, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("signature recovery failure"))
 	}
 
-	_, attestation, err := c.core.rewards.Attest(claim)
+	// Verify claim authority is authorized to sign for this reward
+	authorized := false
+	for _, ca := range reward.ClaimAuthorities {
+		if strings.EqualFold(ca, signer) {
+			authorized = true
+			break
+		}
+	}
+	if !authorized {
+		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("claim authority not authorized for this programmatic reward"))
+	}
+
+	if !strings.EqualFold(req.Msg.GetClaimAuthority(), signer) {
+		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("claim authority and signer mismatch"))
+	}
+
+	attestation, err := common.ProtoSign(c.core.config.EthereumKey, sigData)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("error signing attestation"))
 	}
 
 	res := &v1.GetRewardAttestationResponse{
@@ -849,29 +914,88 @@ func (c *CoreService) GetRewardAttestation(ctx context.Context, req *connect.Req
 }
 
 // GetRewards implements v1connect.CoreServiceHandler.
-func (c *CoreService) GetRewards(context.Context, *connect.Request[v1.GetRewardsRequest]) (*connect.Response[v1.GetRewardsResponse], error) {
-	rewards := c.core.rewards.Rewards
-	rewardResponses := make([]*v1.Reward, 0, len(rewards))
+func (c *CoreService) GetRewards(ctx context.Context, req *connect.Request[v1.GetRewardsRequest]) (*connect.Response[v1.GetRewardsResponse], error) {
+	claimAuthority := req.Msg.ClaimAuthority
+	if claimAuthority == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("claim_authority required"))
+	}
+
+	rewards, err := c.core.db.GetRewardsByClaimAuthority(ctx, claimAuthority)
+	if err != nil {
+		return nil, err
+	}
+
+	responseRewards := make([]*v1.GetRewardResponse, 0, len(rewards))
 	for _, reward := range rewards {
-		claimAuthorities := make([]*v1.ClaimAuthority, 0, len(reward.ClaimAuthorities))
-		for _, claimAuthority := range reward.ClaimAuthorities {
-			claimAuthorities = append(claimAuthorities, &v1.ClaimAuthority{
-				Address: claimAuthority.Address,
-			})
-		}
-		rewardResponses = append(rewardResponses, &v1.Reward{
-			RewardId:         reward.RewardId,
-			Amount:           reward.Amount,
+		responseRewards = append(responseRewards, &v1.GetRewardResponse{
+			Address:          reward.Address,
+			RewardId:         reward.RewardID,
 			Name:             reward.Name,
-			ClaimAuthorities: claimAuthorities,
+			Amount:           uint64(reward.Amount),
+			ClaimAuthorities: reward.ClaimAuthorities,
+			Sender:           reward.Sender,
+			BlockHeight:      reward.BlockHeight,
 		})
 	}
 
-	res := &v1.GetRewardsResponse{
-		Rewards: rewardResponses,
+	return connect.NewResponse(&v1.GetRewardsResponse{
+		Rewards: responseRewards,
+	}), nil
+}
+
+// GetReward implements v1connect.CoreServiceHandler.
+func (c *CoreService) GetReward(ctx context.Context, req *connect.Request[v1.GetRewardRequest]) (*connect.Response[v1.GetRewardResponse], error) {
+	address := req.Msg.Address
+	txhash := req.Msg.Txhash
+	if address == "" && txhash == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("address or txhash is required"))
 	}
 
-	return connect.NewResponse(res), nil
+	if address != "" {
+		reward, err := c.core.db.GetReward(ctx, address)
+		if err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("reward not found for address: %s", address))
+			}
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get reward: %w", err))
+		}
+
+		res := &v1.GetRewardResponse{
+			Address:          reward.Address,
+			RewardId:         reward.RewardID,
+			Name:             reward.Name,
+			Amount:           uint64(reward.Amount),
+			ClaimAuthorities: reward.ClaimAuthorities,
+			Sender:           reward.Sender,
+			BlockHeight:      reward.BlockHeight,
+		}
+
+		return connect.NewResponse(res), nil
+	}
+
+	if txhash != "" {
+		reward, err := c.core.db.GetRewardByTxHash(ctx, txhash)
+		if err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("reward not found for address: %s", address))
+			}
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get reward: %w", err))
+		}
+
+		res := &v1.GetRewardResponse{
+			Address:          reward.Address,
+			RewardId:         reward.RewardID,
+			Name:             reward.Name,
+			Amount:           uint64(reward.Amount),
+			ClaimAuthorities: reward.ClaimAuthorities,
+			Sender:           reward.Sender,
+			BlockHeight:      reward.BlockHeight,
+		}
+
+		return connect.NewResponse(res), nil
+	}
+
+	return nil, connect.NewError(connect.CodeNotFound, nil)
 }
 
 // GetERN implements v1connect.CoreServiceHandler.
@@ -949,6 +1073,386 @@ func (c *CoreService) GetPIE(ctx context.Context, req *connect.Request[v1.GetPIE
 	}), nil
 }
 
+// GetStreamURLs implements v1connect.CoreServiceHandler.
+func (c *CoreService) GetStreamURLs(ctx context.Context, req *connect.Request[v1.GetStreamURLsRequest]) (*connect.Response[v1.GetStreamURLsResponse], error) {
+	// Check feature flag
+	if !c.core.config.ProgrammableDistributionEnabled {
+		return nil, connect.NewError(connect.CodeUnimplemented, errors.New("programmable distribution is not enabled in this environment"))
+	}
+
+	// Validate request
+	if req.Msg.Signature == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("signature is required"))
+	}
+	if len(req.Msg.Addresses) == 0 {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("at least one address is required"))
+	}
+	if req.Msg.ExpiresAt == nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("expires_at is required"))
+	}
+
+	// Verify signature hasn't expired
+	expiryTime := req.Msg.ExpiresAt.AsTime()
+	if time.Now().After(expiryTime) {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("signature has expired"))
+	}
+
+	// Construct signature data to verify
+	sigData := &v1.GetStreamURLsSignature{
+		Addresses: req.Msg.Addresses,
+		ExpiresAt: req.Msg.ExpiresAt,
+	}
+	sigDataBytes, err := proto.Marshal(sigData)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal signature data: %w", err)
+	}
+
+	// Recover signer address from signature
+	_, signerAddress, err := common.EthRecover(req.Msg.Signature, sigDataBytes)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("invalid signature: %w", err))
+	}
+
+	// Process each requested address
+	entityStreamURLs := make(map[string]*v1.GetStreamURLsResponse_EntityStreamURLs)
+
+	for _, address := range req.Msg.Addresses {
+		// First try to get it as an ERN directly
+		dbErn, err := c.core.db.GetERN(ctx, address)
+
+		if err == nil {
+			// This is an ERN address - verify ownership
+			if !strings.EqualFold(dbErn.Sender, signerAddress) {
+				return nil, connect.NewError(connect.CodePermissionDenied,
+					fmt.Errorf("signer %s does not own ERN at address %s", signerAddress, address))
+			}
+
+			// Unmarshal ERN to get resource details
+			var ern ddexv1beta1.NewReleaseMessage
+			if err := proto.Unmarshal(dbErn.RawMessage, &ern); err != nil {
+				c.core.logger.Error("failed to unmarshal ERN", zap.Error(err))
+				continue
+			}
+
+			// Get all streamable resources from the ERN
+			streamURLs := c.extractStreamURLsFromERN(&ern)
+			if len(streamURLs) > 0 {
+				entityStreamURLs[address] = &v1.GetStreamURLsResponse_EntityStreamURLs{
+					EntityType:      "ern",
+					EntityReference: "",
+					Urls:            streamURLs,
+					ErnAddress:      address,
+				}
+			}
+		} else if errors.Is(err, pgx.ErrNoRows) {
+			// Not an ERN address - check if it's contained in an ERN
+			result, err := c.core.db.GetERNContainingAddress(ctx, address)
+			if err != nil {
+				if errors.Is(err, pgx.ErrNoRows) {
+					c.core.logger.Warn("address not found in any ERN", zap.String("address", address))
+					continue
+				}
+				return nil, fmt.Errorf("failed to query ERN containing address: %w", err)
+			}
+
+			// Verify ownership of parent ERN
+			if !strings.EqualFold(result.Sender, signerAddress) {
+				return nil, connect.NewError(connect.CodePermissionDenied,
+					fmt.Errorf("signer %s does not own ERN containing address %s", signerAddress, address))
+			}
+
+			// Unmarshal ERN to get specific entity
+			var ern ddexv1beta1.NewReleaseMessage
+			if err := proto.Unmarshal(result.RawMessage, &ern); err != nil {
+				c.core.logger.Error("failed to unmarshal ERN", zap.Error(err))
+				continue
+			}
+
+			// Get entity reference based on index and type
+			entityRef := c.getEntityReference(&ern, result.EntityType, int(result.EntityIndex))
+			streamURLs := c.getEntityStreamURLs(&ern, result.EntityType, entityRef)
+
+			if len(streamURLs) > 0 {
+				entityStreamURLs[address] = &v1.GetStreamURLsResponse_EntityStreamURLs{
+					EntityType:      result.EntityType,
+					EntityReference: entityRef,
+					Urls:            streamURLs,
+					ErnAddress:      result.ErnAddress,
+				}
+			}
+		} else {
+			return nil, fmt.Errorf("failed to get ERN: %w", err)
+		}
+	}
+
+	return connect.NewResponse(&v1.GetStreamURLsResponse{
+		EntityStreamUrls: entityStreamURLs,
+	}), nil
+}
+
+// GetUploadByCID implements v1connect.CoreServiceHandler.
+func (c *CoreService) GetUploadByCID(ctx context.Context, req *connect.Request[v1.GetUploadByCIDRequest]) (*connect.Response[v1.GetUploadByCIDResponse], error) {
+	// Check feature flag
+	if !c.core.config.ProgrammableDistributionEnabled {
+		return nil, connect.NewError(connect.CodeUnimplemented, errors.New("programmable distribution is not enabled in this environment"))
+	}
+
+	upload, err := c.core.db.GetCoreUpload(ctx, req.Msg.Cid)
+	if err != nil {
+		// Return exists=false if not found instead of error
+		return connect.NewResponse(&v1.GetUploadByCIDResponse{
+			Exists: false,
+		}), nil
+	}
+
+	return connect.NewResponse(&v1.GetUploadByCIDResponse{
+		Exists:          true,
+		UploaderAddress: upload.UploaderAddress,
+		OriginalCid:     upload.Cid,
+		TranscodedCid:   upload.TranscodedCid,
+	}), nil
+}
+
+// Helper function to get entity reference by index
+func (c *CoreService) getEntityReference(ern *ddexv1beta1.NewReleaseMessage, entityType string, index int) string {
+	// Arrays are 1-indexed in PostgreSQL, adjust to 0-indexed
+	idx := index - 1
+
+	switch entityType {
+	case "resource":
+		if idx >= 0 && idx < len(ern.ResourceList) {
+			if sr := ern.ResourceList[idx].GetSoundRecording(); sr != nil {
+				return sr.ResourceReference
+			}
+			if img := ern.ResourceList[idx].GetImage(); img != nil {
+				return img.ResourceReference
+			}
+		}
+	case "release":
+		if idx >= 0 && idx < len(ern.ReleaseList) {
+			if mr := ern.ReleaseList[idx].GetMainRelease(); mr != nil {
+				return mr.ReleaseReference
+			}
+			if tr := ern.ReleaseList[idx].GetTrackRelease(); tr != nil {
+				return tr.ReleaseReference
+			}
+		}
+	case "party":
+		if idx >= 0 && idx < len(ern.PartyList) {
+			return ern.PartyList[idx].PartyReference
+		}
+	}
+	return ""
+}
+
+// Helper function to extract all streamable URLs from an ERN
+func (c *CoreService) extractStreamURLsFromERN(ern *ddexv1beta1.NewReleaseMessage) []string {
+	var urls []string
+
+	for _, resource := range ern.ResourceList {
+		if sr := resource.GetSoundRecording(); sr != nil {
+			if sre := sr.GetSoundRecordingEdition(); sre != nil {
+				if td := sre.GetTechnicalDetails(); td != nil {
+					if df := td.GetDeliveryFile(); df != nil {
+						if f := df.GetFile(); f != nil && f.Uri != "" {
+							// Generate signed streaming URLs for the CID from multiple hosts
+							streamURLs := c.generateStreamURLs(f.Uri)
+							urls = append(urls, streamURLs...)
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return urls
+}
+
+// Helper function to get stream URLs for a specific entity
+func (c *CoreService) getEntityStreamURLs(ern *ddexv1beta1.NewReleaseMessage, entityType, entityRef string) []string {
+	var urls []string
+
+	switch entityType {
+	case "resource":
+		// Find the specific resource and return its URL
+		for _, resource := range ern.ResourceList {
+			if sr := resource.GetSoundRecording(); sr != nil && sr.ResourceReference == entityRef {
+				if sre := sr.GetSoundRecordingEdition(); sre != nil {
+					if td := sre.GetTechnicalDetails(); td != nil {
+						if df := td.GetDeliveryFile(); df != nil {
+							if f := df.GetFile(); f != nil && f.Uri != "" {
+								streamURLs := c.generateStreamURLs(f.Uri)
+								urls = append(urls, streamURLs...)
+							}
+						}
+					}
+				}
+			}
+		}
+	case "release":
+		// Find all resources associated with this release
+		for _, release := range ern.ReleaseList {
+			var isTargetRelease bool
+			if mr := release.GetMainRelease(); mr != nil && mr.ReleaseReference == entityRef {
+				isTargetRelease = true
+			} else if tr := release.GetTrackRelease(); tr != nil && tr.ReleaseReference == entityRef {
+				isTargetRelease = true
+			}
+
+			if isTargetRelease {
+				// Get resource references from the release
+				if mr := release.GetMainRelease(); mr != nil {
+					urls = append(urls, c.getResourceURLsFromRelease(ern, mr)...)
+				} else if tr := release.GetTrackRelease(); tr != nil {
+					urls = append(urls, c.getResourceURLsFromReleaseTrack(ern, tr)...)
+				}
+			}
+		}
+	case "ern":
+		// Return all streamable resources
+		urls = c.extractStreamURLsFromERN(ern)
+	}
+
+	return urls
+}
+
+// Helper to get resource URLs from a release
+func (c *CoreService) getResourceURLsFromRelease(ern *ddexv1beta1.NewReleaseMessage, release *ddexv1beta1.Release_Release) []string {
+	var urls []string
+
+	if release.ResourceGroup != nil {
+		for _, rg := range release.ResourceGroup.ResourceGroup {
+			for _, item := range rg.ResourceGroupContentItem {
+				// Find the resource with this reference
+				for _, resource := range ern.ResourceList {
+					if sr := resource.GetSoundRecording(); sr != nil && sr.ResourceReference == item.ResourceGroupContentItemText {
+						if sre := sr.GetSoundRecordingEdition(); sre != nil {
+							if td := sre.GetTechnicalDetails(); td != nil {
+								if df := td.GetDeliveryFile(); df != nil {
+									if f := df.GetFile(); f != nil && f.Uri != "" {
+										streamURLs := c.generateStreamURLs(f.Uri)
+										urls = append(urls, streamURLs...)
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return urls
+}
+
+// Helper to get resource URLs from a track release
+func (c *CoreService) getResourceURLsFromReleaseTrack(ern *ddexv1beta1.NewReleaseMessage, release *ddexv1beta1.Release_TrackRelease) []string {
+	var urls []string
+
+	// TrackRelease only has a direct reference to a resource
+	if release.ReleaseResourceReference != "" {
+		// Find the resource with this reference
+		for _, resource := range ern.ResourceList {
+			if sr := resource.GetSoundRecording(); sr != nil && sr.ResourceReference == release.ReleaseResourceReference {
+				if sre := sr.GetSoundRecordingEdition(); sre != nil {
+					if td := sre.GetTechnicalDetails(); td != nil {
+						if df := td.GetDeliveryFile(); df != nil {
+							if f := df.GetFile(); f != nil && f.Uri != "" {
+								streamURLs := c.generateStreamURLs(f.Uri)
+								urls = append(urls, streamURLs...)
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return urls
+}
+
+// Helper function to generate a signed streaming URL for a CID
+func (c *CoreService) generateStreamURL(cid string) string {
+	// Generate a time-limited signed URL for streaming
+	// Using mediorum's streaming endpoint
+	baseURL := fmt.Sprintf("%s/tracks/cidstream/%s", c.core.config.NodeEndpoint, cid)
+
+	// Create signature data matching production format exactly
+	sigData := &signature.SignatureData{
+		Cid:       cid,
+		Timestamp: time.Now().UnixMilli(), // mediorum expects milliseconds
+		// Don't set ShouldCache, UploadID - let them be zero values to match production
+		// TrackId and UserId will be 0 for ERN streaming
+	}
+
+	// Generate the signature query string using mediorum's helper
+	sigQueryString, err := signature.GenerateQueryStringFromSignatureData(sigData, c.core.config.EthereumKey)
+	if err != nil {
+		c.core.logger.Error("failed to generate stream signature", zap.Error(err))
+		return ""
+	}
+
+	// URL encode the signature since it's a JSON string with special characters
+	encodedSig := url.QueryEscape(sigQueryString)
+
+	return fmt.Sprintf("%s?signature=%s", baseURL, encodedSig)
+}
+
+// generateStreamURLs generates signed streaming URLs for a CID from multiple hosts using rendezvous hashing
+func (c *CoreService) generateStreamURLs(cid string) []string {
+	ctx := context.Background()
+
+	// If storage service is available, use it to get rendezvous nodes
+	if c.storageService != nil {
+		req := &storagev1.GetRendezvousNodesRequest{
+			Cid:               cid,
+			ReplicationFactor: 3, // Default replication factor
+		}
+
+		resp, err := c.storageService.GetRendezvousNodes(ctx, connect.NewRequest(req))
+		if err == nil && len(resp.Msg.Nodes) > 0 {
+			// Generate signed URLs for each node
+			urls := make([]string, 0, len(resp.Msg.Nodes))
+			for _, endpoint := range resp.Msg.Nodes {
+				// Generate signed URL for this host
+				baseURL := fmt.Sprintf("%s/tracks/cidstream/%s", endpoint, cid)
+
+				sigData := &signature.SignatureData{
+					Cid:       cid,
+					Timestamp: time.Now().UnixMilli(),
+					// Don't set ShouldCache - match production format
+				}
+
+				sigQueryString, err := signature.GenerateQueryStringFromSignatureData(sigData, c.core.config.EthereumKey)
+				if err != nil {
+					c.core.logger.Error("failed to generate stream signature for endpoint",
+						zap.String("endpoint", endpoint),
+						zap.Error(err))
+					continue
+				}
+
+				encodedSig := url.QueryEscape(sigQueryString)
+				streamURL := fmt.Sprintf("%s?signature=%s", baseURL, encodedSig)
+				urls = append(urls, streamURL)
+			}
+
+			if len(urls) > 0 {
+				return urls
+			}
+		} else if err != nil {
+			c.core.logger.Debug("could not get rendezvous nodes from storage service",
+				zap.String("cid", cid),
+				zap.Error(err))
+		}
+	}
+
+	// Fall back to single URL from current node
+	if url := c.generateStreamURL(cid); url != "" {
+		return []string{url}
+	}
+	return []string{}
+}
+
 func (c *CoreService) GetSlashAttestation(ctx context.Context, req *connect.Request[v1.GetSlashAttestationRequest]) (*connect.Response[v1.GetSlashAttestationResponse], error) {
 	signature, err := c.core.getSlashAttestation(ctx, req.Msg.Data)
 	if err != nil {
@@ -975,4 +1479,45 @@ func (c *CoreService) GetSlashAttestations(ctx context.Context, req *connect.Req
 	return connect.NewResponse(&v1.GetSlashAttestationsResponse{
 		Attestations: attestationResponses,
 	}), nil
+}
+
+// authenticateProgrammaticRewardClaim validates signatures for programmatic rewards
+// using the structured protobuf signature format to prevent cross-reward attacks
+func (c *CoreService) authenticateProgrammaticRewardClaim(
+	ethRecipientAddress string,
+	amount uint64,
+	rewardAddress string,
+	rewardID string,
+	specifier string,
+	claimAuthority string,
+	signature string,
+) error {
+	// Create the structured signature payload that claim authorities must sign
+	sigPayload := &v1.RewardAttestationSignature{
+		EthRecipientAddress: ethRecipientAddress,
+		Amount:              amount,
+		RewardAddress:       rewardAddress, // This prevents cross-reward signature reuse
+		RewardId:            rewardID,
+		Specifier:           specifier,
+		ClaimAuthority:      claimAuthority,
+	}
+
+	// Marshal the protobuf message to get the bytes that should be signed
+	sigBytes, err := proto.Marshal(sigPayload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal signature payload: %w", err)
+	}
+
+	// Verify the signature using the common signature verification
+	_, sender, err := common.EthRecover(signature, sigBytes)
+	if err != nil {
+		return fmt.Errorf("failed to recover signature: %w", err)
+	}
+
+	// Ensure the recovered address matches the claim authority address
+	if !strings.EqualFold(sender, claimAuthority) {
+		return fmt.Errorf("signature sender %s does not match claim authority %s", sender, claimAuthority)
+	}
+
+	return nil
 }

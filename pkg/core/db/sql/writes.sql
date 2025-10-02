@@ -234,14 +234,50 @@ insert into core_ern (
     index,
     sender,
     message_control_type,
-    party_addresses,
-    resource_addresses,
-    release_addresses,
-    deal_addresses,
     raw_message,
     raw_acknowledgment,
     block_height
-) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12);
+) values ($1, $2, $3, $4, $5, $6, $7, $8);
+
+-- name: InsertCoreResource :exec
+insert into core_resources (
+    address,
+    ern_address,
+    entity_type,
+    entity_index,
+    tx_hash,
+    block_height
+) values ($1, $2, $3, $4, $5, $6);
+
+-- name: InsertCoreRelease :exec
+insert into core_releases (
+    address,
+    ern_address,
+    entity_type,
+    entity_index,
+    tx_hash,
+    block_height
+) values ($1, $2, $3, $4, $5, $6);
+
+-- name: InsertCoreParty :exec
+insert into core_parties (
+    address,
+    ern_address,
+    entity_type,
+    entity_index,
+    tx_hash,
+    block_height
+) values ($1, $2, $3, $4, $5, $6);
+
+-- name: InsertCoreDeal :exec
+insert into core_deals (
+    address,
+    ern_address,
+    entity_type,
+    entity_index,
+    tx_hash,
+    block_height
+) values ($1, $2, $3, $4, $5, $6);
 
 -- name: InsertCoreMEAD :exec
 insert into core_mead (
@@ -279,3 +315,44 @@ insert into validator_history (
     event_time,
     event_block
 ) values ($1, $2, $3, $4, $5, $6, $7, $8);
+
+-- name: InsertCoreReward :exec
+insert into core_rewards (
+    address,
+    tx_hash,
+    index,
+    sender,
+    reward_id,
+    name,
+    amount,
+    claim_authorities,
+    raw_message,
+    block_height
+) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);
+
+-- name: UpdateCoreReward :exec
+update core_rewards
+set name = $2,
+    amount = $3,
+    claim_authorities = $4,
+    raw_message = $5,
+    block_height = $6,
+    updated_at = now()
+where address = $1;
+
+-- name: DeleteCoreReward :exec
+delete from core_rewards
+where address = $1;
+
+-- name: InsertFileUpload :exec
+insert into core_uploads(
+    uploader_address,
+    cid,
+    transcoded_cid,
+    upid,
+    upload_signature,
+    validator_address,
+    validator_signature,
+    tx_hash,
+    block_height
+) values ($1, $2, $3, $4, $5, $6, $7, $8, $9);

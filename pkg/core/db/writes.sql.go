@@ -100,6 +100,16 @@ func (q *Queries) CommitSlaRollup(ctx context.Context, arg CommitSlaRollupParams
 	return id, err
 }
 
+const deleteCoreReward = `-- name: DeleteCoreReward :exec
+delete from core_rewards
+where address = $1
+`
+
+func (q *Queries) DeleteCoreReward(ctx context.Context, address string) error {
+	_, err := q.db.Exec(ctx, deleteCoreReward, address)
+	return err
+}
+
 const deleteRegisteredNode = `-- name: DeleteRegisteredNode :exec
 delete from core_validators
 where comet_address = $1
@@ -124,6 +134,38 @@ func (q *Queries) InsertAccessKey(ctx context.Context, arg InsertAccessKeyParams
 	return err
 }
 
+const insertCoreDeal = `-- name: InsertCoreDeal :exec
+insert into core_deals (
+    address,
+    ern_address,
+    entity_type,
+    entity_index,
+    tx_hash,
+    block_height
+) values ($1, $2, $3, $4, $5, $6)
+`
+
+type InsertCoreDealParams struct {
+	Address     string
+	ErnAddress  string
+	EntityType  string
+	EntityIndex int32
+	TxHash      string
+	BlockHeight int64
+}
+
+func (q *Queries) InsertCoreDeal(ctx context.Context, arg InsertCoreDealParams) error {
+	_, err := q.db.Exec(ctx, insertCoreDeal,
+		arg.Address,
+		arg.ErnAddress,
+		arg.EntityType,
+		arg.EntityIndex,
+		arg.TxHash,
+		arg.BlockHeight,
+	)
+	return err
+}
+
 const insertCoreERN = `-- name: InsertCoreERN :exec
 insert into core_ern (
     address,
@@ -131,14 +173,10 @@ insert into core_ern (
     index,
     sender,
     message_control_type,
-    party_addresses,
-    resource_addresses,
-    release_addresses,
-    deal_addresses,
     raw_message,
     raw_acknowledgment,
     block_height
-) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+) values ($1, $2, $3, $4, $5, $6, $7, $8)
 `
 
 type InsertCoreERNParams struct {
@@ -147,10 +185,6 @@ type InsertCoreERNParams struct {
 	Index              int64
 	Sender             string
 	MessageControlType int16
-	PartyAddresses     []string
-	ResourceAddresses  []string
-	ReleaseAddresses   []string
-	DealAddresses      []string
 	RawMessage         []byte
 	RawAcknowledgment  []byte
 	BlockHeight        int64
@@ -164,10 +198,6 @@ func (q *Queries) InsertCoreERN(ctx context.Context, arg InsertCoreERNParams) er
 		arg.Index,
 		arg.Sender,
 		arg.MessageControlType,
-		arg.PartyAddresses,
-		arg.ResourceAddresses,
-		arg.ReleaseAddresses,
-		arg.DealAddresses,
 		arg.RawMessage,
 		arg.RawAcknowledgment,
 		arg.BlockHeight,
@@ -249,6 +279,146 @@ func (q *Queries) InsertCorePIE(ctx context.Context, arg InsertCorePIEParams) er
 		arg.PartyAddresses,
 		arg.RawMessage,
 		arg.RawAcknowledgment,
+		arg.BlockHeight,
+	)
+	return err
+}
+
+const insertCoreParty = `-- name: InsertCoreParty :exec
+insert into core_parties (
+    address,
+    ern_address,
+    entity_type,
+    entity_index,
+    tx_hash,
+    block_height
+) values ($1, $2, $3, $4, $5, $6)
+`
+
+type InsertCorePartyParams struct {
+	Address     string
+	ErnAddress  string
+	EntityType  string
+	EntityIndex int32
+	TxHash      string
+	BlockHeight int64
+}
+
+func (q *Queries) InsertCoreParty(ctx context.Context, arg InsertCorePartyParams) error {
+	_, err := q.db.Exec(ctx, insertCoreParty,
+		arg.Address,
+		arg.ErnAddress,
+		arg.EntityType,
+		arg.EntityIndex,
+		arg.TxHash,
+		arg.BlockHeight,
+	)
+	return err
+}
+
+const insertCoreRelease = `-- name: InsertCoreRelease :exec
+insert into core_releases (
+    address,
+    ern_address,
+    entity_type,
+    entity_index,
+    tx_hash,
+    block_height
+) values ($1, $2, $3, $4, $5, $6)
+`
+
+type InsertCoreReleaseParams struct {
+	Address     string
+	ErnAddress  string
+	EntityType  string
+	EntityIndex int32
+	TxHash      string
+	BlockHeight int64
+}
+
+func (q *Queries) InsertCoreRelease(ctx context.Context, arg InsertCoreReleaseParams) error {
+	_, err := q.db.Exec(ctx, insertCoreRelease,
+		arg.Address,
+		arg.ErnAddress,
+		arg.EntityType,
+		arg.EntityIndex,
+		arg.TxHash,
+		arg.BlockHeight,
+	)
+	return err
+}
+
+const insertCoreResource = `-- name: InsertCoreResource :exec
+insert into core_resources (
+    address,
+    ern_address,
+    entity_type,
+    entity_index,
+    tx_hash,
+    block_height
+) values ($1, $2, $3, $4, $5, $6)
+`
+
+type InsertCoreResourceParams struct {
+	Address     string
+	ErnAddress  string
+	EntityType  string
+	EntityIndex int32
+	TxHash      string
+	BlockHeight int64
+}
+
+func (q *Queries) InsertCoreResource(ctx context.Context, arg InsertCoreResourceParams) error {
+	_, err := q.db.Exec(ctx, insertCoreResource,
+		arg.Address,
+		arg.ErnAddress,
+		arg.EntityType,
+		arg.EntityIndex,
+		arg.TxHash,
+		arg.BlockHeight,
+	)
+	return err
+}
+
+const insertCoreReward = `-- name: InsertCoreReward :exec
+insert into core_rewards (
+    address,
+    tx_hash,
+    index,
+    sender,
+    reward_id,
+    name,
+    amount,
+    claim_authorities,
+    raw_message,
+    block_height
+) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+`
+
+type InsertCoreRewardParams struct {
+	Address          string
+	TxHash           string
+	Index            int64
+	Sender           string
+	RewardID         string
+	Name             string
+	Amount           int64
+	ClaimAuthorities []string
+	RawMessage       []byte
+	BlockHeight      int64
+}
+
+func (q *Queries) InsertCoreReward(ctx context.Context, arg InsertCoreRewardParams) error {
+	_, err := q.db.Exec(ctx, insertCoreReward,
+		arg.Address,
+		arg.TxHash,
+		arg.Index,
+		arg.Sender,
+		arg.RewardID,
+		arg.Name,
+		arg.Amount,
+		arg.ClaimAuthorities,
+		arg.RawMessage,
 		arg.BlockHeight,
 	)
 	return err
@@ -618,6 +788,47 @@ func (q *Queries) InsertFailedStorageProof(ctx context.Context, arg InsertFailed
 	return err
 }
 
+const insertFileUpload = `-- name: InsertFileUpload :exec
+insert into core_uploads(
+    uploader_address,
+    cid,
+    transcoded_cid,
+    upid,
+    upload_signature,
+    validator_address,
+    validator_signature,
+    tx_hash,
+    block_height
+) values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+`
+
+type InsertFileUploadParams struct {
+	UploaderAddress    string
+	Cid                string
+	TranscodedCid      string
+	Upid               string
+	UploadSignature    string
+	ValidatorAddress   string
+	ValidatorSignature string
+	TxHash             string
+	BlockHeight        int64
+}
+
+func (q *Queries) InsertFileUpload(ctx context.Context, arg InsertFileUploadParams) error {
+	_, err := q.db.Exec(ctx, insertFileUpload,
+		arg.UploaderAddress,
+		arg.Cid,
+		arg.TranscodedCid,
+		arg.Upid,
+		arg.UploadSignature,
+		arg.ValidatorAddress,
+		arg.ValidatorSignature,
+		arg.TxHash,
+		arg.BlockHeight,
+	)
+	return err
+}
+
 const insertManagementKey = `-- name: InsertManagementKey :exec
 insert into management_keys (track_id, address) values ($1, $2)
 `
@@ -799,6 +1010,38 @@ func (q *Queries) StoreTransaction(ctx context.Context, arg StoreTransactionPara
 		arg.TxHash,
 		arg.Transaction,
 		arg.CreatedAt,
+	)
+	return err
+}
+
+const updateCoreReward = `-- name: UpdateCoreReward :exec
+update core_rewards
+set name = $2,
+    amount = $3,
+    claim_authorities = $4,
+    raw_message = $5,
+    block_height = $6,
+    updated_at = now()
+where address = $1
+`
+
+type UpdateCoreRewardParams struct {
+	Address          string
+	Name             string
+	Amount           int64
+	ClaimAuthorities []string
+	RawMessage       []byte
+	BlockHeight      int64
+}
+
+func (q *Queries) UpdateCoreReward(ctx context.Context, arg UpdateCoreRewardParams) error {
+	_, err := q.db.Exec(ctx, updateCoreReward,
+		arg.Address,
+		arg.Name,
+		arg.Amount,
+		arg.ClaimAuthorities,
+		arg.RawMessage,
+		arg.BlockHeight,
 	)
 	return err
 }

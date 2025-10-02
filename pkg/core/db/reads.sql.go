@@ -11,6 +11,46 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const getActiveRewards = `-- name: GetActiveRewards :many
+select id, address, index, tx_hash, sender, reward_id, name, amount, claim_authorities, raw_message, block_height, created_at, updated_at
+from core_rewards
+order by address
+`
+
+func (q *Queries) GetActiveRewards(ctx context.Context) ([]CoreReward, error) {
+	rows, err := q.db.Query(ctx, getActiveRewards)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CoreReward
+	for rows.Next() {
+		var i CoreReward
+		if err := rows.Scan(
+			&i.ID,
+			&i.Address,
+			&i.Index,
+			&i.TxHash,
+			&i.Sender,
+			&i.RewardID,
+			&i.Name,
+			&i.Amount,
+			&i.ClaimAuthorities,
+			&i.RawMessage,
+			&i.BlockHeight,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getAllEthAddressesOfRegisteredNodes = `-- name: GetAllEthAddressesOfRegisteredNodes :many
 select eth_address
 from core_validators
@@ -96,6 +136,49 @@ func (q *Queries) GetAllRegisteredNodesSorted(ctx context.Context) ([]CoreValida
 			&i.NodeType,
 			&i.SpID,
 			&i.CometPubKey,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getAllRewards = `-- name: GetAllRewards :many
+select id, address, index, tx_hash, sender, reward_id, name, amount, claim_authorities, raw_message, block_height, created_at, updated_at from core_rewards
+where address in (
+    select distinct address
+    from core_rewards
+)
+order by block_height desc
+`
+
+func (q *Queries) GetAllRewards(ctx context.Context) ([]CoreReward, error) {
+	rows, err := q.db.Query(ctx, getAllRewards)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CoreReward
+	for rows.Next() {
+		var i CoreReward
+		if err := rows.Scan(
+			&i.ID,
+			&i.Address,
+			&i.Index,
+			&i.TxHash,
+			&i.Sender,
+			&i.RewardID,
+			&i.Name,
+			&i.Amount,
+			&i.ClaimAuthorities,
+			&i.RawMessage,
+			&i.BlockHeight,
+			&i.CreatedAt,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -324,10 +407,10 @@ func (q *Queries) GetBlockTransactions(ctx context.Context, blockID int64) ([]Co
 }
 
 const getBlocksWithTransactions = `-- name: GetBlocksWithTransactions :many
-select 
+select
     b.rowid as block_rowid,
     b.height,
-    b.chain_id, 
+    b.chain_id,
     b.hash as block_hash,
     b.proposer,
     b.created_at as block_created_at,
@@ -338,7 +421,7 @@ select
     t.transaction,
     t.created_at as tx_created_at
 from core_blocks b
-left join core_transactions t on b.height = t.block_id  
+left join core_transactions t on b.height = t.block_id
 where b.height = any($1::bigint[])
 order by b.height, t.created_at desc
 `
@@ -389,6 +472,28 @@ func (q *Queries) GetBlocksWithTransactions(ctx context.Context, dollar_1 []int6
 		return nil, err
 	}
 	return items, nil
+}
+
+const getCoreUpload = `-- name: GetCoreUpload :one
+select id, uploader_address, cid, transcoded_cid, upid, upload_signature, validator_address, validator_signature, tx_hash, block_height from core_uploads where cid = $1 OR transcoded_cid = $1
+`
+
+func (q *Queries) GetCoreUpload(ctx context.Context, cid string) (CoreUpload, error) {
+	row := q.db.QueryRow(ctx, getCoreUpload, cid)
+	var i CoreUpload
+	err := row.Scan(
+		&i.ID,
+		&i.UploaderAddress,
+		&i.Cid,
+		&i.TranscodedCid,
+		&i.Upid,
+		&i.UploadSignature,
+		&i.ValidatorAddress,
+		&i.ValidatorSignature,
+		&i.TxHash,
+		&i.BlockHeight,
+	)
+	return i, err
 }
 
 const getDBSize = `-- name: GetDBSize :one
@@ -847,7 +952,7 @@ func (q *Queries) GetDecodedTxsByType(ctx context.Context, arg GetDecodedTxsByTy
 }
 
 const getERN = `-- name: GetERN :one
-select id, address, index, tx_hash, sender, message_control_type, party_addresses, resource_addresses, release_addresses, deal_addresses, raw_message, raw_acknowledgment, block_height from core_ern where address = $1 order by block_height desc limit 1
+select id, address, index, tx_hash, sender, message_control_type, raw_message, raw_acknowledgment, block_height from core_ern where address = $1 order by block_height desc limit 1
 `
 
 func (q *Queries) GetERN(ctx context.Context, address string) (CoreErn, error) {
@@ -860,15 +965,119 @@ func (q *Queries) GetERN(ctx context.Context, address string) (CoreErn, error) {
 		&i.TxHash,
 		&i.Sender,
 		&i.MessageControlType,
-		&i.PartyAddresses,
-		&i.ResourceAddresses,
-		&i.ReleaseAddresses,
-		&i.DealAddresses,
 		&i.RawMessage,
 		&i.RawAcknowledgment,
 		&i.BlockHeight,
 	)
 	return i, err
+}
+
+const getERNContainingAddress = `-- name: GetERNContainingAddress :one
+SELECT
+    ern.address as ern_address,
+    ern.sender,
+    CASE
+        WHEN r.address IS NOT NULL THEN 'resource'
+        WHEN rel.address IS NOT NULL THEN 'release'
+        WHEN p.address IS NOT NULL THEN 'party'
+        WHEN d.address IS NOT NULL THEN 'deal'
+        ELSE 'unknown'
+    END::text as entity_type,
+    COALESCE(r.entity_index, rel.entity_index, p.entity_index, d.entity_index, 0)::int as entity_index,
+    ern.raw_message
+FROM core_ern ern
+LEFT JOIN core_resources r ON r.address = $1::text AND r.ern_address = ern.address
+LEFT JOIN core_releases rel ON rel.address = $1::text AND rel.ern_address = ern.address
+LEFT JOIN core_parties p ON p.address = $1::text AND p.ern_address = ern.address
+LEFT JOIN core_deals d ON d.address = $1::text AND d.ern_address = ern.address
+WHERE r.address IS NOT NULL OR rel.address IS NOT NULL OR p.address IS NOT NULL OR d.address IS NOT NULL
+ORDER BY ern.block_height DESC
+LIMIT 1
+`
+
+type GetERNContainingAddressRow struct {
+	ErnAddress  string
+	Sender      string
+	EntityType  string
+	EntityIndex int32
+	RawMessage  []byte
+}
+
+func (q *Queries) GetERNContainingAddress(ctx context.Context, dollar_1 string) (GetERNContainingAddressRow, error) {
+	row := q.db.QueryRow(ctx, getERNContainingAddress, dollar_1)
+	var i GetERNContainingAddressRow
+	err := row.Scan(
+		&i.ErnAddress,
+		&i.Sender,
+		&i.EntityType,
+		&i.EntityIndex,
+		&i.RawMessage,
+	)
+	return i, err
+}
+
+const getERNDeals = `-- name: GetERNDeals :many
+select address, ern_address, entity_type, entity_index, tx_hash, block_height, created_at from core_deals where ern_address = $1 order by entity_index
+`
+
+func (q *Queries) GetERNDeals(ctx context.Context, ernAddress string) ([]CoreDeal, error) {
+	rows, err := q.db.Query(ctx, getERNDeals, ernAddress)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CoreDeal
+	for rows.Next() {
+		var i CoreDeal
+		if err := rows.Scan(
+			&i.Address,
+			&i.ErnAddress,
+			&i.EntityType,
+			&i.EntityIndex,
+			&i.TxHash,
+			&i.BlockHeight,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getERNParties = `-- name: GetERNParties :many
+select address, ern_address, entity_type, entity_index, tx_hash, block_height, created_at from core_parties where ern_address = $1 order by entity_index
+`
+
+func (q *Queries) GetERNParties(ctx context.Context, ernAddress string) ([]CoreParty, error) {
+	rows, err := q.db.Query(ctx, getERNParties, ernAddress)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CoreParty
+	for rows.Next() {
+		var i CoreParty
+		if err := rows.Scan(
+			&i.Address,
+			&i.ErnAddress,
+			&i.EntityType,
+			&i.EntityIndex,
+			&i.TxHash,
+			&i.BlockHeight,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getERNReceipts = `-- name: GetERNReceipts :many
@@ -890,6 +1099,70 @@ func (q *Queries) GetERNReceipts(ctx context.Context, txHash string) ([]GetERNRe
 	for rows.Next() {
 		var i GetERNReceiptsRow
 		if err := rows.Scan(&i.RawAcknowledgment, &i.Index); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getERNReleases = `-- name: GetERNReleases :many
+select address, ern_address, entity_type, entity_index, tx_hash, block_height, created_at from core_releases where ern_address = $1 order by entity_index
+`
+
+func (q *Queries) GetERNReleases(ctx context.Context, ernAddress string) ([]CoreRelease, error) {
+	rows, err := q.db.Query(ctx, getERNReleases, ernAddress)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CoreRelease
+	for rows.Next() {
+		var i CoreRelease
+		if err := rows.Scan(
+			&i.Address,
+			&i.ErnAddress,
+			&i.EntityType,
+			&i.EntityIndex,
+			&i.TxHash,
+			&i.BlockHeight,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getERNResources = `-- name: GetERNResources :many
+select address, ern_address, entity_type, entity_index, tx_hash, block_height, created_at from core_resources where ern_address = $1 order by entity_index
+`
+
+func (q *Queries) GetERNResources(ctx context.Context, ernAddress string) ([]CoreResource, error) {
+	rows, err := q.db.Query(ctx, getERNResources, ernAddress)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CoreResource
+	for rows.Next() {
+		var i CoreResource
+		if err := rows.Scan(
+			&i.Address,
+			&i.ErnAddress,
+			&i.EntityType,
+			&i.EntityIndex,
+			&i.TxHash,
+			&i.BlockHeight,
+			&i.CreatedAt,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -1589,6 +1862,131 @@ func (q *Queries) GetRegisteredNodesByType(ctx context.Context, nodeType string)
 			&i.NodeType,
 			&i.SpID,
 			&i.CometPubKey,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getReward = `-- name: GetReward :one
+select id, address, index, tx_hash, sender, reward_id, name, amount, claim_authorities, raw_message, block_height, created_at, updated_at from core_rewards
+where address = $1
+order by block_height desc
+limit 1
+`
+
+func (q *Queries) GetReward(ctx context.Context, address string) (CoreReward, error) {
+	row := q.db.QueryRow(ctx, getReward, address)
+	var i CoreReward
+	err := row.Scan(
+		&i.ID,
+		&i.Address,
+		&i.Index,
+		&i.TxHash,
+		&i.Sender,
+		&i.RewardID,
+		&i.Name,
+		&i.Amount,
+		&i.ClaimAuthorities,
+		&i.RawMessage,
+		&i.BlockHeight,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getRewardByID = `-- name: GetRewardByID :one
+select id, address, index, tx_hash, sender, reward_id, name, amount, claim_authorities, raw_message, block_height, created_at, updated_at from core_rewards
+where reward_id = $1
+order by block_height desc
+limit 1
+`
+
+func (q *Queries) GetRewardByID(ctx context.Context, rewardID string) (CoreReward, error) {
+	row := q.db.QueryRow(ctx, getRewardByID, rewardID)
+	var i CoreReward
+	err := row.Scan(
+		&i.ID,
+		&i.Address,
+		&i.Index,
+		&i.TxHash,
+		&i.Sender,
+		&i.RewardID,
+		&i.Name,
+		&i.Amount,
+		&i.ClaimAuthorities,
+		&i.RawMessage,
+		&i.BlockHeight,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getRewardByTxHash = `-- name: GetRewardByTxHash :one
+select id, address, index, tx_hash, sender, reward_id, name, amount, claim_authorities, raw_message, block_height, created_at, updated_at from core_rewards
+where tx_hash = $1
+order by block_height desc
+limit 1
+`
+
+func (q *Queries) GetRewardByTxHash(ctx context.Context, txHash string) (CoreReward, error) {
+	row := q.db.QueryRow(ctx, getRewardByTxHash, txHash)
+	var i CoreReward
+	err := row.Scan(
+		&i.ID,
+		&i.Address,
+		&i.Index,
+		&i.TxHash,
+		&i.Sender,
+		&i.RewardID,
+		&i.Name,
+		&i.Amount,
+		&i.ClaimAuthorities,
+		&i.RawMessage,
+		&i.BlockHeight,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getRewardsByClaimAuthority = `-- name: GetRewardsByClaimAuthority :many
+select id, address, index, tx_hash, sender, reward_id, name, amount, claim_authorities, raw_message, block_height, created_at, updated_at
+from core_rewards
+where $1::text = any(claim_authorities)
+order by address
+`
+
+func (q *Queries) GetRewardsByClaimAuthority(ctx context.Context, dollar_1 string) ([]CoreReward, error) {
+	rows, err := q.db.Query(ctx, getRewardsByClaimAuthority, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CoreReward
+	for rows.Next() {
+		var i CoreReward
+		if err := rows.Scan(
+			&i.ID,
+			&i.Address,
+			&i.Index,
+			&i.TxHash,
+			&i.Sender,
+			&i.RewardID,
+			&i.Name,
+			&i.Amount,
+			&i.ClaimAuthorities,
+			&i.RawMessage,
+			&i.BlockHeight,
+			&i.CreatedAt,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
