@@ -299,17 +299,16 @@ func ReadConfig() (*Config, error) {
 
 func enableModules(config *Config) {
 	moduleSettings := defaultModules
-	// TODO: set module settings from env var
 	for _, module := range moduleSettings {
 		switch module {
 		case ModuleComet:
-			config.CometModule = true
+			config.CometModule = GetEnvWithDefault("coreCometModule", "true") == "true"
 		case ModuleDebug:
-			config.DebugModule = true
+			config.DebugModule = GetEnvWithDefault("coreDebugModule", "true") == "true"
 		case ModulePprof:
-			config.PprofModule = true
+			config.PprofModule = GetEnvWithDefault("corePprofModule", "true") == "true"
 		case ModuleConsole:
-			config.ConsoleModule = true
+			config.ConsoleModule = GetEnvWithDefault("coreConsoleModule", "true") == "true"
 		}
 	}
 }
