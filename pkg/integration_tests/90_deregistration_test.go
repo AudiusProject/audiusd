@@ -101,7 +101,7 @@ func TestDeregisterNode(t *testing.T) {
 		var r CometRPCResponse
 		err = json.Unmarshal(body, &r)
 		require.NoError(t, err, "failed to marshall comet rpc response body")
-		if r.Result.ValidatorInfo.VotingPower != "0" {
+		if r.Result.ValidatorInfo.VotingPower != 0 {
 			err = errors.New("Voting power is still non-zero")
 			time.Sleep(2 * time.Second)
 			continue
