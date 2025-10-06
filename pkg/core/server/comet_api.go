@@ -11,6 +11,7 @@ import (
 func (s *Server) registerCRPCRoutes(g *echo.Group) {
 	// Explicit REST-style endpoints
 	g.GET("/crpc/status", s.getStatus)
+	g.GET("/crpc/health", s.getHealth)
 	g.GET("/crpc/block", s.getBlock)
 
 	// JSON-RPC endpoint
@@ -22,6 +23,15 @@ func (s *Server) registerCRPCRoutes(g *echo.Group) {
 func (s *Server) getStatus(c echo.Context) error {
 	ctx := c.Request().Context()
 	res, err := s.rpc.Status(ctx)
+	if err != nil {
+		return respondWithError(c, 502, err.Error())
+	}
+	return c.JSON(http.StatusOK, wrapJSONRPC(res))
+}
+
+func (s *Server) getHealth(c echo.Context) error {
+	ctx := c.Request().Context()
+	res, err := s.rpc.Health(ctx)
 	if err != nil {
 		return respondWithError(c, 502, err.Error())
 	}
@@ -66,6 +76,13 @@ func (s *Server) handleJSONRPC(c echo.Context) error {
 	switch req.Method {
 	case "status":
 		res, err := s.rpc.Status(ctx)
+		if err != nil {
+			return respondWithError(c, 502, err.Error())
+		}
+		return c.JSON(http.StatusOK, newJSONRPCResponse(req.ID, res))
+
+	case "health":
+		res, err := s.rpc.Health(ctx)
 		if err != nil {
 			return respondWithError(c, 502, err.Error())
 		}
