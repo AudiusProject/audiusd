@@ -1,98 +1,135 @@
-// Request forward for the internal cometbft rpc. Debug info and to be turned off by default.
 package server
 
 import (
-	"io"
+	"encoding/json"
 	"net/http"
-	"strings"
-	"time"
+	"strconv"
 
 	"github.com/labstack/echo/v4"
-	"go.uber.org/zap"
 )
 
-var httpClient = &http.Client{
-	Timeout: 10 * time.Second,
+func (s *Server) registerCRPCRoutes(g *echo.Group) {
+	// Explicit REST-style endpoints
+	g.GET("/crpc/status", s.getStatus)
+	g.GET("/crpc/block", s.getBlock)
+
+	// JSON-RPC endpoint
+	g.POST("/crpc", s.handleJSONRPC)
 }
 
-var allowedRPCPrefixes = []string{
-	"/status",
-	"/health",
-	"/block",
-	"/block_results",
-	"/validators",
-	"/consensus_params",
-	"/commit",
-	"/tx",
-	"/genesis",
-	"/net_info",
+// ---------- Plain GET endpoints ----------
+
+func (s *Server) getStatus(c echo.Context) error {
+	ctx := c.Request().Context()
+	res, err := s.rpc.Status(ctx)
+	if err != nil {
+		return respondWithError(c, 502, err.Error())
+	}
+	return c.JSON(http.StatusOK, wrapJSONRPC(res))
 }
 
-func (s *Server) proxyCometRequest(c echo.Context) error {
-	reqPath := strings.TrimPrefix(c.Request().RequestURI, "/core/crpc")
+func (s *Server) getBlock(c echo.Context) error {
+	ctx := c.Request().Context()
+	heightParam := c.QueryParam("height")
 
-	// enforce allowlist
-	allowed := false
-	for _, p := range allowedRPCPrefixes {
-		if strings.HasPrefix(reqPath, p) {
-			allowed = true
-			break
+	var height *int64
+	if heightParam != "" {
+		h, err := strconv.ParseInt(heightParam, 10, 64)
+		if err != nil {
+			return respondWithError(c, 400, "invalid height")
 		}
-	}
-	if !allowed {
-		s.logger.Warn("blocked unsafe comet rpc request", zap.String("path", reqPath))
-		return respondWithError(c, http.StatusForbidden, "forbidden endpoint")
+		height = &h
 	}
 
-	// only allow GET/HEAD
-	if c.Request().Method != http.MethodGet && c.Request().Method != http.MethodHead {
-		return respondWithError(c, http.StatusMethodNotAllowed, "method not allowed")
-	}
-
-	// build rpc target url
-	rpcURL := strings.ReplaceAll(s.config.RPCladdr, "tcp", "http")
-	targetURL := strings.TrimRight(rpcURL, "/") + reqPath
-
-	s.logger.Info("proxy comet request",
-		zap.String("target", targetURL),
-		zap.String("method", c.Request().Method))
-
-	// limit request size
-	c.Request().Body = http.MaxBytesReader(c.Response(), c.Request().Body, 1<<20) // 1MB
-
-	req, err := http.NewRequestWithContext(c.Request().Context(), c.Request().Method, targetURL, c.Request().Body)
+	res, err := s.rpc.Block(ctx, height)
 	if err != nil {
-		s.logger.Error("failed to create comet request", zap.Error(err))
-		return respondWithError(c, http.StatusInternalServerError, "internal error")
+		return respondWithError(c, 502, err.Error())
 	}
-
-	copyHeaders(c.Request().Header, req.Header)
-
-	resp, err := httpClient.Do(req) // reuse your existing client
-	if err != nil {
-		s.logger.Error("failed to forward comet request", zap.Error(err))
-		return respondWithError(c, http.StatusBadGateway, "comet node unavailable")
-	}
-	defer resp.Body.Close()
-
-	for k, v := range resp.Header {
-		c.Response().Header()[k] = v
-	}
-	c.Response().WriteHeader(resp.StatusCode)
-
-	if _, err := io.Copy(c.Response().Writer, resp.Body); err != nil {
-		s.logger.Warn("failed to stream comet response", zap.Error(err))
-	}
-
-	return nil
+	return c.JSON(http.StatusOK, wrapJSONRPC(res))
 }
 
-func copyHeaders(source http.Header, destination http.Header) {
-	for k, v := range source {
-		destination[k] = v
+// ---------- JSON-RPC endpoint ----------
+
+func (s *Server) handleJSONRPC(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	var req struct {
+		JSONRPC string          `json:"jsonrpc"`
+		ID      any             `json:"id"`
+		Method  string          `json:"method"`
+		Params  json.RawMessage `json:"params"`
+	}
+	if err := c.Bind(&req); err != nil {
+		return respondWithError(c, 400, "bad request")
+	}
+
+	switch req.Method {
+	case "status":
+		res, err := s.rpc.Status(ctx)
+		if err != nil {
+			return respondWithError(c, 502, err.Error())
+		}
+		return c.JSON(http.StatusOK, newJSONRPCResponse(req.ID, res))
+
+	case "block":
+		var params []any
+		_ = json.Unmarshal(req.Params, &params)
+
+		var height *int64
+		if len(params) > 0 {
+			switch v := params[0].(type) {
+			case float64:
+				h := int64(v)
+				height = &h
+			case string:
+				if h, err := strconv.ParseInt(v, 10, 64); err == nil {
+					height = &h
+				}
+			}
+		}
+		res, err := s.rpc.Block(ctx, height)
+		if err != nil {
+			return respondWithError(c, 502, err.Error())
+		}
+		return c.JSON(http.StatusOK, newJSONRPCResponse(req.ID, res))
+
+	default:
+		return c.JSON(http.StatusOK, map[string]any{
+			"jsonrpc": "2.0",
+			"id":      req.ID,
+			"error": map[string]any{
+				"code":    -32601,
+				"message": "method not found",
+			},
+		})
 	}
 }
 
-func respondWithError(c echo.Context, statusCode int, message string) error {
-	return c.JSON(statusCode, map[string]string{"error": message})
+// ---------- Helpers ----------
+
+func newJSONRPCResponse(id any, result any) map[string]any {
+	return map[string]any{
+		"jsonrpc": "2.0",
+		"id":      idOrDefault(id),
+		"result":  result,
+	}
+}
+
+func idOrDefault(id any) any {
+	if id == nil {
+		return -1
+	}
+	return id
+}
+
+func wrapJSONRPC(result any) map[string]any {
+	return map[string]any{
+		"jsonrpc": "2.0",
+		"id":      -1,
+		"result":  result,
+	}
+}
+
+func respondWithError(c echo.Context, status int, msg string) error {
+	return c.JSON(status, map[string]string{"error": msg})
 }

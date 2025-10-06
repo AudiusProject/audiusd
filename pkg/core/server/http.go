@@ -47,10 +47,7 @@ func (s *Server) startEchoServer(ctx context.Context) error {
 		return c.JSON(http.StatusOK, res.Msg)
 	})
 
-	// proxy cometbft requests
-	g.Any("/crpc*", s.proxyCometRequest)
-
-	// kind of weird pattern
+	s.registerCRPCRoutes(g)
 	s.createEthRPC()
 
 	g.GET("/sdk", echo.WrapHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
