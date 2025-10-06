@@ -137,12 +137,6 @@ type Config struct {
 	NodeType    NodeType
 	Rewards     []rewards.Reward
 
-	/* Optional Modules */
-	ConsoleModule bool
-	DebugModule   bool
-	CometModule   bool
-	PprofModule   bool
-
 	/* Attestation Thresholds */
 	AttRegistrationMin     int // minimum number of attestations needed to register a new node
 	AttRegistrationRSize   int // rendezvous size for registration attestations (should be >= to AttRegistrationMin)
@@ -292,25 +286,7 @@ func ReadConfig() (*Config, error) {
 		cfg.PSQLConn += "?sslmode=disable"
 	}
 
-	enableModules(&cfg)
-
 	return &cfg, nil
-}
-
-func enableModules(config *Config) {
-	moduleSettings := defaultModules
-	for _, module := range moduleSettings {
-		switch module {
-		case ModuleComet:
-			config.CometModule = GetEnvWithDefault("coreCometModule", "true") == "true"
-		case ModuleDebug:
-			config.DebugModule = GetEnvWithDefault("coreDebugModule", "true") == "true"
-		case ModulePprof:
-			config.PprofModule = GetEnvWithDefault("corePprofModule", "true") == "true"
-		case ModuleConsole:
-			config.ConsoleModule = GetEnvWithDefault("coreConsoleModule", "true") == "true"
-		}
-	}
 }
 
 func GetEnvWithDefault(key, defaultValue string) string {
