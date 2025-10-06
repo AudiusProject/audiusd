@@ -15,33 +15,73 @@ var httpClient = &http.Client{
 	Timeout: 10 * time.Second,
 }
 
+var allowedRPCPrefixes = []string{
+	"/status",
+	"/health",
+	"/block",
+	"/block_results",
+	"/validators",
+	"/consensus_params",
+	"/commit",
+	"/tx",
+	"/genesis",
+	"/net_info",
+}
+
 func (s *Server) proxyCometRequest(c echo.Context) error {
-	rpcUrl := strings.ReplaceAll(s.config.RPCladdr, "tcp", "http")
+	reqPath := strings.TrimPrefix(c.Request().RequestURI, "/core/crpc")
 
-	s.logger.Info("request", zap.String("url", rpcUrl), zap.String("method", c.Request().Method), zap.String("url", c.Request().RequestURI))
+	// enforce allowlist
+	allowed := false
+	for _, p := range allowedRPCPrefixes {
+		if strings.HasPrefix(reqPath, p) {
+			allowed = true
+			break
+		}
+	}
+	if !allowed {
+		s.logger.Warn("blocked unsafe comet rpc request", zap.String("path", reqPath))
+		return respondWithError(c, http.StatusForbidden, "forbidden endpoint")
+	}
 
-	path := rpcUrl + strings.TrimPrefix(c.Request().RequestURI, "/core/crpc")
+	// only allow GET/HEAD
+	if c.Request().Method != http.MethodGet && c.Request().Method != http.MethodHead {
+		return respondWithError(c, http.StatusMethodNotAllowed, "method not allowed")
+	}
 
-	req, err := http.NewRequest(c.Request().Method, path, c.Request().Body)
+	// build rpc target url
+	rpcURL := strings.ReplaceAll(s.config.RPCladdr, "tcp", "http")
+	targetURL := strings.TrimRight(rpcURL, "/") + reqPath
+
+	s.logger.Info("proxy comet request",
+		zap.String("target", targetURL),
+		zap.String("method", c.Request().Method))
+
+	// limit request size
+	c.Request().Body = http.MaxBytesReader(c.Response(), c.Request().Body, 1<<20) // 1MB
+
+	req, err := http.NewRequestWithContext(c.Request().Context(), c.Request().Method, targetURL, c.Request().Body)
 	if err != nil {
-		s.logger.Error("failed to create internal comet api request", zap.Error(err))
-		return respondWithError(c, http.StatusInternalServerError, "failed to create internal comet request")
+		s.logger.Error("failed to create comet request", zap.Error(err))
+		return respondWithError(c, http.StatusInternalServerError, "internal error")
 	}
 
 	copyHeaders(c.Request().Header, req.Header)
 
-	resp, err := httpClient.Do(req)
+	resp, err := httpClient.Do(req) // reuse your existing client
 	if err != nil {
-		s.logger.Error("failed to forward comet api request", zap.Error(err))
-		return respondWithError(c, http.StatusInternalServerError, "failed to forward request")
+		s.logger.Error("failed to forward comet request", zap.Error(err))
+		return respondWithError(c, http.StatusBadGateway, "comet node unavailable")
 	}
 	defer resp.Body.Close()
 
-	c.Response().Header().Set("Content-Type", resp.Header.Get("Content-Type"))
+	for k, v := range resp.Header {
+		c.Response().Header()[k] = v
+	}
 	c.Response().WriteHeader(resp.StatusCode)
-	_, err = io.Copy(c.Response().Writer, resp.Body)
-	if err != nil {
-		return respondWithError(c, http.StatusInternalServerError, "failed to stream response")
+
+	if _, err := io.Copy(c.Response().Writer, resp.Body); err != nil {
+		s.logger.Warn("failed to stream comet response", zap.Error(err))
 	}
 
 	return nil
