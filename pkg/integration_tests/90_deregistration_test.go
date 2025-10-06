@@ -107,7 +107,7 @@ func TestDeregisterNode(t *testing.T) {
 			continue
 		}
 
-		require.Equal(t, "0", r.Result.ValidatorInfo.VotingPower)
+		require.Equal(t, 0, r.Result.ValidatorInfo.VotingPower)
 
 		break
 	}
