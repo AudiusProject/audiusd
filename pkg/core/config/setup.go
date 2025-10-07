@@ -177,8 +177,14 @@ func SetupNode(logger *zap.Logger) (*Config, *cconfig.Config, error) {
 	cometConfig.P2P.PersistentPeersMaxDialPeriod = 15 * time.Second
 
 	// connection settings
-	if envConfig.RPCladdr != "" {
-		cometConfig.RPC.ListenAddress = envConfig.RPCladdr
+	// Only enable RPC if state sync serving is enabled
+	if envConfig.StateSync.ServeSnapshots {
+		if envConfig.RPCladdr != "" {
+			cometConfig.RPC.ListenAddress = envConfig.RPCladdr
+		}
+	} else {
+		// Disable RPC entirely when not serving state sync
+		cometConfig.RPC.ListenAddress = ""
 	}
 	if envConfig.P2PLaddr != "" {
 		cometConfig.P2P.ListenAddress = envConfig.P2PLaddr
