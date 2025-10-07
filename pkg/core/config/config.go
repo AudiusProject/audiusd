@@ -142,6 +142,7 @@ type Config struct {
 
 	/* Feature flags */
 	ProgrammableDistributionEnabled bool
+	SkipEthRegistration             bool
 }
 
 func (c *Config) IsDev() bool {
@@ -196,6 +197,8 @@ func ReadConfig() (*Config, error) {
 	cfg.LogLevel = GetLogLevel()
 	cfg.Environment = GetRuntimeEnvironment()
 	cfg.ProgrammableDistributionEnabled = common.IsProgrammableDistributionEnabled(cfg.Environment)
+
+	cfg.SkipEthRegistration = GetEnvWithDefault("skipEthRegistration", "false") == "true"
 
 	ssRpcServers := ""
 	switch cfg.Environment {
