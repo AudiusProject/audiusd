@@ -17,6 +17,7 @@ import (
 )
 
 const PrivilegedServiceSocket = "/tmp/cometbft.privileged.sock"
+const CometRPCSocket = "/tmp/cometbft.rpc.sock"
 
 func ensureSocketNotExists(socketPath string) error {
 	if _, err := os.Stat(socketPath); err == nil {
@@ -182,6 +183,9 @@ func SetupNode(logger *zap.Logger) (*Config, *cconfig.Config, error) {
 	if envConfig.P2PLaddr != "" {
 		cometConfig.P2P.ListenAddress = envConfig.P2PLaddr
 	}
+
+	// Clean up old sockets if they exist
+	ensureSocketNotExists(CometRPCSocket)
 
 	if !envConfig.Archive {
 		ensureSocketNotExists(PrivilegedServiceSocket)
