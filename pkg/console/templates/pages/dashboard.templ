@@ -154,14 +154,13 @@ templ Dashboard(props DashboardProps) {
 				<div id="stats-header" x-data="blockEvents()" x-init="init()">
 					<div class="flex-between">
 						<div class="stat-card">
-							<h4 class="text-label">Block Height</h4>
-							<div class="flex items-center h-12" x-data="animatedNumber()" x-init="init(latestBlock.height)">
+							<div class="flex items-center justify-center h-12" x-data="animatedNumber()" x-init="init(latestBlock.height)">
 								<template x-for="(digit, index) in digits" :key="index">
-									<div class="relative h-10 w-6 overflow-hidden flex items-center justify-center">
+									<div class="relative h-10 w-8 overflow-hidden flex items-center justify-center">
 										<!-- Current digit (slides down when animating) -->
 										<div class="absolute inset-0 flex items-center justify-center">
 											<span
-												class="text-3xl font-bold text-gray-900 dark:text-gray-100 tabular-nums"
+												class="text-4xl font-semibold text-gray-900 dark:text-gray-100 tabular-nums"
 												:class="getCurrentDigitClass(digit)"
 												x-text="digit.current"
 											></span>
@@ -169,7 +168,7 @@ templ Dashboard(props DashboardProps) {
 										<!-- Next digit (slides in from above when animating) -->
 										<div class="absolute inset-0 flex items-center justify-center">
 											<span
-												class="text-3xl font-bold text-gray-900 dark:text-gray-100 tabular-nums"
+												class="text-4xl font-semibold text-gray-900 dark:text-gray-100 tabular-nums"
 												:class="getNextDigitClass(digit)"
 												x-text="digit.next"
 											></span>
@@ -177,37 +176,31 @@ templ Dashboard(props DashboardProps) {
 									</div>
 								</template>
 							</div>
+							<h4 class="text-label mt-2">BLOCK HEIGHT</h4>
 						</div>
 						<div class="stat-card-bordered">
-							<h4 class="text-label">Chain ID</h4>
-							<p class="text-value-lg">{ props.Stats.ChainID }</p>
-						</div>
-						<div class="flex-none w-32 border-l border-gray-200 dark:border-gray-700 pl-6">
-							<h4 class="text-label">Block Time</h4>
 							if props.Stats.AvgBlockTime > 0 {
-								<p class="text-value-lg">{ fmt.Sprintf("%.2fs", props.Stats.AvgBlockTime) }</p>
+								<p class="text-4xl font-semibold text-gray-900 dark:text-gray-100">{ fmt.Sprintf("%.2fs", props.Stats.AvgBlockTime) }</p>
 							} else if props.Stats.BPS > 0 {
-								<p class="text-value-lg">{ fmt.Sprintf("%.2fs", 1.0/props.Stats.BPS) }</p>
-								<p class="text-description">{ fmt.Sprintf("%.2f BPS", props.Stats.BPS) }</p>
+								<p class="text-4xl font-semibold text-gray-900 dark:text-gray-100">{ fmt.Sprintf("%.2fs", 1.0/props.Stats.BPS) }</p>
 							} else {
-								<p class="text-value-lg">-</p>
-								<p class="text-description">No data</p>
+								<p class="text-4xl font-semibold text-gray-900 dark:text-gray-100">-</p>
 							}
+							<h4 class="text-label mt-2">BLOCK TIME</h4>
 						</div>
-						<div class="flex-none w-40 border-l border-gray-200 dark:border-gray-700 pl-6">
-							<h4 class="text-label">Sync Status</h4>
+						<div class="stat-card-bordered">
 							if props.Stats.IsSyncing {
-								<div class="status-indicator-warning">
-									<div class="status-dot-warning mr-2"></div>
-									<p class="text-xl font-bold status-warning">Syncing</p>
+								<div class="flex items-center justify-center gap-2">
+									<div class="status-dot-warning"></div>
+									<p class="text-2xl font-semibold status-warning">Syncing</p>
 								</div>
 							} else {
-								<div class="status-indicator-success">
-									<div class="status-dot-success mr-2"></div>
-									<p class="text-xl font-bold status-success">Synced</p>
+								<div class="flex items-center justify-center gap-2">
+									<div class="status-dot-success"></div>
+									<p class="text-2xl font-semibold status-success">Synced</p>
 								</div>
-								<p class="text-description">Up to date</p>
 							}
+							<h4 class="text-label mt-2">Sync Status</h4>
 						</div>
 					</div>
 					<!-- Sync Progress Bar -->

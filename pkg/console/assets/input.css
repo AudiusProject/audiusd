@@ -7,48 +7,48 @@
 
   /* Cards & Containers */
   .card-primary {
-    @apply bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6;
+    @apply bg-neutral-50 dark:bg-neutral-800 rounded-lg shadow-xl p-6 border border-neutral-200 dark:border-neutral-700;
   }
 
   .card-secondary {
-    @apply bg-white dark:bg-gray-900 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden;
+    @apply bg-neutral-50 dark:bg-neutral-800 rounded-lg shadow-xl border border-neutral-200 dark:border-neutral-700 overflow-hidden;
   }
 
   .card-overlay {
-    @apply bg-white/90 dark:bg-gray-800/90 backdrop-blur-md rounded-lg p-3 border border-white/20 dark:border-gray-700/50 shadow-lg;
+    @apply bg-white/90 dark:bg-neutral-800/90 backdrop-blur-md rounded-lg p-3 border border-white/20 dark:border-neutral-700/50 shadow-lg;
   }
 
   /* Typography */
   .text-title {
-    @apply text-2xl font-light text-gray-900 dark:text-gray-100;
+    @apply text-2xl font-medium text-gray-900 dark:text-white;
   }
 
   .text-heading {
-    @apply text-xl font-bold text-gray-900 dark:text-gray-100;
+    @apply text-xl font-semibold text-gray-900 dark:text-white;
   }
 
   .text-heading-sm {
-    @apply text-lg font-bold text-gray-900 dark:text-gray-100 tracking-wide;
+    @apply text-lg font-semibold text-gray-900 dark:text-white tracking-wide;
   }
 
   .text-label {
-    @apply text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide;
+    @apply text-xs font-medium text-gray-500 dark:text-neutral-400 uppercase tracking-wider;
   }
 
   .text-value-lg {
-    @apply text-3xl font-bold text-gray-900 dark:text-gray-100;
+    @apply text-3xl font-semibold text-gray-900 dark:text-white;
   }
 
   .text-value-xl {
-    @apply text-4xl font-light text-gray-900 dark:text-gray-100;
+    @apply text-4xl font-semibold text-gray-900 dark:text-white;
   }
 
   .text-description {
-    @apply text-xs text-gray-500 dark:text-gray-400;
+    @apply text-xs text-gray-500 dark:text-neutral-400;
   }
 
   .text-meta {
-    @apply text-sm text-gray-500 dark:text-gray-400;
+    @apply text-sm text-gray-500 dark:text-neutral-400;
   }
 
   .text-mono {
@@ -69,14 +69,11 @@
   }
 
   .btn-nav {
-    @apply px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300
-           bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600
-           rounded transition-colors;
+    @apply px-4 py-2 text-sm font-medium text-gray-700 dark:text-neutral-300 bg-gray-100 dark:bg-neutral-700 hover:bg-gray-200 dark:hover:bg-neutral-600 rounded transition-colors;
   }
 
   .btn-disabled {
-    @apply px-4 py-2 text-sm font-medium text-gray-400 dark:text-gray-600
-           bg-gray-50 dark:bg-gray-700 rounded cursor-not-allowed;
+    @apply px-4 py-2 text-sm font-medium text-gray-400 dark:text-neutral-600 bg-gray-50 dark:bg-neutral-700 rounded cursor-not-allowed;
   }
 
   /* Status Indicators */
@@ -118,11 +115,11 @@
 
   /* Layout Helpers */
   .divider-horizontal {
-    @apply border-t border-gray-200 dark:border-gray-700;
+    @apply border-t border-gray-200 dark:border-neutral-700;
   }
 
   .divider-vertical {
-    @apply border-l border-gray-200 dark:border-gray-700;
+    @apply border-l border-gray-200 dark:border-neutral-700;
   }
 
   .section-spacing {
@@ -151,8 +148,7 @@
 
   /* Interactive Elements */
   .row-interactive {
-    @apply flex items-center justify-between py-3 px-4 border border-gray-200 dark:border-gray-700 rounded
-           hover:bg-purple-50 hover:border-purple-200 dark:hover:bg-gray-700 transition-colors;
+    @apply flex items-center justify-between py-3 px-4 border border-gray-200 dark:border-neutral-700 rounded hover:bg-purple-50 hover:border-purple-200 dark:hover:bg-neutral-700 transition-colors;
   }
 
   .badge {
@@ -160,35 +156,34 @@
   }
 
   .badge-default {
-    @apply text-xs px-2 py-1 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400;
+    @apply text-xs px-2 py-1 rounded bg-gray-100 dark:bg-neutral-700 text-gray-600 dark:text-neutral-400;
   }
 
   /* Chart Container */
   .chart-header {
-    @apply bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 px-6 py-4
-           border-b border-gray-200 dark:border-gray-700;
+    @apply bg-gradient-to-r from-gray-50 to-gray-100 dark:from-neutral-800 dark:to-neutral-900 px-6 py-4 border-b border-gray-200 dark:border-neutral-700;
   }
 
   .chart-container {
-    @apply relative h-96 bg-gray-50 dark:bg-gray-900 p-4;
+    @apply relative h-96 bg-gray-50 dark:bg-neutral-900 p-4;
   }
 
   /* Stat Cards */
   .stat-card {
-    @apply flex-1;
+    @apply flex-1 text-center;
   }
 
   .stat-card-bordered {
-    @apply flex-1 border-l border-gray-200 dark:border-gray-700 pl-6;
+    @apply flex-1 text-center border-l border-gray-200 dark:border-neutral-700;
   }
 
   .stat-value {
-    @apply text-3xl font-bold text-gray-900 dark:text-gray-100 tabular-nums;
+    @apply text-3xl font-bold text-gray-900 dark:text-white tabular-nums;
   }
 
   /* Progress Bar */
   .progress-bar-container {
-    @apply w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 relative overflow-hidden;
+    @apply w-full bg-gray-200 dark:bg-neutral-700 rounded-full h-2 relative overflow-hidden;
   }
 
   .progress-bar-fill {

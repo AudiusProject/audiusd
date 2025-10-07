@@ -7,6 +7,9 @@ templ Base(pageTitle string) {
 		<title>{ fmt.Sprintf("%s | Audius Explorer", pageTitle) }</title>
 		<head>
 			<link rel="icon" type="image/svg+xml" href="/assets/images/Glyph_Black.svg"/>
+			<link rel="preconnect" href="https://fonts.googleapis.com"/>
+			<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+			<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
 			<link rel="stylesheet" href="/assets/css/output.css"/>
 			<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 			<script src="https://unpkg.com/htmx.org@1.9.10"></script>
@@ -15,7 +18,7 @@ templ Base(pageTitle string) {
 			<script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
 			<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 		</head>
-		<body class="bg-gray-100 dark:bg-gray-950 text-gray-900 dark:text-gray-100">
+		<body class="bg-gray-50 dark:bg-black text-gray-900 dark:text-gray-100 font-sans">
 			@Frame(pageTitle) {
 				{ children... }
 			}
