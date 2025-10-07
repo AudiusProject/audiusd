@@ -143,14 +143,14 @@ func getPercentageChangeText(current, previous int64) string {
 
 func getPercentageChangeColorClass(current, previous int64) string {
 	if previous == 0 {
-		return "text-gray-500 dark:text-gray-400"
+		return ""
 	}
 
 	change := float64(current-previous) / float64(previous) * 100
 	if change >= 0 {
-		return "text-green-600 dark:text-green-400"
+		return "status-success"
 	} else {
-		return "text-red-600 dark:text-red-400"
+		return "status-error"
 	}
 }
 
@@ -187,32 +187,32 @@ func Dashboard(props DashboardProps) templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"space-y-6\" x-data=\"blockEvents()\" x-init=\"init()\"><!-- Section 1: Current Stats --><div class=\"bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6\"><div id=\"stats-header\" x-data=\"blockEvents()\" x-init=\"init()\"><div class=\"flex items-center justify-between\"><div class=\"flex-1\"><h4 class=\"text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide\">Block Height</h4><div class=\"flex items-center h-12\" x-data=\"animatedNumber()\" x-init=\"init(latestBlock.height)\"><template x-for=\"(digit, index) in digits\" :key=\"index\"><div class=\"relative h-10 w-6 overflow-hidden flex items-center justify-center\"><!-- Current digit (slides down when animating) --><div class=\"absolute inset-0 flex items-center justify-center\"><span class=\"text-3xl font-bold text-gray-900 dark:text-gray-100 tabular-nums\" :class=\"getCurrentDigitClass(digit)\" x-text=\"digit.current\"></span></div><!-- Next digit (slides in from above when animating) --><div class=\"absolute inset-0 flex items-center justify-center\"><span class=\"text-3xl font-bold text-gray-900 dark:text-gray-100 tabular-nums\" :class=\"getNextDigitClass(digit)\" x-text=\"digit.next\"></span></div></div></template></div></div><div class=\"flex-1 border-l border-gray-200 dark:border-gray-700 pl-6\"><h4 class=\"text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide\">Chain ID</h4><p class=\"text-3xl font-bold text-gray-900 dark:text-gray-100\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"section-spacing\" x-data=\"blockEvents()\" x-init=\"init()\"><!-- Section 1: Current Stats --><div class=\"card-primary\"><div id=\"stats-header\" x-data=\"blockEvents()\" x-init=\"init()\"><div class=\"flex-between\"><div class=\"stat-card\"><h4 class=\"text-label\">Block Height</h4><div class=\"flex items-center h-12\" x-data=\"animatedNumber()\" x-init=\"init(latestBlock.height)\"><template x-for=\"(digit, index) in digits\" :key=\"index\"><div class=\"relative h-10 w-6 overflow-hidden flex items-center justify-center\"><!-- Current digit (slides down when animating) --><div class=\"absolute inset-0 flex items-center justify-center\"><span class=\"text-3xl font-bold text-gray-900 dark:text-gray-100 tabular-nums\" :class=\"getCurrentDigitClass(digit)\" x-text=\"digit.current\"></span></div><!-- Next digit (slides in from above when animating) --><div class=\"absolute inset-0 flex items-center justify-center\"><span class=\"text-3xl font-bold text-gray-900 dark:text-gray-100 tabular-nums\" :class=\"getNextDigitClass(digit)\" x-text=\"digit.next\"></span></div></div></template></div></div><div class=\"stat-card-bordered\"><h4 class=\"text-label\">Chain ID</h4><p class=\"text-value-lg\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(props.Stats.ChainID)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 183, Col: 91}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 183, Col: 53}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</p></div><div class=\"flex-none w-32 border-l border-gray-200 dark:border-gray-700 pl-6\"><h4 class=\"text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide\">Block Time</h4>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</p></div><div class=\"flex-none w-32 border-l border-gray-200 dark:border-gray-700 pl-6\"><h4 class=\"text-label\">Block Time</h4>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			if props.Stats.AvgBlockTime > 0 {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<p class=\"text-3xl font-bold text-gray-900 dark:text-gray-100\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<p class=\"text-value-lg\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var4 string
 				templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%.2fs", props.Stats.AvgBlockTime))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 188, Col: 119}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 188, Col: 81}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 				if templ_7745c5c3_Err != nil {
@@ -223,27 +223,27 @@ func Dashboard(props DashboardProps) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			} else if props.Stats.BPS > 0 {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<p class=\"text-3xl font-bold text-gray-900 dark:text-gray-100\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<p class=\"text-value-lg\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var5 string
 				templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%.2fs", 1.0/props.Stats.BPS))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 190, Col: 114}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 190, Col: 76}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</p><p class=\"text-xs text-gray-500 dark:text-gray-400\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</p><p class=\"text-description\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var6 string
 				templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%.2f BPS", props.Stats.BPS))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 191, Col: 102}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 191, Col: 78}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 				if templ_7745c5c3_Err != nil {
@@ -254,22 +254,22 @@ func Dashboard(props DashboardProps) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			} else {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "<p class=\"text-3xl font-bold text-gray-900 dark:text-gray-100\">-</p><p class=\"text-xs text-gray-500 dark:text-gray-400\">No data</p>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "<p class=\"text-value-lg\">-</p><p class=\"text-description\">No data</p>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</div><div class=\"flex-none w-40 border-l border-gray-200 dark:border-gray-700 pl-6\"><h4 class=\"text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide\">Sync Status</h4>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</div><div class=\"flex-none w-40 border-l border-gray-200 dark:border-gray-700 pl-6\"><h4 class=\"text-label\">Sync Status</h4>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			if props.Stats.IsSyncing {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<div class=\"flex items-center\"><div class=\"w-2 h-2 bg-yellow-500 rounded-full mr-2 animate-pulse\"></div><p class=\"text-xl font-bold text-yellow-600 dark:text-yellow-400\">Syncing</p></div>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<div class=\"status-indicator-warning\"><div class=\"status-dot-warning mr-2\"></div><p class=\"text-xl font-bold status-warning\">Syncing</p></div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			} else {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "<div class=\"flex items-center\"><div class=\"w-2 h-2 bg-green-500 rounded-full mr-2\"></div><p class=\"text-xl font-bold text-green-600 dark:text-green-400\">Synced</p></div><p class=\"text-xs text-gray-500 dark:text-gray-400\">Up to date</p>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "<div class=\"status-indicator-success\"><div class=\"status-dot-success mr-2\"></div><p class=\"text-xl font-bold status-success\">Synced</p></div><p class=\"text-description\">Up to date</p>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -279,7 +279,7 @@ func Dashboard(props DashboardProps) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			if props.Stats.IsSyncing && props.Stats.LatestChainHeight > 0 {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "<div class=\"mt-4 pt-4 border-t border-gray-200 dark:border-gray-700\"><div class=\"flex items-center justify-between mb-2\"><span class=\"text-xs font-medium text-gray-600 dark:text-gray-400\">Sync Progress ")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "<div class=\"mt-4 pt-4 border-t border-gray-200 dark:border-gray-700\"><div class=\"flex-between mb-2\"><span class=\"text-description font-medium\">Sync Progress ")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -298,7 +298,7 @@ func Dashboard(props DashboardProps) templ.Component {
 						return templ_7745c5c3_Err
 					}
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "</span> <span class=\"text-xs text-gray-500 dark:text-gray-500\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "</span> <span class=\"text-description\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -324,11 +324,11 @@ func Dashboard(props DashboardProps) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, ")</span></div><div class=\"w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 relative overflow-hidden\"><!-- Exact progress representation using calculated percentage -->")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, ")</span></div><div class=\"progress-bar-container\"><!-- Exact progress representation using calculated percentage -->")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				var templ_7745c5c3_Var10 = []any{fmt.Sprintf("bg-purple-600 h-2 rounded-full transition-all duration-300 ease-in-out %s", getProgressBarClass(props.SyncProgressPercentage))}
+				var templ_7745c5c3_Var10 = []any{fmt.Sprintf("progress-bar-fill %s", getProgressBarClass(props.SyncProgressPercentage))}
 				templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var10...)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
@@ -351,7 +351,7 @@ func Dashboard(props DashboardProps) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "</div></div><!-- Section 2: Live Map & Validator Info --><div class=\"bg-white dark:bg-gray-800 rounded-lg shadow-xl overflow-hidden\"><div class=\"relative\"><!-- Map - Full Background --><div class=\"relative bg-gray-100 dark:bg-gray-700 h-96 z-10\" x-data=\"livePlayMap()\" x-init=\"initSSEEventSource(); initMap()\"><!-- Map container --><div id=\"playMap\" class=\"w-full h-full\"></div><!-- Connection status --><div class=\"absolute top-4 left-4 bg-black/20 backdrop-blur-sm rounded px-2 py-1\" x-show=\"!connected\"><span class=\"text-white/90 text-xs\">Connecting...</span></div></div><!-- Network Info Overlay - Left Side (aligned with zoom buttons) --><div class=\"absolute top-14 left-16 w-56 z-20\"><div id=\"network-sidebar\" class=\"space-y-2\" x-data=\"blockEvents()\" x-init=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "</div></div><!-- Section 2: Live Map & Validator Info --><div class=\"card-secondary\"><div class=\"relative\"><!-- Map - Full Background --><div class=\"relative bg-gray-100 dark:bg-gray-700 h-96 z-10\" x-data=\"livePlayMap()\" x-init=\"initSSEEventSource(); initMap()\"><!-- Map container --><div id=\"playMap\" class=\"w-full h-full\"></div><!-- Connection status --><div class=\"absolute top-4 left-4 bg-black/20 backdrop-blur-sm rounded px-2 py-1\" x-show=\"!connected\"><span class=\"text-white/90 text-xs\">Connecting...</span></div></div><!-- Network Info Overlay - Left Side (aligned with zoom buttons) --><div class=\"absolute top-14 left-16 w-56 z-20\"><div id=\"network-sidebar\" class=\"space-y-2\" x-data=\"blockEvents()\" x-init=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -372,7 +372,7 @@ func Dashboard(props DashboardProps) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "</div></div></div></div><!-- Section 3: Transaction Analytics --><div class=\"bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6\"><div class=\"flex items-center justify-between mb-6\"><h3 class=\"text-xl font-bold text-gray-900 dark:text-gray-100\">Transaction Analytics</h3></div><div class=\"grid grid-cols-1 lg:grid-cols-3 gap-6\"><!-- Primary Metrics --><div class=\"lg:col-span-2 space-y-6\"><!-- Top row: TPS and Total Transactions --><div class=\"grid grid-cols-2 gap-6\"><div id=\"tps-fragment\" hx-get=\"/fragments/tps\" hx-trigger=\"every 5s\" hx-swap=\"outerHTML\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "</div></div></div></div><!-- Section 3: Transaction Analytics --><div class=\"card-primary\"><div class=\"flex-between mb-6\"><h3 class=\"text-heading\">Transaction Analytics</h3></div><div class=\"grid grid-cols-1 lg:grid-cols-3 gap-6\"><!-- Primary Metrics --><div class=\"lg:col-span-2 space-y-6\"><!-- Top row: TPS and Total Transactions --><div class=\"grid-metrics\"><div id=\"tps-fragment\" hx-get=\"/fragments/tps\" hx-trigger=\"every 5s\" hx-swap=\"outerHTML\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -388,7 +388,7 @@ func Dashboard(props DashboardProps) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, "</div></div><!-- Bottom row: Volume metrics --><div class=\"grid grid-cols-3 border-t border-gray-200 dark:border-gray-700 pt-6\"><div class=\"border-r border-gray-200 dark:border-gray-700 pr-6\"><div class=\"text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1\">24h Volume</div><div class=\"text-2xl font-light text-gray-900 dark:text-gray-100 mb-1\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, "</div></div><!-- Bottom row: Volume metrics --><div class=\"grid-volume\"><div class=\"border-r border-gray-200 dark:border-gray-700 pr-6\"><div class=\"text-label mb-1\">24h Volume</div><div class=\"text-2xl font-light text-gray-900 dark:text-gray-100 mb-1\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -401,7 +401,7 @@ func Dashboard(props DashboardProps) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, "</div><div class=\"text-xs text-gray-500 dark:text-gray-400\">Daily rate</div></div><div class=\"border-r border-gray-200 dark:border-gray-700 pr-6 pl-6\"><div class=\"text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1\">7d Volume</div><div class=\"text-2xl font-light text-gray-900 dark:text-gray-100 mb-1\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, "</div><div class=\"text-description\">Daily rate</div></div><div class=\"border-r border-gray-200 dark:border-gray-700 pr-6 pl-6\"><div class=\"text-label mb-1\">7d Volume</div><div class=\"text-2xl font-light text-gray-900 dark:text-gray-100 mb-1\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -414,20 +414,20 @@ func Dashboard(props DashboardProps) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 26, "</div><div class=\"text-xs text-gray-500 dark:text-gray-400\">Avg: ")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 26, "</div><div class=\"text-description\">Avg: ")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var15 string
 			templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(formatNumber(props.Stats.TotalTransactions7d / 7))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 289, Col: 118}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 289, Col: 94}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, "/day</div></div><div class=\"pl-6\"><div class=\"text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1\">30d Volume</div><div class=\"text-2xl font-light text-gray-900 dark:text-gray-100 mb-1\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, "/day</div></div><div class=\"pl-6\"><div class=\"text-label mb-1\">30d Volume</div><div class=\"text-2xl font-light text-gray-900 dark:text-gray-100 mb-1\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -440,33 +440,33 @@ func Dashboard(props DashboardProps) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "</div><div class=\"text-xs text-gray-500 dark:text-gray-400\">Avg: ")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "</div><div class=\"text-description\">Avg: ")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var17 string
 			templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinStringErrs(formatNumber(props.Stats.TotalTransactions30d / 30))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 294, Col: 120}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 294, Col: 96}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 29, "/day</div></div></div></div><!-- Transaction Types --><div class=\"border-l border-gray-200 dark:border-gray-700 pl-6\"><div class=\"text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-4\">Transaction Types</div><div class=\"space-y-3\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 29, "/day</div></div></div></div><!-- Transaction Types --><div class=\"border-l border-gray-200 dark:border-gray-700 pl-6\"><div class=\"text-label mb-4\">Transaction Types</div><div class=\"space-y-3\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			if len(props.TransactionBreakdown) > 0 {
 				for _, breakdown := range props.TransactionBreakdown {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "<div class=\"flex items-center justify-between\"><span class=\"text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-gray-600 dark:text-gray-400\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "<div class=\"flex-between\"><span class=\"badge-default\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var18 string
 					templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(breakdown.Type)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 305, Col: 128}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 305, Col: 54}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 					if templ_7745c5c3_Err != nil {
@@ -491,7 +491,7 @@ func Dashboard(props DashboardProps) templ.Component {
 					}
 				}
 			} else {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 33, "<div class=\"text-sm text-gray-500 dark:text-gray-400\">No transaction data available</div>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 33, "<div class=\"text-meta\">No transaction data available</div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -501,7 +501,7 @@ func Dashboard(props DashboardProps) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			if props.SLAPerformanceData != nil && len(props.SLAPerformanceData) > 0 {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 35, "<div class=\"bg-white dark:bg-gray-900 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden\"><div class=\"bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 px-6 py-4 border-b border-gray-200 dark:border-gray-700\"><div class=\"flex items-center justify-between\"><div class=\"flex items-center space-x-3\"><div class=\"w-3 h-3 bg-purple-500 rounded-full animate-pulse\"></div><h2 class=\"text-lg font-bold text-gray-900 dark:text-gray-100 tracking-wide\">Network Performance</h2></div><a href=\"/rollups\" class=\"text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 hover:underline text-sm\">View rollups →</a></div><div class=\"mt-3 flex items-center justify-between\"><div class=\"flex items-center space-x-4 text-xs text-gray-500 dark:text-gray-400\" x-data=\"chartMeta()\" x-init=\"init()\" data-chart-data=\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 35, "<div class=\"card-secondary\"><div class=\"chart-header\"><div class=\"flex-between\"><div class=\"flex items-center space-x-3\"><div class=\"w-3 h-3 bg-purple-500 rounded-full animate-pulse\"></div><h2 class=\"text-heading-sm\">Network Performance</h2></div><a href=\"/rollups\" class=\"link-primary text-sm\">View rollups →</a></div><div class=\"mt-3 flex items-center justify-between\"><div class=\"flex items-center space-x-4 text-xs text-gray-500 dark:text-gray-400\" x-data=\"chartMeta()\" x-init=\"init()\" data-chart-data=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -514,7 +514,7 @@ func Dashboard(props DashboardProps) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 36, "\"><div class=\"text-right\"><div class=\"font-medium\" x-text=\"blockRange\"></div><div class=\"text-gray-400\" x-text=\"timeRange\"></div></div><div class=\"w-px h-8 bg-gray-300 dark:bg-gray-600\"></div><div class=\"flex items-center space-x-1\"><div class=\"w-2 h-2 bg-green-500 rounded-full animate-pulse\"></div><span class=\"font-medium\">LIVE</span></div></div></div></div><div class=\"relative h-96 bg-gray-50 dark:bg-gray-900 p-4\"><canvas id=\"slaPerformanceChart\" class=\"w-full h-full\" x-data=\"slaChart()\" x-init=\"initChart()\" data-chart-data=\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 36, "\"><div class=\"text-right\"><div class=\"font-medium\" x-text=\"blockRange\"></div><div class=\"text-gray-400\" x-text=\"timeRange\"></div></div><div class=\"w-px h-8 bg-gray-300 dark:bg-gray-600\"></div><div class=\"flex items-center space-x-1\"><div class=\"w-2 h-2 bg-green-500 rounded-full animate-pulse\"></div><span class=\"font-medium\">LIVE</span></div></div></div></div><div class=\"chart-container\"><canvas id=\"slaPerformanceChart\" class=\"w-full h-full\" x-data=\"slaChart()\" x-init=\"initChart()\" data-chart-data=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -532,7 +532,7 @@ func Dashboard(props DashboardProps) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 38, "<!-- Section 5: Recent Blocks & Transactions --><div class=\"grid grid-cols-1 lg:grid-cols-2 gap-6\"><!-- Latest Blocks --><div class=\"bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6\"><div class=\"flex justify-between items-center mb-4\"><h3 class=\"text-xl font-bold text-gray-900 dark:text-gray-100\">Latest Blocks</h3><a href=\"/blocks\" class=\"text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 hover:underline text-sm\">View all →</a></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 38, "<!-- Section 5: Recent Blocks & Transactions --><div class=\"grid-dashboard\"><!-- Latest Blocks --><div class=\"card-primary\"><div class=\"flex-between mb-4\"><h3 class=\"text-heading\">Latest Blocks</h3><a href=\"/blocks\" class=\"link-primary text-sm\">View all →</a></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -542,7 +542,7 @@ func Dashboard(props DashboardProps) templ.Component {
 					return templ_7745c5c3_Err
 				}
 				for _, block := range props.RecentBlocks {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 40, "<div class=\"flex items-center justify-between py-3 px-4 border border-gray-200 dark:border-gray-700 rounded hover:bg-purple-50 hover:border-purple-200 dark:hover:bg-gray-700 transition-colors\"><div class=\"flex items-center gap-4\"><a href=\"")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 40, "<div class=\"row-interactive\"><div class=\"flex items-center gap-4\"><a href=\"")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -555,7 +555,7 @@ func Dashboard(props DashboardProps) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 41, "\" class=\"font-semibold text-purple-600 dark:text-purple-400 hover:underline\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 41, "\" class=\"font-semibold link-primary\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -581,7 +581,7 @@ func Dashboard(props DashboardProps) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 43, "\" class=\"font-mono text-xs text-purple-600 dark:text-purple-400 hover:underline\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 43, "\" class=\"text-mono-xs link-primary\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -619,7 +619,7 @@ func Dashboard(props DashboardProps) templ.Component {
 							return templ_7745c5c3_Err
 						}
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 45, "</a></div><div class=\"text-xs text-gray-500 dark:text-gray-400\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 45, "</a></div><div class=\"text-description\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -649,7 +649,7 @@ func Dashboard(props DashboardProps) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 50, "</div><!-- Latest Transactions --><div class=\"bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6\"><div class=\"flex justify-between items-center mb-4\"><h3 class=\"text-xl font-bold text-gray-900 dark:text-gray-100\">Latest Transactions</h3><a href=\"/transactions\" class=\"text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 hover:underline text-sm\">View all →</a></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 50, "</div><!-- Latest Transactions --><div class=\"card-primary\"><div class=\"flex-between mb-4\"><h3 class=\"text-heading\">Latest Transactions</h3><a href=\"/transactions\" class=\"link-primary text-sm\">View all →</a></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -659,7 +659,7 @@ func Dashboard(props DashboardProps) templ.Component {
 					return templ_7745c5c3_Err
 				}
 				for _, tx := range props.RecentTransactions {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 52, "<div class=\"flex items-center justify-between py-3 px-4 border border-gray-200 dark:border-gray-700 rounded hover:bg-purple-50 hover:border-purple-200 dark:hover:bg-gray-700 transition-colors\"><div class=\"flex items-center gap-4\"><a href=\"")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 52, "<div class=\"row-interactive\"><div class=\"flex items-center gap-4\"><a href=\"")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -672,7 +672,7 @@ func Dashboard(props DashboardProps) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 53, "\" class=\"font-mono text-sm text-purple-600 dark:text-purple-400 hover:underline\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 53, "\" class=\"text-mono link-primary\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -710,7 +710,7 @@ func Dashboard(props DashboardProps) templ.Component {
 							return templ_7745c5c3_Err
 						}
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 55, "</a> <span class=\"text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-gray-600 dark:text-gray-400\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 55, "</a> <span class=\"badge-default\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -741,7 +741,7 @@ func Dashboard(props DashboardProps) templ.Component {
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 58, "\" class=\"text-xs text-purple-600 dark:text-purple-400 hover:underline\">")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 58, "\" class=\"text-xs link-primary\">")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
@@ -759,7 +759,7 @@ func Dashboard(props DashboardProps) templ.Component {
 							return templ_7745c5c3_Err
 						}
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 60, "</div><div class=\"text-xs text-gray-500 dark:text-gray-400\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 60, "</div><div class=\"text-description\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -1046,27 +1046,27 @@ func TPSFragment(stats *DashboardStats) templ.Component {
 			templ_7745c5c3_Var45 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 89, "<div id=\"tps-fragment\" hx-get=\"/fragments/tps\" hx-trigger=\"every 5s\" hx-swap=\"outerHTML\" class=\"border-r border-gray-200 dark:border-gray-700 pr-6\"><div class=\"text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1\">Transactions/sec</div><div class=\"text-4xl font-light text-gray-900 dark:text-gray-100 mb-1\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 89, "<div id=\"tps-fragment\" hx-get=\"/fragments/tps\" hx-trigger=\"every 5s\" hx-swap=\"outerHTML\" class=\"border-r border-gray-200 dark:border-gray-700 pr-6\"><div class=\"text-label mb-1\">Transactions/sec</div><div class=\"text-value-xl mb-1\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var46 string
 		templ_7745c5c3_Var46, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%.1f", stats.TPS))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 535, Col: 105}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 535, Col: 66}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var46))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 90, "</div><div class=\"text-xs text-gray-500 dark:text-gray-400\">30d Avg: ")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 90, "</div><div class=\"text-description\">30d Avg: ")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var47 string
 		templ_7745c5c3_Var47, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%.1f", float64(stats.TotalTransactions30d)/(30*24*60*60)))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 536, Col: 137}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 536, Col: 113}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var47))
 		if templ_7745c5c3_Err != nil {
@@ -1101,14 +1101,14 @@ func TotalTransactionsFragment(stats *DashboardStats) templ.Component {
 			templ_7745c5c3_Var48 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 92, "<div id=\"total-transactions-fragment\" hx-get=\"/fragments/total-transactions\" hx-trigger=\"every 10s\" hx-swap=\"outerHTML\" class=\"pr-6\"><div class=\"text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1\">Total Transactions</div><div class=\"text-4xl font-light text-gray-900 dark:text-gray-100 mb-1\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 92, "<div id=\"total-transactions-fragment\" hx-get=\"/fragments/total-transactions\" hx-trigger=\"every 10s\" hx-swap=\"outerHTML\" class=\"pr-6\"><div class=\"text-label mb-1\">Total Transactions</div><div class=\"text-value-xl mb-1\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var49 string
 		templ_7745c5c3_Var49, templ_7745c5c3_Err = templ.JoinStringErrs(formatNumber(stats.TotalTransactions))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 543, Col: 112}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 543, Col: 73}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var49))
 		if templ_7745c5c3_Err != nil {
@@ -1118,7 +1118,7 @@ func TotalTransactionsFragment(stats *DashboardStats) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var50 = []any{fmt.Sprintf("text-xs %s", getPercentageChangeColorClass(stats.TotalTransactions24h, stats.TotalTransactionsPrevious24h))}
+		var templ_7745c5c3_Var50 = []any{fmt.Sprintf("text-description %s", getPercentageChangeColorClass(stats.TotalTransactions24h, stats.TotalTransactionsPrevious24h))}
 		templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var50...)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
@@ -1143,7 +1143,7 @@ func TotalTransactionsFragment(stats *DashboardStats) templ.Component {
 		var templ_7745c5c3_Var52 string
 		templ_7745c5c3_Var52, templ_7745c5c3_Err = templ.JoinStringErrs(getPercentageChangeText(stats.TotalTransactions24h, stats.TotalTransactionsPrevious24h))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 544, Col: 227}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/dashboard.templ`, Line: 544, Col: 236}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var52))
 		if templ_7745c5c3_Err != nil {
@@ -1297,7 +1297,7 @@ func NetworkSidebarFragment(stats *DashboardStats) templ.Component {
 			templ_7745c5c3_Var57 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 101, "<div class=\"\"><div class=\"bg-white/90 dark:bg-gray-800/90 backdrop-blur-md rounded-lg p-3 border border-white/20 dark:border-gray-700/50 shadow-lg\"><h4 class=\"text-xs font-semibold mb-2 text-gray-900 dark:text-gray-100 uppercase tracking-wide\">Network Info</h4><div class=\"space-y-1.5\"><div class=\"flex justify-between\"><span class=\"text-xs text-gray-600 dark:text-gray-400\">Validators</span> <span class=\"text-xs font-semibold text-gray-900 dark:text-gray-100\" x-text=\"validatorCount\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 101, "<div class=\"\"><div class=\"card-overlay\"><h4 class=\"text-xs font-semibold mb-2 text-gray-900 dark:text-gray-100 uppercase tracking-wide\">Network Info</h4><div class=\"space-y-1.5\"><div class=\"flex justify-between\"><span class=\"text-xs text-gray-600 dark:text-gray-400\">Validators</span> <span class=\"text-xs font-semibold text-gray-900 dark:text-gray-100\" x-text=\"validatorCount\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -1310,7 +1310,7 @@ func NetworkSidebarFragment(stats *DashboardStats) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 102, "</span></div><template x-if=\"latestBlock.height > 0\"><div><div class=\"flex justify-between\"><span class=\"text-xs text-gray-600 dark:text-gray-400\">Latest Block</span> <a :href=\"'/block/' + latestBlock.height\" class=\"text-xs font-semibold text-purple-600 dark:text-purple-400 hover:underline\" x-text=\"'#' + latestBlock.height\"></a></div><div class=\"flex justify-between\"><span class=\"text-xs text-gray-600 dark:text-gray-400\">Proposer</span> <a :href=\"'/validator/' + latestBlock.proposer\" class=\"font-mono text-xs text-purple-600 dark:text-purple-400 hover:underline\" x-text=\"formatProposer(latestBlock.proposer)\"></a></div></div></template></div></div><div class=\"bg-white/90 dark:bg-gray-800/90 backdrop-blur-md rounded-lg p-3 border border-white/20 dark:border-gray-700/50 shadow-lg\"><h4 class=\"text-xs font-semibold mb-2 text-gray-900 dark:text-gray-100 uppercase tracking-wide\">Recent Proposers</h4><div class=\"space-y-1\"><template x-if=\"recentBlocks.length > 0\"><template x-for=\"(block, index) in recentBlocks\" :key=\"block.height\"><div class=\"flex items-center justify-between\"><span class=\"text-xs text-gray-500 dark:text-gray-500\" x-text=\"'#' + (index + 1)\"></span> <a :href=\"'/validator/' + block.proposer\" class=\"font-mono text-xs text-purple-600 dark:text-purple-400 hover:underline truncate\" x-text=\"formatProposer(block.proposer)\"></a></div></template></template><template x-if=\"recentBlocks.length === 0\"><div class=\"text-center py-1\"><p class=\"text-gray-500 dark:text-gray-400 text-xs\">No recent proposers</p><p class=\"text-xs text-gray-400 dark:text-gray-500\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 102, "</span></div><template x-if=\"latestBlock.height > 0\"><div><div class=\"flex justify-between\"><span class=\"text-xs text-gray-600 dark:text-gray-400\">Latest Block</span> <a :href=\"'/block/' + latestBlock.height\" class=\"text-xs font-semibold text-purple-600 dark:text-purple-400 hover:underline\" x-text=\"'#' + latestBlock.height\"></a></div><div class=\"flex justify-between\"><span class=\"text-xs text-gray-600 dark:text-gray-400\">Proposer</span> <a :href=\"'/validator/' + latestBlock.proposer\" class=\"font-mono text-xs text-purple-600 dark:text-purple-400 hover:underline\" x-text=\"formatProposer(latestBlock.proposer)\"></a></div></div></template></div></div><div class=\"card-overlay\"><h4 class=\"text-xs font-semibold mb-2 text-gray-900 dark:text-gray-100 uppercase tracking-wide\">Recent Proposers</h4><div class=\"space-y-1\"><template x-if=\"recentBlocks.length > 0\"><template x-for=\"(block, index) in recentBlocks\" :key=\"block.height\"><div class=\"flex items-center justify-between\"><span class=\"text-xs text-gray-500 dark:text-gray-500\" x-text=\"'#' + (index + 1)\"></span> <a :href=\"'/validator/' + block.proposer\" class=\"font-mono text-xs text-purple-600 dark:text-purple-400 hover:underline truncate\" x-text=\"formatProposer(block.proposer)\"></a></div></template></template><template x-if=\"recentBlocks.length === 0\"><div class=\"text-center py-1\"><p class=\"text-gray-500 dark:text-gray-400 text-xs\">No recent proposers</p><p class=\"text-xs text-gray-400 dark:text-gray-500\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

@@ -58,13 +58,13 @@ type ValidatorEvent struct {
 
 templ Validator(props ValidatorProps) {
 	@layouts.Base(fmt.Sprintf("Validator %s", props.Validator.Address[:8])) {
-		<div class="space-y-6">
+		<div class="section-spacing">
 			<!-- Validator Info Card -->
-			<div class="shadow-xl rounded-lg p-6 bg-white dark:bg-gray-800">
-				<div class="flex justify-between items-start mb-4">
+			<div class="card-primary">
+				<div class="flex-between items-start mb-4">
 					<div>
-						<h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Validator Details</h2>
-						<p class="text-gray-500 dark:text-gray-400 font-mono text-sm mt-1">{ props.Validator.Address }</p>
+						<h2 class="text-heading font-bold">Validator Details</h2>
+						<p class="text-meta text-mono mt-1">{ props.Validator.Address }</p>
 					</div>
 					<div>
 						switch props.Validator.Status {
@@ -81,36 +81,36 @@ templ Validator(props ValidatorProps) {
 				</div>
 				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 					<div>
-						<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Comet Address</label>
-						<p class="text-gray-900 dark:text-gray-100 font-mono text-sm break-all">{ props.Validator.CometAddress }</p>
+						<label class="block text-label mb-1">Comet Address</label>
+						<p class="text-gray-900 dark:text-gray-100 text-mono break-all">{ props.Validator.CometAddress }</p>
 					</div>
 					<div>
-						<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Endpoint</label>
-						<p class="text-gray-900 dark:text-gray-100 font-mono text-sm break-all">
+						<label class="block text-label mb-1">Endpoint</label>
+						<p class="text-gray-900 dark:text-gray-100 text-mono break-all">
 							{ extractHostFromValidator(props.Validator.Endpoint) }
 						</p>
 					</div>
 					<div>
-						<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Node Type</label>
+						<label class="block text-label mb-1">Node Type</label>
 						<p class="text-gray-900 dark:text-gray-100">{ props.Validator.NodeType }</p>
 					</div>
 					<div>
-						<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">SPID</label>
+						<label class="block text-label mb-1">SPID</label>
 						<p class="text-gray-900 dark:text-gray-100">{ props.Validator.Spid }</p>
 					</div>
 					<div>
-						<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Voting Power</label>
+						<label class="block text-label mb-1">Voting Power</label>
 						<p class="text-gray-900 dark:text-gray-100 font-semibold">{ fmt.Sprintf("%d", props.Validator.VotingPower) }</p>
 					</div>
 					<div>
-						<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Registration Block</label>
+						<label class="block text-label mb-1">Registration Block</label>
 						<p class="text-gray-900 dark:text-gray-100">
 							{ fmt.Sprintf("%d", props.Validator.RegisteredAt) }
 						</p>
 					</div>
 					if props.Validator.RegisteredAt > 0 {
 						<div>
-							<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Registered</label>
+							<label class="block text-label mb-1">Registered</label>
 							<p class="text-gray-900 dark:text-gray-100">
 								@templates.TimeWithTooltip(props.Validator.CreatedAt.Time)
 							</p>
@@ -118,7 +118,7 @@ templ Validator(props ValidatorProps) {
 					}
 					if props.Validator.UpdatedAt.Valid {
 						<div>
-							<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Last Update</label>
+							<label class="block text-label mb-1">Last Update</label>
 							<p class="text-gray-900 dark:text-gray-100">
 								@templates.TimeWithTooltip(props.Validator.UpdatedAt.Time)
 							</p>
@@ -128,11 +128,11 @@ templ Validator(props ValidatorProps) {
 			</div>
 			<!-- Events History -->
 			if len(props.Events) > 0 {
-				<div class="shadow-xl rounded-lg p-6 bg-white dark:bg-gray-800">
-					<h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Event History</h3>
-					<div class="space-y-4">
+				<div class="card-primary">
+					<h3 class="text-heading font-bold mb-4">Event History</h3>
+					<div class="section-spacing">
 						for _, event := range props.Events {
-							<div class="border border-gray-200 dark:border-gray-600 rounded-lg p-4 hover:bg-purple-50 hover:border-purple-200 dark:hover:bg-gray-700 transition-colors">
+							<div class="row-interactive rounded-lg p-4">
 								<div class="flex justify-between items-start mb-2">
 									<div>
 										switch event.Type {
@@ -146,25 +146,25 @@ templ Validator(props ValidatorProps) {
 												<span class="px-2 py-1 text-xs rounded bg-gray-100 dark:bg-gray-600 text-gray-800 dark:text-gray-200">Unknown</span>
 										}
 									</div>
-									<div class="text-sm text-gray-500 dark:text-gray-400">
+									<div class="text-meta">
 										@templates.TimeWithTooltip(event.Timestamp)
 									</div>
 								</div>
 								<div class="text-sm text-gray-600 dark:text-gray-400 space-y-1">
 									<div>
-										Block: 
+										Block:
 										<a
 											href={ templ.SafeURL(fmt.Sprintf("/block/%d", event.BlockHeight)) }
-											class="text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 hover:underline"
+											class="link-primary"
 										>
 											{ fmt.Sprintf("%d", event.BlockHeight) }
 										</a>
 									</div>
 									<div>
-										Tx: 
+										Tx:
 										<a
 											href={ templ.SafeURL(fmt.Sprintf("/transaction/%s", event.TxHash)) }
-											class="text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 hover:underline font-mono"
+											class="link-mono"
 										>
 											{ event.TxHash }
 										</a>
@@ -176,9 +176,9 @@ templ Validator(props ValidatorProps) {
 				</div>
 			}
 			<!-- Uptime History Section -->
-			<div class="shadow-xl rounded-lg p-6 bg-white dark:bg-gray-800">
-				<h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">SLA Rollup History</h3>
-				<p class="text-gray-500 dark:text-gray-400 text-sm mb-4">
+			<div class="card-primary">
+				<h3 class="text-heading font-bold mb-4">SLA Rollup History</h3>
+				<p class="text-meta mb-4">
 					Recent SLA rollup performance for this validator. Green indicates meeting SLA requirements, red indicates missing SLA, and dark gray indicates no activity.
 				</p>
 				<div class="flex items-center gap-6 text-sm text-gray-600 dark:text-gray-400 mb-6">
@@ -220,7 +220,7 @@ templ Validator(props ValidatorProps) {
 							</div>
 						}
 					} else {
-						<div class="text-gray-500 dark:text-gray-400 text-sm">No SLA rollup data available</div>
+						<div class="text-meta">No SLA rollup data available</div>
 					}
 				</div>
 			</div>

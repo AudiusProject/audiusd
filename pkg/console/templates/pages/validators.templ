@@ -74,9 +74,9 @@ type ValidatorsProps struct {
 
 templ Validators(props ValidatorsProps) {
 	@layouts.Base("Validators") {
-		<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6">
+		<div class="card-primary">
 			<div class="flex items-center gap-6 mb-6">
-				<h2 class="text-2xl font-light text-gray-900 dark:text-gray-100">Validators</h2>
+				<h2 class="text-title">Validators</h2>
 				<div class="flex-1 max-w-md">
 					<input
 						type="text"
@@ -88,7 +88,7 @@ templ Validators(props ValidatorsProps) {
 					/>
 				</div>
 				<div class="flex items-center gap-4 ml-auto">
-					<div class="text-sm text-gray-500 dark:text-gray-400">
+					<div class="text-meta">
 						Page { fmt.Sprint(props.CurrentPage) } • { fmt.Sprint(props.PageSize) } per page
 					</div>
 					<div class="flex border border-gray-200 dark:border-gray-700 rounded overflow-hidden">
@@ -120,47 +120,47 @@ templ Validators(props ValidatorsProps) {
 							<div class="flex items-center justify-between py-4 px-6 border border-gray-200 dark:border-gray-700 rounded hover:bg-purple-50 hover:border-purple-200 dark:hover:bg-gray-700 transition-colors cursor-pointer">
 								<div class="flex items-center gap-6 flex-1">
 									<div class="flex-2">
-										<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Endpoint</div>
+										<div class="text-label mb-1">Endpoint</div>
 										<div class="relative">
-											<div class="font-mono text-sm text-gray-700 dark:text-gray-300 overflow-x-auto scrollbar-hide whitespace-nowrap pb-1">
+											<div class="text-mono overflow-x-auto scrollbar-hide whitespace-nowrap pb-1">
 												{ extractHost(validator.Endpoint) }
 											</div>
 											<div class="absolute top-0 right-0 w-8 h-full bg-gradient-to-l from-white dark:from-gray-800 to-transparent pointer-events-none"></div>
 										</div>
 									</div>
 									<div class="flex-1">
-										<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Address</div>
-										<div class="font-mono text-sm text-purple-600 dark:text-purple-400">
+										<div class="text-label mb-1">Address</div>
+										<div class="text-mono text-purple-600 dark:text-purple-400">
 											@templates.StringWithTooltipCustom(validator.Address, 8, 4)
 										</div>
 									</div>
 									<div class="flex-1">
-										<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Node Type</div>
-										<span class="px-3 py-1 text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded">
+										<div class="text-label mb-1">Node Type</div>
+										<span class="badge-default">
 											{ validator.NodeType }
 										</span>
 									</div>
 									<div class="flex-1">
-										<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Voting Power</div>
-										<div class="text-xl font-light text-gray-900 dark:text-gray-100 tabular-nums">
+										<div class="text-label mb-1">Voting Power</div>
+										<div class="text-heading tabular-nums">
 											{ fmt.Sprintf("%d", validator.VotingPower) }
 										</div>
 									</div>
 									<div class="flex-1">
-										<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Status</div>
+										<div class="text-label mb-1">Status</div>
 										<div class="flex items-center gap-2 text-sm">
 											switch validator.Status {
 												case "active":
-													<span class="px-2 py-1 text-xs font-medium bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded">Active</span>
+													<span class="badge-default bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900">Active</span>
 												case "deregistered":
-													<span class="px-2 py-1 text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded">Deregistered</span>
+													<span class="badge-default">Deregistered</span>
 												case "misbehavior_deregistered":
-													<span class="px-2 py-1 text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded">Misbehavior</span>
+													<span class="badge-default">Misbehavior</span>
 												default:
-													<span class="px-2 py-1 text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded">Unknown</span>
+													<span class="badge-default">Unknown</span>
 											}
 											<span class="text-gray-400 dark:text-gray-500">|</span>
-											<div class="text-xs text-gray-500 dark:text-gray-400">
+											<div class="text-description">
 												if validator.RegisteredAt > 0 {
 													@templates.TimeWithTooltip(validator.CreatedAt.Time)
 												} else {
@@ -170,7 +170,7 @@ templ Validators(props ValidatorsProps) {
 										</div>
 									</div>
 									<div class="flex-1">
-										<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Uptime</div>
+										<div class="text-label mb-1">Uptime</div>
 										<div class="flex items-center gap-1">
 											if rollups, exists := props.ValidatorUptimeMap[validator.CometAddress]; exists && len(rollups) > 0 {
 												// Show actual uptime data (reverse order so most recent is on the right)
@@ -197,29 +197,29 @@ templ Validators(props ValidatorsProps) {
 						</a>
 					}
 				</div>
-				<div class="flex justify-between items-center mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+				<div class="flex justify-between items-center mt-6 pt-6 divider-horizontal">
 					<div class="flex gap-3">
 						if props.HasPrev {
 							<a
 								href={ templ.SafeURL(buildValidatorsPaginationURL(props.CurrentPage-1, props.PageSize, props.QueryType, props.EndpointFilter)) }
-								class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors"
+								class="btn-nav"
 							>
 								← Previous
 							</a>
 						} else {
-							<span class="px-4 py-2 text-sm font-medium text-gray-400 dark:text-gray-600 bg-gray-50 dark:bg-gray-700 rounded cursor-not-allowed">
+							<span class="btn-disabled">
 								← Previous
 							</span>
 						}
 						if props.HasNext {
 							<a
 								href={ templ.SafeURL(buildValidatorsPaginationURL(props.CurrentPage+1, props.PageSize, props.QueryType, props.EndpointFilter)) }
-								class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors"
+								class="btn-nav"
 							>
 								Next →
 							</a>
 						} else {
-							<span class="px-4 py-2 text-sm font-medium text-gray-400 dark:text-gray-600 bg-gray-50 dark:bg-gray-700 rounded cursor-not-allowed">
+							<span class="btn-disabled">
 								Next →
 							</span>
 						}
@@ -227,7 +227,7 @@ templ Validators(props ValidatorsProps) {
 				</div>
 			} else {
 				<div class="text-center py-12">
-					<p class="text-gray-500 dark:text-gray-400">No validators found</p>
+					<p class="text-meta">No validators found</p>
 				</div>
 			}
 		</div>

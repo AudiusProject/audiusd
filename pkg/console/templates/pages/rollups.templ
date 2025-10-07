@@ -19,10 +19,10 @@ type RollupsProps struct {
 
 templ Rollups(props RollupsProps) {
 	@layouts.Base("SLA Rollups") {
-		<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6">
-			<div class="flex justify-between items-center mb-6">
-				<h2 class="text-2xl font-light text-gray-900 dark:text-gray-100">SLA Rollups</h2>
-				<div class="text-sm text-gray-500 dark:text-gray-400">
+		<div class="card-primary">
+			<div class="flex-between items-center mb-6">
+				<h2 class="text-title">SLA Rollups</h2>
+				<div class="text-meta">
 					Page { fmt.Sprint(props.CurrentPage) } • { fmt.Sprint(props.PageSize) } rollups per page • { fmt.Sprint(props.TotalCount) } total
 				</div>
 			</div>
@@ -32,32 +32,32 @@ templ Rollups(props RollupsProps) {
 						<div class="flex items-center justify-between py-4 px-6 border border-gray-200 dark:border-gray-700 rounded hover:bg-purple-50 hover:border-purple-200 dark:hover:bg-gray-700 transition-colors">
 							<div class="flex items-center gap-6 flex-1">
 								<div class="flex-1">
-									<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Rollup ID</div>
-									<a href={ templ.SafeURL(fmt.Sprintf("/validators/uptime/%d", rollup.ID)) } class="font-semibold text-purple-600 dark:text-purple-400 hover:underline">
+									<div class="text-label mb-1">Rollup ID</div>
+									<a href={ templ.SafeURL(fmt.Sprintf("/validators/uptime/%d", rollup.ID)) } class="font-semibold link-primary">
 										{ fmt.Sprintf("#%d", rollup.ID) }
 									</a>
 								</div>
 								<div class="flex-1">
-									<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Block Range</div>
-									<div class="text-xl font-light text-gray-900 dark:text-gray-100 tabular-nums">
+									<div class="text-label mb-1">Block Range</div>
+									<div class="text-heading tabular-nums">
 										{ fmt.Sprintf("%d - %d", rollup.BlockStart, rollup.BlockEnd) }
 									</div>
 								</div>
 								<div class="flex-1">
-									<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Validators</div>
-									<div class="text-xl font-light text-gray-900 dark:text-gray-100 tabular-nums">
+									<div class="text-label mb-1">Validators</div>
+									<div class="text-heading tabular-nums">
 										{ fmt.Sprintf("%d", rollup.ValidatorCount) }
 									</div>
 								</div>
 								<div class="flex-1">
-									<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Transaction</div>
-									<a href={ templ.SafeURL(fmt.Sprintf("/transaction/%s", rollup.TxHash)) } class="font-mono text-xs text-purple-600 dark:text-purple-400 hover:underline">
+									<div class="text-label mb-1">Transaction</div>
+									<a href={ templ.SafeURL(fmt.Sprintf("/transaction/%s", rollup.TxHash)) } class="link-mono text-mono-xs">
 										@templates.StringWithTooltipCustom(rollup.TxHash, 8, 4)
 									</a>
 								</div>
 							</div>
 							<div class="text-right flex-shrink-0">
-								<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Time</div>
+								<div class="text-label mb-1">Time</div>
 								<div class="text-sm text-gray-700 dark:text-gray-300">
 									if rollup.CreatedAt.Valid {
 										@templates.TimeWithTooltip(rollup.CreatedAt.Time)
@@ -69,23 +69,23 @@ templ Rollups(props RollupsProps) {
 						</div>
 					}
 				</div>
-				<div class="flex justify-between items-center mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+				<div class="flex justify-between items-center mt-6 pt-6 divider-horizontal">
 					<div class="flex gap-3">
 						if props.HasPrev {
-							<a href={ templ.SafeURL(fmt.Sprintf("/rollups?page=%d&count=%d", props.CurrentPage-1, props.PageSize)) } class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors">
+							<a href={ templ.SafeURL(fmt.Sprintf("/rollups?page=%d&count=%d", props.CurrentPage-1, props.PageSize)) } class="btn-nav">
 								← Previous
 							</a>
 						} else {
-							<span class="px-4 py-2 text-sm font-medium text-gray-400 dark:text-gray-600 bg-gray-50 dark:bg-gray-700 rounded cursor-not-allowed">
+							<span class="btn-disabled">
 								← Previous
 							</span>
 						}
 						if props.HasNext {
-							<a href={ templ.SafeURL(fmt.Sprintf("/rollups?page=%d&count=%d", props.CurrentPage+1, props.PageSize)) } class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors">
+							<a href={ templ.SafeURL(fmt.Sprintf("/rollups?page=%d&count=%d", props.CurrentPage+1, props.PageSize)) } class="btn-nav">
 								Next →
 							</a>
 						} else {
-							<span class="px-4 py-2 text-sm font-medium text-gray-400 dark:text-gray-600 bg-gray-50 dark:bg-gray-700 rounded cursor-not-allowed">
+							<span class="btn-disabled">
 								Next →
 							</span>
 						}
@@ -93,7 +93,7 @@ templ Rollups(props RollupsProps) {
 				</div>
 			} else {
 				<div class="text-center py-12">
-					<p class="text-gray-500 dark:text-gray-400">No rollups found</p>
+					<p class="text-meta">No rollups found</p>
 				</div>
 			}
 		</div>
