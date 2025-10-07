@@ -675,6 +675,9 @@ func (c *CoreService) SendTransaction(ctx context.Context, req *connect.Request[
 
 // Utilities
 func (c *CoreService) getBlockRpcFallback(ctx context.Context, height int64) (*connect.Response[v1.GetBlockResponse], error) {
+	if c.core.rpc == nil {
+		return nil, errors.New("rpc not available")
+	}
 	block, err := c.core.rpc.Block(ctx, &height)
 	if err != nil {
 		blockInFutureMsg := "must be less than or equal to the current blockchain height"
