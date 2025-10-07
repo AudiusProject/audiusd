@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"net/http"
-	"strings"
 
 	"connectrpc.com/connect"
 	corev1 "github.com/AudiusProject/audiusd/pkg/api/core/v1"
@@ -13,6 +12,7 @@ import (
 	etlv1connect "github.com/AudiusProject/audiusd/pkg/api/etl/v1/v1connect"
 	storagev1connect "github.com/AudiusProject/audiusd/pkg/api/storage/v1/v1connect"
 	systemv1connect "github.com/AudiusProject/audiusd/pkg/api/system/v1/v1connect"
+	"github.com/AudiusProject/audiusd/pkg/common"
 	"github.com/AudiusProject/audiusd/pkg/sdk/mediorum"
 	"github.com/AudiusProject/audiusd/pkg/sdk/rewards"
 )
@@ -32,16 +32,9 @@ type AudiusdSDK struct {
 	Mediorum *mediorum.Mediorum
 }
 
-func ensureURLProtocol(url string) string {
-	if !strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://") {
-		return "https://" + url
-	}
-	return url
-}
-
 func NewAudiusdSDK(nodeURL string) *AudiusdSDK {
 	httpClient := http.DefaultClient
-	url := ensureURLProtocol(nodeURL)
+	url := common.EnsureURLProtocol(nodeURL)
 
 	coreClient := corev1connect.NewCoreServiceClient(httpClient, url)
 	storageClient := storagev1connect.NewStorageServiceClient(httpClient, url)

@@ -13,6 +13,9 @@ func (s *Server) registerCRPCRoutes(g *echo.Group) {
 	g.GET("/crpc/status", s.getStatus)
 	g.GET("/crpc/health", s.getHealth)
 	g.GET("/crpc/block", s.getBlock)
+	g.GET("/crpc/commit", s.getCommit)
+	g.GET("/crpc/validators", s.getValidators)
+	g.GET("/crpc/consensus_params", s.getConsensusParams)
 
 	// JSON-RPC endpoint
 	g.POST("/crpc", s.handleJSONRPC)
@@ -52,6 +55,86 @@ func (s *Server) getBlock(c echo.Context) error {
 	}
 
 	res, err := s.rpc.Block(ctx, height)
+	if err != nil {
+		return respondWithError(c, 502, err.Error())
+	}
+	return c.JSON(http.StatusOK, wrapJSONRPC(res))
+}
+
+func (s *Server) getCommit(c echo.Context) error {
+	ctx := c.Request().Context()
+	heightParam := c.QueryParam("height")
+
+	var height *int64
+	if heightParam != "" {
+		h, err := strconv.ParseInt(heightParam, 10, 64)
+		if err != nil {
+			return respondWithError(c, 400, "invalid height")
+		}
+		height = &h
+	}
+
+	res, err := s.rpc.Commit(ctx, height)
+	if err != nil {
+		return respondWithError(c, 502, err.Error())
+	}
+	return c.JSON(http.StatusOK, wrapJSONRPC(res))
+}
+
+func (s *Server) getValidators(c echo.Context) error {
+	ctx := c.Request().Context()
+	heightParam := c.QueryParam("height")
+	pageParam := c.QueryParam("page")
+	perPageParam := c.QueryParam("per_page")
+
+	var height *int64
+	var page, perPage *int
+
+	if heightParam != "" {
+		h, err := strconv.ParseInt(heightParam, 10, 64)
+		if err != nil {
+			return respondWithError(c, 400, "invalid height")
+		}
+		height = &h
+	}
+
+	if pageParam != "" {
+		p, err := strconv.Atoi(pageParam)
+		if err != nil {
+			return respondWithError(c, 400, "invalid page")
+		}
+		page = &p
+	}
+
+	if perPageParam != "" {
+		pp, err := strconv.Atoi(perPageParam)
+		if err != nil {
+			return respondWithError(c, 400, "invalid per_page")
+		}
+		perPage = &pp
+	}
+
+	res, err := s.rpc.Validators(ctx, height, page, perPage)
+	if err != nil {
+		return respondWithError(c, 502, err.Error())
+	}
+	return c.JSON(http.StatusOK, wrapJSONRPC(res))
+}
+
+func (s *Server) getConsensusParams(c echo.Context) error {
+	ctx := c.Request().Context()
+	heightParam := c.QueryParam("height")
+
+	var height *int64
+	if heightParam != "" {
+		h, err := strconv.ParseInt(heightParam, 10, 64)
+		if err != nil {
+			return respondWithError(c, 400, "invalid height")
+		}
+		height = &h
+	}
+
+	res, err := s.rpc.ConsensusParams(ctx, height)
 	if err != nil {
 		return respondWithError(c, 502, err.Error())
 	}
@@ -105,6 +188,97 @@ func (s *Server) handleJSONRPC(c echo.Context) error {
 			}
 		}
 		res, err := s.rpc.Block(ctx, height)
+		if err != nil {
+			return respondWithError(c, 502, err.Error())
+		}
+		return c.JSON(http.StatusOK, newJSONRPCResponse(req.ID, res))
+
+	case "commit":
+		var params []any
+		_ = json.Unmarshal(req.Params, &params)
+
+		var height *int64
+		if len(params) > 0 {
+			switch v := params[0].(type) {
+			case float64:
+				h := int64(v)
+				height = &h
+			case string:
+				if h, err := strconv.ParseInt(v, 10, 64); err == nil {
+					height = &h
+				}
+			}
+		}
+		res, err := s.rpc.Commit(ctx, height)
+		if err != nil {
+			return respondWithError(c, 502, err.Error())
+		}
+		return c.JSON(http.StatusOK, newJSONRPCResponse(req.ID, res))
+
+	case "validators":
+		var params []any
+		_ = json.Unmarshal(req.Params, &params)
+
+		var height *int64
+		var page, perPage *int
+
+		if len(params) > 0 {
+			switch v := params[0].(type) {
+			case float64:
+				h := int64(v)
+				height = &h
+			case string:
+				if h, err := strconv.ParseInt(v, 10, 64); err == nil {
+					height = &h
+				}
+			}
+		}
+		if len(params) > 1 {
+			switch v := params[1].(type) {
+			case float64:
+				p := int(v)
+				page = &p
+			case string:
+				if p, err := strconv.Atoi(v); err == nil {
+					page = &p
+				}
+			}
+		}
+		if len(params) > 2 {
+			switch v := params[2].(type) {
+			case float64:
+				pp := int(v)
+				perPage = &pp
+			case string:
+				if pp, err := strconv.Atoi(v); err == nil {
+					perPage = &pp
+				}
+			}
+		}
+
+		res, err := s.rpc.Validators(ctx, height, page, perPage)
+		if err != nil {
+			return respondWithError(c, 502, err.Error())
+		}
+		return c.JSON(http.StatusOK, newJSONRPCResponse(req.ID, res))
+
+	case "consensus_params":
+		var params []any
+		_ = json.Unmarshal(req.Params, &params)
+
+		var height *int64
+		if len(params) > 0 {
+			switch v := params[0].(type) {
+			case float64:
+				h := int64(v)
+				height = &h
+			case string:
+				if h, err := strconv.ParseInt(v, 10, 64); err == nil {
+					height = &h
+				}
+			}
+		}
+		res, err := s.rpc.ConsensusParams(ctx, height)
 		if err != nil {
 			return respondWithError(c, 502, err.Error())
 		}

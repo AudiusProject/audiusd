@@ -17,6 +17,7 @@ import (
 
 	"connectrpc.com/connect"
 	corev1 "github.com/AudiusProject/audiusd/pkg/api/core/v1"
+	"github.com/AudiusProject/audiusd/pkg/common"
 	"github.com/AudiusProject/audiusd/pkg/sdk"
 	v1 "github.com/cometbft/cometbft/api/cometbft/abci/v1"
 	"github.com/cometbft/cometbft/rpc/client/http"
@@ -660,8 +661,13 @@ func (s *Server) cacheSnapshots() error {
 
 func (s *Server) stateSyncLatestBlock(rpcServers []string) (trustHeight int64, trustHash string, err error) {
 	for _, rpcServer := range rpcServers {
-		audsRpc := strings.TrimSuffix(rpcServer, "/core/crpc")
-		auds := sdk.NewAudiusdSDK(audsRpc)
+		// Ensure URL has protocol
+		baseURL := common.EnsureURLProtocol(rpcServer)
+		baseURL = strings.TrimSuffix(baseURL, "/core/crpc")
+		baseURL = strings.TrimSuffix(baseURL, "/")
+
+		// SDK needs base URL without /core/crpc
+		auds := sdk.NewAudiusdSDK(baseURL)
 		snapshots, err := auds.Core.GetStoredSnapshots(context.Background(), connect.NewRequest(&corev1.GetStoredSnapshotsRequest{}))
 		if err != nil {
 			s.logger.Error("error getting stored snapshots", zap.String("rpcServer", rpcServer), zap.Error(err))
@@ -673,7 +679,9 @@ func (s *Server) stateSyncLatestBlock(rpcServers []string) (trustHeight int64, t
 		trustBuffer := 10 // number of blocks to step back
 		safeHeight := lastSnapshot.Height - int64(trustBuffer)
 
-		client, err := http.New(rpcServer)
+		// CometBFT client needs the /core/crpc endpoint
+		rpcURL := baseURL + "/core/crpc"
+		client, err := http.New(rpcURL)
 		if err != nil {
 			s.logger.Error("error creating rpc client", zap.String("rpcServer", rpcServer), zap.Error(err))
 			continue
