@@ -58,9 +58,9 @@ func NewConsole(etl *etl.ETLService, e *echo.Echo, env string) *Console {
 
 	switch env {
 	case "prod", "production", "mainnet":
-		trustedNodeURL = "rpc.audius.engineering"
+		trustedNodeURL = "creatornode.audius.co"
 	case "staging", "stage", "testnet":
-		trustedNodeURL = "rpc.staging.audius.engineering"
+		trustedNodeURL = "creatornode11.staging.audius.co"
 	case "dev":
 		trustedNodeURL = "rpc.dev.audius.engineering"
 	}

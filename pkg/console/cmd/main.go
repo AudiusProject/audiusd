@@ -7,6 +7,7 @@ import (
 	"github.com/AudiusProject/audiusd/pkg/console"
 	"github.com/AudiusProject/audiusd/pkg/etl"
 	"github.com/AudiusProject/audiusd/pkg/sdk"
+	"go.uber.org/zap"
 )
 
 func main() {
@@ -21,7 +22,7 @@ func main() {
 
 	auds := sdk.NewAudiusdSDK("creatornode.audius.co")
 
-	etl := etl.NewETLService(auds.Core, nil)
+	etl := etl.NewETLService(auds.Core, zap.NewNop())
 	etl.SetDBURL(dbURL)
 	etl.SetCheckReadiness(false)
 
