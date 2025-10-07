@@ -118,6 +118,10 @@ func (c *CoreService) ForwardTransaction(ctx context.Context, req *connect.Reque
 		c.core.logger.Debug("received forwarded tx", zap.Any("tx", req.Msg.Transaction))
 	}
 
+	if c.core.rpc == nil {
+		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("local rpc not ready"))
+	}
+
 	// TODO: intake block deadline from request
 	status, err := c.core.rpc.Status(ctx)
 	if err != nil {
