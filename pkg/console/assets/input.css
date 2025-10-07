@@ -11,7 +11,7 @@
   }
 
   .card-secondary {
-    @apply bg-neutral-50 dark:bg-neutral-800 rounded-lg shadow-xl border border-neutral-200 dark:border-neutral-700 overflow-hidden;
+    @apply bg-neutral-50 dark:bg-neutral-900 rounded-lg shadow-xl border border-neutral-200 dark:border-neutral-700 overflow-hidden;
   }
 
   .card-overlay {
