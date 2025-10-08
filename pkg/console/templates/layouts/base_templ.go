@@ -36,15 +36,15 @@ func Base(pageTitle string) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var2 string
-		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%s | Audius Explorer", pageTitle))
+		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%s | Open Audio Explorer", pageTitle))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/layouts/base.templ`, Line: 7, Col: 57}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/layouts/base.templ`, Line: 7, Col: 61}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</title><head><link rel=\"icon\" type=\"image/svg+xml\" href=\"/assets/images/Glyph_Black.svg\"><link rel=\"stylesheet\" href=\"/assets/css/output.css\"><link rel=\"stylesheet\" href=\"https://unpkg.com/leaflet@1.9.4/dist/leaflet.css\"><script src=\"https://unpkg.com/htmx.org@1.9.10\"></script><script src=\"/assets/js/search.js\"></script><script src=\"/assets/js/timezone.js\"></script><script defer src=\"https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js\"></script><script src=\"https://unpkg.com/leaflet@1.9.4/dist/leaflet.js\"></script></head><body class=\"bg-gray-100 dark:bg-gray-950 text-gray-900 dark:text-gray-100\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</title><head><link rel=\"icon\" type=\"image/svg+xml\" href=\"/assets/images/Glyph_Black.svg\"><link rel=\"stylesheet\" href=\"/assets/css/output.css\"><link rel=\"stylesheet\" href=\"https://unpkg.com/leaflet@1.9.4/dist/leaflet.css\"><script src=\"https://unpkg.com/htmx.org@1.9.10\"></script><script src=\"/assets/js/search.js\"></script><script src=\"/assets/js/timezone.js\"></script><script defer src=\"https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js\"></script><script src=\"https://unpkg.com/leaflet@1.9.4/dist/leaflet.js\"></script></head><body class=\"bg-gray-100 dark:bg-[#000000] text-gray-900 dark:text-gray-100\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

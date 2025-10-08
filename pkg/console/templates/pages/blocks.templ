@@ -18,7 +18,7 @@ type BlocksProps struct {
 
 templ Blocks(props BlocksProps) {
 	@layouts.Base("Blocks") {
-		<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6">
+		<div class="bg-white dark:bg-[#141414] rounded-lg shadow-xl p-6">
 			<div class="flex justify-between items-center mb-6">
 				<h2 class="text-2xl font-light text-gray-900 dark:text-gray-100">Latest Blocks</h2>
 				<div class="text-sm text-gray-500 dark:text-gray-400">
@@ -63,20 +63,20 @@ templ Blocks(props BlocksProps) {
 				<div class="flex justify-between items-center mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
 					<div class="flex gap-3">
 						if props.HasPrev {
-							<a href={ templ.SafeURL(fmt.Sprintf("/blocks?page=%d&count=%d", props.CurrentPage-1, props.PageSize)) } class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors">
+							<a href={ templ.SafeURL(fmt.Sprintf("/blocks?page=%d&count=%d", props.CurrentPage-1, props.PageSize)) } class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-[#141414] hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors">
 								← Previous
 							</a>
 						} else {
-							<span class="px-4 py-2 text-sm font-medium text-gray-400 dark:text-gray-600 bg-gray-50 dark:bg-gray-700 rounded cursor-not-allowed">
+							<span class="px-4 py-2 text-sm font-medium text-gray-400 dark:text-gray-600 bg-gray-50 dark:bg-[#141414] rounded cursor-not-allowed">
 								← Previous
 							</span>
 						}
 						if props.HasNext {
-							<a href={ templ.SafeURL(fmt.Sprintf("/blocks?page=%d&count=%d", props.CurrentPage+1, props.PageSize)) } class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors">
+							<a href={ templ.SafeURL(fmt.Sprintf("/blocks?page=%d&count=%d", props.CurrentPage+1, props.PageSize)) } class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-[#141414] hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors">
 								Next →
 							</a>
 						} else {
-							<span class="px-4 py-2 text-sm font-medium text-gray-400 dark:text-gray-600 bg-gray-50 dark:bg-gray-700 rounded cursor-not-allowed">
+							<span class="px-4 py-2 text-sm font-medium text-gray-400 dark:text-gray-600 bg-gray-50 dark:bg-[#141414] rounded cursor-not-allowed">
 								Next →
 							</span>
 						}
