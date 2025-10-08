@@ -66,7 +66,7 @@ func (c *CoreService) GetNodeInfo(ctx context.Context, req *connect.Request[v1.G
 // ForwardTransaction implements v1connect.CoreServiceHandler.
 func (c *CoreService) ForwardTransaction(ctx context.Context, req *connect.Request[v1.ForwardTransactionRequest]) (*connect.Response[v1.ForwardTransactionResponse], error) {
 	// Check feature flag for programmable distribution features
-	if !c.core.config.ProgrammableDistributionEnabled {
+	if c.core != nil && c.core.config != nil && !c.core.config.ProgrammableDistributionEnabled {
 		// Check if transaction uses programmable distribution features
 		if req.Msg != nil && req.Msg.Transaction != nil && req.Msg.Transaction.GetFileUpload() != nil {
 			return nil, connect.NewError(connect.CodeUnimplemented, errors.New("programmable distribution is not enabled in this environment"))
@@ -118,11 +118,10 @@ func (c *CoreService) ForwardTransaction(ctx context.Context, req *connect.Reque
 		c.core.logger.Debug("received forwarded tx", zap.Any("tx", req.Msg.Transaction))
 	}
 
-	if c.core.rpc == nil {
+	if c.core == nil || c.core.rpc == nil {
 		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("local rpc not ready"))
 	}
 
-	// TODO: intake block deadline from request
 	status, err := c.core.rpc.Status(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("chain not healthy: %v", err)
