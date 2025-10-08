@@ -153,15 +153,14 @@ templ Dashboard(props DashboardProps) {
 			<div class="bg-white dark:bg-[#141414] rounded-lg shadow-xl p-6">
 				<div id="stats-header" x-data="blockEvents()" x-init="init()">
 					<div class="flex items-center justify-between">
-						<div class="flex-1">
-							<h4 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Block Height</h4>
+						<div class="flex-1 flex flex-col items-center">
 							<div class="flex items-center h-12" x-data="animatedNumber()" x-init="init(latestBlock.height)">
 								<template x-for="(digit, index) in digits" :key="index">
 									<div class="relative h-10 w-6 overflow-hidden flex items-center justify-center">
 										<!-- Current digit (slides down when animating) -->
 										<div class="absolute inset-0 flex items-center justify-center">
 											<span
-												class="text-3xl font-bold text-gray-900 dark:text-gray-100 tabular-nums"
+												class="text-4xl font-bold text-gray-900 dark:text-gray-100 tabular-nums"
 												:class="getCurrentDigitClass(digit)"
 												x-text="digit.current"
 											></span>
@@ -169,7 +168,7 @@ templ Dashboard(props DashboardProps) {
 										<!-- Next digit (slides in from above when animating) -->
 										<div class="absolute inset-0 flex items-center justify-center">
 											<span
-												class="text-3xl font-bold text-gray-900 dark:text-gray-100 tabular-nums"
+												class="text-4xl font-bold text-gray-900 dark:text-gray-100 tabular-nums"
 												:class="getNextDigitClass(digit)"
 												x-text="digit.next"
 											></span>
@@ -177,13 +176,9 @@ templ Dashboard(props DashboardProps) {
 									</div>
 								</template>
 							</div>
+							<h4 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Block Height</h4>
 						</div>
-						<div class="flex-1 border-l border-gray-200 dark:border-gray-700 pl-6">
-							<h4 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Chain ID</h4>
-							<p class="text-3xl font-bold text-gray-900 dark:text-gray-100">{ props.Stats.ChainID }</p>
-						</div>
-						<div class="flex-none w-32 border-l border-gray-200 dark:border-gray-700 pl-6">
-							<h4 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Block Time</h4>
+						<div class="flex-1 w-32 border-l border-gray-200 dark:border-gray-700 pl-6 flex flex-col items-center">
 							if props.Stats.AvgBlockTime > 0 {
 								<p class="text-3xl font-bold text-gray-900 dark:text-gray-100">{ fmt.Sprintf("%.2fs", props.Stats.AvgBlockTime) }</p>
 							} else if props.Stats.BPS > 0 {
@@ -193,9 +188,9 @@ templ Dashboard(props DashboardProps) {
 								<p class="text-3xl font-bold text-gray-900 dark:text-gray-100">-</p>
 								<p class="text-xs text-gray-500 dark:text-gray-400">No data</p>
 							}
+							<h4 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Block Time</h4>
 						</div>
-						<div class="flex-none w-40 border-l border-gray-200 dark:border-gray-700 pl-6">
-							<h4 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Sync Status</h4>
+						<div class="flex-1 w-40 border-l border-gray-200 dark:border-gray-700 pl-6 flex flex-col items-center">
 							if props.Stats.IsSyncing {
 								<div class="flex items-center">
 									<div class="w-2 h-2 bg-yellow-500 rounded-full mr-2 animate-pulse"></div>
@@ -208,6 +203,7 @@ templ Dashboard(props DashboardProps) {
 								</div>
 								<p class="text-xs text-gray-500 dark:text-gray-400">Up to date</p>
 							}
+							<h4 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Sync Status</h4>
 						</div>
 					</div>
 					<!-- Sync Progress Bar -->
@@ -269,26 +265,26 @@ templ Dashboard(props DashboardProps) {
 					<div class="lg:col-span-2 space-y-6">
 						<!-- Top row: TPS and Total Transactions -->
 						<div class="grid grid-cols-2 gap-6">
-							<div id="tps-fragment" hx-get="/fragments/tps" hx-trigger="every 5s" hx-swap="outerHTML">
-								@TPSFragment(props.Stats)
-							</div>
 							<div id="total-transactions-fragment" hx-get="/fragments/total-transactions" hx-trigger="every 10s" hx-swap="outerHTML">
 								@TotalTransactionsFragment(props.Stats)
+							</div>
+							<div id="tps-fragment" hx-get="/fragments/tps" hx-trigger="every 5s" hx-swap="outerHTML">
+								@TPSFragment(props.Stats)
 							</div>
 						</div>
 						<!-- Bottom row: Volume metrics -->
 						<div class="grid grid-cols-3 border-t border-gray-200 dark:border-gray-700 pt-6">
-							<div class="border-r border-gray-200 dark:border-gray-700 pr-6">
+							<div class="border-r border-gray-200 dark:border-gray-700 pr-6 flex flex-col items-center">
 								<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">24h Volume</div>
 								<div class="text-2xl font-light text-gray-900 dark:text-gray-100 mb-1">{ formatNumber(props.Stats.TotalTransactions24h) }</div>
 								<div class="text-xs text-gray-500 dark:text-gray-400">Daily rate</div>
 							</div>
-							<div class="border-r border-gray-200 dark:border-gray-700 pr-6 pl-6">
+							<div class="border-r border-gray-200 dark:border-gray-700 pr-6 pl-6 flex flex-col items-center">
 								<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">7d Volume</div>
 								<div class="text-2xl font-light text-gray-900 dark:text-gray-100 mb-1">{ formatNumber(props.Stats.TotalTransactions7d) }</div>
 								<div class="text-xs text-gray-500 dark:text-gray-400">Avg: { formatNumber(props.Stats.TotalTransactions7d / 7) }/day</div>
 							</div>
-							<div class="pl-6">
+							<div class="pl-6 flex flex-col items-center">
 								<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">30d Volume</div>
 								<div class="text-2xl font-light text-gray-900 dark:text-gray-100 mb-1">{ formatNumber(props.Stats.TotalTransactions30d) }</div>
 								<div class="text-xs text-gray-500 dark:text-gray-400">Avg: { formatNumber(props.Stats.TotalTransactions30d / 30) }/day</div>
@@ -302,7 +298,7 @@ templ Dashboard(props DashboardProps) {
 							if len(props.TransactionBreakdown) > 0 {
 								for _, breakdown := range props.TransactionBreakdown {
 									<div class="flex items-center justify-between">
-										<span class="text-xs px-2 py-1 bg-gray-100 dark:bg-stone-700 rounded text-gray-600 dark:text-gray-400">{ breakdown.Type }</span>
+										<span class="text-xs px-2 py-1 bg-gray-100 dark:bg-stone-700 rounded text-gray-600 dark:text-gray-200">{ breakdown.Type }</span>
 										<span class="text-sm font-medium text-gray-900 dark:text-gray-100 tabular-nums">{ formatNumber(breakdown.Count) }</span>
 									</div>
 								}
@@ -367,12 +363,12 @@ templ Dashboard(props DashboardProps) {
 							for _, block := range props.RecentBlocks {
 								<div class="flex items-center justify-between py-3 px-4 border border-gray-200 dark:border-gray-700 rounded hover:bg-purple-50 hover:border-purple-200 dark:hover:bg-stone-700 transition-colors">
 									<div class="flex items-center gap-4">
-										<a href={ templ.SafeURL(fmt.Sprintf("/block/%d", block.BlockHeight)) } class="font-semibold text-purple-600 dark:text-purple-400 hover:underline">
+										<a href={ templ.SafeURL(fmt.Sprintf("/block/%d", block.BlockHeight)) } class="font-semibold text-gray-600 dark:text-gray-200 hover:underline">
 											{ fmt.Sprintf("#%d", block.BlockHeight) }
 										</a>
-										<a href={ templ.SafeURL(fmt.Sprintf("/validator/%s", block.ProposerAddress)) } class="font-mono text-xs text-purple-600 dark:text-purple-400 hover:underline">
+										<a href={ templ.SafeURL(fmt.Sprintf("/validator/%s", block.ProposerAddress)) } class="font-mono text-xs text-gray-600 dark:text-gray-200 hover:underline">
 											if len(block.ProposerAddress) > 8 {
-												{ block.ProposerAddress[:4] }...{ block.ProposerAddress[len(block.ProposerAddress)-4:] }
+												{ block.ProposerAddress[:12] }...{ block.ProposerAddress[len(block.ProposerAddress)-4:] }
 											} else {
 												{ block.ProposerAddress }
 											}
@@ -403,18 +399,18 @@ templ Dashboard(props DashboardProps) {
 							for _, tx := range props.RecentTransactions {
 								<div class="flex items-center justify-between py-3 px-4 border border-gray-200 dark:border-gray-700 rounded hover:bg-purple-50 hover:border-purple-200 dark:hover:bg-stone-700 transition-colors">
 									<div class="flex items-center gap-4">
-										<a href={ templ.SafeURL(fmt.Sprintf("/transaction/%s", tx.TxHash)) } class="font-mono text-sm text-purple-600 dark:text-purple-400 hover:underline">
+										<a href={ templ.SafeURL(fmt.Sprintf("/transaction/%s", tx.TxHash)) } class="font-mono text-sm text-gray-600 dark:text-gray-200 hover:underline">
 											if len(tx.TxHash) > 8 {
-												{ tx.TxHash[:4] }...{ tx.TxHash[len(tx.TxHash)-4:] }
+												{ tx.TxHash[:12] }...{ tx.TxHash[len(tx.TxHash)-4:] }
 											} else {
 												{ tx.TxHash }
 											}
 										</a>
-										<span class="text-xs px-2 py-1 bg-gray-100 dark:bg-stone-700 rounded text-gray-600 dark:text-gray-400">
+										<span class="text-xs px-2 py-1 bg-gray-100 dark:bg-stone-700 rounded text-gray-600 dark:text-gray-200">
 											{ tx.TxType }
 										</span>
 										if blockHeight, exists := props.BlockHeights[tx.TxHash]; exists {
-											<a href={ templ.SafeURL(fmt.Sprintf("/block/%d", blockHeight)) } class="text-xs text-purple-600 dark:text-purple-400 hover:underline">
+											<a href={ templ.SafeURL(fmt.Sprintf("/block/%d", blockHeight)) } class="text-xs text-gray-600 dark:text-gray-200 hover:underline">
 												{ fmt.Sprintf("#%d", blockHeight) }
 											</a>
 										}
@@ -471,10 +467,6 @@ templ StatsHeaderFragment(stats *DashboardStats, syncProgressPercentage float64)
 					</template>
 				</div>
 			</div>
-			<div class="flex-1 border-l border-gray-200 dark:border-gray-700 pl-6">
-				<h4 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Chain ID</h4>
-				<p class="text-3xl font-bold text-gray-900 dark:text-gray-100">{ stats.ChainID }</p>
-			</div>
 			<div class="flex-none w-32 border-l border-gray-200 dark:border-gray-700 pl-6">
 				<h4 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Block Time</h4>
 				if stats.AvgBlockTime > 0 {
@@ -530,7 +522,7 @@ templ StatsHeaderFragment(stats *DashboardStats, syncProgressPercentage float64)
 }
 
 templ TPSFragment(stats *DashboardStats) {
-	<div id="tps-fragment" hx-get="/fragments/tps" hx-trigger="every 5s" hx-swap="outerHTML" class="border-r border-gray-200 dark:border-gray-700 pr-6">
+	<div id="tps-fragment" hx-get="/fragments/tps" hx-trigger="every 5s" hx-swap="outerHTML" class="pr-6 flex flex-col items-center">
 		<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Transactions/sec</div>
 		<div class="text-4xl font-light text-gray-900 dark:text-gray-100 mb-1">{ fmt.Sprintf("%.1f", stats.TPS) }</div>
 		<div class="text-xs text-gray-500 dark:text-gray-400">30d Avg: { fmt.Sprintf("%.1f", float64(stats.TotalTransactions30d)/(30*24*60*60)) } TPS</div>
@@ -538,7 +530,7 @@ templ TPSFragment(stats *DashboardStats) {
 }
 
 templ TotalTransactionsFragment(stats *DashboardStats) {
-	<div id="total-transactions-fragment" hx-get="/fragments/total-transactions" hx-trigger="every 10s" hx-swap="outerHTML" class="pr-6">
+	<div id="total-transactions-fragment" hx-get="/fragments/total-transactions" hx-trigger="every 10s" hx-swap="outerHTML" class="border-r border-gray-200 dark:border-gray-700 pr-6 flex flex-col items-center">
 		<div class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Total Transactions</div>
 		<div class="text-4xl font-light text-gray-900 dark:text-gray-100 mb-1">{ formatNumber(stats.TotalTransactions) }</div>
 		<div class={ fmt.Sprintf("text-xs %s", getPercentageChangeColorClass(stats.TotalTransactions24h, stats.TotalTransactionsPrevious24h)) }>{ getPercentageChangeText(stats.TotalTransactions24h, stats.TotalTransactionsPrevious24h) }</div>
