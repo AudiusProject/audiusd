@@ -526,7 +526,7 @@ func startEchoProxy(hostUrl *url.URL, logger *zap.Logger, coreService *coreServe
 
 	e := echo.New()
 	e.HideBanner = true
-	e.Use(middleware.Logger(), middleware.Recover(), common.InjectRealIP())
+	e.Use(middleware.Logger(), middleware.Recover(), common.InjectRealIP(), common.CORS())
 
 	rpcGroup := e.Group("")
 	corePath, coreHandler := corev1connect.NewCoreServiceHandler(coreService, connectJSONOpt)
