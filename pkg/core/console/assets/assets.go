@@ -7,24 +7,24 @@ import (
 )
 
 var (
-	//go:embed images/Glyph_Black.svg
-	glyphBlackFs embed.FS
+	//go:embed images/OpenAudioProtocol-Logo-inverse-v1.0.svg
+	imagesFs embed.FS
 	//go:embed js/main.js
 	mainJS []byte
 )
 
 var (
-	AudiusLogoBlackGlyph string
-	MainJS               string
+	OAPLogoInverse string
+	MainJS         string
 )
 
 func init() {
-	svgContent, err := glyphBlackFs.ReadFile("images/Glyph_Black.svg")
+	svgContent, err := imagesFs.ReadFile("images/OpenAudioProtocol-Logo-inverse-v1.0.svg")
 	if err != nil {
 		log.Fatalf("SVG not found: %v", err)
 	}
 	encodedSVG := base64.StdEncoding.EncodeToString(svgContent)
-	AudiusLogoBlackGlyph = "data:image/svg+xml;base64," + encodedSVG
+	OAPLogoInverse = "data:image/svg+xml;base64," + encodedSVG
 
 	MainJS = string(mainJS)
 }
