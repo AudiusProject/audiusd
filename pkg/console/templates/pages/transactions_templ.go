@@ -57,7 +57,7 @@ func Transactions(props TransactionsProps) templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6\"><div class=\"flex justify-between items-center mb-6\"><h2 class=\"text-2xl font-light text-gray-900 dark:text-gray-100\">Latest Transactions</h2><div class=\"text-sm text-gray-500 dark:text-gray-400\">Page ")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"bg-white dark:bg-[#141414] rounded-lg shadow-xl p-6\"><div class=\"flex justify-between items-center mb-6\"><h2 class=\"text-2xl font-light text-gray-900 dark:text-gray-100\">Latest Transactions</h2><div class=\"text-sm text-gray-500 dark:text-gray-400\">Page ")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -114,7 +114,7 @@ func Transactions(props TransactionsProps) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</div></div><div class=\"flex-1\"><div class=\"text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1\">Type</div><span class=\"px-3 py-1 text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</div></div><div class=\"flex-1\"><div class=\"text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1\">Type</div><span class=\"px-3 py-1 text-xs font-medium bg-gray-100 dark:bg-[#141414] text-gray-700 dark:text-gray-300 rounded\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -206,12 +206,12 @@ func Transactions(props TransactionsProps) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "\" class=\"px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors\">← Previous</a> ")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "\" class=\"px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-[#141414] hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors\">← Previous</a> ")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 				} else {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "<span class=\"px-4 py-2 text-sm font-medium text-gray-400 dark:text-gray-600 bg-gray-50 dark:bg-gray-700 rounded cursor-not-allowed\">← Previous</span> ")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "<span class=\"px-4 py-2 text-sm font-medium text-gray-400 dark:text-gray-600 bg-gray-50 dark:bg-[#141414] rounded cursor-not-allowed\">← Previous</span> ")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -230,12 +230,12 @@ func Transactions(props TransactionsProps) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "\" class=\"px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors\">Next →</a>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "\" class=\"px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-[#141414] hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors\">Next →</a>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 				} else {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "<span class=\"px-4 py-2 text-sm font-medium text-gray-400 dark:text-gray-600 bg-gray-50 dark:bg-gray-700 rounded cursor-not-allowed\">Next →</span>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "<span class=\"px-4 py-2 text-sm font-medium text-gray-400 dark:text-gray-600 bg-gray-50 dark:bg-[#141414] rounded cursor-not-allowed\">Next →</span>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}

@@ -34,7 +34,13 @@ func extractHost(endpoint string) string {
 		endpoint = endpoint[:idx]
 	}
 
-	return endpoint
+	trimLen := 28
+
+	if len(endpoint) <= trimLen {
+		return endpoint
+	}
+
+	return endpoint[:trimLen] + "..."
 }
 
 func buildValidatorsPaginationURL(page int32, pageSize int32, queryType string, endpointFilter string) string {
@@ -113,27 +119,27 @@ func Validators(props ValidatorsProps) templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6\"><div class=\"flex items-center gap-6 mb-6\"><h2 class=\"text-2xl font-light text-gray-900 dark:text-gray-100\">Validators</h2><div class=\"flex-1 max-w-md\"><input type=\"text\" id=\"endpointFilter\" placeholder=\"Filter by endpoint (e.g. audius.co)...\" value=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"bg-white dark:bg-[#141414] rounded-lg shadow-xl p-6\"><div class=\"flex items-center gap-6 mb-6\"><h2 class=\"text-2xl font-light text-gray-900 dark:text-gray-100\">Validators</h2><div class=\"flex-1 max-w-md\"><input type=\"text\" id=\"endpointFilter\" placeholder=\"Filter by endpoint (e.g. audius.co)...\" value=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(props.EndpointFilter)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 85, Col: 34}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 91, Col: 34}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\" class=\"w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 focus:border-transparent\" onchange=\"updateFilters()\"></div><div class=\"flex items-center gap-4 ml-auto\"><div class=\"text-sm text-gray-500 dark:text-gray-400\">Page ")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\" class=\"w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#141414] text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 focus:border-transparent\" onchange=\"updateFilters()\"></div><div class=\"flex items-center gap-4 ml-auto\"><div class=\"text-sm text-gray-500 dark:text-gray-400\">Page ")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var4 string
 			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprint(props.CurrentPage))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 92, Col: 42}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 98, Col: 42}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 			if templ_7745c5c3_Err != nil {
@@ -146,7 +152,7 @@ func Validators(props ValidatorsProps) templ.Component {
 			var templ_7745c5c3_Var5 string
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprint(props.PageSize))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 92, Col: 77}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 98, Col: 77}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 			if templ_7745c5c3_Err != nil {
@@ -168,7 +174,7 @@ func Validators(props ValidatorsProps) templ.Component {
 			var templ_7745c5c3_Var7 templ.SafeURL
 			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(fmt.Sprintf("?type=active&endpoint_filter=%s", props.EndpointFilter)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 96, Col: 97}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 102, Col: 97}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 			if templ_7745c5c3_Err != nil {
@@ -203,7 +209,7 @@ func Validators(props ValidatorsProps) templ.Component {
 			var templ_7745c5c3_Var10 templ.SafeURL
 			templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(fmt.Sprintf("?type=registrations&endpoint_filter=%s", props.EndpointFilter)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 102, Col: 104}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 108, Col: 104}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 			if templ_7745c5c3_Err != nil {
@@ -238,7 +244,7 @@ func Validators(props ValidatorsProps) templ.Component {
 			var templ_7745c5c3_Var13 templ.SafeURL
 			templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(fmt.Sprintf("?type=deregistrations&endpoint_filter=%s", props.EndpointFilter)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 108, Col: 106}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 114, Col: 106}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 			if templ_7745c5c3_Err != nil {
@@ -274,7 +280,7 @@ func Validators(props ValidatorsProps) templ.Component {
 					var templ_7745c5c3_Var15 templ.SafeURL
 					templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(fmt.Sprintf("/validator/%s", validator.Address)))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 119, Col: 78}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 125, Col: 78}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 					if templ_7745c5c3_Err != nil {
@@ -287,13 +293,13 @@ func Validators(props ValidatorsProps) templ.Component {
 					var templ_7745c5c3_Var16 string
 					templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(extractHost(validator.Endpoint))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 126, Col: 45}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 132, Col: 45}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "</div><div class=\"absolute top-0 right-0 w-8 h-full bg-gradient-to-l from-white dark:from-gray-800 to-transparent pointer-events-none\"></div></div></div><div class=\"flex-1\"><div class=\"text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1\">Address</div><div class=\"font-mono text-sm text-purple-600 dark:text-purple-400\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "</div><div class=\"absolute top-0 right-0 w-8 h-full bg-white dark:bg-[#141414] pointer-events-none\"></div></div></div><div class=\"flex-1\"><div class=\"text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1\">Address</div><div class=\"font-mono text-sm text-purple-600 dark:text-purple-400\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -301,14 +307,14 @@ func Validators(props ValidatorsProps) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "</div></div><div class=\"flex-1\"><div class=\"text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1\">Node Type</div><span class=\"px-3 py-1 text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "</div></div><div class=\"flex-1\"><div class=\"text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1\">Node Type</div><span class=\"px-3 py-1 text-xs font-medium bg-gray-100 dark:bg-[#141414] text-gray-700 dark:text-gray-300 rounded\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var17 string
 					templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinStringErrs(validator.NodeType)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 140, Col: 31}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 146, Col: 31}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
 					if templ_7745c5c3_Err != nil {
@@ -321,7 +327,7 @@ func Validators(props ValidatorsProps) templ.Component {
 					var templ_7745c5c3_Var18 string
 					templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", validator.VotingPower))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 146, Col: 53}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 152, Col: 53}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 					if templ_7745c5c3_Err != nil {
@@ -338,17 +344,17 @@ func Validators(props ValidatorsProps) templ.Component {
 							return templ_7745c5c3_Err
 						}
 					case "deregistered":
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "<span class=\"px-2 py-1 text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded\">Deregistered</span> ")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "<span class=\"px-2 py-1 text-xs font-medium bg-gray-100 dark:bg-[#141414] text-gray-700 dark:text-gray-300 rounded\">Deregistered</span> ")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
 					case "misbehavior_deregistered":
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "<span class=\"px-2 py-1 text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded\">Misbehavior</span> ")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "<span class=\"px-2 py-1 text-xs font-medium bg-gray-100 dark:bg-[#141414] text-gray-700 dark:text-gray-300 rounded\">Misbehavior</span> ")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
 					default:
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, "<span class=\"px-2 py-1 text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded\">Unknown</span> ")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, "<span class=\"px-2 py-1 text-xs font-medium bg-gray-100 dark:bg-[#141414] text-gray-700 dark:text-gray-300 rounded\">Unknown</span> ")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
@@ -399,7 +405,7 @@ func Validators(props ValidatorsProps) templ.Component {
 							var templ_7745c5c3_Var21 string
 							templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("SLA #%d: %d blocks, %d/%d challenges", rollups[i].SlaRollupID, rollups[i].NumBlocksProposed, rollups[i].ChallengesFailed, rollups[i].ChallengesReceived))
 							if templ_7745c5c3_Err != nil {
-								return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 180, Col: 187}
+								return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 186, Col: 187}
 							}
 							_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
 							if templ_7745c5c3_Err != nil {
@@ -415,14 +421,14 @@ func Validators(props ValidatorsProps) templ.Component {
 							return templ_7745c5c3_Err
 						}
 						for i := len(rollups); i < 5; i++ {
-							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 32, "<div class=\"w-3 h-4 bg-gray-200 dark:bg-gray-700 rounded-sm\" title=\"No data available\"></div>")
+							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 32, "<div class=\"w-3 h-4 bg-gray-200 dark:bg-[#141414] rounded-sm\" title=\"No data available\"></div>")
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
 						}
 					} else {
 						for i := 0; i < 5; i++ {
-							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 33, "<div class=\"w-3 h-4 bg-gray-200 dark:bg-gray-700 rounded-sm\" title=\"No uptime data available\"></div>")
+							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 33, "<div class=\"w-3 h-4 bg-gray-200 dark:bg-[#141414] rounded-sm\" title=\"No uptime data available\"></div>")
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
@@ -445,18 +451,18 @@ func Validators(props ValidatorsProps) templ.Component {
 					var templ_7745c5c3_Var22 templ.SafeURL
 					templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(buildValidatorsPaginationURL(props.CurrentPage-1, props.PageSize, props.QueryType, props.EndpointFilter)))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 204, Col: 134}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 210, Col: 134}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var22))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 37, "\" class=\"px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors\">← Previous</a> ")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 37, "\" class=\"px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-[#141414] hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors\">← Previous</a> ")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 				} else {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 38, "<span class=\"px-4 py-2 text-sm font-medium text-gray-400 dark:text-gray-600 bg-gray-50 dark:bg-gray-700 rounded cursor-not-allowed\">← Previous</span> ")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 38, "<span class=\"px-4 py-2 text-sm font-medium text-gray-400 dark:text-gray-600 bg-gray-50 dark:bg-[#141414] rounded cursor-not-allowed\">← Previous</span> ")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -469,18 +475,18 @@ func Validators(props ValidatorsProps) templ.Component {
 					var templ_7745c5c3_Var23 templ.SafeURL
 					templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(buildValidatorsPaginationURL(props.CurrentPage+1, props.PageSize, props.QueryType, props.EndpointFilter)))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 216, Col: 134}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/pages/validators.templ`, Line: 222, Col: 134}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var23))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 40, "\" class=\"px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors\">Next →</a>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 40, "\" class=\"px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-[#141414] hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors\">Next →</a>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 				} else {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 41, "<span class=\"px-4 py-2 text-sm font-medium text-gray-400 dark:text-gray-600 bg-gray-50 dark:bg-gray-700 rounded cursor-not-allowed\">Next →</span>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 41, "<span class=\"px-4 py-2 text-sm font-medium text-gray-400 dark:text-gray-600 bg-gray-50 dark:bg-[#141414] rounded cursor-not-allowed\">Next →</span>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}

@@ -76,7 +76,7 @@ func Account(props AccountProps) templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6\"><div class=\"flex justify-between items-center mb-6\"><h2 class=\"text-2xl font-light text-gray-900 dark:text-gray-100\">Account  <span class=\"font-mono text-purple-600 dark:text-purple-400\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"bg-white dark:bg-[#141414] rounded-lg shadow-xl p-6\"><div class=\"flex justify-between items-center mb-6\"><h2 class=\"text-2xl font-light text-gray-900 dark:text-gray-100\">Account  <span class=\"font-mono text-purple-600 dark:text-purple-400\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -115,7 +115,7 @@ func Account(props AccountProps) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, " transactions per page</div></div><div class=\"mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg\"><div class=\"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4\"><div><div class=\"text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1\">Address</div><div class=\"font-mono text-sm text-gray-900 dark:text-gray-100 break-all\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, " transactions per page</div></div><div class=\"mb-6 p-4 bg-gray-50 dark:bg-[#141414] rounded-lg\"><div class=\"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4\"><div><div class=\"text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1\">Address</div><div class=\"font-mono text-sm text-gray-900 dark:text-gray-100 break-all\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -146,7 +146,7 @@ func Account(props AccountProps) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			if len(props.RelationTypes) > 0 {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<div><div class=\"text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1\">Filter by Relation</div><select id=\"relationFilter\" class=\"w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 focus:border-transparent\" onchange=\"updateFilters()\"><option value=\"all\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<div><div class=\"text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1\">Filter by Relation</div><select id=\"relationFilter\" class=\"w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#141414] text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 focus:border-transparent\" onchange=\"updateFilters()\"><option value=\"all\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -220,7 +220,7 @@ func Account(props AccountProps) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "\" class=\"w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 focus:border-transparent\" onchange=\"updateFilters()\"></div><div><div class=\"text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1\">To Date</div><input type=\"date\" id=\"endDate\" value=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "\" class=\"w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#141414] text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 focus:border-transparent\" onchange=\"updateFilters()\"></div><div><div class=\"text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1\">To Date</div><input type=\"date\" id=\"endDate\" value=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -233,7 +233,7 @@ func Account(props AccountProps) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "\" class=\"w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 focus:border-transparent\" onchange=\"updateFilters()\"></div></div></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "\" class=\"w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#141414] text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 focus:border-transparent\" onchange=\"updateFilters()\"></div></div></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -264,7 +264,7 @@ func Account(props AccountProps) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "</div></div><div class=\"flex-1\"><div class=\"text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1\">Type</div><span class=\"px-3 py-1 text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "</div></div><div class=\"flex-1\"><div class=\"text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1\">Type</div><span class=\"px-3 py-1 text-xs font-medium bg-gray-100 dark:bg-[#141414] text-gray-700 dark:text-gray-300 rounded\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -334,12 +334,12 @@ func Account(props AccountProps) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 29, "\" class=\"px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors\">← Previous</a> ")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 29, "\" class=\"px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-[#141414] hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors\">← Previous</a> ")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 				} else {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "<span class=\"px-4 py-2 text-sm font-medium text-gray-400 dark:text-gray-600 bg-gray-50 dark:bg-gray-700 rounded cursor-not-allowed\">← Previous</span> ")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "<span class=\"px-4 py-2 text-sm font-medium text-gray-400 dark:text-gray-600 bg-gray-50 dark:bg-[#141414] rounded cursor-not-allowed\">← Previous</span> ")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -358,12 +358,12 @@ func Account(props AccountProps) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 32, "\" class=\"px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors\">Next →</a>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 32, "\" class=\"px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-[#141414] hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors\">Next →</a>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 				} else {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 33, "<span class=\"px-4 py-2 text-sm font-medium text-gray-400 dark:text-gray-600 bg-gray-50 dark:bg-gray-700 rounded cursor-not-allowed\">Next →</span>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 33, "<span class=\"px-4 py-2 text-sm font-medium text-gray-400 dark:text-gray-600 bg-gray-50 dark:bg-[#141414] rounded cursor-not-allowed\">Next →</span>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}

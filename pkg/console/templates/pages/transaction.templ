@@ -56,7 +56,7 @@ templ Transaction(props TransactionProps) {
 	@layouts.Base(fmt.Sprintf("Transaction %s", props.Transaction.TxHash[:8])) {
 		<div class="space-y-6">
 			<!-- Transaction Info Card -->
-			<div class="shadow-xl rounded-lg p-6 bg-white dark:bg-gray-800">
+			<div class="shadow-xl rounded-lg p-6 bg-white dark:bg-[#141414]">
 				<div class="flex justify-between items-start mb-4">
 					<div>
 						<h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Transaction Details</h2>
@@ -124,7 +124,7 @@ templ Transaction(props TransactionProps) {
 				case *db.EtlStorageProofVerification:
 					@StorageProofVerificationSection(props.Content.(*db.EtlStorageProofVerification))
 				default:
-					<div class="shadow-xl rounded-lg p-6 bg-white dark:bg-gray-800">
+					<div class="shadow-xl rounded-lg p-6 bg-white dark:bg-[#141414]">
 						<h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Transaction Content</h3>
 						<p class="text-gray-500 dark:text-gray-400">No detailed transaction content available for this transaction type.</p>
 					</div>
@@ -134,7 +134,7 @@ templ Transaction(props TransactionProps) {
 }
 
 templ TrackPlaysSection(plays []*db.EtlPlay) {
-	<div class="shadow-xl rounded-lg p-6 bg-white dark:bg-gray-800">
+	<div class="shadow-xl rounded-lg p-6 bg-white dark:bg-[#141414]">
 		<h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Track Plays ({ fmt.Sprintf("%d", len(plays)) })</h3>
 		<div class="overflow-x-auto">
 			<table class="min-w-full table-auto">
@@ -178,7 +178,7 @@ templ TrackPlaysSection(plays []*db.EtlPlay) {
 }
 
 templ ManageEntitySection(entity *db.EtlManageEntity) {
-	<div class="shadow-xl rounded-lg p-6 bg-white dark:bg-gray-800">
+	<div class="shadow-xl rounded-lg p-6 bg-white dark:bg-[#141414]">
 		<h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Manage Entity</h3>
 		<div class="overflow-x-auto">
 			<table class="min-w-full table-auto">
@@ -200,7 +200,7 @@ templ ManageEntitySection(entity *db.EtlManageEntity) {
 							<td class="py-2 px-4">{ entity.EntityType }</td>
 							<td class="py-2 px-4">{ fmt.Sprintf("%d", entity.EntityID) }</td>
 							<td class="py-2 px-4">
-								<span class="px-2 py-1 text-xs rounded bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
+								<span class="px-2 py-1 text-xs rounded bg-gray-100 dark:bg-[#141414] text-gray-800 dark:text-gray-200">
 									{ entity.Action }
 								</span>
 							</td>
@@ -215,7 +215,7 @@ templ ManageEntitySection(entity *db.EtlManageEntity) {
 			if entity.Metadata.Valid {
 				<div class="mt-4">
 					<h4 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Metadata</h4>
-					<div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 overflow-x-auto border border-gray-200 dark:border-gray-700">
+					<div class="bg-gray-50 dark:bg-[#141414] rounded-lg p-4 overflow-x-auto border border-gray-200 dark:border-gray-700">
 						<pre class="text-sm font-mono leading-relaxed whitespace-pre-wrap">
 							@templ.Raw(highlightJSON(string(entity.Metadata.String)))
 						</pre>
@@ -227,7 +227,7 @@ templ ManageEntitySection(entity *db.EtlManageEntity) {
 }
 
 templ ValidatorRegistrationSection(registration *db.EtlValidatorRegistration) {
-	<div class="shadow-xl rounded-lg p-6 bg-white dark:bg-gray-800">
+	<div class="shadow-xl rounded-lg p-6 bg-white dark:bg-[#141414]">
 		<h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Validator Registrations 1</h3>
 		<div class="overflow-x-auto">
 			<table class="min-w-full table-auto">
@@ -263,7 +263,7 @@ templ ValidatorRegistrationSection(registration *db.EtlValidatorRegistration) {
 }
 
 templ ValidatorDeregistrationSection(deregistration *db.EtlValidatorDeregistration) {
-	<div class="shadow-xl rounded-lg p-6 bg-white dark:bg-gray-800">
+	<div class="shadow-xl rounded-lg p-6 bg-white dark:bg-[#141414]">
 		<h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Validator Deregistrations 1</h3>
 		<div class="overflow-x-auto">
 			<table class="min-w-full table-auto">
@@ -293,7 +293,7 @@ templ ValidatorDeregistrationSection(deregistration *db.EtlValidatorDeregistrati
 }
 
 templ SlaRollupSection(slaRollup *db.EtlSlaRollup) {
-	<div class="shadow-xl rounded-lg p-6 bg-white dark:bg-gray-800">
+	<div class="shadow-xl rounded-lg p-6 bg-white dark:bg-[#141414]">
 		<h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">SLA Rollup</h3>
 		<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
 			<div>
@@ -319,7 +319,7 @@ templ SlaRollupSection(slaRollup *db.EtlSlaRollup) {
 }
 
 templ StorageProofSection(storageProof *db.EtlStorageProof) {
-	<div class="shadow-xl rounded-lg p-6 bg-white dark:bg-gray-800">
+	<div class="shadow-xl rounded-lg p-6 bg-white dark:bg-[#141414]">
 		<h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Storage Proof</h3>
 		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 			<div>
@@ -342,7 +342,7 @@ templ StorageProofSection(storageProof *db.EtlStorageProof) {
 				<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Prover Addresses</label>
 				<div class="flex flex-wrap gap-2">
 					for _, addr := range storageProof.ProverAddresses {
-						<span class="px-2 py-1 text-xs rounded bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
+						<span class="px-2 py-1 text-xs rounded bg-gray-100 dark:bg-[#141414] text-gray-800 dark:text-gray-200">
 							@templates.StringWithTooltip(addr)
 						</span>
 					}
@@ -361,7 +361,7 @@ templ StorageProofSection(storageProof *db.EtlStorageProof) {
 }
 
 templ StorageProofVerificationSection(storageProofVerification *db.EtlStorageProofVerification) {
-	<div class="shadow-xl rounded-lg p-6 bg-white dark:bg-gray-800">
+	<div class="shadow-xl rounded-lg p-6 bg-white dark:bg-[#141414]">
 		<h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Storage Proof Verification</h3>
 		<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 			<div>
