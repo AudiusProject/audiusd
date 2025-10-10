@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"github.com/AudiusProject/audiusd/pkg/core/config"
 	"github.com/AudiusProject/audiusd/pkg/core/console/assets"
+	"github.com/AudiusProject/audiusd/pkg/core/console/assets"
+	"github.com/AudiusProject/audiusd/pkg/core/console/views/components"
 )
 
 var gitCommit = templ.URL(fmt.Sprintf("https://github.com/AudiusProject/audius-protocol/commits/%s", config.Version))
@@ -11,9 +13,9 @@ var gitCommit = templ.URL(fmt.Sprintf("https://github.com/AudiusProject/audius-p
 templ (l *Layout) NavBlockData(totalBlocks string, syncing bool) {
 	<div>
         if syncing {
-            <span>🟡</span>
+            @components.StatusOrange("syncing")
         } else {
-            <span>🟢</span>
+            @components.StatusGreen("synced")
         }
         <span>&nbsp;{ totalBlocks } BLOCKS</span>
     </div>

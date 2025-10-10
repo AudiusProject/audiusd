@@ -3,6 +3,7 @@ package pages
 import (
 	"fmt"
 	"github.com/AudiusProject/audiusd/pkg/api/core/v1"
+	"github.com/AudiusProject/audiusd/pkg/core/console/views/components"
 )
 
 func formatBytes(bytes int64) string {
@@ -42,20 +43,20 @@ func getProcessStateText(state v1.GetStatusResponse_ProcessInfo_ProcessState) st
 	}
 }
 
-func getProcessStateIcon(state v1.GetStatusResponse_ProcessInfo_ProcessState) string {
+func getProcessStateIcon(state v1.GetStatusResponse_ProcessInfo_ProcessState) templ.Component {
 	switch state {
 	case v1.GetStatusResponse_ProcessInfo_PROCESS_STATE_RUNNING:
-		return "🟢"
+		return components.StatusGreenLg("Running")
 	case v1.GetStatusResponse_ProcessInfo_PROCESS_STATE_STARTING:
-		return "🟡"
+		return components.StatusOrangeLg("Starting")
 	case v1.GetStatusResponse_ProcessInfo_PROCESS_STATE_SLEEPING:
-		return "🔵"
+		return components.StatusGrayLg("Sleeping")
 	case v1.GetStatusResponse_ProcessInfo_PROCESS_STATE_COMPLETED:
-		return "✅"
+		return components.StatusCompleteLg("Complete")
 	case v1.GetStatusResponse_ProcessInfo_PROCESS_STATE_ERROR:
-		return "🔴"
+		return components.StatusRedLg("Error")
 	default:
-		return "⚪"
+		return components.StatusGrayLg("Unknown")
 	}
 }
 
@@ -84,9 +85,11 @@ templ (p *Pages) OverviewCriticalFragment(status *v1.GetStatusResponse) {
 		<div class="bg-secondary rounded-lg p-4 text-center">
 			<div class="text-2xl font-bold">
 				if status.Live {
-					🟢 Live
+		            @components.StatusGreenLg("Live")
+                    <span>&nbsp;Live</span>
 				} else {
-					🔴 Down
+		            @components.StatusRedLg("Down")
+                    <span>&nbsp;Down</span>
 				}
 			</div>
 			<div class="text-sm text-secondary">Node Status</div>
@@ -94,9 +97,11 @@ templ (p *Pages) OverviewCriticalFragment(status *v1.GetStatusResponse) {
 		<div class="bg-secondary rounded-lg p-4 text-center">
 			<div class="text-2xl font-bold">
 				if status.SyncInfo != nil && status.SyncInfo.Synced {
-					🟢 Synced
+		            @components.StatusGreenLg("Synced")
+                    <span>&nbsp;Synced</span>
 				} else {
-					🟡 Syncing
+		            @components.StatusOrangeLg("Syncing")
+                    <span>&nbsp;Syncing</span>
 				}
 			</div>
 			<div class="text-sm text-secondary">Sync Status</div>
@@ -116,9 +121,11 @@ templ (p *Pages) OverviewCriticalFragment(status *v1.GetStatusResponse) {
 		<div class="bg-secondary rounded-lg p-4 text-center">
 			<div class="text-2xl font-bold">
 				if status.Ready {
-					✅ Ready
+		            @components.StatusCompleteLg("Ready")
+                    <span>&nbsp;Ready</span>
 				} else {
-					⏳ Not Ready
+		            @components.StatusOrangeLg("Not Ready")
+                    <span>&nbsp;Not Ready</span>
 				}
 			</div>
 			<div class="text-sm text-secondary">Readiness</div>
@@ -135,7 +142,7 @@ templ (p *Pages) OverviewProcessesFragment(status *v1.GetStatusResponse) {
 					<div class="flex items-center justify-between mb-2">
 						<span class="font-medium">ABCI</span>
 						if status.ProcessInfo.Abci != nil {
-							<span>{ getProcessStateIcon(status.ProcessInfo.Abci.GetState()) }</span>
+							@getProcessStateIcon(status.ProcessInfo.Abci.GetState())
 						}
 					</div>
 					if status.ProcessInfo.Abci != nil {
@@ -152,7 +159,7 @@ templ (p *Pages) OverviewProcessesFragment(status *v1.GetStatusResponse) {
 					<div class="flex items-center justify-between mb-2">
 						<span class="font-medium">Registry Bridge</span>
 						if status.ProcessInfo.RegistryBridge != nil {
-							<span>{ getProcessStateIcon(status.ProcessInfo.RegistryBridge.GetState()) }</span>
+							@getProcessStateIcon(status.ProcessInfo.RegistryBridge.GetState())
 						}
 					</div>
 					if status.ProcessInfo.RegistryBridge != nil {
@@ -169,7 +176,7 @@ templ (p *Pages) OverviewProcessesFragment(status *v1.GetStatusResponse) {
 					<div class="flex items-center justify-between mb-2">
 						<span class="font-medium">Echo Server</span>
 						if status.ProcessInfo.EchoServer != nil {
-							<span>{ getProcessStateIcon(status.ProcessInfo.EchoServer.GetState()) }</span>
+							@getProcessStateIcon(status.ProcessInfo.EchoServer.GetState())
 						}
 					</div>
 					if status.ProcessInfo.EchoServer != nil {
@@ -186,7 +193,7 @@ templ (p *Pages) OverviewProcessesFragment(status *v1.GetStatusResponse) {
 					<div class="flex items-center justify-between mb-2">
 						<span class="font-medium">Sync Tasks</span>
 						if status.ProcessInfo.SyncTasks != nil {
-							<span>{ getProcessStateIcon(status.ProcessInfo.SyncTasks.GetState()) }</span>
+							@getProcessStateIcon(status.ProcessInfo.SyncTasks.GetState())
 						}
 					</div>
 					if status.ProcessInfo.SyncTasks != nil {
@@ -203,7 +210,7 @@ templ (p *Pages) OverviewProcessesFragment(status *v1.GetStatusResponse) {
 					<div class="flex items-center justify-between mb-2">
 						<span class="font-medium">Peer Manager</span>
 						if status.ProcessInfo.PeerManager != nil {
-							<span>{ getProcessStateIcon(status.ProcessInfo.PeerManager.GetState()) }</span>
+							@getProcessStateIcon(status.ProcessInfo.PeerManager.GetState())
 						}
 					</div>
 					if status.ProcessInfo.PeerManager != nil {
@@ -220,7 +227,7 @@ templ (p *Pages) OverviewProcessesFragment(status *v1.GetStatusResponse) {
 					<div class="flex items-center justify-between mb-2">
 						<span class="font-medium">Data Companion</span>
 						if status.ProcessInfo.DataCompanion != nil {
-							<span>{ getProcessStateIcon(status.ProcessInfo.DataCompanion.GetState()) }</span>
+							@getProcessStateIcon(status.ProcessInfo.DataCompanion.GetState())
 						}
 					</div>
 					if status.ProcessInfo.DataCompanion != nil {
@@ -237,7 +244,7 @@ templ (p *Pages) OverviewProcessesFragment(status *v1.GetStatusResponse) {
 					<div class="flex items-center justify-between mb-2">
 						<span class="font-medium">State Sync</span>
 						if status.ProcessInfo.StateSync != nil {
-							<span>{ getProcessStateIcon(status.ProcessInfo.StateSync.GetState()) }</span>
+							@getProcessStateIcon(status.ProcessInfo.StateSync.GetState())
 						}
 					</div>
 					if status.ProcessInfo.StateSync != nil {
@@ -254,7 +261,7 @@ templ (p *Pages) OverviewProcessesFragment(status *v1.GetStatusResponse) {
 					<div class="flex items-center justify-between mb-2">
 						<span class="font-medium">Mempool</span>
 						if status.ProcessInfo.MempoolCache != nil {
-							<span>{ getProcessStateIcon(status.ProcessInfo.MempoolCache.GetState()) }</span>
+							@getProcessStateIcon(status.ProcessInfo.MempoolCache.GetState())
 						}
 					</div>
 					if status.ProcessInfo.MempoolCache != nil {
@@ -380,27 +387,35 @@ templ (p *Pages) OverviewNetworkFragment(status *v1.GetStatusResponse) {
 								<td class="px-4 py-2 text-sm">{ peer.NodeType }</td>
 								<td class="px-4 py-2 text-sm">
 									if peer.ConnectrpcHealthy {
-										🟢 Healthy
+                                        @components.StatusGreen("Healthy")
+                                        <span>&nbsp;Healthy</span>
 									} else if peer.ConnectrpcClient {
-										🟡 Connected
+                                        @components.StatusOrange("Connected")
+                                        <span>&nbsp;Connected</span>
 									} else {
-										🔴 Disconnected
+                                        @components.StatusRed("Disconnected")
+                                        <span>&nbsp;Disconnected</span>
 									}
 								</td>
 								<td class="px-4 py-2 text-sm">
 									if peer.CometrpcHealthy {
-										🟢 Healthy
+                                        @components.StatusGreen("Healthy")
+                                        <span>&nbsp;Healthy</span>
 									} else if peer.CometrpcClient {
-										🟡 Connected
+                                        @components.StatusOrange("Connected")
+                                        <span>&nbsp;Connected</span>
 									} else {
-										🔴 Disconnected
+                                        @components.StatusRed("Disconnected")
+                                        <span>&nbsp;Disconnected</span>
 									}
 								</td>
 								<td class="px-4 py-2 text-sm">
 									if peer.P2PConnected {
-										🟢 Connected
+                                        @components.StatusGreen("Connected")
+                                        <span>&nbsp;Connected</span>
 									} else {
-										🔴 Disconnected
+                                        @components.StatusRed("Disconnected")
+                                        <span>&nbsp;Disconnected</span>
 									}
 								</td>
 							</tr>
@@ -492,9 +507,11 @@ templ (p *Pages) OverviewPage(status *v1.GetStatusResponse) {
 						<div class="bg-secondary rounded-lg p-3 text-center">
 							<div class="text-lg font-bold">
 								if status.ProcessInfo != nil && status.ProcessInfo.DataCompanion != nil && status.ProcessInfo.DataCompanion.GetState() == v1.GetStatusResponse_ProcessInfo_PROCESS_STATE_COMPLETED {
-									🟢 Enabled
+		                            @components.StatusGreenLg("Enabled")
+                                    <span>&nbsp;Enabled</span>
 								} else {
-									🔴 Disabled
+		                            @components.StatusRedLg("Disabled")
+                                    <span>&nbsp;Disabled</span>
 								}
 							</div>
 							<div class="text-xs text-secondary">
@@ -514,10 +531,12 @@ templ (p *Pages) OverviewPage(status *v1.GetStatusResponse) {
 								<div class="bg-secondary rounded-lg p-3 text-center">
 									<div class="text-lg font-bold">
 										if status.PruningInfo.Enabled {
-											🟢 Enabled
-										} else {
-											🔴 Disabled
-										}
+                                            @components.StatusGreenLg("Enabled")
+                                            <span>&nbsp;Enabled</span>
+                                        } else {
+                                            @components.StatusRedLg("Disabled")
+                                            <span>&nbsp;Disabled</span>
+                                        }
 									</div>
 								</div>
 								if status.PruningInfo.Enabled {
@@ -542,10 +561,12 @@ templ (p *Pages) OverviewPage(status *v1.GetStatusResponse) {
 							<div class="bg-secondary rounded-lg p-3 text-center mb-3">
 								<div class="text-lg font-bold">
 									if status.SnapshotInfo.Enabled {
-										🟢 Enabled
-									} else {
-										🔴 Disabled
-									}
+                                        @components.StatusGreenLg("Enabled")
+                                        <span>&nbsp;Enabled</span>
+                                    } else {
+                                        @components.StatusRedLg("Disabled")
+                                        <span>&nbsp;Disabled</span>
+                                    }
 								</div>
 								<div class="text-xs text-secondary">Status</div>
 							</div>
