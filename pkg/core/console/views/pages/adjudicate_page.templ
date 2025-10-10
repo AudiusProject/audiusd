@@ -59,15 +59,20 @@ type CopyButtonProps struct {
 func buildProposalSubscription(props *AdjudicatePageView) string {
     return fmt.Sprintf(`We recommend slashing %s $AUDIO from %s, owner of
 %s
+
 for consistently failing to meet SLA.
 
 Proof:
+
+` + "```" + `
 {
   start: %s,
   end: %s,
   missedSLAs: %d,
-  amount: %d,
+  Amount: %d
 }
+` + "```" + `
+
 Signature: %s
 Produced by [%s](%s)
 
@@ -156,7 +161,6 @@ templ staticAdjudicateStyles() {
         }
 
         .slashProposalModalContent {
-            background: #fff;
             padding: 20px;
             margin: 10% auto;
             width: 800px;
@@ -208,6 +212,14 @@ templ staticAdjudicateStyles() {
     </style>
 }
 
+css recommendationBannerClass() {
+    border-color: { templ.SafeCSSProperty(slaRed) };
+    border-style: solid;
+    border-width: 1px;
+    color: { templ.SafeCSSProperty(slaRed) };
+}
+
+
 templ (c *Pages) AdjudicatePageHTML(props *AdjudicatePageView) {
 	@c.layout.SiteFrame() {
         @staticUptimeStyles()
@@ -257,12 +269,12 @@ templ (c *Pages) AdjudicatePageHTML(props *AdjudicatePageView) {
         <input type="text" id="timeRangeQueryStringInput" class="hidden" value={ getTimeRangeQueryString(props.StartTime, props.EndTime) }>
 
         <div class="flex flex-row text-center p-2">
-            <div class="basis-1/2 rounded-md bg-slate-100 py-8 mx-1">
+            <div class="basis-1/2 rounded-md bg-secondary py-8 mx-1">
                 <dt class="text-xl">
                     Proof of Work
                 </dt>
             </div>
-            <div class="basis-1/2 rounded-md bg-slate-100 py-8 mx-1">
+            <div class="basis-1/2 rounded-md bg-secondary py-8 mx-1">
                 <dt class="text-xl">
                     Proof of Storage
                 </dt>
@@ -270,22 +282,22 @@ templ (c *Pages) AdjudicatePageHTML(props *AdjudicatePageView) {
         </div>
 
         <div class="flex flex-row text-center p-2">
-            <div class="basis-1/4 rounded-md bg-slate-100 py-8 mx-1">
+            <div class="basis-1/4 rounded-md bg-secondary py-8 mx-1">
                 <dt class="text-4xl">{ humanize.Comma(int64(props.TotalSlas)) }</dt>
                 <dd class="text-sm">Total SLAs</dd>
             </div>
 
-            <div class={ "basis-1/4 rounded-md bg-slate-100 py-8 mx-1", templ.KV(slaDeadClass(), props.DeadSlas > 0) }>
+            <div class={ "basis-1/4 rounded-md bg-secondary py-8 mx-1", templ.KV(slaDeadClass(), props.DeadSlas > 0) }>
                 <dt class="text-4xl">{ humanize.Comma(int64(props.DeadSlas)) }</dt>
                 <dd class="text-sm">SLAs Missed</dd>
             </div>
 
-            <div class="basis-1/4 rounded-md bg-slate-100 py-8 mx-1">
+            <div class="basis-1/4 rounded-md bg-secondary py-8 mx-1">
                 <dt class="text-4xl">{ humanize.Comma(int64(props.TotalChallenges)) }</dt>
                 <dd class="text-sm">Challenges Received</dd>
             </div>
 
-            <div class={ "basis-1/4 rounded-md bg-slate-100 py-8 mx-1", templ.KV(slaMissClass(), props.FailedChallenges > 0) }>
+            <div class={ "basis-1/4 rounded-md bg-secondary py-8 mx-1", templ.KV(slaMissClass(), props.FailedChallenges > 0) }>
                 <dt class="text-4xl">{ humanize.Comma(int64(props.FailedChallenges)) }</dt>
                 <dd class="text-sm">Challenges Failed</dd>
             </div>
@@ -293,7 +305,7 @@ templ (c *Pages) AdjudicatePageHTML(props *AdjudicatePageView) {
         </div>
 
         <div class="progressRow flex flex-row text-center p-2">
-            <div class="basis-1/2 rounded-md bg-slate-100 py-8 mx-1">
+            <div class="basis-1/2 rounded-md bg-secondary py-8 mx-1">
                 if props.TotalSlas > 0 {
                     @progress.Progress(progress.Props{
                         Value: props.TotalSlas - props.DeadSlas,
@@ -306,7 +318,7 @@ templ (c *Pages) AdjudicatePageHTML(props *AdjudicatePageView) {
                     <dt class="text-4xl">N/A</dt>
                 }
             </div>
-            <div class="basis-1/2 rounded-md bg-slate-100 py-8 mx-1">
+            <div class="basis-1/2 rounded-md bg-secondary py-8 mx-1">
                 if props.TotalChallenges > 0 {
                     @progress.Progress(progress.Props{
                         Value: int(props.TotalChallenges - props.FailedChallenges),
@@ -324,31 +336,33 @@ templ (c *Pages) AdjudicatePageHTML(props *AdjudicatePageView) {
         @adjudicateProposalRecommendation(props.Slash, props.DashboardURL, props.ActiveSlashProposalId)
 
 
-        <table class="bg-slate-50 p-2 rounded validatorReports text-left m-4">
+        <table class="bg-tertiary p-2 rounded validatorReports text-left m-4">
             <colgroup>
                 <col />
-                <col class="bg-white" />
+                <col class="bg-secondary" />
                 <col />
-                <col class="bg-white" />
+                <col class="bg-secondary" />
             </colgroup>
-            <tr>
-                <th>Endpoint</th>
-                <th colspan="2" class="text-center">
-                    Proof of Storage Challenges
-                    <div class="flex flex-row text-left">
-                        <div class="basis-1/2">Received</div>
-                        <div class="basis-1/2">Failed</div>
-                    </div>
-                </th>
-                <th>Proof of Work History</th>
-            </tr>
-            for _, ep := range props.ServiceProvider.Endpoints {
-                @endpointRowReport(ep, props.ServiceProvider.StorageProofRollups[ep.CometAddress])
-            }
+            <tbody class="divide-gray-800">
+                <tr>
+                    <th>Endpoint</th>
+                    <th colspan="2" class="text-center">
+                        Proof of Storage Challenges
+                        <div class="flex flex-row text-left">
+                            <div class="basis-1/2">Received</div>
+                            <div class="basis-1/2">Failed</div>
+                        </div>
+                    </th>
+                    <th>Proof of Work History</th>
+                </tr>
+                for _, ep := range props.ServiceProvider.Endpoints {
+                    @endpointRowReport(ep, props.ServiceProvider.StorageProofRollups[ep.CometAddress])
+                }
+            </tbody>
         </table>
 
         <div id="slashProposalModal" class="slashProposalModal">
-          <div class="slashProposalModalContent">
+          <div class="slashProposalModalContent bg-secondary">
             <span id="closeSlashProposalModal" class="slashProposalModalCloseButton px-3">&times;</span>
             <h2 class="text-lg">Create Slash Proposal for Delinquent Node Operator</h2>
 
@@ -395,7 +409,7 @@ templ (c *Pages) AdjudicatePageHTML(props *AdjudicatePageView) {
             </div>
 
             <div class="p-4 text-right">
-                <a class="text-blue-800 hover:text-blue-600" href={ fmt.Sprintf("%s/#/governance", props.DashboardURL) } target="_blank">
+                <a class="text-blue-400 hover:text-blue-600" href={ fmt.Sprintf("%s/#/governance", props.DashboardURL) } target="_blank">
                     Open Protocol Dashboard
                 </a>
             </div>
@@ -419,7 +433,7 @@ templ endpointRowReport(endpoint *Endpoint, proofRollup *StorageProofRollup) {
         <td class={ templ.KV(slaMissClass(), getFailedChallengesFromProofRollup(proofRollup) > 100) }>
             { fmt.Sprintf("%d", getFailedChallengesFromProofRollup(proofRollup)) }
         </td>
-        <td class="bg-white">
+        <td>
             for _, r := range endpoint.SlaReports {
                 @endpointSlaHistory(r, endpoint.Endpoint)
             }
@@ -428,14 +442,14 @@ templ endpointRowReport(endpoint *Endpoint, proofRollup *StorageProofRollup) {
 }
 
 templ endpointSlaHistory(report *SlaReport, endpoint string) {
-    <li class={ "slaBarMini",  getSlaClassFromStatus(report.Status) }>
+    <li class={ "slaBarMini",  getSlaBarClassFromStatus(report.Status) }>
         <a class="reportLink" href={ templ.URL(fmt.Sprintf("/console/uptime/%d/%s", report.BlockEnd, strippedEndpoint(endpoint))) }></a>
     </li>
 }
 
 templ adjudicateProposalRecommendation(slash SlashRecommendation, dashboardURL string, activeSlashProposalId int64) {
-    if slash.Amount > UnearnedRewardsThreshold {
-        <div class="flex justify-between items-center rounded-md text-lg bg-red-100 text-red-400 m-3 p-1">
+    if true {
+        <div class={ recommendationBannerClass(), "flex justify-between items-center rounded-md text-lg bg-secondary m-3 p-1" }>
             <span>
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-8 p-1 inline">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
@@ -443,11 +457,11 @@ templ adjudicateProposalRecommendation(slash SlashRecommendation, dashboardURL s
                 <span class="align-middle">Node(s) appear to be delinquent. Action is recommended.</span>
             </span>
             if activeSlashProposalId > 0 {
-                <a class="slashBtn rounded-md px-4 py-2 m-1 shadow bg-slate-100" href={ fmt.Sprintf("%s/#/governance/proposal/%d", dashboardURL, activeSlashProposalId) }>
+                <a class="slashBtn rounded-md px-4 py-2 m-1 shadow bg-tertiary" href={ fmt.Sprintf("%s/#/governance/proposal/%d", dashboardURL, activeSlashProposalId) }>
                     Vote on Proposal { fmt.Sprint(activeSlashProposalId) }
                 </a>
             } else {
-                <button id="openSlashProposalModal" class="slashBtn rounded-md px-4 py-2 m-1 shadow bg-slate-100">
+                <button id="openSlashProposalModal" class="slashBtn rounded-md px-4 py-2 m-1 shadow bg-tertiary">
                     Create Proposal
                 </button>
             }
