@@ -67,6 +67,22 @@ func strippedEndpoint(endpoint string) string {
     return res
 }
 
+func getSlaBarClassFromStatus(status SlaStatus) templ.CSSClass {
+    switch status {
+    case SlaDead:
+        return slaBarDeadClass()
+    case SlaPartial:
+        return slaBarPartialClass()
+    case SlaExempt:
+        return slaBarExemptClass()
+    case SlaMet:
+        return slaBarMetClass()
+    default:
+        return templ.Class("")
+    }
+}
+
+
 func getSlaClassFromStatus(status SlaStatus) templ.CSSClass {
     switch status {
     case SlaDead:
@@ -91,6 +107,24 @@ func getPoSSlaClass(report *SlaReport) templ.CSSClass {
 }
 
 
+css slaBarMetClass() {
+}
+
+css slaBarPartialClass() {
+}
+
+css slaBarMissClass() {
+    background-color: { templ.SafeCSSProperty(slaRed) };
+}
+
+css slaBarDeadClass() {
+    background-color: { templ.SafeCSSProperty(slaRed) };
+}
+
+css slaBarExemptClass() {
+    background-color: { templ.SafeCSSProperty(slaExempt) };
+}
+
 css slaMetClass() {
 }
 
@@ -98,11 +132,11 @@ css slaPartialClass() {
 }
 
 css slaMissClass() {
-    background-color: { templ.SafeCSSProperty(slaRed) };
+    color: { templ.SafeCSSProperty(slaRed) };
 }
 
 css slaDeadClass() {
-    background-color: { templ.SafeCSSProperty(slaRed) };
+    color: { templ.SafeCSSProperty(slaRed) };
 }
 
 css slaExemptClass() {
@@ -191,7 +225,7 @@ templ (c *Pages) UptimePageHTML(props *UptimePageView) {
 
             <ul class="m-2">
                 for _, r := range props.ActiveEndpoint.SlaReports {
-                    <li class={ "slaBar", templ.KV("activeSlaBar", props.ActiveEndpoint.ActiveReport.BlockEnd == r.BlockEnd), getSlaClassFromStatus(r.Status) }>
+                    <li class={ "slaBar", templ.KV("activeSlaBar", props.ActiveEndpoint.ActiveReport.BlockEnd == r.BlockEnd), getSlaBarClassFromStatus(r.Status) }>
                         <a class="reportLink" href={ templ.URL(fmt.Sprintf("/console/uptime/%d/%s", r.BlockEnd, strippedEndpoint(props.ActiveEndpoint.Endpoint))) }></a>
                         <span class="slaBarTooltip">{ r.Time.Format("06-01-02 15:04:05 MST") }</span>
                     </li>
@@ -323,7 +357,7 @@ templ validatorRowReport(ep *Endpoint) {
 }
 
 templ validatorMiniHistory(report *SlaReport, endpoint string) {
-    <li class={ "slaBarMini", getSlaClassFromStatus(report.Status) }>
+    <li class={ "slaBarMini", getSlaBarClassFromStatus(report.Status) }>
         <a class="reportLink" href={ templ.URL(fmt.Sprintf("/console/uptime/%d/%s", report.BlockEnd, strippedEndpoint(endpoint))) }></a>
     </li>
 }

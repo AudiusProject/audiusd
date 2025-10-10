@@ -59,15 +59,20 @@ type CopyButtonProps struct {
 func buildProposalSubscription(props *AdjudicatePageView) string {
     return fmt.Sprintf(`We recommend slashing %s $AUDIO from %s, owner of
 %s
+
 for consistently failing to meet SLA.
 
 Proof:
+
+` + "```" + `
 {
   start: %s,
   end: %s,
   missedSLAs: %d,
-  amount: %d,
+  Amount: %d
 }
+` + "```" + `
+
 Signature: %s
 Produced by [%s](%s)
 
@@ -156,7 +161,6 @@ templ staticAdjudicateStyles() {
         }
 
         .slashProposalModalContent {
-            background: #fff;
             padding: 20px;
             margin: 10% auto;
             width: 800px;
@@ -207,6 +211,14 @@ templ staticAdjudicateStyles() {
 
     </style>
 }
+
+css recommendationBannerClass() {
+    border-color: { templ.SafeCSSProperty(slaRed) };
+    border-style: solid;
+    border-width: 1px;
+    color: { templ.SafeCSSProperty(slaRed) };
+}
+
 
 templ (c *Pages) AdjudicatePageHTML(props *AdjudicatePageView) {
 	@c.layout.SiteFrame() {
@@ -350,7 +362,7 @@ templ (c *Pages) AdjudicatePageHTML(props *AdjudicatePageView) {
         </table>
 
         <div id="slashProposalModal" class="slashProposalModal">
-          <div class="slashProposalModalContent">
+          <div class="slashProposalModalContent bg-secondary">
             <span id="closeSlashProposalModal" class="slashProposalModalCloseButton px-3">&times;</span>
             <h2 class="text-lg">Create Slash Proposal for Delinquent Node Operator</h2>
 
@@ -397,7 +409,7 @@ templ (c *Pages) AdjudicatePageHTML(props *AdjudicatePageView) {
             </div>
 
             <div class="p-4 text-right">
-                <a class="text-blue-800 hover:text-blue-600" href={ fmt.Sprintf("%s/#/governance", props.DashboardURL) } target="_blank">
+                <a class="text-blue-400 hover:text-blue-600" href={ fmt.Sprintf("%s/#/governance", props.DashboardURL) } target="_blank">
                     Open Protocol Dashboard
                 </a>
             </div>
@@ -430,14 +442,14 @@ templ endpointRowReport(endpoint *Endpoint, proofRollup *StorageProofRollup) {
 }
 
 templ endpointSlaHistory(report *SlaReport, endpoint string) {
-    <li class={ "slaBarMini",  getSlaClassFromStatus(report.Status) }>
+    <li class={ "slaBarMini",  getSlaBarClassFromStatus(report.Status) }>
         <a class="reportLink" href={ templ.URL(fmt.Sprintf("/console/uptime/%d/%s", report.BlockEnd, strippedEndpoint(endpoint))) }></a>
     </li>
 }
 
 templ adjudicateProposalRecommendation(slash SlashRecommendation, dashboardURL string, activeSlashProposalId int64) {
-    if slash.Amount > UnearnedRewardsThreshold {
-        <div class="flex justify-between items-center rounded-md text-lg bg-red-100 text-red-400 m-3 p-1">
+    if true {
+        <div class={ recommendationBannerClass(), "flex justify-between items-center rounded-md text-lg bg-secondary m-3 p-1" }>
             <span>
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-8 p-1 inline">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
@@ -445,11 +457,11 @@ templ adjudicateProposalRecommendation(slash SlashRecommendation, dashboardURL s
                 <span class="align-middle">Node(s) appear to be delinquent. Action is recommended.</span>
             </span>
             if activeSlashProposalId > 0 {
-                <a class="slashBtn rounded-md px-4 py-2 m-1 shadow bg-secondary" href={ fmt.Sprintf("%s/#/governance/proposal/%d", dashboardURL, activeSlashProposalId) }>
+                <a class="slashBtn rounded-md px-4 py-2 m-1 shadow bg-tertiary" href={ fmt.Sprintf("%s/#/governance/proposal/%d", dashboardURL, activeSlashProposalId) }>
                     Vote on Proposal { fmt.Sprint(activeSlashProposalId) }
                 </a>
             } else {
-                <button id="openSlashProposalModal" class="slashBtn rounded-md px-4 py-2 m-1 shadow bg-secondary">
+                <button id="openSlashProposalModal" class="slashBtn rounded-md px-4 py-2 m-1 shadow bg-tertiary">
                     Create Proposal
                 </button>
             }
