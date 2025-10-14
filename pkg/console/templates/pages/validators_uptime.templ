@@ -86,7 +86,7 @@ func getStatusText(validatorStatus string, report *db.EtlSlaNodeReport, blockQuo
 		statusClass = "bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200"
 	default:
 		statusText = "Unknown"
-		statusClass = "bg-gray-100 dark:bg-gray-600 text-gray-800 dark:text-gray-200"
+		statusClass = "bg-gray-100 dark:bg-[#141414] text-gray-800 dark:text-gray-200"
 	}
 
 	// Then determine SLA status for active validators
@@ -142,7 +142,7 @@ func getValidatorStatusClass(validatorInfo *ValidatorUptimeInfo, rollupData *db.
 	case "misbehavior_deregistered":
 		return "bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200"
 	default:
-		return "bg-gray-100 dark:bg-gray-600 text-gray-800 dark:text-gray-200"
+		return "bg-gray-100 dark:bg-[#141414] text-gray-800 dark:text-gray-200"
 	}
 }
 
@@ -176,7 +176,7 @@ func getSlaStatusClass(validatorInfo *ValidatorUptimeInfo, rollupData *db.EtlSla
 	}
 
 	if len(validatorInfo.RecentRollups) == 0 {
-		return "bg-gray-100 dark:bg-gray-600 text-gray-800 dark:text-gray-200"
+		return "bg-gray-100 dark:bg-[#141414] text-gray-800 dark:text-gray-200"
 	}
 
 	report := validatorInfo.RecentRollups[0]
@@ -244,7 +244,7 @@ func getTotalValidatorsCount(validators []*ValidatorUptimeInfo) int {
 
 templ ValidatorsUptime(props ValidatorsUptimeProps) {
 	@layouts.Base("Validators Uptime") {
-		<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6">
+		<div class="bg-white dark:bg-[#141414] rounded-lg shadow-xl p-6">
 			<div class="flex items-center justify-between mb-6">
 				<div>
 					<h2 class="text-2xl font-light text-gray-900 dark:text-gray-100">Validators Uptime</h2>
@@ -277,7 +277,7 @@ templ ValidatorsUptime(props ValidatorsUptimeProps) {
 
 templ ValidatorsUptimeByRollup(props ValidatorsUptimeByRollupProps) {
 	@layouts.Base(fmt.Sprintf("SLA Rollup #%d Uptime", props.RollupID)) {
-		<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6">
+		<div class="bg-white dark:bg-[#141414] rounded-lg shadow-xl p-6">
 			<div class="flex items-center justify-between mb-6">
 				<div>
 					<h2 class="text-2xl font-light text-gray-900 dark:text-gray-100">SLA Rollup #{ fmt.Sprint(props.RollupID) } Uptime</h2>
@@ -298,7 +298,7 @@ templ ValidatorsUptimeByRollup(props ValidatorsUptimeByRollupProps) {
 
 templ ValidatorsUptimeSummaryForMain(rollupData *db.EtlSlaRollup) {
 	<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-		<div class="bg-slate-100 dark:bg-gray-700 rounded-md p-4 text-center">
+		<div class="bg-slate-100 dark:bg-[#141414] rounded-md p-4 text-center">
 			<dt class="text-lg font-semibold text-gray-900 dark:text-gray-100">
 				if rollupData.CreatedAt.Valid {
 					{ rollupData.CreatedAt.Time.Format("06-01-02") }
@@ -310,7 +310,7 @@ templ ValidatorsUptimeSummaryForMain(rollupData *db.EtlSlaRollup) {
 			</dt>
 			<dd class="text-sm text-gray-500 dark:text-gray-400 mt-1">Latest Rollup Date</dd>
 		</div>
-		<div class="bg-slate-100 dark:bg-gray-700 rounded-md p-4 text-center">
+		<div class="bg-slate-100 dark:bg-[#141414] rounded-md p-4 text-center">
 			<dt class="text-2xl font-bold text-gray-900 dark:text-gray-100">
 				<a href={ templ.SafeURL(fmt.Sprintf("/uptime/%d", rollupData.ID)) } class="text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 hover:underline">
 					{ fmt.Sprintf("#%d", rollupData.ID) }
@@ -318,7 +318,7 @@ templ ValidatorsUptimeSummaryForMain(rollupData *db.EtlSlaRollup) {
 			</dt>
 			<dd class="text-sm text-gray-500 dark:text-gray-400 mt-1">Latest SLA Rollup</dd>
 		</div>
-		<div class="bg-slate-100 dark:bg-gray-700 rounded-md p-4 text-center">
+		<div class="bg-slate-100 dark:bg-[#141414] rounded-md p-4 text-center">
 			<dt class="text-2xl font-bold text-gray-900 dark:text-gray-100">
 				<a href={ templ.SafeURL(fmt.Sprintf("/block/%d", rollupData.BlockStart)) } class="text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 hover:underline">
 					{ fmt.Sprintf("%d", rollupData.BlockStart) }
@@ -330,7 +330,7 @@ templ ValidatorsUptimeSummaryForMain(rollupData *db.EtlSlaRollup) {
 			</dt>
 			<dd class="text-sm text-gray-500 dark:text-gray-400 mt-1">Block Range</dd>
 		</div>
-		<div class="bg-slate-100 dark:bg-gray-700 rounded-md p-4 text-center">
+		<div class="bg-slate-100 dark:bg-[#141414] rounded-md p-4 text-center">
 			<dt class="text-2xl font-bold text-gray-900 dark:text-gray-100">
 				{ fmt.Sprintf("%d", rollupData.ValidatorCount) }
 			</dt>
@@ -339,13 +339,13 @@ templ ValidatorsUptimeSummaryForMain(rollupData *db.EtlSlaRollup) {
 	</div>
 	// Add additional metrics row
 	<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-		<div class="bg-slate-100 dark:bg-gray-700 rounded-md p-4 text-center">
+		<div class="bg-slate-100 dark:bg-[#141414] rounded-md p-4 text-center">
 			<dt class="text-2xl font-bold text-gray-900 dark:text-gray-100">
 				{ fmt.Sprintf("%d", rollupData.BlockQuota) }
 			</dt>
 			<dd class="text-sm text-gray-500 dark:text-gray-400 mt-1">Block Quota</dd>
 		</div>
-		<div class="bg-slate-100 dark:bg-gray-700 rounded-md p-4 text-center">
+		<div class="bg-slate-100 dark:bg-[#141414] rounded-md p-4 text-center">
 			<dt class="text-sm font-mono text-gray-900 dark:text-gray-100 break-all">
 				if rollupData.TxHash != "" {
 					<a href={ templ.SafeURL(fmt.Sprintf("/transaction/%s", rollupData.TxHash)) } class="text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 hover:underline">
@@ -363,7 +363,7 @@ templ ValidatorsUptimeSummaryForMain(rollupData *db.EtlSlaRollup) {
 templ ValidatorsUptimeSummaryForRollup(validators []*ValidatorUptimeInfo, rollupId int32, rollupData *db.EtlSlaRollup) {
 	if rollupData != nil {
 		<div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-			<div class="bg-slate-100 dark:bg-gray-700 rounded-md p-4 text-center">
+			<div class="bg-slate-100 dark:bg-[#141414] rounded-md p-4 text-center">
 				<dt class="text-lg font-semibold text-gray-900 dark:text-gray-100">
 					if rollupData.CreatedAt.Valid {
 						{ rollupData.CreatedAt.Time.Format("06-01-02") }
@@ -375,13 +375,13 @@ templ ValidatorsUptimeSummaryForRollup(validators []*ValidatorUptimeInfo, rollup
 				</dt>
 				<dd class="text-sm text-gray-500 dark:text-gray-400 mt-1">Date Created</dd>
 			</div>
-			<div class="bg-slate-100 dark:bg-gray-700 rounded-md p-4 text-center">
+			<div class="bg-slate-100 dark:bg-[#141414] rounded-md p-4 text-center">
 				<dt class="text-2xl font-bold text-gray-900 dark:text-gray-100">
 					{ fmt.Sprintf("#%d", rollupData.ID) }
 				</dt>
 				<dd class="text-sm text-gray-500 dark:text-gray-400 mt-1">SLA Rollup ID</dd>
 			</div>
-			<div class="bg-slate-100 dark:bg-gray-700 rounded-md p-4 text-center">
+			<div class="bg-slate-100 dark:bg-[#141414] rounded-md p-4 text-center">
 				<dt class="text-2xl font-bold text-gray-900 dark:text-gray-100">
 					<a href={ templ.SafeURL(fmt.Sprintf("/block/%d", rollupData.BlockStart)) } class="text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 hover:underline">
 						{ fmt.Sprintf("%d", rollupData.BlockStart) }
@@ -393,13 +393,13 @@ templ ValidatorsUptimeSummaryForRollup(validators []*ValidatorUptimeInfo, rollup
 				</dt>
 				<dd class="text-sm text-gray-500 dark:text-gray-400 mt-1">Block Range</dd>
 			</div>
-			<div class="bg-slate-100 dark:bg-gray-700 rounded-md p-4 text-center">
+			<div class="bg-slate-100 dark:bg-[#141414] rounded-md p-4 text-center">
 				<dt class="text-2xl font-bold text-gray-900 dark:text-gray-100">
 					{ fmt.Sprintf("%d", rollupData.BlockEnd - rollupData.BlockStart + 1) }
 				</dt>
 				<dd class="text-sm text-gray-500 dark:text-gray-400 mt-1">Total Blocks</dd>
 			</div>
-			<div class="bg-slate-100 dark:bg-gray-700 rounded-md p-4 text-center">
+			<div class="bg-slate-100 dark:bg-[#141414] rounded-md p-4 text-center">
 				<dt class="text-2xl font-bold text-gray-900 dark:text-gray-100">
 					{ fmt.Sprintf("%d", rollupData.ValidatorCount) }
 				</dt>
@@ -408,13 +408,13 @@ templ ValidatorsUptimeSummaryForRollup(validators []*ValidatorUptimeInfo, rollup
 		</div>
 		// Add additional metrics row
 		<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-			<div class="bg-slate-100 dark:bg-gray-700 rounded-md p-4 text-center">
+			<div class="bg-slate-100 dark:bg-[#141414] rounded-md p-4 text-center">
 				<dt class="text-2xl font-bold text-gray-900 dark:text-gray-100">
 					{ fmt.Sprintf("%d", rollupData.BlockQuota) }
 				</dt>
 				<dd class="text-sm text-gray-500 dark:text-gray-400 mt-1">Block Quota</dd>
 			</div>
-			<div class="bg-slate-100 dark:bg-gray-700 rounded-md p-4 text-center">
+			<div class="bg-slate-100 dark:bg-[#141414] rounded-md p-4 text-center">
 				<dt class="text-sm font-mono text-gray-900 dark:text-gray-100 break-all">
 					if rollupData.TxHash != "" {
 						<a href={ templ.SafeURL(fmt.Sprintf("/tx/%s", rollupData.TxHash)) } class="text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 hover:underline">

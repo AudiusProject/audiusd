@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@variant dark (&:is(.dark, .dark *));
+
 /* JSON Syntax Highlighting */
 .json-key {
   @apply text-blue-600 font-semibold;

@@ -44,6 +44,7 @@ type Console struct {
 	latestTrustedBlock atomic.Int64
 	lastRefreshTime    atomic.Int64  // Unix timestamp of last refresh
 	refreshInterval    time.Duration // How often to refresh
+	dashboardCache     *Cache[*pages.DashboardProps]
 }
 
 func NewConsole(etl *etl.ETLService, e *echo.Echo, env string) *Console {
@@ -58,11 +59,11 @@ func NewConsole(etl *etl.ETLService, e *echo.Echo, env string) *Console {
 
 	switch env {
 	case "prod", "production", "mainnet":
-		trustedNodeURL = "rpc.audius.engineering"
+		trustedNodeURL = "creatornode.audius.co"
 	case "staging", "stage", "testnet":
-		trustedNodeURL = "rpc.staging.audius.engineering"
+		trustedNodeURL = "creatornode11.staging.audius.co"
 	case "dev":
-		trustedNodeURL = "rpc.dev.audius.engineering"
+		trustedNodeURL = "node2.oap.devnet"
 	}
 
 	return &Console{
@@ -76,7 +77,10 @@ func NewConsole(etl *etl.ETLService, e *echo.Echo, env string) *Console {
 }
 
 func (con *Console) Initialize() {
-	// start refresher
+	// Initialize dashboard cache with 5 second refresh rate
+	con.dashboardCache = NewCache(con.buildDashboardProps, 5*time.Second, con.logger.Child("dashboard-cache"))
+
+	// Start background refreshers (but not the dashboard cache yet - that needs ETL to be ready)
 	go con.refreshTrustedBlock()
 
 	e := con.e
@@ -153,7 +157,7 @@ func (con *Console) Initialize() {
 }
 
 func (con *Console) Run() error {
-	g, _ := errgroup.WithContext(context.Background())
+	g, ctx := errgroup.WithContext(context.Background())
 
 	g.Go(func() error {
 		info, err := con.trustedNode.Core.GetNodeInfo(context.Background(), &connect.Request[corev1.GetNodeInfoRequest]{})
@@ -186,6 +190,14 @@ func (con *Console) Run() error {
 		if err := con.etl.Run(); err != nil {
 			return err
 		}
+		return nil
+	})
+
+	// Start dashboard cache refresh after ETL is ready
+	g.Go(func() error {
+		// Wait a moment for ETL to initialize
+		time.Sleep(2 * time.Second)
+		con.dashboardCache.StartRefresh(ctx)
 		return nil
 	})
 
@@ -237,9 +249,9 @@ func (con *Console) Hello(c echo.Context) error {
 	return p.Render(ctx, c.Response().Writer)
 }
 
-func (con *Console) Dashboard(c echo.Context) error {
-	ctx := c.Request().Context()
-
+// buildDashboardProps builds the dashboard props by querying the database
+// This is used by the cache to refresh dashboard data periodically
+func (con *Console) buildDashboardProps(ctx context.Context) (*pages.DashboardProps, error) {
 	// Get dashboard transaction stats from materialized view
 	txStats, err := con.etl.GetDB().GetDashboardTransactionStats(ctx)
 	if err != nil {
@@ -271,20 +283,12 @@ func (con *Console) Dashboard(c echo.Context) error {
 	var blockDelta int64
 	syncProgressPercentage := float64(100) // Default to fully synced
 
-	con.logger.Info("Latest block height", "height", latestBlockHeight)
-	con.logger.Info("Trusted block height", "height", trustedBlockHeight)
-
 	if trustedBlockHeight >= 0 && latestBlockHeight >= 0 {
-
 		blockDelta = trustedBlockHeight - latestBlockHeight
 		isSyncing = blockDelta > syncThreshold
 
-		con.logger.Info("Block delta", "delta", blockDelta)
-		con.logger.Info("Is syncing", "isSyncing", isSyncing)
-
 		if isSyncing && trustedBlockHeight > 0 {
 			syncProgressPercentage = (float64(latestBlockHeight) / float64(trustedBlockHeight)) * 100
-			con.logger.Info("Sync progress percentage", "percentage", syncProgressPercentage)
 			// Ensure percentage doesn't exceed 100
 			if syncProgressPercentage > 100 {
 				syncProgressPercentage = 100
@@ -293,7 +297,6 @@ func (con *Console) Dashboard(c echo.Context) error {
 			syncProgressPercentage = 100 // Fully synced
 		}
 	} else {
-		con.logger.Info("No trusted block info, assuming synced")
 		// If we don't have trusted block info, assume synced
 		isSyncing = false
 		blockDelta = 0
@@ -335,7 +338,7 @@ func (con *Console) Dashboard(c echo.Context) error {
 	})
 	if err != nil {
 		con.logger.Warn("Failed to get blocks", "error", err)
-		return c.String(http.StatusInternalServerError, "Failed to get blocks")
+		blocks = []db.EtlBlock{}
 	}
 
 	blockPointers := make([]*db.EtlBlock, len(blocks))
@@ -398,14 +401,11 @@ func (con *Console) Dashboard(c echo.Context) error {
 		slaRollupsData = []db.EtlSlaRollup{}
 	}
 
-	con.logger.Info("SLA rollups data retrieved", "count", len(slaRollupsData))
-
 	// Build SLA performance data points for chart - Initialize as empty slice, not nil
 	slaPerformanceData := make([]*pages.SLAPerformanceDataPoint, 0)
 
 	// Build chart data if we have any rollups
 	if len(slaRollupsData) > 0 {
-		con.logger.Info("Building SLA performance chart data", "rollupCount", len(slaRollupsData))
 
 		// Extract rollup IDs for healthy validators query
 		rollupIDs := make([]int32, len(slaRollupsData))
@@ -432,50 +432,17 @@ func (con *Console) Dashboard(c echo.Context) error {
 
 		// Filter out invalid rollups and build valid data points
 		validDataPoints := make([]*pages.SLAPerformanceDataPoint, 0, len(slaRollupsData))
-		for i, rollup := range slaRollupsData {
-			// Log the first rollup to see what data we're getting
-			if i == 0 {
-				con.logger.Info("First rollup data sample",
-					"id", rollup.ID,
-					"blockHeight", rollup.BlockHeight,
-					"validatorCount", rollup.ValidatorCount,
-					"bps", rollup.Bps,
-					"tps", rollup.Tps,
-					"createdAtValid", rollup.CreatedAt.Valid,
-					"blockStart", rollup.BlockStart,
-					"blockEnd", rollup.BlockEnd)
-			}
-
-			// Comprehensive validation of rollup data
-			if rollup.ID <= 0 {
-				con.logger.Debug("Skipping rollup with invalid ID", "index", i, "rollupId", rollup.ID)
-				continue
-			}
-
-			if !rollup.CreatedAt.Valid {
-				con.logger.Debug("Skipping rollup with invalid timestamp", "rollupId", rollup.ID)
-				continue
-			}
-
-			if rollup.BlockHeight <= 0 {
-				con.logger.Debug("Skipping rollup with invalid block height", "rollupId", rollup.ID, "blockHeight", rollup.BlockHeight)
-				continue
-			}
-
-			if rollup.Bps < 0 || rollup.Tps < 0 {
-				con.logger.Debug("Skipping rollup with invalid performance data", "rollupId", rollup.ID, "bps", rollup.Bps, "tps", rollup.Tps)
-				continue
-			}
-
-			if rollup.BlockStart < 0 || rollup.BlockEnd <= 0 || rollup.BlockStart > rollup.BlockEnd {
-				con.logger.Debug("Skipping rollup with invalid block range", "rollupId", rollup.ID, "start", rollup.BlockStart, "end", rollup.BlockEnd)
+		for _, rollup := range slaRollupsData {
+			// Skip invalid rollups
+			if rollup.ID <= 0 || !rollup.CreatedAt.Valid || rollup.BlockHeight <= 0 ||
+				rollup.Bps < 0 || rollup.Tps < 0 ||
+				rollup.BlockStart < 0 || rollup.BlockEnd <= 0 || rollup.BlockStart > rollup.BlockEnd {
 				continue
 			}
 
 			// Use the validator count from the rollup data itself
 			validatorCount := rollup.ValidatorCount
 			if validatorCount <= 0 {
-				con.logger.Debug("Invalid validator count in rollup, using fallback", "rollupId", rollup.ID, "count", validatorCount)
 				validatorCount = 1 // Minimum of 1 validator
 			}
 
@@ -507,17 +474,8 @@ func (con *Console) Dashboard(c echo.Context) error {
 		// Use the data if we have any valid points after filtering
 		if len(validDataPoints) > 0 {
 			slaPerformanceData = validDataPoints
-			con.logger.Info("Successfully built SLA performance data", "validPoints", len(validDataPoints))
-		} else {
-			con.logger.Warn("No valid rollup data points after filtering", "valid", len(validDataPoints), "total", len(slaRollupsData))
-			// Keep the empty slice - don't set to nil
 		}
-	} else {
-		con.logger.Info("No rollups available for chart", "rollupCount", len(slaRollupsData))
 	}
-
-	// Final debug of what we're passing to template
-	con.logger.Info("Final SLA performance data for template", "dataPoints", len(slaPerformanceData))
 
 	// Convert rollups to pointers for template
 	recentSLARollups := make([]*db.EtlSlaRollup, len(slaRollupsData))
@@ -525,7 +483,7 @@ func (con *Console) Dashboard(c echo.Context) error {
 		recentSLARollups[i] = &slaRollupsData[i]
 	}
 
-	props := pages.DashboardProps{
+	props := &pages.DashboardProps{
 		Stats:                  stats,
 		TransactionBreakdown:   transactionBreakdown,
 		RecentBlocks:           blockPointers,
@@ -536,10 +494,26 @@ func (con *Console) Dashboard(c echo.Context) error {
 		SyncProgressPercentage: syncProgressPercentage,
 	}
 
-	p := pages.Dashboard(props)
+	return props, nil
+}
 
-	// Use context with environment
-	return p.Render(ctx, c.Response().Writer)
+func (con *Console) Dashboard(c echo.Context) error {
+	// Get cached dashboard props
+	props := con.dashboardCache.Get()
+
+	// If cache isn't ready yet, build props on-demand
+	if props == nil {
+		var err error
+		props, err = con.buildDashboardProps(c.Request().Context())
+		if err != nil {
+			con.logger.Error("Failed to build dashboard props", "error", err)
+			return c.String(http.StatusInternalServerError, "Failed to load dashboard")
+		}
+	}
+
+	// Render the dashboard
+	p := pages.Dashboard(*props)
+	return p.Render(c.Request().Context(), c.Response().Writer)
 }
 
 func (con *Console) Validators(c echo.Context) error {
