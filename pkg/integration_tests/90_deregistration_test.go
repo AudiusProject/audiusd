@@ -30,7 +30,7 @@ const (
 type CometRPCResponse struct {
 	Result struct {
 		ValidatorInfo struct {
-			VotingPower int32 `json:"voting_power"`
+			VotingPower int32 `json:"voting_power,string"`
 		} `json:"validator_info"`
 	} `json:"result"`
 }
