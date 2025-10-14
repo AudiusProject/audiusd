@@ -52,6 +52,9 @@ func (c *CoreService) GetNodeInfo(ctx context.Context, req *connect.Request[v1.G
 	if err != nil {
 		return nil, err
 	}
+	if !status.Msg.Ready {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("node is not ready"))
+	}
 
 	res := &v1.GetNodeInfoResponse{
 		Chainid:       c.core.config.GenesisFile.ChainID,
