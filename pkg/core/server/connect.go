@@ -777,10 +777,6 @@ func (c *CoreService) GetStatus(ctx context.Context, _ *connect.Request[v1.GetSt
 		Ready: ready,
 	}
 
-	if !c.IsReady() {
-		return connect.NewResponse(res), nil
-	}
-
 	peerStatuses := c.core.peerStatus.Values()
 	sort.Slice(peerStatuses, func(i, j int) bool {
 		return peerStatuses[i].CometAddress < peerStatuses[j].CometAddress
