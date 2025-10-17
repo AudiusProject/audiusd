@@ -20,6 +20,7 @@ import (
 	storagev1connect "github.com/AudiusProject/audiusd/pkg/api/storage/v1/v1connect"
 	"github.com/AudiusProject/audiusd/pkg/common"
 	"github.com/AudiusProject/audiusd/pkg/mediorum/server/signature"
+	"github.com/AudiusProject/audiusd/pkg/rewards"
 	"github.com/jackc/pgx/v5"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/proto"
@@ -871,48 +872,57 @@ func (c *CoreService) GetRewardAttestation(ctx context.Context, req *connect.Req
 	}
 
 	// Get programmatic reward by deployed address
-	reward, err := c.core.db.GetReward(ctx, rewardAddress)
+	dbReward, err := c.core.db.GetReward(ctx, rewardAddress)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeNotFound, errors.New("programmatic reward not found"))
 	}
 
-	sigData := &v1.RewardAttestationSignature{
-		EthRecipientAddress: req.Msg.EthRecipientAddress,
-		Amount:              req.Msg.Amount,
-		RewardAddress:       req.Msg.RewardAddress,
-		RewardId:            req.Msg.RewardId,
-		Specifier:           req.Msg.Specifier,
-		ClaimAuthority:      req.Msg.ClaimAuthority,
-	}
-
-	signer, err := common.ProtoRecover(sigData, req.Msg.Signature)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("signature recovery failure"))
-	}
-
-	// Verify claim authority is authorized to sign for this reward
-	authorized := false
-	for _, ca := range reward.ClaimAuthorities {
-		if strings.EqualFold(ca, signer) {
-			authorized = true
-			break
+	// Convert DB reward to rewards package format
+	claimAuthorities := make([]rewards.ClaimAuthority, len(dbReward.ClaimAuthorities))
+	for i, ca := range dbReward.ClaimAuthorities {
+		claimAuthorities[i] = rewards.ClaimAuthority{
+			Address: ca,
+			Name:    "", // Name not stored in DB
 		}
 	}
-	if !authorized {
-		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("claim authority not authorized for this programmatic reward"))
+
+	reward := rewards.Reward{
+		ClaimAuthorities: claimAuthorities,
+		Amount:           uint64(dbReward.Amount),
+		RewardId:         dbReward.RewardID,
+		Name:             dbReward.Name,
 	}
 
-	if !strings.EqualFold(req.Msg.GetClaimAuthority(), signer) {
-		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("claim authority and signer mismatch"))
+	// Create claim for validation (without RewardAddress to maintain backward compatibility)
+	claim := rewards.RewardClaim{
+		RecipientEthAddress:       ethRecipientAddress,
+		Amount:                    amount,
+		RewardID:                  req.Msg.RewardId,
+		Specifier:                 specifier,
+		AntiAbuseOracleEthAddress: claimAuthority, // Using claimAuthority as oracle for programmatic rewards
 	}
 
-	attestation, err := common.ProtoSign(c.core.config.EthereumKey, sigData)
+	// Create a temporary RewardAttester for validation
+	attester := rewards.NewRewardAttester(c.core.config.EthereumKey, []rewards.Reward{reward})
+
+	// Validate the claim
+	if err := attester.Validate(claim); err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("claim validation failed: %w", err))
+	}
+
+	// Authenticate the claim using the rewards package logic
+	if err := attester.Authenticate(claim, signature); err != nil {
+		return nil, connect.NewError(connect.CodePermissionDenied, fmt.Errorf("authentication failed: %w", err))
+	}
+
+	// Generate attestation using the rewards package logic
+	_, attestation, err := attester.Attest(claim)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, errors.New("error signing attestation"))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("attestation generation failed: %w", err))
 	}
 
 	res := &v1.GetRewardAttestationResponse{
-		Owner:       c.core.rewards.EthereumAddress,
+		Owner:       attester.EthereumAddress,
 		Attestation: attestation,
 	}
 

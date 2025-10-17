@@ -2,10 +2,13 @@ package rewards
 
 import (
 	"bytes"
+	"crypto/ecdsa"
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"strings"
+
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 type RewardClaim struct {
@@ -53,4 +56,57 @@ func (claim RewardClaim) Compile() ([]byte, error) {
 	attestationBytes := bytes.Join(items, []byte("_"))
 
 	return attestationBytes, nil
+}
+
+// SignClaim is a utility function that compiles and signs a reward claim.
+// This is used by claim authorities to create signatures for reward claims.
+func SignClaim(claim RewardClaim, privateKey *ecdsa.PrivateKey) (string, error) {
+	// Compile the claim data
+	claimData, err := claim.Compile()
+	if err != nil {
+		return "", fmt.Errorf("failed to compile claim: %w", err)
+	}
+
+	// Hash the compiled data
+	hash := crypto.Keccak256(claimData)
+
+	// Sign the hash
+	signatureBytes, err := crypto.Sign(hash, privateKey)
+	if err != nil {
+		return "", fmt.Errorf("failed to sign claim: %w", err)
+	}
+
+	// Return as hex string with 0x prefix
+	return "0x" + hex.EncodeToString(signatureBytes), nil
+}
+
+// VerifyClaim is a utility function that verifies a reward claim signature.
+// It returns the signer's address if the signature is valid.
+func VerifyClaim(claim RewardClaim, signature string) (string, error) {
+	// Compile the claim data
+	claimData, err := claim.Compile()
+	if err != nil {
+		return "", fmt.Errorf("failed to compile claim: %w", err)
+	}
+
+	// Remove 0x prefix if present
+	sigHex := strings.TrimPrefix(signature, "0x")
+	sigBytes, err := hex.DecodeString(sigHex)
+	if err != nil {
+		return "", fmt.Errorf("failed to decode signature: %w", err)
+	}
+
+	// Hash the compiled data
+	hash := crypto.Keccak256(claimData)
+
+	// Recover the public key from the signature
+	pubKey, err := crypto.SigToPub(hash, sigBytes)
+	if err != nil {
+		return "", fmt.Errorf("failed to recover public key: %w", err)
+	}
+
+	// Get the address from the public key
+	address := crypto.PubkeyToAddress(*pubKey).String()
+
+	return address, nil
 }
