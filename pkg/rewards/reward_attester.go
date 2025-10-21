@@ -49,8 +49,6 @@ func (rs *RewardAttester) Validate(claim RewardClaim) error {
 		return fmt.Errorf("amount does not match reward amount")
 	}
 
-	// TODO: Check oracle is registered, maybe validate lengths of inputs?
-
 	return nil
 }
 
