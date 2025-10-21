@@ -895,11 +895,11 @@ func (c *CoreService) GetRewardAttestation(ctx context.Context, req *connect.Req
 
 	// Create claim for validation (without RewardAddress to maintain backward compatibility)
 	claim := rewards.RewardClaim{
-		RecipientEthAddress:       ethRecipientAddress,
-		Amount:                    amount,
-		RewardID:                  req.Msg.RewardId,
-		Specifier:                 specifier,
-		AntiAbuseOracleEthAddress: claimAuthority, // Using claimAuthority as oracle for programmatic rewards
+		RecipientEthAddress: ethRecipientAddress,
+		Amount:              amount,
+		RewardID:            req.Msg.RewardId,
+		Specifier:           specifier,
+		ClaimAuthority:      claimAuthority, // Using claimAuthority as oracle for programmatic rewards
 	}
 
 	// Create a temporary RewardAttester for validation

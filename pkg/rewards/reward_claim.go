@@ -12,12 +12,12 @@ import (
 )
 
 type RewardClaim struct {
-	RecipientEthAddress       string
-	Amount                    uint64
-	RewardID                  string
-	RewardAddress             string // Optional - for programmatic rewards
-	Specifier                 string
-	AntiAbuseOracleEthAddress string
+	RecipientEthAddress string
+	Amount              uint64
+	RewardID            string
+	RewardAddress       string // Optional - for programmatic rewards
+	Specifier           string
+	ClaimAuthority      string
 }
 
 func (claim RewardClaim) Compile() ([]byte, error) {
@@ -45,8 +45,8 @@ func (claim RewardClaim) Compile() ([]byte, error) {
 	items := [][]byte{userBytes, amountBytes, combinedIDBytes}
 
 	// antiAbuseOracleEthAddress is not required for oracle attestations
-	if claim.AntiAbuseOracleEthAddress != "" {
-		oracleBytes, err := hex.DecodeString(strings.TrimPrefix(claim.AntiAbuseOracleEthAddress, "0x"))
+	if claim.ClaimAuthority != "" {
+		oracleBytes, err := hex.DecodeString(strings.TrimPrefix(claim.ClaimAuthority, "0x"))
 		if err != nil {
 			return nil, fmt.Errorf("failed to decode oracle address: %w", err)
 		}

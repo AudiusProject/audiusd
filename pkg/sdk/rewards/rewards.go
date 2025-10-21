@@ -116,11 +116,11 @@ func (r *Rewards) GetRewards(ctx context.Context, claim_authority string) (*v1.G
 func (r *Rewards) GetRewardAttestation(ctx context.Context, req *v1.GetRewardAttestationRequest) (*v1.GetRewardAttestationResponse, error) {
 	// Create a RewardClaim to compile the data in the correct format
 	claim := pkgrewards.RewardClaim{
-		RecipientEthAddress:       req.EthRecipientAddress,
-		Amount:                    req.Amount,
-		RewardID:                  req.RewardId,
-		Specifier:                 req.Specifier,
-		AntiAbuseOracleEthAddress: req.ClaimAuthority, // Use claim authority as oracle
+		RecipientEthAddress: req.EthRecipientAddress,
+		Amount:              req.Amount,
+		RewardID:            req.RewardId,
+		Specifier:           req.Specifier,
+		ClaimAuthority:      req.ClaimAuthority, // Use claim authority as oracle
 	}
 
 	// Use the utility function to sign the claim
