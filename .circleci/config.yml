@@ -139,13 +139,13 @@ jobs:
             AUDIUSD_IMAGE=audius/audiusd:${CIRCLE_SHA1}-test \
             AUDIUSD_TEST_HARNESS_IMAGE=audius/audiusd:${CIRCLE_SHA1}-harness \
             TTY_FLAG="--no-TTY" make test-unit
-      - run:
-          name: Run integration tests
-          command: |
-            AUDIUSD_CI=true \
-            AUDIUSD_IMAGE=audius/audiusd:${CIRCLE_SHA1}-test \
-            AUDIUSD_TEST_HARNESS_IMAGE=audius/audiusd:${CIRCLE_SHA1}-harness \
-            TTY_FLAG="--no-TTY" make test-integration
+      # - run:
+      #     name: Run integration tests
+      #     command: |
+      #       AUDIUSD_CI=true \
+      #       AUDIUSD_IMAGE=audius/audiusd:${CIRCLE_SHA1}-test \
+      #       AUDIUSD_TEST_HARNESS_IMAGE=audius/audiusd:${CIRCLE_SHA1}-harness \
+      #       TTY_FLAG="--no-TTY" make test-integration
       - run:
           when: always
           name: Clean up tests
@@ -265,10 +265,10 @@ workflows:
   audiusd:
     jobs:
       - build-audiusd-bin
-      # - build-and-test-audiusd-amd64:
-      #     context: DockerHub
-      #     requires:
-      #       - build-audiusd-bin
+      - build-and-test-audiusd-amd64:
+          context: DockerHub
+          requires:
+            - build-audiusd-bin
       - build-audiusd-arm64:
           context: DockerHub
           requires:
@@ -280,7 +280,7 @@ workflows:
       - push-audiusd-manifest:
           context: DockerHub
           requires:
-            # - build-and-test-audiusd-amd64
+            - build-and-test-audiusd-amd64
             - build-audiusd-arm64
           filters:
             branches:
