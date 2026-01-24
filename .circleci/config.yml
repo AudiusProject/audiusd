@@ -95,7 +95,7 @@ jobs:
 
   build-and-test-audiusd-amd64:
     machine: true
-    resource_class: audiusproject/gcp-n2-standard-4
+    resource_class: xlarge
     steps:
       - checkout
       - attach_workspace:
