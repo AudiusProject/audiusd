@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/url"
 	"sort"
-	"strings"
 
 	"golang.org/x/exp/slices"
 )
@@ -41,14 +40,8 @@ func (s HostTuples) Less(i, j int) bool {
 }
 
 func NewRendezvousHasher(hosts []string) *RendezvousHasher {
-	deadHosts := "https://content.grassfed.network/"
 	liveHosts := make([]string, 0, len(hosts))
 	for _, h := range hosts {
-		// dead host
-		if strings.Contains(deadHosts, h) {
-			continue
-		}
-
 		// invalid url
 		if _, err := url.Parse(h); err != nil {
 			continue
