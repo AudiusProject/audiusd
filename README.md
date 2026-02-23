@@ -1,3 +1,18 @@
+<!-- 🚨 MOVED NOTICE 🚨 -->
+
+<div align="center">
+
+⚠️ **This project has moved!** ⚠️  
+The *audiusd* code and development have been relocated to a new repository:  
+👉 **https://github.com/openaudio/go-openaudio**
+
+Please update your bookmarks and references — this README has been preserved here for legacy context only.
+
+</div>
+
+---
+
+
 # audiusd
 
 [![license](https://img.shields.io/github/license/AudiusProject/audiusd)](https://github.com/AudiusProject/audiusd/blob/main/LICENSE) [![releases](https://img.shields.io/github/v/release/AudiusProject/audiusd)](https://github.com/AudiusProject/audiusd/releases/latest) 
